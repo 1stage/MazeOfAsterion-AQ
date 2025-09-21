@@ -1,0 +1,39 @@
+Exporting from Ghidra
+- Select ROM range (select memory blocks and right click Select Addresses)
+- File > Export Program (O)
+- Select ASCII format
+- Update path of export and name of File
+- Click Options...
+    - For main ROM
+        - Included Types - deselect all, then select 
+            Comments
+            Undefined Data
+        - Field Widths:
+            Labels 60           Address 0
+            Bytes 0             PreMnemonic 4
+            Mnemonic 12         Operand 80
+            End of Line 80      References 80
+            Data Field Name 0
+        - Special Prefixes:
+            Label Suffix :
+            Comment Prefix ;
+    - For SYSROM, VRAM, RAM, IO, etc...
+        - TBD
+
+===================
+
+Be sure to put the ORG $C000 directive at the top of the ASM file.
+
+===================
+
+Be sure to add the INC files at the top of the ASM file.
+
+===================
+
+To convert all hexadecimal values in the "00h" format to C-style "0x00" using VS Code search and replace:
+
+- Open the search (Ctrl+F) or search and replace (Ctrl+H).
+- Enable "Use Regular Expression" (the .* button).
+- Use this regex for search: \b([0-9A-Fa-f]{2,})h\b
+- Use this for replace: $$$1
+- This will change 12h to 0x12, FFh to 0xFF, etc.

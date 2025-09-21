@@ -1,0 +1,81 @@
+KEY_COMPARE                                     XREF[1]:     FUN_ram_ea96:ec6a(j)  
+        ram:e12c 3a 66 3a        LD         A,(RAM_AE)
+        ram:e12f fe 31           CP         0x31                                             Compare to "1" ???
+        ram:e131 c2 9f ea        JP         NZ,SOUND_DONE
+        ram:e134 21 f6 37        LD         HL,0x37f6
+        ram:e137 7e              LD         A,(HL=>KEY_INPUT_HOLDER)                         A = Key Column 0
+        ram:e138 fe ef           CP         0xef                                             If Key Row = 3 ";"
+        ram:e13a ca 32 ee        JP         Z,DO_GLANCE_RIGHT
+        ram:e13d fe df           CP         0xdf                                             If Key Row = 5 "."
+        ram:e13f ca 18 ee        JP         Z,DO_TURN_RIGHT
+        ram:e142 2c              INC        L
+        ram:e143 7e              LD         A,(HL=>KEY_INPUT_HOLDER+1)                       A = Key Column 1
+        ram:e144 fe ef           CP         0xef                                             If Key Row = 4 "L"
+        ram:e146 ca 9e e1        JP         Z,DO_MOVE_FORWARD
+        ram:e149 fe df           CP         0xdf                                             If Key Row = 5 ","
+        ram:e14b ca d0 e1        JP         Z,DO_JUMP_BACK
+        ram:e14e 2c              INC        L
+        ram:e14f 7e              LD         A,(HL=>DAT_ram_37f8)                             A = Key Column 2
+        ram:e150 fe fb           CP         0xfb                                             If Key Row = 2 "K"
+        ram:e152 ca 9e e1        JP         Z,DO_MOVE_FORWARD
+        ram:e155 fe f7           CP         0xf7                                             If Key Row = 3 "M"
+        ram:e157 ca 00 ee        JP         Z,DO_TURN_LEFT
+        ram:e15a fe ef           CP         0xef                                             If Key Row = 4 "N"
+        ram:e15c ca 5e ee        JP         Z,DO_USE-ATTACK
+        ram:e15f fe df           CP         0xdf                                             If Key Row = 1 "J"
+        ram:e161 ca 48 ee        JP         Z,DO_GLANCE_LEFT
+        ram:e164 2c              INC        L
+        ram:e165 7e              LD         A,(HL=>DAT_ram_37f9)                             A = Key Column 3
+        ram:e166 fe ef           CP         0xef                                             If Key Row = 4 "H"
+        ram:e168 ca db ec        JP         Z,DO_OPEN-CLOSE
+        ram:e16b 2c              INC        L
+        ram:e16c 7e              LD         A,(HL=>DAT_ram_37fa)                             A = Key Column 4
+        ram:e16d fe ef           CP         0xef                                             If Key Row = 4 "C"
+        ram:e16f ca 2b e2        JP         Z,DO_COUNT_ARROWS
+        ram:e172 fe df           CP         0xdf                                             If Key Row = 5 "F"
+        ram:e174 ca 6b fb        JP         Z,DO_REST
+        ram:e177 2c              INC        L
+        ram:e178 7e              LD         A,(HL=>DAT_ram_37fb)                             A = Key Column 5
+        ram:e179 fe f7           CP         0xf7                                             If Key Row = 3 "R"
+        ram:e17b ca 68 ea        JP         Z,DO_SWAP_PACK
+        ram:e17e fe ef           CP         0xef                                             If Key Row = 4 "D"
+        ram:e180 ca a3 f2        JP         Z,DO_USE_LADDER
+        ram:e183 fe df           CP         0xdf                                             If Key Row = 5 "X"
+        ram:e185 ca 14 e2        JP         Z,DO_COUNT_FOOD
+        ram:e188 2c              INC        L
+        ram:e189 7e              LD         A,(HL=>DAT_ram_37fc)                             A = Key Column 6
+        ram:e18a fe fd           CP         0xfd                                             If Key Row = 1 "E"
+        ram:e18c ca cc e6        JP         Z,DO_SWAP_HANDS
+        ram:e18f fe fb           CP         0xfb                                             If Key Row = 2 "S"
+        ram:e191 ca f8 e9        JP         Z,DO_ROTATE_PACK
+        ram:e194 2c              INC        L
+        ram:e195 7e              LD         A,(HL=>DAT_ram_37fd)                             A = Key Column 7
+        ram:e196 fe fd           CP         0xfd                                             If Key Row = 1 "W"
+        ram:e198 ca cc e7        JP         Z,DO_PICK_UP
+        ram:e19b c3 30 e2        JP         SETUP_BLIP_SOUND                                 undefined SETUP_BLIP_SOUND(void)
+                             -- Flow Override: CALL_RETURN (CALL_TERMINATOR)
+                             
+                             
+READ_KEY_03                                     XREF[1]:     ram:ec64(j)  
+        ram:ec5d ed 78           IN         A,(C)=>KEYBOARD
+        ram:ec5f 77              LD         (HL=>KEY_INPUT_HOLDER),A                         = 6060h
+        ram:ec60 2c              INC        L
+        ram:ec61 cb 00           RLC        B
+        ram:ec63 15              DEC        param_1
+        ram:ec64 20 f7           JR         NZ,READ_KEY_03
+        ram:ec66 3a 6c 3a        LD         A,(DISC_INPUT_HOLDER)
+        ram:ec69 a7              AND        A
+        ram:ec6a c2 2c e1        JP         NZ,KEY_COMPARE
+        ram:ec6d 3a 68 3a        LD         A,(RAM_AG)
+        ram:ec70 a7              AND        A
+        ram:ec71 c2 10 e0        JP         NZ,GAMEINIT
+        ram:ec74 3a fc 37        LD         A,(KEY_INPUT_HOLDER)                              = 60h
+        ram:ec77 fe fe           CP         0xfe
+        ram:ec79 28 25           JR         Z,LAB_ram_eca0
+        ram:ec7b fe df           CP         0xdf
+        ram:ec7d 28 13           JR         Z,LAB_ram_ec92
+        ram:ec7f 3a fd 37        LD         A,(DAT_ram_37fd)                                 = 60h
+        ram:ec82 fe fe           CP         0xfe
+        ram:ec84 28 1e           JR         Z,LAB_ram_eca4
+        ram:ec86 fe fb           CP         0xfb
+        ram:ec88 28 1e           JR         Z,LAB_ram_eca8
