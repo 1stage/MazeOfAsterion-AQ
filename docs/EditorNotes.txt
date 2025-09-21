@@ -37,3 +37,9 @@ To convert all hexadecimal values in the "00h" format to C-style "0x00" using VS
 - Use this regex for search: \b([0-9A-Fa-f]{2,})h\b
 - Use this for replace: $$$1
 - This will change 12h to 0x12, FFh to 0xFF, etc.
+
+===================
+
+To find all addresses $c000 to $ffff, RegEx \$[c-fC-F][0-9a-fA-F]{3}
+
+===================

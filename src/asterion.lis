@@ -3502,17 +3502,17 @@ src/asterion.asm:
   3146  16b2  18db                  JR          BLINK_EXIT_ALL
   3147                          DO_OPEN_EYES:
   3148  16b4  11d632                LD          DE,$32d6
-  3149  16b7  21d6da                LD          HL,$dad6
+  3149  16b7  21d6da                LD          HL,$dad6                    ; Pinned to TITLE_SCREEN (0xD800) + 726
   3150  16ba  014400                LD          BC,$44
   3151  16bd  edb0                  LDIR
   3152  16bf  11d636                LD          DE,$36d6
-  3153  16c2  21d6de                LD          HL,$ded6
+  3153  16c2  21d6de                LD          HL,$ded6                    ; Pinned to TITLE_SCREEN (0XD800) + 1750
   3154  16c5  014400                LD          BC,$44
   3155  16c8  edb0                  LDIR
   3156  16ca  c9                    RET
   3157                          DO_CLOSE_EYES:
   3158  16cb  21d632                LD          HL,$32d6
-  3159  16ce  01d0d1                LD          BC,$d1d0
+  3159  16ce  01d0d1                LD          BC,$d1d0                    ; Value, not an address
   3160  16d1  70                    LD          (HL),B
   3161  16d2  23                    INC         HL
   3162  16d3  70                    LD          (HL),B
@@ -3530,7 +3530,7 @@ src/asterion.asm:
   3174  16e3  2b                    DEC         HL
   3175  16e4  71                    LD          (HL),C
   3176  16e5  21d636                LD          HL,$36d6
-  3177  16e8  010ff0                LD          BC,$f00f
+  3177  16e8  010ff0                LD          BC,$f00f                    ; Value, not an address
   3178  16eb  70                    LD          (HL),B
   3179  16ec  23                    INC         HL
   3180  16ed  71                    LD          (HL),C
@@ -4054,11 +4054,11 @@ src/asterion.asm:
   3442  206a  00                    NOP
   3443                          DRAW_TITLE:
   3444  206b  110030                LD          DE,CHRRAM                               ;= $20
-  3445  206e  2100d8                LD          HL,$D800                                ;= $20
+  3445  206e  2100d8                LD          HL,$D800                    ; Pinned to TITLE_SCREEN (0xD800)
   3446  2071  01e803                LD          BC,$3e8
   3447  2074  edb0                  LDIR                                                ;= $20
   3448  2076  110034                LD          DE,COLRAM                               ;= $60
-  3449  2079  2100dc                LD          HL,$DC00                                ;= $70
+  3449  2079  2100dc                LD          HL,$DC00                    ; Pinned to TITLE_SCREEN (0xD800) + 1000
   3450  207c  01e803                LD          BC,$3e8
   3451  207f  edb0                  LDIR                                                ;= $60
   3452                                                                                  ;= $70
@@ -5596,7 +5596,7 @@ src/asterion.asm:
   4984  2a49  215132                LD          HL,CHHRAM_INV_6_IDX                     ;= $20
   4985  2a4c  114c32                LD          DE,DAT_ram_324c                         ;= $20
   4986  2a4f  cd9e29                CALL        SUB_ram_e99e
-  4987  2a52  219fea                LD          HL,$ea9f
+  4987  2a52  219f2a                LD          HL,WAIT_FOR_INPUT                    ; WAIT FOR INPUT label --- UNDO???
   4988  2a55  e5                    PUSH        HL
   4989  2a56  21003a                LD          HL,ITEM_MOVE_CHR_BUFFER
   4990  2a59  115132                LD          DE,CHHRAM_INV_6_IDX                     ;= $20
@@ -5619,7 +5619,7 @@ src/asterion.asm:
   5007  2a7a  21b431                LD          HL,DAT_ram_31b4                         ;= $20
   5008  2a7d  114333                LD          DE,CHRRAM_RIGHT_HD_GFX_IDX              ;= $20
   5009  2a80  cd9e29                CALL        SUB_ram_e99e
-  5010  2a83  219fea                LD          HL,$ea9f
+  5010  2a83  219f2a                LD          HL,WAIT_FOR_INPUT                    ; WAIT FOR INPUT label --- UNDO???
   5011  2a86  e5                    PUSH        HL
   5012  2a87  21003a                LD          HL,ITEM_MOVE_CHR_BUFFER
   5013  2a8a  11b431                LD          DE,DAT_ram_31b4                         ;= $20
@@ -7212,7 +7212,7 @@ src/asterion.asm:
   6599  34e4  05                    DEC         B
   6600  34e5  c9                    RET
   6601                          REDRAW_START:
-  6602  34e6  21a1f7                LD          HL,$f7a1
+  6602  34e6  21a137                LD          HL,CALC_WEST_REDRAW_2                            ; CALC_WEST_REDRAW (0xF79B) + 7... UNDO? was 0xF7A1
   6603  34e9  e5                    PUSH        HL
   6604  34ea  21793a                LD          HL,PLAYER_MAP_POS
   6605  34ed  5e                    LD          E,(HL)
@@ -7309,7 +7309,7 @@ src/asterion.asm:
   6696  3584  cd9b37                CALL        CALC_WEST_REDRAW
   6697  3587  16ff                  LD          D,$ff
   6698  3589  1ef0                  LD          E,$f0
-  6699  358b  ed53603a              LD          (DIR_FACING_FW),DE                      ;DE = $fff0 (WEST)
+  6699  358b  ed53603a              LD          (DIR_FACING_FW),DE                      ;DE = 0xFFF0 (WEST)
   6700  358f  0610                  LD          B,$10                                  ;RED on BLK
   6701  3591  21d831                LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
   6702  3594  119a35                LD          DE,WEST_TXT                             ;= "\a",$FF
@@ -7646,1399 +7646,1400 @@ src/asterion.asm:
   7033  379e  2c                    INC         L
   7034  379f  77                    LD          (HL),A
   7035  37a0  c9                    RET
-  7036  37a1  dd21e837              LD          IX,ITEM_F2                              ;= $60
-  7037  37a5  ed5b603a              LD          DE,(DIR_FACING_FW)
-  7038  37a9  3a793a                LD          A,(PLAYER_MAP_POS)
-  7039  37ac  82                    ADD         A,D
-  7040  37ad  82                    ADD         A,D
-  7041  37ae  cdf337                CALL        ITEM_MAP_CHECK
-  7042  37b1  dd7700                LD          (IX+0),A                     ;= $60
-  7043  37b4  7c                    LD          A,H
-  7044  37b5  92                    SUB         D
-  7045  37b6  cdf337                CALL        ITEM_MAP_CHECK
-  7046  37b9  dd7701                LD          (IX+1),A                     ;= $60
-  7047  37bc  7c                    LD          A,H
-  7048  37bd  92                    SUB         D
-  7049  37be  cdf337                CALL        ITEM_MAP_CHECK
-  7050  37c1  dd7702                LD          (IX+2),A                     ;= $60
-  7051  37c4  7c                    LD          A,H
-  7052  37c5  82                    ADD         A,D
-  7053  37c6  93                    SUB         E
-  7054  37c7  cdf337                CALL        ITEM_MAP_CHECK
-  7055  37ca  dd7703                LD          (IX+3),A                    ;= $60
-  7056  37cd  7c                    LD          A,H
-  7057  37ce  83                    ADD         A,E
-  7058  37cf  83                    ADD         A,E
-  7059  37d0  cdf337                CALL        ITEM_MAP_CHECK
-  7060  37d3  dd7704                LD          (IX+4),A                    ;= $60
-  7061  37d6  7c                    LD          A,H
-  7062  37d7  92                    SUB         D
-  7063  37d8  cdf337                CALL        ITEM_MAP_CHECK
-  7064  37db  dd7705                LD          (IX+5),A                     ;= $60
-  7065  37de  7c                    LD          A,H
-  7066  37df  93                    SUB         E
-  7067  37e0  93                    SUB         E
-  7068  37e1  cdf337                CALL        ITEM_MAP_CHECK
-  7069  37e4  dd7706                LD          (IX+6),A                     ;= $60
-  7070  37e7  7c                    LD          A,H
-  7071  37e8  92                    SUB         D
-  7072  37e9  83                    ADD         A,E
-  7073  37ea  cdf337                CALL        ITEM_MAP_CHECK
-  7074  37ed  dd7707                LD          (IX+7),A                     ;= $60
-  7075                          LAB_ram_f7f0:
-  7076  37f0  3efe                  LD          A,$fe
-  7077  37f2  c9                    RET
-  7078                          ITEM_MAP_CHECK:
-  7079  37f3  67                    LD          H,A
-  7080  37f4  010039                LD          BC,MAP_LADDER_OFFSET
-  7081                          LAB_ram_f7f7:
-  7082  37f7  0a                    LD          A,(BC)
-  7083  37f8  03                    INC         BC
-  7084  37f9  03                    INC         BC
-  7085  37fa  3c                    INC         A
-  7086  37fb  28f3                  JR          Z,LAB_ram_f7f0
-  7087  37fd  3d                    DEC         A
-  7088  37fe  bc                    CP          H
-  7089  37ff  20f6                  JR          NZ,LAB_ram_f7f7
-  7090  3801  0d                    DEC         C
-  7091  3802  0a                    LD          A,(BC)
-  7092  3803  c9                    RET
-  7093                          REDRAW_VIEWPORT:
-  7094  3804  cda011                CALL        DRAW_BKGD
-  7095  3807  01e837                LD          BC,ITEM_F2                              ;BC = ITEM_F2
-  7096  380a  11e833                LD          DE,WALL_F0_STATE                        ;DE = wallAheadTemp
-  7097  380d  1a                    LD          A,(DE)                   ;A = (wallAheadTemp)
-  7098  380e  0f                    RRCA
-  7099  380f  d22538                JP          NC,F0_NO_HD                             ;Jump if no hidden door
-  7100  3812  08                    EX          AF,AF'
-  7101  3813  cdf808                CALL        DRAW_F0_WALL
-  7102  3816  08                    EX          AF,AF'
-  7103  3817  0f                    RRCA
-  7104  3818  d28f39                JP          NC,F0_HD_NO_WALL                        ;Jump if no wall
-  7105  381b  0f                    RRCA
-  7106  381c  d28f39                JP          NC,F0_HD_NO_WALL                        ;Jump if door closed
-  7107                          F0_NO_HD_WALL_OPEN:
-  7108  381f  cd1109                CALL        DRAW_WALL_F0_AND_OPEN_DOOR
-  7109  3822  c38639                JP          LAB_ram_f986
-  7110                          F0_NO_HD:
-  7111  3825  0f                    RRCA
-  7112  3826  d23338                JP          NC,F0_NO_HD_NO_WALL                     ;Jump if no wall
-  7113  3829  0f                    RRCA
-  7114  382a  da1f38                JP          C,F0_NO_HD_WALL_OPEN                    ;Jump if door open
-  7115  382d  cd0309                CALL        DRAW_F0_WALL_AND_CLOSED_DOOR
-  7116  3830  c38f39                JP          F0_HD_NO_WALL
-  7117                          F0_NO_HD_NO_WALL:
-  7118  3833  13                    INC         DE
-  7119  3834  1a                    LD          A,(DE)                   ;= $20
-  7120  3835  0f                    RRCA
-  7121  3836  d24c38                JP          NC,F1_NO_HD                             ;Jump if no hidden door
-  7122  3839  08                    EX          AF,AF'
-  7123  383a  cd1809                CALL        DRAW_WALL_F1
-  7124  383d  08                    EX          AF,AF'
-  7125  383e  0f                    RRCA
-  7126  383f  d2c038                JP          NC,F1_HD_NO_WALL                        ;Jump if no wall
-  7127  3842  0f                    RRCA
-  7128  3843  d2c038                JP          NC,F1_HD_NO_WALL                        ;Jump if door closed
-  7129                          F1_NO_HD_WALL_OPEN:
-  7130  3846  cd3b09                CALL        DRAW_WALL_F1_AND_OPEN_DOOR
-  7131  3849  c3b738                JP          LAB_ram_f8b7
-  7132                          F1_NO_HD:
-  7133  384c  0f                    RRCA
-  7134  384d  d25a38                JP          NC,LAB_ram_f85a
-  7135  3850  0f                    RRCA
-  7136  3851  da4638                JP          C,F1_NO_HD_WALL_OPEN
-  7137  3854  cd2d09                CALL        DRAW_WALL_F1_AND_CLOSED_DOOR
-  7138  3857  c3c038                JP          F1_HD_NO_WALL
-  7139                          LAB_ram_f85a:
-  7140  385a  13                    INC         DE
-  7141  385b  1a                    LD          A,(DE)                   ;= $20
-  7142  385c  0f                    RRCA
-  7143  385d  d26638                JP          NC,CHECK_WALL_F2
-  7144                          F2_WALL:
-  7145  3860  cd4209                CALL        DRAW_WALL_F2
-  7146  3863  c36d38                JP          LAB_ram_f86d
-  7147                          CHECK_WALL_F2:
-  7148  3866  0f                    RRCA
-  7149  3867  da6038                JP          C,F2_WALL
-  7150  386a  cd4d09                CALL        DRAW_DOOR_F2_OPEN
-  7151                          LAB_ram_f86d:
-  7152  386d  11eb33                LD          DE,WALL_F3_STATE                        ;= $20
-  7153  3870  1a                    LD          A,(DE)                   ;= $20
-  7154  3871  0f                    RRCA
-  7155  3872  d27b38                JP          NC,LAB_ram_f87b
-  7156                          LAB_ram_f875:
-  7157  3875  cdee0a                CALL        DRAW_WALL_FL2_EMPTY
-  7158  3878  c39238                JP          LAB_ram_f892
-  7159                          LAB_ram_f87b:
-  7160  387b  0f                    RRCA
-  7161  387c  da7538                JP          C,LAB_ram_f875
-  7162  387f  13                    INC         DE
-  7163  3880  1a                    LD          A,(DE)                    ;= $20
-  7164  3881  0f                    RRCA
-  7165  3882  d28b38                JP          NC,LAB_ram_f88b
-  7166                          LAB_ram_f885:
-  7167  3885  cd390b                CALL        DRAW_WALL_L2_C
-  7168  3888  c39238                JP          LAB_ram_f892
-  7169                          LAB_ram_f88b:
-  7170  388b  0f                    RRCA
-  7171  388c  da8538                JP          C,LAB_ram_f885
-  7172  388f  cd440b                CALL        DRAW_WALL_L2_C_EMPTY
-  7173                          LAB_ram_f892:
-  7174  3892  11ed33                LD          DE,DAT_ram_33ed                         ;= $20
-  7175  3895  1a                    LD          A,(DE)                    ;= $20
-  7176  3896  0f                    RRCA
-  7177  3897  d2a038                JP          NC,LAB_ram_f8a0
-  7178                          LAB_ram_f89a:
-  7179  389a  cde30c                CALL        DRAW_WALL_FR2
-  7180  389d  c3b738                JP          LAB_ram_f8b7
-  7181                          LAB_ram_f8a0:
-  7182  38a0  0f                    RRCA
-  7183  38a1  da9a38                JP          C,LAB_ram_f89a
-  7184  38a4  13                    INC         DE
-  7185  38a5  1a                    LD          A,(DE)                    ;= $20
-  7186  38a6  0f                    RRCA
-  7187  38a7  d2b038                JP          NC,LAB_ram_f8b0
-  7188                          LAB_ram_f8aa:
-  7189  38aa  cd210d                CALL        SUB_ram_cd21
-  7190  38ad  c3b738                JP          LAB_ram_f8b7
-  7191                          LAB_ram_f8b0:
-  7192  38b0  0f                    RRCA
-  7193  38b1  daaa38                JP          C,LAB_ram_f8aa
-  7194  38b4  cd2c0d                CALL        SUB_ram_cd2c
-  7195                          LAB_ram_f8b7:
-  7196  38b7  3ae837                LD          A,(ITEM_F2)                             ;= $60
-  7197  38ba  018a04                LD          BC,$48a
-  7198  38bd  cdac2c                CALL        CHK_ITEM
-  7199                          F1_HD_NO_WALL:
-  7200  38c0  11ef33                LD          DE,DAT_ram_33ef                         ;= $20
-  7201  38c3  1a                    LD          A,(DE)                    ;= $20
-  7202  38c4  0f                    RRCA
-  7203  38c5  d2db38                JP          NC,LAB_ram_f8db
-  7204  38c8  08                    EX          AF,AF'
-  7205  38c9  cd400a                CALL        DRAW_L1_WALL
-  7206  38cc  08                    EX          AF,AF'
-  7207  38cd  0f                    RRCA
-  7208  38ce  d22339                JP          NC,LAB_ram_f923
-  7209  38d1  0f                    RRCA
-  7210  38d2  d22339                JP          NC,LAB_ram_f923
-  7211                          LAB_ram_f8d5:
-  7212  38d5  cd830a                CALL        DRAW_FL1_DOOR
-  7213  38d8  c32339                JP          LAB_ram_f923
-  7214                          LAB_ram_f8db:
-  7215  38db  0f                    RRCA
-  7216  38dc  d2e938                JP          NC,LAB_ram_f8e9
-  7217  38df  0f                    RRCA
-  7218  38e0  dad538                JP          C,LAB_ram_f8d5
-  7219  38e3  cd900a                CALL        DRAW_L1
-  7220  38e6  c32339                JP          LAB_ram_f923
-  7221                          LAB_ram_f8e9:
-  7222  38e9  1c                    INC         E
-  7223  38ea  1a                    LD          A,(DE)                    ;= $20
-  7224  38eb  0f                    RRCA
-  7225  38ec  d20239                JP          NC,LAB_ram_f902
-  7226  38ef  08                    EX          AF,AF'
-  7227  38f0  cdb00a                CALL        SUB_ram_cab0
-  7228  38f3  08                    EX          AF,AF'
-  7229  38f4  0f                    RRCA
-  7230  38f5  d22339                JP          NC,LAB_ram_f923
-  7231  38f8  0f                    RRCA
-  7232  38f9  d22339                JP          NC,LAB_ram_f923
-  7233                          LAB_ram_f8fc:
-  7234  38fc  cdc50a                CALL        SUB_ram_cac5
-  7235  38ff  c32339                JP          LAB_ram_f923
-  7236                          LAB_ram_f902:
-  7237  3902  0f                    RRCA
-  7238  3903  d21039                JP          NC,LAB_ram_f910
-  7239  3906  0f                    RRCA
-  7240  3907  dafc38                JP          C,LAB_ram_f8fc
-  7241  390a  cdcb0a                CALL        DRAW_L1_DOOR_CLOSED
-  7242  390d  c32339                JP          LAB_ram_f923
-  7243                          LAB_ram_f910:
-  7244  3910  1c                    INC         E
-  7245  3911  1a                    LD          A,(DE)                    ;= $20
-  7246  3912  0f                    RRCA
-  7247  3913  d21c39                JP          NC,LAB_ram_f91c
-  7248                          LAB_ram_f916:
-  7249  3916  cdbb17                CALL        DRAW_WALL_FL2_NEW
-  7250  3919  c32339                JP          LAB_ram_f923
-  7251                          LAB_ram_f91c:
-  7252  391c  0f                    RRCA
-  7253  391d  da1639                JP          C,LAB_ram_f916
-  7254  3920  cdee0a                CALL        DRAW_WALL_FL2_EMPTY
-  7255                          LAB_ram_f923:
-  7256  3923  11f233                LD          DE,DAT_ram_33f2                         ;= $20
-  7257  3926  1a                    LD          A,(DE)                    ;= $20
-  7258  3927  0f                    RRCA
-  7259  3928  d23e39                JP          NC,LAB_ram_f93e
-  7260  392b  08                    EX          AF,AF'
-  7261  392c  cd2b0c                CALL        DRAW_WALL_FR1
-  7262  392f  08                    EX          AF,AF'
-  7263  3930  0f                    RRCA
-  7264  3931  d28639                JP          NC,LAB_ram_f986
-  7265  3934  0f                    RRCA
-  7266  3935  d28639                JP          NC,LAB_ram_f986
-  7267                          LAB_ram_f938:
-  7268  3938  cd6d0c                CALL        SUB_ram_cc6d
-  7269  393b  c38639                JP          LAB_ram_f986
-  7270                          LAB_ram_f93e:
-  7271  393e  0f                    RRCA
-  7272  393f  d24c39                JP          NC,LAB_ram_f94c
-  7273  3942  0f                    RRCA
-  7274  3943  da3839                JP          C,LAB_ram_f938
-  7275  3946  cd7a0c                CALL        SUB_ram_cc7a
-  7276  3949  c38639                JP          LAB_ram_f986
-  7277                          LAB_ram_f94c:
-  7278  394c  1c                    INC         E
-  7279  394d  1a                    LD          A,(DE)                    ;= $20
-  7280  394e  0f                    RRCA
-  7281  394f  d26539                JP          NC,LAB_ram_f965
-  7282  3952  08                    EX          AF,AF'
-  7283  3953  cd9a0c                CALL        SUB_ram_cc9a
-  7284  3956  08                    EX          AF,AF'
-  7285  3957  0f                    RRCA
-  7286  3958  d28639                JP          NC,LAB_ram_f986
-  7287  395b  0f                    RRCA
-  7288  395c  d28639                JP          NC,LAB_ram_f986
-  7289                          LAB_ram_f95f:
-  7290  395f  cdaf0c                CALL        SUB_ram_ccaf
-  7291  3962  c38639                JP          LAB_ram_f986
-  7292                          LAB_ram_f965:
-  7293  3965  0f                    RRCA
-  7294  3966  d27339                JP          NC,LAB_ram_f973
-  7295  3969  0f                    RRCA
-  7296  396a  da5f39                JP          C,LAB_ram_f95f
-  7297  396d  cdb50c                CALL        SUB_ram_ccb5
-  7298  3970  c38639                JP          LAB_ram_f986
-  7299                          LAB_ram_f973:
-  7300  3973  1c                    INC         E
-  7301  3974  1a                    LD          A,(DE)                    ;= $20
-  7302  3975  0f                    RRCA
-  7303  3976  d27f39                JP          NC,LAB_ram_f97f
-  7304                          LAB_ram_f979:
-  7305  3979  cdc30c                CALL        SUB_ram_ccc3
-  7306  397c  c38639                JP          LAB_ram_f986
-  7307                          LAB_ram_f97f:
-  7308  397f  0f                    RRCA
-  7309  3980  da7939                JP          C,LAB_ram_f979
-  7310  3983  cdd80c                CALL        DRAW_WALL_FR2_EMPTY
-  7311                          LAB_ram_f986:
-  7312  3986  3ae937                LD          A,(ITEM_F1)                             ;= $60
-  7313  3989  018a02                LD          BC,$28a
-  7314  398c  cdac2c                CALL        CHK_ITEM
-  7315                          F0_HD_NO_WALL:
-  7316  398f  11f533                LD          DE,DAT_ram_33f5                         ;= $20
-  7317  3992  1a                    LD          A,(DE)                    ;= $20
-  7318  3993  0f                    RRCA
-  7319  3994  d2aa39                JP          NC,LAB_ram_f9aa
-  7320  3997  08                    EX          AF,AF'
-  7321  3998  cd5809                CALL        DRAW_WALL_FL0
-  7322  399b  08                    EX          AF,AF'
-  7323  399c  0f                    RRCA
-  7324  399d  d2193a                JP          NC,LAB_ram_fa19
-  7325  39a0  0f                    RRCA
-  7326  39a1  d2193a                JP          NC,LAB_ram_fa19
-  7327                          LAB_ram_f9a4:
-  7328  39a4  cd8c09                CALL        DRAW_DOOR_FLO
-  7329  39a7  c3193a                JP          LAB_ram_fa19
-  7330                          LAB_ram_f9aa:
-  7331  39aa  0f                    RRCA
-  7332  39ab  d2b839                JP          NC,LAB_ram_f9b8
-  7333  39ae  0f                    RRCA
-  7334  39af  daa439                JP          C,LAB_ram_f9a4
-  7335  39b2  cd9609                CALL        SUB_ram_c996
-  7336  39b5  c3193a                JP          LAB_ram_fa19
-  7337                          LAB_ram_f9b8:
-  7338  39b8  1c                    INC         E
-  7339  39b9  1a                    LD          A,(DE)                    ;= $20
-  7340  39ba  0f                    RRCA
-  7341  39bb  d2c439                JP          NC,LAB_ram_f9c4
-  7342                          LAB_ram_f9be:
-  7343  39be  cdc509                CALL        SUB_ram_c9c5
-  7344  39c1  c3193a                JP          LAB_ram_fa19
-  7345                          LAB_ram_f9c4:
-  7346  39c4  0f                    RRCA
-  7347  39c5  dabe39                JP          C,LAB_ram_f9be
-  7348  39c8  1c                    INC         E
-  7349  39c9  1a                    LD          A,(DE)                    ;= $20
-  7350  39ca  0f                    RRCA
-  7351  39cb  d2f039                JP          NC,LAB_ram_f9f0
-  7352  39ce  08                    EX          AF,AF'
-  7353  39cf  cdd009                CALL        SUB_ram_c9d0
-  7354  39d2  cde739                CALL        SUB_ram_f9e7
-  7355  39d5  08                    EX          AF,AF'
-  7356  39d6  0f                    RRCA
-  7357  39d7  d2193a                JP          NC,LAB_ram_fa19
-  7358  39da  0f                    RRCA
-  7359  39db  d2193a                JP          NC,LAB_ram_fa19
-  7360                          LAB_ram_f9de:
-  7361  39de  cdf309                CALL        SUB_ram_c9f3
-  7362  39e1  cde739                CALL        SUB_ram_f9e7
-  7363  39e4  c3193a                JP          LAB_ram_fa19
-  7364                          SUB_ram_f9e7:
-  7365  39e7  3aeb37                LD          A,(ITEM_FL1)                            ;= $60
-  7366  39ea  01d004                LD          BC,$4d0
-  7367  39ed  c3ac2c                JP          CHK_ITEM
-  7368                          LAB_ram_f9f0:
-  7369  39f0  0f                    RRCA
-  7370  39f1  d2013a                JP          NC,LAB_ram_fa01
-  7371  39f4  0f                    RRCA
-  7372  39f5  dade39                JP          C,LAB_ram_f9de
-  7373  39f8  cde509                CALL        SUB_ram_c9e5
-  7374  39fb  cde739                CALL        SUB_ram_f9e7
-  7375  39fe  c3193a                JP          LAB_ram_fa19
-  7376                          LAB_ram_fa01:
-  7377  3a01  1c                    INC         E
-  7378  3a02  0f                    RRCA
-  7379  3a03  d20f3a                JP          NC,LAB_ram_fa0f
-  7380                          LAB_ram_fa06:
-  7381  3a06  cdf909                CALL        SUB_ram_c9f9
-  7382  3a09  cde739                CALL        SUB_ram_f9e7
-  7383  3a0c  c3193a                JP          LAB_ram_fa19
-  7384                          LAB_ram_fa0f:
-  7385  3a0f  0f                    RRCA
-  7386  3a10  da063a                JP          C,LAB_ram_fa06
-  7387  3a13  cda517                CALL        DRAW_WALL_FL22_EMPTY
-  7388  3a16  cde739                CALL        SUB_ram_f9e7
-  7389                          LAB_ram_fa19:
-  7390  3a19  11f933                LD          DE,DAT_ram_33f9                         ;= $20
-  7391  3a1c  1a                    LD          A,(DE)                    ;= $20
-  7392  3a1d  0f                    RRCA
-  7393  3a1e  d2343a                JP          NC,LAB_ram_fa34
-  7394  3a21  08                    EX          AF,AF'
-  7395  3a22  cd4f0b                CALL        SUB_ram_cb4f
-  7396  3a25  08                    EX          AF,AF'
-  7397  3a26  0f                    RRCA
-  7398  3a27  d2a33a                JP          NC,LAB_ram_faa3
-  7399  3a2a  0f                    RRCA
-  7400  3a2b  d2a33a                JP          NC,LAB_ram_faa3
-  7401                          LAB_ram_fa2e:
-  7402  3a2e  cd740b                CALL        DRAW_FRO_DOOR
-  7403  3a31  c3a33a                JP          LAB_ram_faa3
-  7404                          LAB_ram_fa34:
-  7405  3a34  0f                    RRCA
-  7406  3a35  d2423a                JP          NC,LAB_ram_fa42
-  7407  3a38  0f                    RRCA
-  7408  3a39  da2e3a                JP          C,LAB_ram_fa2e
-  7409  3a3c  cd7e0b                CALL        SUB_ram_cb7e
-  7410  3a3f  c3a33a                JP          LAB_ram_faa3
-  7411                          LAB_ram_fa42:
-  7412  3a42  1c                    INC         E
-  7413  3a43  1a                    LD          A,(DE)                    ;= $20
-  7414  3a44  0f                    RRCA
-  7415  3a45  d2573a                JP          NC,LAB_ram_fa57
-  7416                          LAB_ram_fa48:
-  7417  3a48  cdae0b                CALL        SUB_ram_cbae
-  7418  3a4b  c3a33a                JP          LAB_ram_faa3
-  7419                          SUB_ram_fa4e:
-  7420  3a4e  3aec37                LD          A,(ITEM_FR1)                            ;= $60
-  7421  3a51  01e404                LD          BC,$4e4
-  7422  3a54  c3ac2c                JP          CHK_ITEM
-  7423                          LAB_ram_fa57:
-  7424  3a57  0f                    RRCA
-  7425  3a58  da483a                JP          C,LAB_ram_fa48
-  7426  3a5b  1c                    INC         E
-  7427  3a5c  1a                    LD          A,(DE)                    ;= $20
-  7428  3a5d  0f                    RRCA
-  7429  3a5e  d27a3a                JP          NC,LAB_ram_fa7a
-  7430  3a61  08                    EX          AF,AF'
-  7431  3a62  cdb90b                CALL        SUB_ram_cbb9
-  7432  3a65  cd4e3a                CALL        SUB_ram_fa4e
-  7433  3a68  08                    EX          AF,AF'
-  7434  3a69  0f                    RRCA
-  7435  3a6a  d2a33a                JP          NC,LAB_ram_faa3
-  7436  3a6d  0f                    RRCA
-  7437  3a6e  d2a33a                JP          NC,LAB_ram_faa3
-  7438                          LAB_ram_fa71:
-  7439  3a71  cdce0b                CALL        SUB_ram_cbce
-  7440  3a74  cd4e3a                CALL        SUB_ram_fa4e
-  7441  3a77  c3a33a                JP          LAB_ram_faa3
-  7442                          LAB_ram_fa7a:
-  7443  3a7a  0f                    RRCA
-  7444  3a7b  d28b3a                JP          NC,LAB_ram_fa8b
-  7445  3a7e  0f                    RRCA
-  7446  3a7f  da713a                JP          C,LAB_ram_fa71
-  7447  3a82  cdd40b                CALL        SUB_ram_cbd4
-  7448  3a85  cd4e3a                CALL        SUB_ram_fa4e
-  7449  3a88  c3a33a                JP          LAB_ram_faa3
-  7450                          LAB_ram_fa8b:
-  7451  3a8b  1c                    INC         E
-  7452  3a8c  0f                    RRCA
-  7453  3a8d  d2993a                JP          NC,LAB_ram_fa99
-  7454                          LAB_ram_fa90:
-  7455  3a90  cde20b                CALL        SUB_ram_cbe2
-  7456  3a93  cd4e3a                CALL        SUB_ram_fa4e
-  7457  3a96  c3a33a                JP          LAB_ram_faa3
-  7458                          LAB_ram_fa99:
-  7459  3a99  0f                    RRCA
-  7460  3a9a  da903a                JP          C,LAB_ram_fa90
-  7461  3a9d  cd200c                CALL        DRAW_WALL_FR222_EMPTY
-  7462  3aa0  cd4e3a                CALL        SUB_ram_fa4e
-  7463                          LAB_ram_faa3:
-  7464  3aa3  3aea37                LD          A,(ITEM_F0)                             ;= $60
-  7465  3aa6  018a00                LD          BC,$8a
-  7466  3aa9  c3ac2c                JP          CHK_ITEM
-  7467                          MAKE_RANDOM_BYTE:
-  7468  3aac  c5                    PUSH        BC
-  7469  3aad  e5                    PUSH        HL
-  7470  3aae  0605                  LD          B,0x5                                   ;Run data randomizer 5x
-  7471  3ab0  2a913a                LD          HL,(RNDHOLD_AA)
-  7472                          RANDOM_BYTE_LOOP:
-  7473  3ab3  cb25                  SLA         L                                       ;L x 2
-  7474  3ab5  cb14                  RL          H
-  7475  3ab7  3808                  JR          C,FINISH_BYTE_LOOP
-  7476  3ab9  3e87                  LD          A,$87
-  7477  3abb  ad                    XOR         L
-  7478  3abc  6f                    LD          L,A
-  7479  3abd  3e1d                  LD          A,$1d
-  7480  3abf  ac                    XOR         H
-  7481  3ac0  67                    LD          H,A
-  7482                          FINISH_BYTE_LOOP:
-  7483  3ac1  10f0                  DJNZ        RANDOM_BYTE_LOOP
-  7484  3ac3  22913a                LD          (RNDHOLD_AA),HL
-  7485  3ac6  7c                    LD          A,H
-  7486  3ac7  e1                    POP         HL
-  7487  3ac8  c1                    POP         BC
-  7488  3ac9  c9                    RET
-  7489                          UPDATE_SCR_SAVER_TIMER:
-  7490  3aca  c5                    PUSH        BC
-  7491  3acb  e5                    PUSH        HL
-  7492  3acc  2a9c3a                LD          HL,(TIMER_E)
-  7493  3acf  44                    LD          B,H
-  7494  3ad0  4d                    LD          C,L
-  7495  3ad1  cb21                  SLA         C
-  7496  3ad3  cb10                  RL          B
-  7497  3ad5  cb21                  SLA         C
-  7498  3ad7  cb10                  RL          B
-  7499  3ad9  09                    ADD         HL,BC
-  7500  3ada  7c                    LD          A,H
-  7501  3adb  ad                    XOR         L
-  7502  3adc  32883a                LD          (TIMER_D),A
-  7503  3adf  44                    LD          B,H
-  7504  3ae0  4d                    LD          C,L
-  7505  3ae1  cb21                  SLA         C
-  7506  3ae3  cb10                  RL          B
-  7507  3ae5  cb21                  SLA         C
-  7508  3ae7  cb10                  RL          B
-  7509  3ae9  09                    ADD         HL,BC
-  7510  3aea  011300                LD          BC,$13
-  7511  3aed  09                    ADD         HL,BC
-  7512  3aee  229c3a                LD          (TIMER_E),HL
-  7513  3af1  e1                    POP         HL
-  7514  3af2  c1                    POP         BC
-  7515  3af3  c9                    RET
-  7516                          MINOTAUR_DEAD:
-  7517  3af4  cda011                CALL        DRAW_BKGD
-  7518  3af7  215030                LD          HL,DAT_ram_3050                         ;= $20
-  7519  3afa  115b11                LD          DE,THE_END_PART_A                       ;WAS LD DE, $c25d
-  7520  3afd  0610                  LD          B,$10                                  ;RED on BLK
-  7521  3aff  cd3533                CALL        GFX_DRAW
-  7522  3b02  21a030                LD          HL,DAT_ram_30a0                         ;= $20
-  7523  3b05  cd3533                CALL        GFX_DRAW
-  7524  3b08  cdac3a                CALL        MAKE_RANDOM_BYTE
-  7525  3b0b  e603                  AND         0x3
-  7526  3b0d  c60a                  ADD         A,0xa
-  7527  3b0f  47                    LD          B,A
-  7528  3b10  00                    db          $00
-  7529  3b11  00                    db          $00
-  7530  3b12  00                    db          $00
-  7531  3b13  00                    db          $00
-  7532  3b14  00                    db          $00
-  7533  3b15  00                    db          $00
-  7534  3b16  00                    db          $00
-  7535  3b17  00                    db          $00
-  7536  3b18  00                    db          $00
-  7537  3b19  3a6c3a                LD          A,(INPUT_HOLDER)
-  7538  3b1c  07                    RLCA
-  7539  3b1d  07                    RLCA
-  7540  3b1e  07                    RLCA
-  7541  3b1f  07                    RLCA
-  7542  3b20  47                    LD          B,A
-  7543  3b21  af                    XOR         A
-  7544  3b22  326c3a                LD          (INPUT_HOLDER),A
-  7545  3b25  11ff05                LD          DE,MINOTAUR                             ;= $04,$04,$04,$04
-  7546  3b28  21da32                LD          HL,DAT_ram_32da                         ;= $20
-  7547  3b2b  cd3533                CALL        GFX_DRAW
-  7548  3b2e  cdbc2e                CALL        TOTAL_HEAL
-  7549  3b31  cd5d3d                CALL        REDRAW_STATS
-  7550  3b34  0602                  LD          B,0x2                                   ;Was LD B,0x6
-  7551                          MINOTAUR_DEAD_SOUND_LOOP:
-  7552  3b36  d9                    EXX
-  7553  3b37  cd5f0d                CALL        SUB_ram_cd5f
-  7554  3b3a  cd7b0d                CALL        END_OF_GAME_SOUND
-  7555  3b3d  d9                    EXX
-  7556  3b3e  10f6                  DJNZ        MINOTAUR_DEAD_SOUND_LOOP
-  7557  3b40  c3b72a                JP          SCREEN_SAVER_FULL_SCREEN
-  7558  3b43  00                    db          $00
-  7559  3b44  00                    db          $00
-  7560  3b45  00                    db          $00
-  7561  3b46  00                    db          $00
-  7562  3b47  00                    db          $00
-  7563  3b48  00                    db          $00
-  7564  3b49  00                    db          $00
-  7565  3b4a  00                    db          $00
-  7566  3b4b  00                    db          $00
-  7567  3b4c  00                    db          $00
-  7568  3b4d  00                    db          $00
-  7569  3b4e  00                    db          $00
-  7570  3b4f  00                    db          $00
-  7571  3b50  00                    db          $00
-  7572  3b51  00                    db          $00
-  7573  3b52  00                    db          $00
-  7574  3b53  00                    db          $00
-  7575  3b54  00                    db          $00
-  7576  3b55  00                    db          $00
-  7577  3b56  00                    db          $00
-  7578  3b57  00                    db          $00
-  7579  3b58  00                    db          $00
-  7580  3b59  00                    db          $00
-  7581  3b5a  00                    db          $00
-  7582  3b5b  00                    db          $00
-  7583  3b5c  00                    db          $00
-  7584  3b5d  00                    db          $00
-  7585  3b5e  00                    db          $00
-  7586  3b5f  00                    db          $00
-  7587  3b60  00                    db          $00
-  7588  3b61  00                    db          $00
-  7589  3b62  00                    db          $00
-  7590  3b63  00                    db          $00
-  7591  3b64  00                    db          $00
-  7592  3b65  00                    db          $00
-  7593  3b66  00                    db          $00
-  7594  3b67  00                    db          $00
-  7595  3b68  00                    db          $00
-  7596  3b69  00                    db          $00
-  7597  3b6a  00                    db          $00
-  7598                          DO_REST:
-  7599  3b6b  3a783a                LD          A,(LAST_ITEM_HELD)                   ;Load food inventory into A
-  7600  3b6e  a7                    AND         A
-  7601  3b6f  c23022                JP          NZ,NO_ACTION_TAKEN                      ;If food is empty, do nothing
-  7602                          CHK_NEEDS_HEALING:
-  7603  3b72  2a953a                LD          HL,(PLAYER_PHYS_HEALTH_MAX)             ;HL = max PHYS health
-  7604  3b75  ed5b933a              LD          DE,(PLAYER_PHYS_HEALTH)                 ;DE = current PHYS health
-  7605  3b79  cd3024                CALL        RECALC_PHYS_HEALTH
-  7606  3b7c  b5                    OR          L
-  7607  3b7d  200d                  JR          NZ,HEAL_PLAYER_PHYS_HEALTH
-  7608  3b7f  3a983a                LD          A,(PLAYER_SPRT_HEALTH_MAX)
-  7609  3b82  4f                    LD          C,A
-  7610  3b83  3a973a                LD          A,(PLAYER_SPRT_HEALTH)
-  7611  3b86  b9                    CP          C
-  7612  3b87  ca9c2a                JP          Z,INPUT_DEBOUNCE
-  7613  3b8a  182a                  JR          HEAL_PLAYER_SPRT_HEALTH
-  7614                          HEAL_PLAYER_PHYS_HEALTH:
-  7615  3b8c  2aa93a                LD          HL,(BYTE_ram_3aa9)
-  7616  3b8f  110100                LD          DE,0x1
-  7617  3b92  cd3024                CALL        RECALC_PHYS_HEALTH
-  7618  3b95  da9c2a                JP          C,INPUT_DEBOUNCE
-  7619  3b98  22a93a                LD          (BYTE_ram_3aa9),HL
-  7620  3b9b  21ab3a                LD          HL,FOOD_INV
-  7621  3b9e  35                    DEC         (HL)
-  7622  3b9f  2a933a                LD          HL,(PLAYER_PHYS_HEALTH)
-  7623  3ba2  cd2724                CALL        SUB_ram_e427
-  7624  3ba5  22933a                LD          (PLAYER_PHYS_HEALTH),HL
-  7625  3ba8  cd5d3d                CALL        REDRAW_STATS
-  7626  3bab  3a983a                LD          A,(PLAYER_SPRT_HEALTH_MAX)
-  7627  3bae  4f                    LD          C,A
-  7628  3baf  3a973a                LD          A,(PLAYER_SPRT_HEALTH)
-  7629  3bb2  b9                    CP          C
-  7630  3bb3  ca723b                JP          Z,CHK_NEEDS_HEALING
-  7631                          HEAL_PLAYER_SPRT_HEALTH:
-  7632  3bb6  2aa93a                LD          HL,(BYTE_ram_3aa9)
-  7633  3bb9  110100                LD          DE,0x1
-  7634  3bbc  cd3024                CALL        RECALC_PHYS_HEALTH
-  7635  3bbf  da9c2a                JP          C,INPUT_DEBOUNCE
-  7636  3bc2  22a93a                LD          (BYTE_ram_3aa9),HL
-  7637  3bc5  21ab3a                LD          HL,FOOD_INV
-  7638  3bc8  35                    DEC         (HL)
-  7639  3bc9  3a973a                LD          A,(PLAYER_SPRT_HEALTH)
-  7640  3bcc  c601                  ADD         A,0x1
-  7641  3bce  27                    DAA
-  7642  3bcf  32973a                LD          (PLAYER_SPRT_HEALTH),A
-  7643  3bd2  cd5d3d                CALL        REDRAW_STATS
-  7644  3bd5  189b                  JR          CHK_NEEDS_HEALING
-  7645  3bd7  00                    db          $00
-  7646  3bd8  00                    db          $00
-  7647  3bd9  00                    db          $00
-  7648  3bda  00                    db          $00
-  7649  3bdb  00                    db          $00
-  7650  3bdc  00                    db          $00
-  7651  3bdd  00                    db          $00
-  7652  3bde  00                    db          $00
-  7653  3bdf  00                    db          $00
-  7654                          KEY_COMPARE:
-  7655  3be0  3a663a                LD          A,(RAM_AE)
-  7656  3be3  fe31                  CP          $31                                    ;Compare to "1" db?
-  7657  3be5  c29f2a                JP          NZ,WAIT_FOR_INPUT
-  7658                          KEY_COL_0:
-  7659  3be8  21f637                LD          HL,KEY_INPUT_COL0                       ;= $60
-  7660  3beb  7e                    LD          A,(HL)                  ;A = Key Column 0
-  7661  3bec  fefe                  CP          $fe                                    ;If Key Row = 0 "="
-  7662  3bee  ca3022                JP          Z,NO_ACTION_TAKEN
-  7663  3bf1  fefd                  CP          $fd                                    ;If Key Row = 1 "BKSP"
-  7664  3bf3  ca3022                JP          Z,NO_ACTION_TAKEN
-  7665  3bf6  fefb                  CP          $fb                                    ;If Key Row = 2 ":"
-  7666  3bf8  ca3022                JP          Z,NO_ACTION_TAKEN
-  7667  3bfb  fef7                  CP          $f7                                    ;If Key Row = 3 "RET"
-  7668  3bfd  ca3022                JP          Z,NO_ACTION_TAKEN
-  7669  3c00  feef                  CP          $ef                                    ;If Key Row = 4 ";"
-  7670  3c02  ca322e                JP          Z,DO_GLANCE_RIGHT
-  7671  3c05  fedf                  CP          $df                                    ;If Key Row = 5 "."
-  7672  3c07  ca182e                JP          Z,DO_TURN_RIGHT
-  7673                          KEY_COL_1:
-  7674  3c0a  2c                    INC         L
-  7675  3c0b  7e                    LD          A,(HL)                  ;A = Key Column 1
-  7676  3c0c  fefe                  CP          $fe                                    ;If Key Row = 0 "-"
-  7677  3c0e  ca3022                JP          Z,NO_ACTION_TAKEN
-  7678  3c11  fefd                  CP          $fd                                    ;If Key Row = 1 "/"
-  7679  3c13  ca3022                JP          Z,NO_ACTION_TAKEN
-  7680  3c16  fefb                  CP          $fb                                    ;If Key Row = 2 "0"
-  7681  3c18  ca3022                JP          Z,NO_ACTION_TAKEN
-  7682  3c1b  fef7                  CP          $f7                                    ;If Key Row = 3 "P"
-  7683  3c1d  ca3022                JP          Z,NO_ACTION_TAKEN
-  7684  3c20  feef                  CP          $ef                                    ;If Key Row = 4 "L"
-  7685  3c22  ca9e21                JP          Z,DO_MOVE_FW_CHK_WALLS
-  7686  3c25  fedf                  CP          $df                                    ;If Key Row = 5 ","
-  7687  3c27  cad021                JP          Z,DO_JUMP_BACK
-  7688                          KEY_COL_2:
-  7689  3c2a  2c                    INC         L
-  7690  3c2b  7e                    LD          A,(HL)                  ;A = Key Column 2
-  7691  3c2c  fefe                  CP          $fe                                    ;If Key Row = 0 "9"
-  7692  3c2e  ca3022                JP          Z,NO_ACTION_TAKEN
-  7693  3c31  fefd                  CP          $fd                                    ;If Key Row = 1 "O"
-  7694  3c33  ca3022                JP          Z,NO_ACTION_TAKEN
-  7695  3c36  fefb                  CP          $fb                                    ;If Key Row = 2 "K"
-  7696  3c38  ca9e21                JP          Z,DO_MOVE_FW_CHK_WALLS
-  7697  3c3b  fef7                  CP          $f7                                    ;If Key Row = 3 "M"
-  7698  3c3d  ca002e                JP          Z,DO_TURN_LEFT
-  7699  3c40  feef                  CP          $ef                                    ;If Key Row = 4 "N"
-  7700  3c42  ca5e2e                JP          Z,DO_USE_ATTACK
-  7701  3c45  fedf                  CP          $df                                    ;If Key Row = 5 "J"
-  7702  3c47  ca482e                JP          Z,DO_GLANCE_LEFT
-  7703                          KEY_COL_3:
-  7704  3c4a  2c                    INC         L
-  7705  3c4b  7e                    LD          A,(HL)                  ;A = Key Column 3
-  7706  3c4c  fefe                  CP          $fe                                    ;If Key Row = 0 "8"
-  7707  3c4e  ca3022                JP          Z,NO_ACTION_TAKEN
-  7708  3c51  fefd                  CP          $fd                                    ;If Key Row = 1 "I"
-  7709  3c53  ca3022                JP          Z,NO_ACTION_TAKEN
-  7710  3c56  fefb                  CP          $fb                                    ;If Key Row = 2 "7"
-  7711  3c58  ca3022                JP          Z,NO_ACTION_TAKEN
-  7712  3c5b  fef7                  CP          $f7                                    ;If Key Row = 3 "U"
-  7713  3c5d  ca3022                JP          Z,NO_ACTION_TAKEN
-  7714  3c60  feef                  CP          $ef                                    ;If Key Row = 4 "H"
-  7715  3c62  cadb2c                JP          Z,DO_OPEN_CLOSE
-  7716  3c65  fedf                  CP          $df                                    ;If Key Row = 5 "B"
-  7717  3c67  ca3022                JP          Z,NO_ACTION_TAKEN
-  7718                          KEY_COL_4:
-  7719  3c6a  2c                    INC         L
-  7720  3c6b  7e                    LD          A,(HL)                  ;A = Key Column 4
-  7721  3c6c  fefe                  CP          $fe                                    ;If Key Row = 0 "6"
-  7722  3c6e  ca3022                JP          Z,NO_ACTION_TAKEN
-  7723  3c71  fefd                  CP          $fd                                    ;If Key Row = 1 "Y"
-  7724  3c73  ca4d22                JP          Z,USE_MAP
-  7725  3c76  fefb                  CP          $fb                                    ;If Key Row = 2 "G"
-  7726  3c78  ca3022                JP          Z,NO_ACTION_TAKEN
-  7727  3c7b  fef7                  CP          $f7                                    ;If Key Row = 3 "V"
-  7728  3c7d  ca3022                JP          Z,NO_ACTION_TAKEN
-  7729  3c80  feef                  CP          $ef                                    ;If Key Row = 4 "C"
-  7730  3c82  ca2b22                JP          Z,DO_COUNT_ARROWS
-  7731  3c85  fedf                  CP          $df                                    ;If Key Row = 5 "F"
-  7732  3c87  ca6b3b                JP          Z,DO_REST
-  7733                          KEY_COL_5:
-  7734  3c8a  2c                    INC         L
-  7735  3c8b  7e                    LD          A,(HL)                  ;A = Key Column 5
-  7736  3c8c  fefe                  CP          $fe                                    ;If Key Row = 0 "5"
-  7737  3c8e  ca3022                JP          Z,NO_ACTION_TAKEN
-  7738  3c91  fefd                  CP          $fd                                    ;If Key Row = 1 "T"
-  7739  3c93  ca303d                JP          Z,DO_TELEPORT
-  7740  3c96  fefb                  CP          $fb                                    ;If Key Row = 2 "4"
-  7741  3c98  ca3022                JP          Z,NO_ACTION_TAKEN
-  7742  3c9b  fef7                  CP          $f7                                    ;If Key Row = 3 "R"
-  7743  3c9d  ca682a                JP          Z,DO_SWAP_PACK
-  7744  3ca0  feef                  CP          $ef                                    ;If Key Row = 4 "D"
-  7745  3ca2  caa332                JP          Z,DO_USE_LADDER
-  7746  3ca5  fedf                  CP          $df                                    ;If Key Row = 5 "X"
-  7747  3ca7  ca1422                JP          Z,DO_COUNT_FOOD
-  7748                          KEY_COL_6:
-  7749  3caa  2c                    INC         L
-  7750  3cab  7e                    LD          A,(HL)                  ;A = Key Column 6
-  7751  3cac  fefe                  CP          $fe                                    ;If Key Row = 0 "3"
-  7752  3cae  ca3022                JP          Z,NO_ACTION_TAKEN
-  7753  3cb1  fefd                  CP          $fd                                    ;If Key Row = 1 "E"
-  7754  3cb3  cacc26                JP          Z,DO_SWAP_HANDS
-  7755  3cb6  fefb                  CP          $fb                                    ;If Key Row = 2 "S"
-  7756  3cb8  caf829                JP          Z,DO_ROTATE_PACK
-  7757  3cbb  fef7                  CP          $f7                                    ;If Key Row = 3 "Z"
-  7758  3cbd  ca6717                JP          Z,WIPE_WALLS
-  7759  3cc0  feef                  CP          $ef                                    ;If Key Row = 4 "SPC"
-  7760  3cc2  ca3022                JP          Z,NO_ACTION_TAKEN
-  7761  3cc5  fedf                  CP          $df                                    ;If Key Row = 5 "A"
-  7762  3cc7  ca3022                JP          Z,NO_ACTION_TAKEN
-  7763                          KEY_COL_7:
-  7764  3cca  2c                    INC         L
-  7765  3ccb  7e                    LD          A,(HL)                  ;A = Key Column 7
-  7766  3ccc  fefe                  CP          $fe                                    ;If Key Row = 0 "2"
-  7767  3cce  ca3022                JP          Z,NO_ACTION_TAKEN
-  7768  3cd1  fefd                  CP          $fd                                    ;If Key Row = 1 "W"
-  7769  3cd3  cacc27                JP          Z,DO_PICK_UP
-  7770  3cd6  fefb                  CP          $fb                                    ;If Key Row = 2 "1"
-  7771  3cd8  ca3022                JP          Z,NO_ACTION_TAKEN
-  7772  3cdb  fef7                  CP          $f7                                    ;If Key Row = 3 "Q"
-  7773  3cdd  caee3c                JP          Z,MAX_HEALTH_ARROWS_FOOD
-  7774  3ce0  feef                  CP          $ef                                    ;If Key Row = 4 "SHFT"
-  7775  3ce2  ca3022                JP          Z,NO_ACTION_TAKEN
-  7776  3ce5  fedf                  CP          $df                                    ;If Key Row = 5 "CTRL"
-  7777  3ce7  ca3022                JP          Z,NO_ACTION_TAKEN
-  7778  3cea  c33022                JP          NO_ACTION_TAKEN
-  7779  3ced  00                    NOP
-  7780                          MAX_HEALTH_ARROWS_FOOD:
-  7781  3cee  21933a                LD          HL,PLAYER_PHYS_HEALTH
-  7782  3cf1  3e99                  LD          A,$99
-  7783  3cf3  77                    LD          (HL),A
-  7784  3cf4  23                    INC         HL
-  7785  3cf5  77                    LD          (HL),A
-  7786  3cf6  23                    INC         HL
-  7787  3cf7  77                    LD          (HL),A
-  7788  3cf8  23                    INC         HL
-  7789  3cf9  77                    LD          (HL),A
-  7790  3cfa  23                    INC         HL
-  7791  3cfb  77                    LD          (HL),A
-  7792  3cfc  23                    INC         HL
-  7793  3cfd  77                    LD          (HL),A
-  7794  3cfe  21ab3a                LD          HL,FOOD_INV
-  7795  3d01  77                    LD          (HL),A
-  7796  3d02  23                    INC         HL
-  7797  3d03  77                    LD          (HL),A
-  7798  3d04  cd153e                CALL        PLAY_POWER_UP_SOUND
-  7799  3d07  cd5d3d                CALL        REDRAW_STATS
-  7800  3d0a  c39c2a                JP          INPUT_DEBOUNCE
-  7801  3d0d  00                    db          $00
-  7802  3d0e  00                    db          $00
-  7803  3d0f  00                    db          $00
-  7804  3d10  00                    db          $00
-  7805  3d11  00                    db          $00
-  7806  3d12  00                    db          $00
-  7807  3d13  00                    db          $00
-  7808  3d14  00                    db          $00
-  7809  3d15  00                    db          $00
-  7810  3d16  00                    db          $00
-  7811  3d17  00                    db          $00
-  7812  3d18  00                    db          $00
-  7813  3d19  00                    db          $00
-  7814  3d1a  00                    db          $00
-  7815  3d1b  00                    db          $00
-  7816  3d1c  00                    db          $00
-  7817  3d1d  00                    db          $00
-  7818  3d1e  00                    db          $00
-  7819  3d1f  00                    db          $00
-  7820  3d20  00                    db          $00
-  7821  3d21  00                    db          $00
-  7822  3d22  00                    db          $00
-  7823  3d23  00                    db          $00
-  7824  3d24  00                    db          $00
-  7825  3d25  00                    db          $00
-  7826  3d26  00                    db          $00
-  7827  3d27  00                    db          $00
-  7828  3d28  00                    db          $00
-  7829  3d29  00                    db          $00
-  7830  3d2a  00                    db          $00
-  7831  3d2b  00                    db          $00
-  7832  3d2c  00                    db          $00
-  7833  3d2d  00                    db          $00
-  7834  3d2e  00                    db          $00
-  7835  3d2f  00                    db          $00
-  7836                          DO_TELEPORT:
-  7837  3d30  3a0039                LD          A,(MAP_LADDER_OFFSET)
-  7838  3d33  32793a                LD          (PLAYER_MAP_POS),A
-  7839  3d36  cdf03d                CALL        PLAY_TELEPORT_SOUND
-  7840  3d39  c3962a                JP          UPDATE_VIEWPORT
-  7841  3d3c  00                    db          $00
-  7842  3d3d  00                    db          $00
-  7843  3d3e  00                    db          $00
-  7844  3d3f  00                    db          $00
-  7845  3d40  00                    db          $00
-  7846  3d41  00                    db          $00
-  7847  3d42  00                    db          $00
-  7848  3d43  00                    db          $00
-  7849  3d44  00                    db          $00
-  7850  3d45  00                    db          $00
-  7851  3d46  00                    db          $00
-  7852  3d47  00                    db          $00
-  7853  3d48  00                    db          $00
-  7854  3d49  00                    db          $00
-  7855  3d4a  00                    db          $00
-  7856  3d4b  00                    db          $00
-  7857  3d4c  00                    db          $00
-  7858  3d4d  00                    db          $00
-  7859  3d4e  00                    db          $00
-  7860  3d4f  00                    db          $00
-  7861  3d50  00                    db          $00
-  7862  3d51  00                    db          $00
-  7863  3d52  00                    db          $00
-  7864  3d53  00                    db          $00
-  7865  3d54  00                    db          $00
-  7866  3d55  00                    db          $00
-  7867  3d56  00                    db          $00
-  7868  3d57  00                    db          $00
-  7869  3d58  00                    db          $00
-  7870  3d59  00                    db          $00
-  7871  3d5a  00                    db          $00
-  7872  3d5b  00                    db          $00
-  7873  3d5c  00                    db          $00
-  7874                          REDRAW_STATS:
-  7875  3d5d  cd0017                CALL        DRAW_ICON_BAR
-  7876  3d60  21933a                LD          HL,PLAYER_PHYS_HEALTH
-  7877  3d63  114130                LD          DE,CHRRAM_PHYS_HEALTH_1000              ;= $20
-  7878  3d66  0602                  LD          B,0x2
-  7879  3d68  cdfd32                CALL        RECALC_AND_REDRAW_BCD
-  7880  3d6b  21973a                LD          HL,PLAYER_SPRT_HEALTH
-  7881  3d6e  114730                LD          DE,CHRRAM_SPRT_HEALTH_10                ;= $20
-  7882  3d71  0601                  LD          B,0x1
-  7883  3d73  c3fd32                JP          RECALC_AND_REDRAW_BCD
-  7884                          CHECK_RING:
-  7885  3d76  f5                    PUSH        AF
-  7886  3d77  3a763a                LD          A,(RING_INV_SLOT)
-  7887  3d7a  cdd83d                CALL        LEVEL_TO_COLRAM_FIX
-  7888  3d7d  321734                LD          (COLRAM_RING_IDX),A                     ;= $60    `
-  7889  3d80  f1                    POP         AF
-  7890  3d81  c9                    RET
-  7891  3d82  00                    db          $00
-  7892  3d83  00                    db          $00
-  7893  3d84  00                    db          $00
-  7894  3d85  00                    db          $00
-  7895  3d86  00                    db          $00
-  7896  3d87  00                    db          $00
-  7897  3d88  00                    db          $00
-  7898  3d89  00                    db          $00
-  7899  3d8a  00                    db          $00
-  7900  3d8b  00                    db          $00
-  7901  3d8c  00                    db          $00
-  7902  3d8d  00                    db          $00
-  7903  3d8e  00                    db          $00
-  7904  3d8f  00                    db          $00
-  7905  3d90  00                    db          $00
-  7906  3d91  00                    db          $00
-  7907  3d92  00                    db          $00
-  7908  3d93  00                    db          $00
-  7909  3d94  00                    db          $00
-  7910  3d95  00                    db          $00
-  7911  3d96  00                    db          $00
-  7912  3d97  00                    db          $00
-  7913                          CHECK_HELMET:
-  7914  3d98  f5                    PUSH        AF
-  7915  3d99  3a753a                LD          A,(HELMET_INV_SLOT)
-  7916  3d9c  cdd83d                CALL        LEVEL_TO_COLRAM_FIX
-  7917  3d9f  321534                LD          (COLRAM_HELMET_IDX),A                   ;= $60    `
-  7918  3da2  f1                    POP         AF
-  7919  3da3  c9                    RET
-  7920  3da4  00                    db          $00
-  7921  3da5  00                    db          $00
-  7922  3da6  00                    db          $00
-  7923  3da7  00                    db          $00
-  7924  3da8  00                    db          $00
-  7925  3da9  00                    db          $00
-  7926  3daa  00                    db          $00
-  7927  3dab  00                    db          $00
-  7928  3dac  00                    db          $00
-  7929  3dad  00                    db          $00
-  7930  3dae  00                    db          $00
-  7931  3daf  00                    db          $00
-  7932  3db0  00                    db          $00
-  7933  3db1  00                    db          $00
-  7934  3db2  00                    db          $00
-  7935  3db3  00                    db          $00
-  7936  3db4  00                    db          $00
-  7937  3db5  00                    db          $00
-  7938  3db6  00                    db          $00
-  7939  3db7  00                    db          $00
-  7940                          CHECK_ARMOR:
-  7941  3db8  f5                    PUSH        AF
-  7942  3db9  3a743a                LD          A,(ARMOR_INV_SLOT)
-  7943  3dbc  cdd83d                CALL        LEVEL_TO_COLRAM_FIX
-  7944  3dbf  321334                LD          (COLRAM_ARMOR_IDX),A                    ;= $60    `
-  7945  3dc2  f1                    POP         AF
-  7946  3dc3  c9                    RET
-  7947  3dc4  00                    db          $00
-  7948  3dc5  00                    db          $00
-  7949  3dc6  00                    db          $00
-  7950  3dc7  00                    db          $00
-  7951  3dc8  00                    db          $00
-  7952  3dc9  00                    db          $00
-  7953  3dca  00                    db          $00
-  7954  3dcb  00                    db          $00
-  7955  3dcc  00                    db          $00
-  7956  3dcd  00                    db          $00
-  7957  3dce  00                    db          $00
-  7958  3dcf  00                    db          $00
-  7959  3dd0  00                    db          $00
-  7960  3dd1  00                    db          $00
-  7961  3dd2  00                    db          $00
-  7962  3dd3  00                    db          $00
-  7963  3dd4  00                    db          $00
-  7964  3dd5  00                    db          $00
-  7965  3dd6  00                    db          $00
-  7966  3dd7  00                    db          $00
-  7967                          LEVEL_TO_COLRAM_FIX:
-  7968  3dd8  87                    ADD         A,A
-  7969  3dd9  d601                  SUB         0x1
-  7970  3ddb  cb27                  SLA         A
-  7971  3ddd  cb27                  SLA         A
-  7972  3ddf  cb27                  SLA         A
-  7973  3de1  cb27                  SLA         A
-  7974  3de3  c9                    RET
-  7975                          RHA_REDRAW:
-  7976  3de4  cd763d                CALL        CHECK_RING
-  7977  3de7  cd983d                CALL        CHECK_HELMET
-  7978  3dea  cdb83d                CALL        CHECK_ARMOR
-  7979  3ded  c39c2a                JP          INPUT_DEBOUNCE
-  7980                          PLAY_TELEPORT_SOUND:
-  7981  3df0  012002                LD          BC,$220
-  7982  3df3  111800                LD          DE,$18
-  7983  3df6  cd3c22                CALL        PLAY_SOUND_LOOP
-  7984  3df9  011001                LD          BC,$110
-  7985  3dfc  111800                LD          DE,$18
-  7986  3dff  cd3c22                CALL        PLAY_SOUND_LOOP
-  7987  3e02  018800                LD          BC,$88
-  7988  3e05  111800                LD          DE,$18
-  7989  3e08  cd3c22                CALL        PLAY_SOUND_LOOP
-  7990  3e0b  014400                LD          BC,$44
-  7991  3e0e  111800                LD          DE,$18
-  7992  3e11  cd3c22                CALL        PLAY_SOUND_LOOP
-  7993  3e14  c9                    RET
-  7994                          PLAY_POWER_UP_SOUND:
-  7995  3e15  012002                LD          BC,$220
-  7996  3e18  111800                LD          DE,$18
-  7997  3e1b  cd3c22                CALL        PLAY_SOUND_LOOP
-  7998  3e1e  010002                LD          BC,$200
-  7999  3e21  111800                LD          DE,$18
-  8000  3e24  cd3c22                CALL        PLAY_SOUND_LOOP
-  8001  3e27  01e001                LD          BC,$1e0
-  8002  3e2a  111800                LD          DE,$18
-  8003  3e2d  cd3c22                CALL        PLAY_SOUND_LOOP
-  8004  3e30  01c001                LD          BC,$1c0
-  8005  3e33  116000                LD          DE,$60
-  8006  3e36  cd3c22                CALL        PLAY_SOUND_LOOP
-  8007  3e39  c9                    RET
-  8008  3e3a  00                    db          $00
-  8009  3e3b  00                    db          $00
-  8010  3e3c  00                    db          $00
-  8011  3e3d  00                    db          $00
-  8012  3e3e  00                    db          $00
-  8013  3e3f  00                    db          $00
-  8014  3e40  00                    db          $00
-  8015  3e41  00                    db          $00
-  8016  3e42  00                    db          $00
-  8017  3e43  00                    db          $00
-  8018  3e44  00                    db          $00
-  8019  3e45  00                    db          $00
-  8020  3e46  00                    db          $00
-  8021  3e47  00                    db          $00
-  8022  3e48  00                    db          $00
-  8023  3e49  00                    db          $00
-  8024  3e4a  00                    db          $00
-  8025  3e4b  00                    db          $00
-  8026  3e4c  00                    db          $00
-  8027  3e4d  00                    db          $00
-  8028  3e4e  00                    db          $00
-  8029  3e4f  00                    db          $00
-  8030  3e50  00                    db          $00
-  8031  3e51  00                    db          $00
-  8032  3e52  00                    db          $00
-  8033  3e53  00                    db          $00
-  8034  3e54  00                    db          $00
-  8035  3e55  00                    db          $00
-  8036  3e56  00                    db          $00
-  8037  3e57  00                    db          $00
-  8038  3e58  00                    db          $00
-  8039  3e59  00                    db          $00
-  8040  3e5a  00                    db          $00
-  8041  3e5b  00                    db          $00
-  8042  3e5c  00                    db          $00
-  8043  3e5d  00                    db          $00
-  8044  3e5e  00                    db          $00
-  8045  3e5f  00                    db          $00
-  8046  3e60  00                    db          $00
-  8047  3e61  00                    db          $00
-  8048  3e62  00                    db          $00
-  8049  3e63  00                    db          $00
-  8050  3e64  00                    db          $00
-  8051  3e65  00                    db          $00
-  8052  3e66  00                    db          $00
-  8053  3e67  00                    db          $00
-  8054  3e68  00                    db          $00
-  8055  3e69  00                    db          $00
-  8056  3e6a  00                    db          $00
-  8057  3e6b  00                    db          $00
-  8058  3e6c  00                    db          $00
-  8059  3e6d  00                    db          $00
-  8060  3e6e  00                    db          $00
-  8061  3e6f  00                    db          $00
-  8062  3e70  00                    db          $00
-  8063  3e71  00                    db          $00
-  8064  3e72  00                    db          $00
-  8065  3e73  00                    db          $00
-  8066  3e74  00                    db          $00
-  8067  3e75  00                    db          $00
-  8068  3e76  00                    db          $00
-  8069  3e77  00                    db          $00
-  8070  3e78  00                    db          $00
-  8071  3e79  00                    db          $00
-  8072  3e7a  00                    db          $00
-  8073  3e7b  00                    db          $00
-  8074  3e7c  00                    db          $00
-  8075  3e7d  00                    db          $00
-  8076  3e7e  00                    db          $00
-  8077  3e7f  00                    db          $00
-  8078  3e80  00                    db          $00
-  8079  3e81  00                    db          $00
-  8080  3e82  00                    db          $00
-  8081  3e83  00                    db          $00
-  8082  3e84  00                    db          $00
-  8083  3e85  00                    db          $00
-  8084  3e86  00                    db          $00
-  8085  3e87  00                    db          $00
-  8086  3e88  00                    db          $00
-  8087  3e89  00                    db          $00
-  8088  3e8a  00                    db          $00
-  8089  3e8b  00                    db          $00
-  8090  3e8c  00                    db          $00
-  8091  3e8d  00                    db          $00
-  8092  3e8e  00                    db          $00
-  8093  3e8f  00                    db          $00
-  8094  3e90  00                    db          $00
-  8095  3e91  00                    db          $00
-  8096  3e92  00                    db          $00
-  8097  3e93  00                    db          $00
-  8098  3e94  00                    db          $00
-  8099  3e95  00                    db          $00
-  8100  3e96  00                    db          $00
-  8101  3e97  00                    db          $00
-  8102  3e98  00                    db          $00
-  8103  3e99  00                    db          $00
-  8104  3e9a  00                    db          $00
-  8105  3e9b  00                    db          $00
-  8106  3e9c  00                    db          $00
-  8107  3e9d  00                    db          $00
-  8108  3e9e  00                    db          $00
-  8109  3e9f  00                    db          $00
-  8110  3ea0  00                    db          $00
-  8111  3ea1  00                    db          $00
-  8112  3ea2  00                    db          $00
-  8113  3ea3  00                    db          $00
-  8114  3ea4  00                    db          $00
-  8115  3ea5  00                    db          $00
-  8116  3ea6  00                    db          $00
-  8117  3ea7  00                    db          $00
-  8118  3ea8  00                    db          $00
-  8119  3ea9  00                    db          $00
-  8120  3eaa  00                    db          $00
-  8121  3eab  00                    db          $00
-  8122  3eac  00                    db          $00
-  8123  3ead  00                    db          $00
-  8124  3eae  00                    db          $00
-  8125  3eaf  00                    db          $00
-  8126  3eb0  00                    db          $00
-  8127  3eb1  00                    db          $00
-  8128  3eb2  00                    db          $00
-  8129  3eb3  00                    db          $00
-  8130  3eb4  00                    db          $00
-  8131  3eb5  00                    db          $00
-  8132  3eb6  00                    db          $00
-  8133  3eb7  00                    db          $00
-  8134  3eb8  00                    db          $00
-  8135  3eb9  00                    db          $00
-  8136  3eba  00                    db          $00
-  8137  3ebb  00                    db          $00
-  8138  3ebc  00                    db          $00
-  8139  3ebd  00                    db          $00
-  8140  3ebe  00                    db          $00
-  8141  3ebf  00                    db          $00
-  8142  3ec0  00                    db          $00
-  8143  3ec1  00                    db          $00
-  8144  3ec2  00                    db          $00
-  8145  3ec3  00                    db          $00
-  8146  3ec4  00                    db          $00
-  8147  3ec5  00                    db          $00
-  8148  3ec6  00                    db          $00
-  8149  3ec7  00                    db          $00
-  8150  3ec8  00                    db          $00
-  8151  3ec9  00                    db          $00
-  8152  3eca  00                    db          $00
-  8153  3ecb  00                    db          $00
-  8154  3ecc  00                    db          $00
-  8155  3ecd  00                    db          $00
-  8156  3ece  00                    db          $00
-  8157  3ecf  00                    db          $00
-  8158  3ed0  00                    db          $00
-  8159  3ed1  00                    db          $00
-  8160  3ed2  00                    db          $00
-  8161  3ed3  00                    db          $00
-  8162  3ed4  00                    db          $00
-  8163  3ed5  00                    db          $00
-  8164  3ed6  00                    db          $00
-  8165  3ed7  00                    db          $00
-  8166  3ed8  00                    db          $00
-  8167  3ed9  00                    db          $00
-  8168  3eda  00                    db          $00
-  8169  3edb  00                    db          $00
-  8170  3edc  00                    db          $00
-  8171  3edd  00                    db          $00
-  8172  3ede  00                    db          $00
-  8173  3edf  00                    db          $00
-  8174  3ee0  00                    db          $00
-  8175  3ee1  00                    db          $00
-  8176  3ee2  00                    db          $00
-  8177  3ee3  00                    db          $00
-  8178  3ee4  00                    db          $00
-  8179  3ee5  00                    db          $00
-  8180  3ee6  00                    db          $00
-  8181  3ee7  00                    db          $00
-  8182  3ee8  00                    db          $00
-  8183  3ee9  00                    db          $00
-  8184  3eea  00                    db          $00
-  8185  3eeb  00                    db          $00
-  8186  3eec  00                    db          $00
-  8187  3eed  00                    db          $00
-  8188  3eee  00                    db          $00
-  8189  3eef  00                    db          $00
-  8190  3ef0  00                    db          $00
-  8191  3ef1  00                    db          $00
-  8192  3ef2  00                    db          $00
-  8193  3ef3  00                    db          $00
-  8194  3ef4  00                    db          $00
-  8195  3ef5  00                    db          $00
-  8196  3ef6  00                    db          $00
-  8197  3ef7  00                    db          $00
-  8198  3ef8  00                    db          $00
-  8199  3ef9  00                    db          $00
-  8200  3efa  00                    db          $00
-  8201  3efb  00                    db          $00
-  8202  3efc  00                    db          $00
-  8203  3efd  00                    db          $00
-  8204  3efe  00                    db          $00
-  8205                          GFX_POINTERS:
-  8206  3eff  00                    db          0h
-  8207                          GFX_PTR_BUCKLER:
-  8208  3f00  5202                  dw        BUCKLER                                 ;= $01,$01,$01,$01,$01
-  8209                          GFX_PTR_BUCKLER_S:
-  8210  3f02  6502                  dw        BUCKLER_S                               ;= $01,$01
-  8211                          GFX_PTR_BUCKLER_T:
-  8212  3f04  6a02                  dw        BUCKLER_T                               ;= $00,$87,$FF
-  8213                          GFX_PTR_RING:
-  8214  3f06  0802                  dw        RING                                    ;= $01,$01,$01,$01,$01,$01,$01
-  8215                          GFX_PTR_RING_S:
-  8216  3f08  1202                  dw        RING_S                                  ;= $01,$01,$01
-  8217                          GFX_PTR_RING_T:
-  8218  3f0a  1802                  dw        RING_T                                  ;= $00,".",$FF
-  8219                          GFX_PTR_HELMET:
-  8220  3f0c  8b02                  dw        HELMET                                  ;= $01,$01,$01,$01,$01,$01
-  8221                          GFX_PTR_HELMET_S:
-  8222  3f0e  9902                  dw        HELMET_S                                ;= $01,$01,$01
-  8223                          GFX_PTR_HELMET_T:
-  8224  3f10  a302                  dw        HELMET_T                                ;= $00,"^",$FF
-  8225                          GFX_PTR_ARMOR:
-  8226  3f12  b203                  dw        ARMOR                                   ;= $01,$01,$01,$01,$01
-  8227                          GFX_PTR_ARMOR_S:
-  8228  3f14  ca03                  dw        ARMOR_S                                 ;= $01,$01
-  8229                          GFX_PTR_ARMOR_T:
-  8230  3f16  db03                  dw        ARMOR_T                                 ;= $00,$A0,$C7,$D9,$01
-  8231                          GFX_PTR_PAVISE:
-  8232  3f18  e503                  dw        PAVICE                                  ;= $01,$01,$01,$01,$01
-  8233                          GFX_PTR_PAVISE_S:
-  8234  3f1a  fd03                  dw        PAVICE_S                                ;= $01,$01
-  8235                          GFX_PTR_PAVISE_T:
-  8236  3f1c  0b04                  dw        PAVICE_T                                ;= $00,$7F,$01
-  8237                          GFX_PTR_ARROW_L:
-  8238  3f1e  1b02                  dw        ARROW_FLYING_LEFT                       ;= $01,$01,$01,$01,$01,$01
-  8239                          GFX_PTR_ARROW_R:
-  8240  3f20  2402                  dw        ARROW_FLYING_RIGHT                      ;= $01,$01,$01,$01,$01,$01
-  8241                          GFX_PTR_ARROW_L_2:
-  8242  3f22  1b02                  dw        ARROW_FLYING_LEFT                       ;= $01,$01,$01,$01,$01,$01
-  8243                          GFX_PTR_BOW:
-  8244  3f24  c102                  dw        BOW                                     ;= $01,$01,$01,$01,$01
-  8245                          GFX_PTR_BOW_S:
-  8246  3f26  d502                  dw        BOW_S                                   ;= $01,$01
-  8247                          GFX_PTR_BOW_T:
-  8248  3f28  e002                  dw        BOW_T                                   ;= $00,"{",$FF
-  8249                          GFX_PTR_SCROLL:
-  8250  3f2a  9a10                  dw        SCROLL                                  ;= $01,$01,$01,$01,$01
-  8251                          GFX_PTR_SCROLL_S:
-  8252  3f2c  b510                  dw        SCROLL_S                                ;= $01,$01
-  8253                          GFX_PTR_SCROLL_NEW_T:
-  8254  3f2e  bf10                  dw        SCROLL_T                                ;= $00,"H",$FF
-  8255                          GFX_PTR_AXE:
-  8256  3f30  e302                  dw        AXE                                     ;= $01,$01,$01,$01,$01
-  8257                          GFX_PTR_AXE_S:
-  8258  3f32  f802                  dw        AXE_S                                   ;= $01,$01
-  8259                          GFX_PTR_AXE_T:
-  8260  3f34  0803                  dw        AXE_T                                   ;= $00,$11,$FF
-  8261                          GFX_PTR_FIREBALL:
-  8262  3f36  eb04                  dw        FIREBALL                                ;= $01,$01,$01,$01,$01
-  8263                          GFX_PTR_FIREBALL_S:
-  8264  3f38  fc04                  dw        FIREBALL_S                              ;= $01,$01
-  8265                          GFX_PTR_FIREBALL_T:
-  8266  3f3a  0105                  dw        FIREBALL_T                              ;= $00,$D3,$FF
-  8267                          GFX_PTR_MACE:
-  8268  3f3c  bb04                  dw        MACE                                    ;= $01,$01,$01,$01,$01
-  8269                          GFX_PTR_MACE_S:
-  8270  3f3e  d604                  dw        MACE_S                                  ;= $01,$01
-  8271                          GFX_PTR_MACE_T:
-  8272  3f40  e804                  dw        MACE_T                                  ;= $00,"T",$FF
-  8273                          GFX_PTR_STAFF:
-  8274  3f42  7b10                  dw        STAFF                                   ;= $01,$01,$01,$01,$01
-  8275                          GFX_PTR_STAFF_S:
-  8276  3f44  8e10                  dw        STAFF_S                                 ;= $01,$01
-  8277                          GFX_PTR_STAFF_T:
-  8278  3f46  9710                  dw        STAFF_T                                 ;= $00,"\\",$FF
-  8279                          GFX_PTR_CROSSBOW:
-  8280  3f48  c210                  dw        CROSSBOW                                ;= $01,$01,$01,$01,$01
-  8281                          GFX_PTR_CROSSBOW_S:
-  8282  3f4a  e510                  dw        CROSSBOW_S                              ;= $01,$01
-  8283                          GFX_PTR_CROSSBOW_T:
-  8284  3f4c  ed10                  dw        CROSSBOW_T                              ;= $A0,$91,$A0,$D8,$02,$04,$90,$FF
-  8285  3f4e  5600                  dw        EXCL_MARK_GFX
-  8286  3f50  5600                  dw        EXCL_MARK_GFX
-  8287  3f52  5600                  dw        EXCL_MARK_GFX
-  8288  3f54  5600                  dw        EXCL_MARK_GFX
-  8289  3f56  5600                  dw        EXCL_MARK_GFX
-  8290  3f58  5600                  dw        EXCL_MARK_GFX
-  8291                          GFX_PTR_ARROW_R_2:
-  8292  3f5a  2402                  dw        ARROW_FLYING_RIGHT                      ;= $01,$01,$01,$01,$01,$01
-  8293  3f5c  5600                  dw        EXCL_MARK_GFX
-  8294  3f5e  5600                  dw        EXCL_MARK_GFX
-  8295                          GFX_PTR_LADDER:
-  8296  3f60  8e04                  dw        LADDER                                  ;= $01,$01,$01,$01,$01
-  8297                          GFX_PTR_LADDER_S:
-  8298  3f62  a704                  dw        LADDER_S                                ;= $01,$01
-  8299                          GFX_PTR_LADDER_T:
-  8300  3f64  b704                  dw        LADDER_T                                ;= $00,$CD,$97,$FF
-  8301                          GFX_PTR_CHEST:
-  8302  3f66  5f03                  dw        CHEST                                   ;= $01,$01,$01,$01,$01
-  8303                          GFX_PTR_CHEST_S:
-  8304  3f68  9d03                  dw        CHEST_S                                 ;= $01,$E0,$1F,$1F,$B0,$01
-  8305                          GFX_PTR_CHEST_T:
-  8306  3f6a  af03                  dw        CHEST_T                                 ;= $00,$FC,$FF
-  8307                          GFX_PTR_FOOD:
-  8308  3f6c  0b03                  dw        FOOD                                    ;= $01,$01,$01,$01,$01
-  8309                          GFX_PTR_FOOD_S:
-  8310  3f6e  2203                  dw        FOOD_S                                  ;= $01,$01
-  8311                          GFX_PTR_FOOD_T:
-  8312  3f70  2c03                  dw        FOOD_T                                  ;= $00,"#",$FF
-  8313                          GFX_PTR_QUIVER:
-  8314  3f72  2d02                  dw        QUIVER                                  ;= $01,$01,$01,$01,$01,$01
-  8315                          GFX_PTR_QUIVER_S:
-  8316  3f74  4402                  dw        QUIVER_S                                ;= $01,$01
-  8317                          GFX_PTR_QUIVER_T:
-  8318  3f76  4f02                  dw        QUIVER_T                                ;= $00,$F0,$FF
-  8319                          GFX_PTR_LOCK_CHEST:
-  8320  3f78  7e03                  dw        LOCKED_CHEST                            ;= $01,$01,$01,$01,$01
-  8321                          GFX_PTR_LOCK_CHEST_S:
-  8322  3f7a  9d03                  dw        CHEST_S                                 ;= $01,$E0,$1F,$1F,$B0,$01
-  8323                          GFX_PTR_LOCK_CHEST_T:
-  8324  3f7c  af03                  dw        CHEST_T                                 ;= $00,$FC,$FF
-  8325  3f7e  5600                  dw        EXCL_MARK_GFX
-  8326  3f80  5600                  dw        EXCL_MARK_GFX
-  8327  3f82  5600                  dw        EXCL_MARK_GFX
-  8328                          GFX_PTR_KEY:
-  8329  3f84  a602                  dw        KEY                                     ;= $01,$01,$01,$01,$01,$01
-  8330                          GFX_PTR_KEY_S:
-  8331  3f86  b802                  dw        KEY_S                                   ;= $01,$01,$01
-  8332                          GFX_PTR_KEY_T:
-  8333  3f88  be02                  dw        KEY_T                                   ;= $FF,"-",$FF
-  8334                          GFX_PTR_AMULET:
-  8335  3f8a  6304                  dw        AMULET                                  ;= $01,$01,$01,$01,$01
-  8336                          GFX_PTR_AMULET_S:
-  8337  3f8c  7b04                  dw        AMULET_S                                ;= $01,$01
-  8338                          GFX_PTR_AMULET_T:
-  8339  3f8e  8b04                  dw        AMULET_T                                ;= $00,"&",$FF
-  8340                          GFX_PTR_CHALICE:
-  8341  3f90  6d02                  dw        CHALICE                                 ;= $01,$01,$01,$01,$01,$01
-  8342                          GFX_PTR_CHALICE_S:
-  8343  3f92  8002                  dw        CHALICE_S                               ;= $01,$01
-  8344                          GFX_PTR_CHALICE_T:
-  8345  3f94  8802                  dw        CHALICE_T                               ;= $00,"Y",$FF
-  8346                          GFX_PTR_WARRIOR_POTION:
-  8347  3f96  f510                  dw        WARRIOR_POTION                          ;= $01,$01,$01,$01,$01
-  8348                          GFX_PTR_WARRIOR_POTION_S:
-  8349  3f98  3411                  dw        WARRIOR_POTION_S                        ;= $01,$01
-  8350                          GFX_PTR_WARRIOR_POTION_T:
-  8351  3f9a  5511                  dw        POTION_T                                ;= $00,"U",$02,$04,"_",$FF
-  8352                          GFX_PTR_MAGE_POTION:
-  8353  3f9c  0a11                  dw        MAGE_POTION                             ;= $01,$01,$01,$01,$01
-  8354                          GFX_PTR_MAGE_POTION_S:
-  8355  3f9e  3f11                  dw        MAGE_POTION_S                           ;= $01,$01
-  8356                          GFX_PTR_MAGE_POTION_T:
-  8357  3fa0  5511                  dw        POTION_T                                ;= $00,"U",$02,$04,"_",$FF
-  8358                          GFX_PTR_MAP:
-  8359  3fa2  2f03                  dw        MAP                                     ;= $01,$01,$01,$01,$01
-  8360                          GFX_PTR_MAP_S:
-  8361  3fa4  4e03                  dw        MAP_S                                   ;= $01,$01
-  8362                          GFX_PTR_MAP_T:
-  8363  3fa6  5c03                  dw        MAP_T                                   ;= $00,$D5,$FF
-  8364                          GFX_PTR_CHAOS_POTION:
-  8365  3fa8  1f11                  dw        CHAOS_POTION                            ;= $01,$01,$01,$01,$01
-  8366                          GFX_PTR_CHAOS_POTION_S:
-  8367  3faa  4a11                  dw        CHAOS_POTION_S                          ;= $01,$01
-  8368                          GFX_PTR_CHAOS_POTION_T:
-  8369  3fac  5511                  dw        POTION_T                                ;= $00,"U",$02,$04,"_",$FF
-  8370  3fae  5600                  dw        EXCL_MARK_GFX
-  8371  3fb0  5600                  dw        EXCL_MARK_GFX
-  8372  3fb2  5600                  dw        EXCL_MARK_GFX
-  8373                          GFX_END_PT1:
-  8374  3fb4  0000                  dw        NO_GFX                                  ;= $FF
-  8375                          GFX_PTR_SKELETON:
-  8376  3fb6  b506                  dw        SKELETON                                ;= $04,$04,$04,$04
-  8377                          GFX_PTR_SKELETON_S:
-  8378  3fb8  f306                  dw        SKELETON_S                              ;= $04,$04,$04
-  8379  3fba  0000                  dw        NO_GFX                                  ;= $FF
-  8380                          GFX_PTR_SNAKE:
-  8381  3fbc  5c06                  dw        SNAKE                                   ;= $04,$04,$04
-  8382                          GFX_PTR_SNAKE_S:
-  8383  3fbe  9d06                  dw        SNAKE_S                                 ;= $04,$04,$04
-  8384  3fc0  0000                  dw        NO_GFX                                  ;= $FF
-  8385                          GFX_PTR_SPIDER:
-  8386  3fc2  2005                  dw        SPIDER                                  ;= $04,$04
-  8387                          GFX_PTR_SPIDER_S:
-  8388  3fc4  5105                  dw        SPIDER_S                                ;= $04,$04,$04,$04
-  8389  3fc6  0000                  dw        NO_GFX                                  ;= $FF
-  8390                          GFX_PTR_MIMIC:
-  8391  3fc8  6a05                  dw        MIMIC                                   ;= $04,$02,$D7,$96,$00,$00,$96,$C9,$01
-  8392                          GFX_PTR_MIMIC_S:
-  8393  3fca  9d05                  dw        MIMIC_S                                 ;= $01,$E0,$1F,$1F,$B0,$01
-  8394  3fcc  0000                  dw        NO_GFX                                  ;= $FF
-  8395                          GFX_PTR_MALOCCHIO:
-  8396  3fce  af05                  dw        MALOCCHIO                               ;= $04,$04,$04,$04
-  8397                          GFX_PTR_MALOCCHIO_S:
-  8398  3fd0  e505                  dw        MALOCCHIO_S                             ;= $04,$04,$04,$04
-  8399  3fd2  0000                  dw        NO_GFX                                  ;= $FF
-  8400                          GFX_PTR_DRAGON:
-  8401  3fd4  0100                  dw        DRAGON                                  ;= $04,$04,$04,$04
-  8402                          GFX_PTR_DRAGON_S:
-  8403  3fd6  6d00                  dw        DRAGON_S                                ;= $04,$04,$04,$C9,$C9,$C0,$C0,$01
-  8404                          GFX_PTR_END_A:
-  8405  3fd8  0000                  dw        NO_GFX                                  ;= $FF
-  8406                          GFX_PTR_MUMMY:
-  8407  3fda  0907                  dw        MUMMY                                   ;= $04,$04,$04,$04
-  8408                          GFX_PTR_MUMMY_S:
-  8409  3fdc  6c07                  dw        MUMMY_S                                 ;= $04,$04,$04
-  8410                          GFX_PTR_END_B:
-  8411  3fde  0000                  dw        NO_GFX                                  ;= $FF
-  8412                          GFX_PTR_NECRO:
-  8413  3fe0  8507                  dw        NECROMANCER                             ;= $04,$04,$04,$04
-  8414                          GFX_PTR_NECRO_S:
-  8415  3fe2  e007                  dw        NECROMANCER_S                           ;= $04,$04,$04
-  8416                          GFX_PTR_END_C:
-  8417  3fe4  0000                  dw        NO_GFX                                  ;= $FF
-  8418                          GFX_PTR_GRYPHON:
-  8419  3fe6  0110                  dw        GRYPHON                                 ;= $04,$04,$04,$04
-  8420                          GFX_PTR_GRYPHON_S:
-  8421  3fe8  6110                  dw        GRYPHON_S                               ;= $04,$04,$04,$B8,$B8,$B0,$01
-  8422                          GFX_PTR_END_D:
-  8423  3fea  0000                  dw        NO_GFX                                  ;= $FF
-  8424                          GFX_PTR_MINOTAUR:
-  8425  3fec  ff05                  dw        MINOTAUR                                ;= $04,$04,$04,$04
-  8426                          GFX_PTR_MINOTAUR_S:
-  8427  3fee  4606                  dw        MINOTAUR_S                              ;= $04,$04,$04,$04
-  8428                          
-  8429  3ff0  0000000000000000      ds 16, $00
+  7036                          CALC_WEST_REDRAW_2:
+  7037  37a1  dd21e837              LD          IX,ITEM_F2                              ;= $60
+  7038  37a5  ed5b603a              LD          DE,(DIR_FACING_FW)
+  7039  37a9  3a793a                LD          A,(PLAYER_MAP_POS)
+  7040  37ac  82                    ADD         A,D
+  7041  37ad  82                    ADD         A,D
+  7042  37ae  cdf337                CALL        ITEM_MAP_CHECK
+  7043  37b1  dd7700                LD          (IX+0),A                     ;= $60
+  7044  37b4  7c                    LD          A,H
+  7045  37b5  92                    SUB         D
+  7046  37b6  cdf337                CALL        ITEM_MAP_CHECK
+  7047  37b9  dd7701                LD          (IX+1),A                     ;= $60
+  7048  37bc  7c                    LD          A,H
+  7049  37bd  92                    SUB         D
+  7050  37be  cdf337                CALL        ITEM_MAP_CHECK
+  7051  37c1  dd7702                LD          (IX+2),A                     ;= $60
+  7052  37c4  7c                    LD          A,H
+  7053  37c5  82                    ADD         A,D
+  7054  37c6  93                    SUB         E
+  7055  37c7  cdf337                CALL        ITEM_MAP_CHECK
+  7056  37ca  dd7703                LD          (IX+3),A                    ;= $60
+  7057  37cd  7c                    LD          A,H
+  7058  37ce  83                    ADD         A,E
+  7059  37cf  83                    ADD         A,E
+  7060  37d0  cdf337                CALL        ITEM_MAP_CHECK
+  7061  37d3  dd7704                LD          (IX+4),A                    ;= $60
+  7062  37d6  7c                    LD          A,H
+  7063  37d7  92                    SUB         D
+  7064  37d8  cdf337                CALL        ITEM_MAP_CHECK
+  7065  37db  dd7705                LD          (IX+5),A                     ;= $60
+  7066  37de  7c                    LD          A,H
+  7067  37df  93                    SUB         E
+  7068  37e0  93                    SUB         E
+  7069  37e1  cdf337                CALL        ITEM_MAP_CHECK
+  7070  37e4  dd7706                LD          (IX+6),A                     ;= $60
+  7071  37e7  7c                    LD          A,H
+  7072  37e8  92                    SUB         D
+  7073  37e9  83                    ADD         A,E
+  7074  37ea  cdf337                CALL        ITEM_MAP_CHECK
+  7075  37ed  dd7707                LD          (IX+7),A                     ;= $60
+  7076                          LAB_ram_f7f0:
+  7077  37f0  3efe                  LD          A,$fe
+  7078  37f2  c9                    RET
+  7079                          ITEM_MAP_CHECK:
+  7080  37f3  67                    LD          H,A
+  7081  37f4  010039                LD          BC,MAP_LADDER_OFFSET
+  7082                          LAB_ram_f7f7:
+  7083  37f7  0a                    LD          A,(BC)
+  7084  37f8  03                    INC         BC
+  7085  37f9  03                    INC         BC
+  7086  37fa  3c                    INC         A
+  7087  37fb  28f3                  JR          Z,LAB_ram_f7f0
+  7088  37fd  3d                    DEC         A
+  7089  37fe  bc                    CP          H
+  7090  37ff  20f6                  JR          NZ,LAB_ram_f7f7
+  7091  3801  0d                    DEC         C
+  7092  3802  0a                    LD          A,(BC)
+  7093  3803  c9                    RET
+  7094                          REDRAW_VIEWPORT:
+  7095  3804  cda011                CALL        DRAW_BKGD
+  7096  3807  01e837                LD          BC,ITEM_F2                              ;BC = ITEM_F2
+  7097  380a  11e833                LD          DE,WALL_F0_STATE                        ;DE = wallAheadTemp
+  7098  380d  1a                    LD          A,(DE)                   ;A = (wallAheadTemp)
+  7099  380e  0f                    RRCA
+  7100  380f  d22538                JP          NC,F0_NO_HD                             ;Jump if no hidden door
+  7101  3812  08                    EX          AF,AF'
+  7102  3813  cdf808                CALL        DRAW_F0_WALL
+  7103  3816  08                    EX          AF,AF'
+  7104  3817  0f                    RRCA
+  7105  3818  d28f39                JP          NC,F0_HD_NO_WALL                        ;Jump if no wall
+  7106  381b  0f                    RRCA
+  7107  381c  d28f39                JP          NC,F0_HD_NO_WALL                        ;Jump if door closed
+  7108                          F0_NO_HD_WALL_OPEN:
+  7109  381f  cd1109                CALL        DRAW_WALL_F0_AND_OPEN_DOOR
+  7110  3822  c38639                JP          LAB_ram_f986
+  7111                          F0_NO_HD:
+  7112  3825  0f                    RRCA
+  7113  3826  d23338                JP          NC,F0_NO_HD_NO_WALL                     ;Jump if no wall
+  7114  3829  0f                    RRCA
+  7115  382a  da1f38                JP          C,F0_NO_HD_WALL_OPEN                    ;Jump if door open
+  7116  382d  cd0309                CALL        DRAW_F0_WALL_AND_CLOSED_DOOR
+  7117  3830  c38f39                JP          F0_HD_NO_WALL
+  7118                          F0_NO_HD_NO_WALL:
+  7119  3833  13                    INC         DE
+  7120  3834  1a                    LD          A,(DE)                   ;= $20
+  7121  3835  0f                    RRCA
+  7122  3836  d24c38                JP          NC,F1_NO_HD                             ;Jump if no hidden door
+  7123  3839  08                    EX          AF,AF'
+  7124  383a  cd1809                CALL        DRAW_WALL_F1
+  7125  383d  08                    EX          AF,AF'
+  7126  383e  0f                    RRCA
+  7127  383f  d2c038                JP          NC,F1_HD_NO_WALL                        ;Jump if no wall
+  7128  3842  0f                    RRCA
+  7129  3843  d2c038                JP          NC,F1_HD_NO_WALL                        ;Jump if door closed
+  7130                          F1_NO_HD_WALL_OPEN:
+  7131  3846  cd3b09                CALL        DRAW_WALL_F1_AND_OPEN_DOOR
+  7132  3849  c3b738                JP          LAB_ram_f8b7
+  7133                          F1_NO_HD:
+  7134  384c  0f                    RRCA
+  7135  384d  d25a38                JP          NC,LAB_ram_f85a
+  7136  3850  0f                    RRCA
+  7137  3851  da4638                JP          C,F1_NO_HD_WALL_OPEN
+  7138  3854  cd2d09                CALL        DRAW_WALL_F1_AND_CLOSED_DOOR
+  7139  3857  c3c038                JP          F1_HD_NO_WALL
+  7140                          LAB_ram_f85a:
+  7141  385a  13                    INC         DE
+  7142  385b  1a                    LD          A,(DE)                   ;= $20
+  7143  385c  0f                    RRCA
+  7144  385d  d26638                JP          NC,CHECK_WALL_F2
+  7145                          F2_WALL:
+  7146  3860  cd4209                CALL        DRAW_WALL_F2
+  7147  3863  c36d38                JP          LAB_ram_f86d
+  7148                          CHECK_WALL_F2:
+  7149  3866  0f                    RRCA
+  7150  3867  da6038                JP          C,F2_WALL
+  7151  386a  cd4d09                CALL        DRAW_DOOR_F2_OPEN
+  7152                          LAB_ram_f86d:
+  7153  386d  11eb33                LD          DE,WALL_F3_STATE                        ;= $20
+  7154  3870  1a                    LD          A,(DE)                   ;= $20
+  7155  3871  0f                    RRCA
+  7156  3872  d27b38                JP          NC,LAB_ram_f87b
+  7157                          LAB_ram_f875:
+  7158  3875  cdee0a                CALL        DRAW_WALL_FL2_EMPTY
+  7159  3878  c39238                JP          LAB_ram_f892
+  7160                          LAB_ram_f87b:
+  7161  387b  0f                    RRCA
+  7162  387c  da7538                JP          C,LAB_ram_f875
+  7163  387f  13                    INC         DE
+  7164  3880  1a                    LD          A,(DE)                    ;= $20
+  7165  3881  0f                    RRCA
+  7166  3882  d28b38                JP          NC,LAB_ram_f88b
+  7167                          LAB_ram_f885:
+  7168  3885  cd390b                CALL        DRAW_WALL_L2_C
+  7169  3888  c39238                JP          LAB_ram_f892
+  7170                          LAB_ram_f88b:
+  7171  388b  0f                    RRCA
+  7172  388c  da8538                JP          C,LAB_ram_f885
+  7173  388f  cd440b                CALL        DRAW_WALL_L2_C_EMPTY
+  7174                          LAB_ram_f892:
+  7175  3892  11ed33                LD          DE,DAT_ram_33ed                         ;= $20
+  7176  3895  1a                    LD          A,(DE)                    ;= $20
+  7177  3896  0f                    RRCA
+  7178  3897  d2a038                JP          NC,LAB_ram_f8a0
+  7179                          LAB_ram_f89a:
+  7180  389a  cde30c                CALL        DRAW_WALL_FR2
+  7181  389d  c3b738                JP          LAB_ram_f8b7
+  7182                          LAB_ram_f8a0:
+  7183  38a0  0f                    RRCA
+  7184  38a1  da9a38                JP          C,LAB_ram_f89a
+  7185  38a4  13                    INC         DE
+  7186  38a5  1a                    LD          A,(DE)                    ;= $20
+  7187  38a6  0f                    RRCA
+  7188  38a7  d2b038                JP          NC,LAB_ram_f8b0
+  7189                          LAB_ram_f8aa:
+  7190  38aa  cd210d                CALL        SUB_ram_cd21
+  7191  38ad  c3b738                JP          LAB_ram_f8b7
+  7192                          LAB_ram_f8b0:
+  7193  38b0  0f                    RRCA
+  7194  38b1  daaa38                JP          C,LAB_ram_f8aa
+  7195  38b4  cd2c0d                CALL        SUB_ram_cd2c
+  7196                          LAB_ram_f8b7:
+  7197  38b7  3ae837                LD          A,(ITEM_F2)                             ;= $60
+  7198  38ba  018a04                LD          BC,$48a
+  7199  38bd  cdac2c                CALL        CHK_ITEM
+  7200                          F1_HD_NO_WALL:
+  7201  38c0  11ef33                LD          DE,DAT_ram_33ef                         ;= $20
+  7202  38c3  1a                    LD          A,(DE)                    ;= $20
+  7203  38c4  0f                    RRCA
+  7204  38c5  d2db38                JP          NC,LAB_ram_f8db
+  7205  38c8  08                    EX          AF,AF'
+  7206  38c9  cd400a                CALL        DRAW_L1_WALL
+  7207  38cc  08                    EX          AF,AF'
+  7208  38cd  0f                    RRCA
+  7209  38ce  d22339                JP          NC,LAB_ram_f923
+  7210  38d1  0f                    RRCA
+  7211  38d2  d22339                JP          NC,LAB_ram_f923
+  7212                          LAB_ram_f8d5:
+  7213  38d5  cd830a                CALL        DRAW_FL1_DOOR
+  7214  38d8  c32339                JP          LAB_ram_f923
+  7215                          LAB_ram_f8db:
+  7216  38db  0f                    RRCA
+  7217  38dc  d2e938                JP          NC,LAB_ram_f8e9
+  7218  38df  0f                    RRCA
+  7219  38e0  dad538                JP          C,LAB_ram_f8d5
+  7220  38e3  cd900a                CALL        DRAW_L1
+  7221  38e6  c32339                JP          LAB_ram_f923
+  7222                          LAB_ram_f8e9:
+  7223  38e9  1c                    INC         E
+  7224  38ea  1a                    LD          A,(DE)                    ;= $20
+  7225  38eb  0f                    RRCA
+  7226  38ec  d20239                JP          NC,LAB_ram_f902
+  7227  38ef  08                    EX          AF,AF'
+  7228  38f0  cdb00a                CALL        SUB_ram_cab0
+  7229  38f3  08                    EX          AF,AF'
+  7230  38f4  0f                    RRCA
+  7231  38f5  d22339                JP          NC,LAB_ram_f923
+  7232  38f8  0f                    RRCA
+  7233  38f9  d22339                JP          NC,LAB_ram_f923
+  7234                          LAB_ram_f8fc:
+  7235  38fc  cdc50a                CALL        SUB_ram_cac5
+  7236  38ff  c32339                JP          LAB_ram_f923
+  7237                          LAB_ram_f902:
+  7238  3902  0f                    RRCA
+  7239  3903  d21039                JP          NC,LAB_ram_f910
+  7240  3906  0f                    RRCA
+  7241  3907  dafc38                JP          C,LAB_ram_f8fc
+  7242  390a  cdcb0a                CALL        DRAW_L1_DOOR_CLOSED
+  7243  390d  c32339                JP          LAB_ram_f923
+  7244                          LAB_ram_f910:
+  7245  3910  1c                    INC         E
+  7246  3911  1a                    LD          A,(DE)                    ;= $20
+  7247  3912  0f                    RRCA
+  7248  3913  d21c39                JP          NC,LAB_ram_f91c
+  7249                          LAB_ram_f916:
+  7250  3916  cdbb17                CALL        DRAW_WALL_FL2_NEW
+  7251  3919  c32339                JP          LAB_ram_f923
+  7252                          LAB_ram_f91c:
+  7253  391c  0f                    RRCA
+  7254  391d  da1639                JP          C,LAB_ram_f916
+  7255  3920  cdee0a                CALL        DRAW_WALL_FL2_EMPTY
+  7256                          LAB_ram_f923:
+  7257  3923  11f233                LD          DE,DAT_ram_33f2                         ;= $20
+  7258  3926  1a                    LD          A,(DE)                    ;= $20
+  7259  3927  0f                    RRCA
+  7260  3928  d23e39                JP          NC,LAB_ram_f93e
+  7261  392b  08                    EX          AF,AF'
+  7262  392c  cd2b0c                CALL        DRAW_WALL_FR1
+  7263  392f  08                    EX          AF,AF'
+  7264  3930  0f                    RRCA
+  7265  3931  d28639                JP          NC,LAB_ram_f986
+  7266  3934  0f                    RRCA
+  7267  3935  d28639                JP          NC,LAB_ram_f986
+  7268                          LAB_ram_f938:
+  7269  3938  cd6d0c                CALL        SUB_ram_cc6d
+  7270  393b  c38639                JP          LAB_ram_f986
+  7271                          LAB_ram_f93e:
+  7272  393e  0f                    RRCA
+  7273  393f  d24c39                JP          NC,LAB_ram_f94c
+  7274  3942  0f                    RRCA
+  7275  3943  da3839                JP          C,LAB_ram_f938
+  7276  3946  cd7a0c                CALL        SUB_ram_cc7a
+  7277  3949  c38639                JP          LAB_ram_f986
+  7278                          LAB_ram_f94c:
+  7279  394c  1c                    INC         E
+  7280  394d  1a                    LD          A,(DE)                    ;= $20
+  7281  394e  0f                    RRCA
+  7282  394f  d26539                JP          NC,LAB_ram_f965
+  7283  3952  08                    EX          AF,AF'
+  7284  3953  cd9a0c                CALL        SUB_ram_cc9a
+  7285  3956  08                    EX          AF,AF'
+  7286  3957  0f                    RRCA
+  7287  3958  d28639                JP          NC,LAB_ram_f986
+  7288  395b  0f                    RRCA
+  7289  395c  d28639                JP          NC,LAB_ram_f986
+  7290                          LAB_ram_f95f:
+  7291  395f  cdaf0c                CALL        SUB_ram_ccaf
+  7292  3962  c38639                JP          LAB_ram_f986
+  7293                          LAB_ram_f965:
+  7294  3965  0f                    RRCA
+  7295  3966  d27339                JP          NC,LAB_ram_f973
+  7296  3969  0f                    RRCA
+  7297  396a  da5f39                JP          C,LAB_ram_f95f
+  7298  396d  cdb50c                CALL        SUB_ram_ccb5
+  7299  3970  c38639                JP          LAB_ram_f986
+  7300                          LAB_ram_f973:
+  7301  3973  1c                    INC         E
+  7302  3974  1a                    LD          A,(DE)                    ;= $20
+  7303  3975  0f                    RRCA
+  7304  3976  d27f39                JP          NC,LAB_ram_f97f
+  7305                          LAB_ram_f979:
+  7306  3979  cdc30c                CALL        SUB_ram_ccc3
+  7307  397c  c38639                JP          LAB_ram_f986
+  7308                          LAB_ram_f97f:
+  7309  397f  0f                    RRCA
+  7310  3980  da7939                JP          C,LAB_ram_f979
+  7311  3983  cdd80c                CALL        DRAW_WALL_FR2_EMPTY
+  7312                          LAB_ram_f986:
+  7313  3986  3ae937                LD          A,(ITEM_F1)                             ;= $60
+  7314  3989  018a02                LD          BC,$28a
+  7315  398c  cdac2c                CALL        CHK_ITEM
+  7316                          F0_HD_NO_WALL:
+  7317  398f  11f533                LD          DE,DAT_ram_33f5                         ;= $20
+  7318  3992  1a                    LD          A,(DE)                    ;= $20
+  7319  3993  0f                    RRCA
+  7320  3994  d2aa39                JP          NC,LAB_ram_f9aa
+  7321  3997  08                    EX          AF,AF'
+  7322  3998  cd5809                CALL        DRAW_WALL_FL0
+  7323  399b  08                    EX          AF,AF'
+  7324  399c  0f                    RRCA
+  7325  399d  d2193a                JP          NC,LAB_ram_fa19
+  7326  39a0  0f                    RRCA
+  7327  39a1  d2193a                JP          NC,LAB_ram_fa19
+  7328                          LAB_ram_f9a4:
+  7329  39a4  cd8c09                CALL        DRAW_DOOR_FLO
+  7330  39a7  c3193a                JP          LAB_ram_fa19
+  7331                          LAB_ram_f9aa:
+  7332  39aa  0f                    RRCA
+  7333  39ab  d2b839                JP          NC,LAB_ram_f9b8
+  7334  39ae  0f                    RRCA
+  7335  39af  daa439                JP          C,LAB_ram_f9a4
+  7336  39b2  cd9609                CALL        SUB_ram_c996
+  7337  39b5  c3193a                JP          LAB_ram_fa19
+  7338                          LAB_ram_f9b8:
+  7339  39b8  1c                    INC         E
+  7340  39b9  1a                    LD          A,(DE)                    ;= $20
+  7341  39ba  0f                    RRCA
+  7342  39bb  d2c439                JP          NC,LAB_ram_f9c4
+  7343                          LAB_ram_f9be:
+  7344  39be  cdc509                CALL        SUB_ram_c9c5
+  7345  39c1  c3193a                JP          LAB_ram_fa19
+  7346                          LAB_ram_f9c4:
+  7347  39c4  0f                    RRCA
+  7348  39c5  dabe39                JP          C,LAB_ram_f9be
+  7349  39c8  1c                    INC         E
+  7350  39c9  1a                    LD          A,(DE)                    ;= $20
+  7351  39ca  0f                    RRCA
+  7352  39cb  d2f039                JP          NC,LAB_ram_f9f0
+  7353  39ce  08                    EX          AF,AF'
+  7354  39cf  cdd009                CALL        SUB_ram_c9d0
+  7355  39d2  cde739                CALL        SUB_ram_f9e7
+  7356  39d5  08                    EX          AF,AF'
+  7357  39d6  0f                    RRCA
+  7358  39d7  d2193a                JP          NC,LAB_ram_fa19
+  7359  39da  0f                    RRCA
+  7360  39db  d2193a                JP          NC,LAB_ram_fa19
+  7361                          LAB_ram_f9de:
+  7362  39de  cdf309                CALL        SUB_ram_c9f3
+  7363  39e1  cde739                CALL        SUB_ram_f9e7
+  7364  39e4  c3193a                JP          LAB_ram_fa19
+  7365                          SUB_ram_f9e7:
+  7366  39e7  3aeb37                LD          A,(ITEM_FL1)                            ;= $60
+  7367  39ea  01d004                LD          BC,$4d0
+  7368  39ed  c3ac2c                JP          CHK_ITEM
+  7369                          LAB_ram_f9f0:
+  7370  39f0  0f                    RRCA
+  7371  39f1  d2013a                JP          NC,LAB_ram_fa01
+  7372  39f4  0f                    RRCA
+  7373  39f5  dade39                JP          C,LAB_ram_f9de
+  7374  39f8  cde509                CALL        SUB_ram_c9e5
+  7375  39fb  cde739                CALL        SUB_ram_f9e7
+  7376  39fe  c3193a                JP          LAB_ram_fa19
+  7377                          LAB_ram_fa01:
+  7378  3a01  1c                    INC         E
+  7379  3a02  0f                    RRCA
+  7380  3a03  d20f3a                JP          NC,LAB_ram_fa0f
+  7381                          LAB_ram_fa06:
+  7382  3a06  cdf909                CALL        SUB_ram_c9f9
+  7383  3a09  cde739                CALL        SUB_ram_f9e7
+  7384  3a0c  c3193a                JP          LAB_ram_fa19
+  7385                          LAB_ram_fa0f:
+  7386  3a0f  0f                    RRCA
+  7387  3a10  da063a                JP          C,LAB_ram_fa06
+  7388  3a13  cda517                CALL        DRAW_WALL_FL22_EMPTY
+  7389  3a16  cde739                CALL        SUB_ram_f9e7
+  7390                          LAB_ram_fa19:
+  7391  3a19  11f933                LD          DE,DAT_ram_33f9                         ;= $20
+  7392  3a1c  1a                    LD          A,(DE)                    ;= $20
+  7393  3a1d  0f                    RRCA
+  7394  3a1e  d2343a                JP          NC,LAB_ram_fa34
+  7395  3a21  08                    EX          AF,AF'
+  7396  3a22  cd4f0b                CALL        SUB_ram_cb4f
+  7397  3a25  08                    EX          AF,AF'
+  7398  3a26  0f                    RRCA
+  7399  3a27  d2a33a                JP          NC,LAB_ram_faa3
+  7400  3a2a  0f                    RRCA
+  7401  3a2b  d2a33a                JP          NC,LAB_ram_faa3
+  7402                          LAB_ram_fa2e:
+  7403  3a2e  cd740b                CALL        DRAW_FRO_DOOR
+  7404  3a31  c3a33a                JP          LAB_ram_faa3
+  7405                          LAB_ram_fa34:
+  7406  3a34  0f                    RRCA
+  7407  3a35  d2423a                JP          NC,LAB_ram_fa42
+  7408  3a38  0f                    RRCA
+  7409  3a39  da2e3a                JP          C,LAB_ram_fa2e
+  7410  3a3c  cd7e0b                CALL        SUB_ram_cb7e
+  7411  3a3f  c3a33a                JP          LAB_ram_faa3
+  7412                          LAB_ram_fa42:
+  7413  3a42  1c                    INC         E
+  7414  3a43  1a                    LD          A,(DE)                    ;= $20
+  7415  3a44  0f                    RRCA
+  7416  3a45  d2573a                JP          NC,LAB_ram_fa57
+  7417                          LAB_ram_fa48:
+  7418  3a48  cdae0b                CALL        SUB_ram_cbae
+  7419  3a4b  c3a33a                JP          LAB_ram_faa3
+  7420                          SUB_ram_fa4e:
+  7421  3a4e  3aec37                LD          A,(ITEM_FR1)                            ;= $60
+  7422  3a51  01e404                LD          BC,$4e4
+  7423  3a54  c3ac2c                JP          CHK_ITEM
+  7424                          LAB_ram_fa57:
+  7425  3a57  0f                    RRCA
+  7426  3a58  da483a                JP          C,LAB_ram_fa48
+  7427  3a5b  1c                    INC         E
+  7428  3a5c  1a                    LD          A,(DE)                    ;= $20
+  7429  3a5d  0f                    RRCA
+  7430  3a5e  d27a3a                JP          NC,LAB_ram_fa7a
+  7431  3a61  08                    EX          AF,AF'
+  7432  3a62  cdb90b                CALL        SUB_ram_cbb9
+  7433  3a65  cd4e3a                CALL        SUB_ram_fa4e
+  7434  3a68  08                    EX          AF,AF'
+  7435  3a69  0f                    RRCA
+  7436  3a6a  d2a33a                JP          NC,LAB_ram_faa3
+  7437  3a6d  0f                    RRCA
+  7438  3a6e  d2a33a                JP          NC,LAB_ram_faa3
+  7439                          LAB_ram_fa71:
+  7440  3a71  cdce0b                CALL        SUB_ram_cbce
+  7441  3a74  cd4e3a                CALL        SUB_ram_fa4e
+  7442  3a77  c3a33a                JP          LAB_ram_faa3
+  7443                          LAB_ram_fa7a:
+  7444  3a7a  0f                    RRCA
+  7445  3a7b  d28b3a                JP          NC,LAB_ram_fa8b
+  7446  3a7e  0f                    RRCA
+  7447  3a7f  da713a                JP          C,LAB_ram_fa71
+  7448  3a82  cdd40b                CALL        SUB_ram_cbd4
+  7449  3a85  cd4e3a                CALL        SUB_ram_fa4e
+  7450  3a88  c3a33a                JP          LAB_ram_faa3
+  7451                          LAB_ram_fa8b:
+  7452  3a8b  1c                    INC         E
+  7453  3a8c  0f                    RRCA
+  7454  3a8d  d2993a                JP          NC,LAB_ram_fa99
+  7455                          LAB_ram_fa90:
+  7456  3a90  cde20b                CALL        SUB_ram_cbe2
+  7457  3a93  cd4e3a                CALL        SUB_ram_fa4e
+  7458  3a96  c3a33a                JP          LAB_ram_faa3
+  7459                          LAB_ram_fa99:
+  7460  3a99  0f                    RRCA
+  7461  3a9a  da903a                JP          C,LAB_ram_fa90
+  7462  3a9d  cd200c                CALL        DRAW_WALL_FR222_EMPTY
+  7463  3aa0  cd4e3a                CALL        SUB_ram_fa4e
+  7464                          LAB_ram_faa3:
+  7465  3aa3  3aea37                LD          A,(ITEM_F0)                             ;= $60
+  7466  3aa6  018a00                LD          BC,$8a
+  7467  3aa9  c3ac2c                JP          CHK_ITEM
+  7468                          MAKE_RANDOM_BYTE:
+  7469  3aac  c5                    PUSH        BC
+  7470  3aad  e5                    PUSH        HL
+  7471  3aae  0605                  LD          B,0x5                                   ;Run data randomizer 5x
+  7472  3ab0  2a913a                LD          HL,(RNDHOLD_AA)
+  7473                          RANDOM_BYTE_LOOP:
+  7474  3ab3  cb25                  SLA         L                                       ;L x 2
+  7475  3ab5  cb14                  RL          H
+  7476  3ab7  3808                  JR          C,FINISH_BYTE_LOOP
+  7477  3ab9  3e87                  LD          A,$87
+  7478  3abb  ad                    XOR         L
+  7479  3abc  6f                    LD          L,A
+  7480  3abd  3e1d                  LD          A,$1d
+  7481  3abf  ac                    XOR         H
+  7482  3ac0  67                    LD          H,A
+  7483                          FINISH_BYTE_LOOP:
+  7484  3ac1  10f0                  DJNZ        RANDOM_BYTE_LOOP
+  7485  3ac3  22913a                LD          (RNDHOLD_AA),HL
+  7486  3ac6  7c                    LD          A,H
+  7487  3ac7  e1                    POP         HL
+  7488  3ac8  c1                    POP         BC
+  7489  3ac9  c9                    RET
+  7490                          UPDATE_SCR_SAVER_TIMER:
+  7491  3aca  c5                    PUSH        BC
+  7492  3acb  e5                    PUSH        HL
+  7493  3acc  2a9c3a                LD          HL,(TIMER_E)
+  7494  3acf  44                    LD          B,H
+  7495  3ad0  4d                    LD          C,L
+  7496  3ad1  cb21                  SLA         C
+  7497  3ad3  cb10                  RL          B
+  7498  3ad5  cb21                  SLA         C
+  7499  3ad7  cb10                  RL          B
+  7500  3ad9  09                    ADD         HL,BC
+  7501  3ada  7c                    LD          A,H
+  7502  3adb  ad                    XOR         L
+  7503  3adc  32883a                LD          (TIMER_D),A
+  7504  3adf  44                    LD          B,H
+  7505  3ae0  4d                    LD          C,L
+  7506  3ae1  cb21                  SLA         C
+  7507  3ae3  cb10                  RL          B
+  7508  3ae5  cb21                  SLA         C
+  7509  3ae7  cb10                  RL          B
+  7510  3ae9  09                    ADD         HL,BC
+  7511  3aea  011300                LD          BC,$13
+  7512  3aed  09                    ADD         HL,BC
+  7513  3aee  229c3a                LD          (TIMER_E),HL
+  7514  3af1  e1                    POP         HL
+  7515  3af2  c1                    POP         BC
+  7516  3af3  c9                    RET
+  7517                          MINOTAUR_DEAD:
+  7518  3af4  cda011                CALL        DRAW_BKGD
+  7519  3af7  215030                LD          HL,DAT_ram_3050                         ;= $20
+  7520  3afa  115b11                LD          DE,THE_END_PART_A                       ;WAS LD DE, 0xC25D
+  7521  3afd  0610                  LD          B,$10                                  ;RED on BLK
+  7522  3aff  cd3533                CALL        GFX_DRAW
+  7523  3b02  21a030                LD          HL,DAT_ram_30a0                         ;= $20
+  7524  3b05  cd3533                CALL        GFX_DRAW
+  7525  3b08  cdac3a                CALL        MAKE_RANDOM_BYTE
+  7526  3b0b  e603                  AND         0x3
+  7527  3b0d  c60a                  ADD         A,0xa
+  7528  3b0f  47                    LD          B,A
+  7529  3b10  00                    db          $00
+  7530  3b11  00                    db          $00
+  7531  3b12  00                    db          $00
+  7532  3b13  00                    db          $00
+  7533  3b14  00                    db          $00
+  7534  3b15  00                    db          $00
+  7535  3b16  00                    db          $00
+  7536  3b17  00                    db          $00
+  7537  3b18  00                    db          $00
+  7538  3b19  3a6c3a                LD          A,(INPUT_HOLDER)
+  7539  3b1c  07                    RLCA
+  7540  3b1d  07                    RLCA
+  7541  3b1e  07                    RLCA
+  7542  3b1f  07                    RLCA
+  7543  3b20  47                    LD          B,A
+  7544  3b21  af                    XOR         A
+  7545  3b22  326c3a                LD          (INPUT_HOLDER),A
+  7546  3b25  11ff05                LD          DE,MINOTAUR                             ;= $04,$04,$04,$04
+  7547  3b28  21da32                LD          HL,DAT_ram_32da                         ;= $20
+  7548  3b2b  cd3533                CALL        GFX_DRAW
+  7549  3b2e  cdbc2e                CALL        TOTAL_HEAL
+  7550  3b31  cd5d3d                CALL        REDRAW_STATS
+  7551  3b34  0602                  LD          B,0x2                                   ;Was LD B,0x6
+  7552                          MINOTAUR_DEAD_SOUND_LOOP:
+  7553  3b36  d9                    EXX
+  7554  3b37  cd5f0d                CALL        SUB_ram_cd5f
+  7555  3b3a  cd7b0d                CALL        END_OF_GAME_SOUND
+  7556  3b3d  d9                    EXX
+  7557  3b3e  10f6                  DJNZ        MINOTAUR_DEAD_SOUND_LOOP
+  7558  3b40  c3b72a                JP          SCREEN_SAVER_FULL_SCREEN
+  7559  3b43  00                    db          $00
+  7560  3b44  00                    db          $00
+  7561  3b45  00                    db          $00
+  7562  3b46  00                    db          $00
+  7563  3b47  00                    db          $00
+  7564  3b48  00                    db          $00
+  7565  3b49  00                    db          $00
+  7566  3b4a  00                    db          $00
+  7567  3b4b  00                    db          $00
+  7568  3b4c  00                    db          $00
+  7569  3b4d  00                    db          $00
+  7570  3b4e  00                    db          $00
+  7571  3b4f  00                    db          $00
+  7572  3b50  00                    db          $00
+  7573  3b51  00                    db          $00
+  7574  3b52  00                    db          $00
+  7575  3b53  00                    db          $00
+  7576  3b54  00                    db          $00
+  7577  3b55  00                    db          $00
+  7578  3b56  00                    db          $00
+  7579  3b57  00                    db          $00
+  7580  3b58  00                    db          $00
+  7581  3b59  00                    db          $00
+  7582  3b5a  00                    db          $00
+  7583  3b5b  00                    db          $00
+  7584  3b5c  00                    db          $00
+  7585  3b5d  00                    db          $00
+  7586  3b5e  00                    db          $00
+  7587  3b5f  00                    db          $00
+  7588  3b60  00                    db          $00
+  7589  3b61  00                    db          $00
+  7590  3b62  00                    db          $00
+  7591  3b63  00                    db          $00
+  7592  3b64  00                    db          $00
+  7593  3b65  00                    db          $00
+  7594  3b66  00                    db          $00
+  7595  3b67  00                    db          $00
+  7596  3b68  00                    db          $00
+  7597  3b69  00                    db          $00
+  7598  3b6a  00                    db          $00
+  7599                          DO_REST:
+  7600  3b6b  3a783a                LD          A,(LAST_ITEM_HELD)                   ;Load food inventory into A
+  7601  3b6e  a7                    AND         A
+  7602  3b6f  c23022                JP          NZ,NO_ACTION_TAKEN                      ;If food is empty, do nothing
+  7603                          CHK_NEEDS_HEALING:
+  7604  3b72  2a953a                LD          HL,(PLAYER_PHYS_HEALTH_MAX)             ;HL = max PHYS health
+  7605  3b75  ed5b933a              LD          DE,(PLAYER_PHYS_HEALTH)                 ;DE = current PHYS health
+  7606  3b79  cd3024                CALL        RECALC_PHYS_HEALTH
+  7607  3b7c  b5                    OR          L
+  7608  3b7d  200d                  JR          NZ,HEAL_PLAYER_PHYS_HEALTH
+  7609  3b7f  3a983a                LD          A,(PLAYER_SPRT_HEALTH_MAX)
+  7610  3b82  4f                    LD          C,A
+  7611  3b83  3a973a                LD          A,(PLAYER_SPRT_HEALTH)
+  7612  3b86  b9                    CP          C
+  7613  3b87  ca9c2a                JP          Z,INPUT_DEBOUNCE
+  7614  3b8a  182a                  JR          HEAL_PLAYER_SPRT_HEALTH
+  7615                          HEAL_PLAYER_PHYS_HEALTH:
+  7616  3b8c  2aa93a                LD          HL,(BYTE_ram_3aa9)
+  7617  3b8f  110100                LD          DE,0x1
+  7618  3b92  cd3024                CALL        RECALC_PHYS_HEALTH
+  7619  3b95  da9c2a                JP          C,INPUT_DEBOUNCE
+  7620  3b98  22a93a                LD          (BYTE_ram_3aa9),HL
+  7621  3b9b  21ab3a                LD          HL,FOOD_INV
+  7622  3b9e  35                    DEC         (HL)
+  7623  3b9f  2a933a                LD          HL,(PLAYER_PHYS_HEALTH)
+  7624  3ba2  cd2724                CALL        SUB_ram_e427
+  7625  3ba5  22933a                LD          (PLAYER_PHYS_HEALTH),HL
+  7626  3ba8  cd5d3d                CALL        REDRAW_STATS
+  7627  3bab  3a983a                LD          A,(PLAYER_SPRT_HEALTH_MAX)
+  7628  3bae  4f                    LD          C,A
+  7629  3baf  3a973a                LD          A,(PLAYER_SPRT_HEALTH)
+  7630  3bb2  b9                    CP          C
+  7631  3bb3  ca723b                JP          Z,CHK_NEEDS_HEALING
+  7632                          HEAL_PLAYER_SPRT_HEALTH:
+  7633  3bb6  2aa93a                LD          HL,(BYTE_ram_3aa9)
+  7634  3bb9  110100                LD          DE,0x1
+  7635  3bbc  cd3024                CALL        RECALC_PHYS_HEALTH
+  7636  3bbf  da9c2a                JP          C,INPUT_DEBOUNCE
+  7637  3bc2  22a93a                LD          (BYTE_ram_3aa9),HL
+  7638  3bc5  21ab3a                LD          HL,FOOD_INV
+  7639  3bc8  35                    DEC         (HL)
+  7640  3bc9  3a973a                LD          A,(PLAYER_SPRT_HEALTH)
+  7641  3bcc  c601                  ADD         A,0x1
+  7642  3bce  27                    DAA
+  7643  3bcf  32973a                LD          (PLAYER_SPRT_HEALTH),A
+  7644  3bd2  cd5d3d                CALL        REDRAW_STATS
+  7645  3bd5  189b                  JR          CHK_NEEDS_HEALING
+  7646  3bd7  00                    db          $00
+  7647  3bd8  00                    db          $00
+  7648  3bd9  00                    db          $00
+  7649  3bda  00                    db          $00
+  7650  3bdb  00                    db          $00
+  7651  3bdc  00                    db          $00
+  7652  3bdd  00                    db          $00
+  7653  3bde  00                    db          $00
+  7654  3bdf  00                    db          $00
+  7655                          KEY_COMPARE:
+  7656  3be0  3a663a                LD          A,(RAM_AE)
+  7657  3be3  fe31                  CP          $31                                    ;Compare to "1" db?
+  7658  3be5  c29f2a                JP          NZ,WAIT_FOR_INPUT
+  7659                          KEY_COL_0:
+  7660  3be8  21f637                LD          HL,KEY_INPUT_COL0                       ;= $60
+  7661  3beb  7e                    LD          A,(HL)                  ;A = Key Column 0
+  7662  3bec  fefe                  CP          $fe                                    ;If Key Row = 0 "="
+  7663  3bee  ca3022                JP          Z,NO_ACTION_TAKEN
+  7664  3bf1  fefd                  CP          $fd                                    ;If Key Row = 1 "BKSP"
+  7665  3bf3  ca3022                JP          Z,NO_ACTION_TAKEN
+  7666  3bf6  fefb                  CP          $fb                                    ;If Key Row = 2 ":"
+  7667  3bf8  ca3022                JP          Z,NO_ACTION_TAKEN
+  7668  3bfb  fef7                  CP          $f7                                    ;If Key Row = 3 "RET"
+  7669  3bfd  ca3022                JP          Z,NO_ACTION_TAKEN
+  7670  3c00  feef                  CP          $ef                                    ;If Key Row = 4 ";"
+  7671  3c02  ca322e                JP          Z,DO_GLANCE_RIGHT
+  7672  3c05  fedf                  CP          $df                                    ;If Key Row = 5 "."
+  7673  3c07  ca182e                JP          Z,DO_TURN_RIGHT
+  7674                          KEY_COL_1:
+  7675  3c0a  2c                    INC         L
+  7676  3c0b  7e                    LD          A,(HL)                  ;A = Key Column 1
+  7677  3c0c  fefe                  CP          $fe                                    ;If Key Row = 0 "-"
+  7678  3c0e  ca3022                JP          Z,NO_ACTION_TAKEN
+  7679  3c11  fefd                  CP          $fd                                    ;If Key Row = 1 "/"
+  7680  3c13  ca3022                JP          Z,NO_ACTION_TAKEN
+  7681  3c16  fefb                  CP          $fb                                    ;If Key Row = 2 "0"
+  7682  3c18  ca3022                JP          Z,NO_ACTION_TAKEN
+  7683  3c1b  fef7                  CP          $f7                                    ;If Key Row = 3 "P"
+  7684  3c1d  ca3022                JP          Z,NO_ACTION_TAKEN
+  7685  3c20  feef                  CP          $ef                                    ;If Key Row = 4 "L"
+  7686  3c22  ca9e21                JP          Z,DO_MOVE_FW_CHK_WALLS
+  7687  3c25  fedf                  CP          $df                                    ;If Key Row = 5 ","
+  7688  3c27  cad021                JP          Z,DO_JUMP_BACK
+  7689                          KEY_COL_2:
+  7690  3c2a  2c                    INC         L
+  7691  3c2b  7e                    LD          A,(HL)                  ;A = Key Column 2
+  7692  3c2c  fefe                  CP          $fe                                    ;If Key Row = 0 "9"
+  7693  3c2e  ca3022                JP          Z,NO_ACTION_TAKEN
+  7694  3c31  fefd                  CP          $fd                                    ;If Key Row = 1 "O"
+  7695  3c33  ca3022                JP          Z,NO_ACTION_TAKEN
+  7696  3c36  fefb                  CP          $fb                                    ;If Key Row = 2 "K"
+  7697  3c38  ca9e21                JP          Z,DO_MOVE_FW_CHK_WALLS
+  7698  3c3b  fef7                  CP          $f7                                    ;If Key Row = 3 "M"
+  7699  3c3d  ca002e                JP          Z,DO_TURN_LEFT
+  7700  3c40  feef                  CP          $ef                                    ;If Key Row = 4 "N"
+  7701  3c42  ca5e2e                JP          Z,DO_USE_ATTACK
+  7702  3c45  fedf                  CP          $df                                    ;If Key Row = 5 "J"
+  7703  3c47  ca482e                JP          Z,DO_GLANCE_LEFT
+  7704                          KEY_COL_3:
+  7705  3c4a  2c                    INC         L
+  7706  3c4b  7e                    LD          A,(HL)                  ;A = Key Column 3
+  7707  3c4c  fefe                  CP          $fe                                    ;If Key Row = 0 "8"
+  7708  3c4e  ca3022                JP          Z,NO_ACTION_TAKEN
+  7709  3c51  fefd                  CP          $fd                                    ;If Key Row = 1 "I"
+  7710  3c53  ca3022                JP          Z,NO_ACTION_TAKEN
+  7711  3c56  fefb                  CP          $fb                                    ;If Key Row = 2 "7"
+  7712  3c58  ca3022                JP          Z,NO_ACTION_TAKEN
+  7713  3c5b  fef7                  CP          $f7                                    ;If Key Row = 3 "U"
+  7714  3c5d  ca3022                JP          Z,NO_ACTION_TAKEN
+  7715  3c60  feef                  CP          $ef                                    ;If Key Row = 4 "H"
+  7716  3c62  cadb2c                JP          Z,DO_OPEN_CLOSE
+  7717  3c65  fedf                  CP          $df                                    ;If Key Row = 5 "B"
+  7718  3c67  ca3022                JP          Z,NO_ACTION_TAKEN
+  7719                          KEY_COL_4:
+  7720  3c6a  2c                    INC         L
+  7721  3c6b  7e                    LD          A,(HL)                  ;A = Key Column 4
+  7722  3c6c  fefe                  CP          $fe                                    ;If Key Row = 0 "6"
+  7723  3c6e  ca3022                JP          Z,NO_ACTION_TAKEN
+  7724  3c71  fefd                  CP          $fd                                    ;If Key Row = 1 "Y"
+  7725  3c73  ca4d22                JP          Z,USE_MAP
+  7726  3c76  fefb                  CP          $fb                                    ;If Key Row = 2 "G"
+  7727  3c78  ca3022                JP          Z,NO_ACTION_TAKEN
+  7728  3c7b  fef7                  CP          $f7                                    ;If Key Row = 3 "V"
+  7729  3c7d  ca3022                JP          Z,NO_ACTION_TAKEN
+  7730  3c80  feef                  CP          $ef                                    ;If Key Row = 4 "C"
+  7731  3c82  ca2b22                JP          Z,DO_COUNT_ARROWS
+  7732  3c85  fedf                  CP          $df                                    ;If Key Row = 5 "F"
+  7733  3c87  ca6b3b                JP          Z,DO_REST
+  7734                          KEY_COL_5:
+  7735  3c8a  2c                    INC         L
+  7736  3c8b  7e                    LD          A,(HL)                  ;A = Key Column 5
+  7737  3c8c  fefe                  CP          $fe                                    ;If Key Row = 0 "5"
+  7738  3c8e  ca3022                JP          Z,NO_ACTION_TAKEN
+  7739  3c91  fefd                  CP          $fd                                    ;If Key Row = 1 "T"
+  7740  3c93  ca303d                JP          Z,DO_TELEPORT
+  7741  3c96  fefb                  CP          $fb                                    ;If Key Row = 2 "4"
+  7742  3c98  ca3022                JP          Z,NO_ACTION_TAKEN
+  7743  3c9b  fef7                  CP          $f7                                    ;If Key Row = 3 "R"
+  7744  3c9d  ca682a                JP          Z,DO_SWAP_PACK
+  7745  3ca0  feef                  CP          $ef                                    ;If Key Row = 4 "D"
+  7746  3ca2  caa332                JP          Z,DO_USE_LADDER
+  7747  3ca5  fedf                  CP          $df                                    ;If Key Row = 5 "X"
+  7748  3ca7  ca1422                JP          Z,DO_COUNT_FOOD
+  7749                          KEY_COL_6:
+  7750  3caa  2c                    INC         L
+  7751  3cab  7e                    LD          A,(HL)                  ;A = Key Column 6
+  7752  3cac  fefe                  CP          $fe                                    ;If Key Row = 0 "3"
+  7753  3cae  ca3022                JP          Z,NO_ACTION_TAKEN
+  7754  3cb1  fefd                  CP          $fd                                    ;If Key Row = 1 "E"
+  7755  3cb3  cacc26                JP          Z,DO_SWAP_HANDS
+  7756  3cb6  fefb                  CP          $fb                                    ;If Key Row = 2 "S"
+  7757  3cb8  caf829                JP          Z,DO_ROTATE_PACK
+  7758  3cbb  fef7                  CP          $f7                                    ;If Key Row = 3 "Z"
+  7759  3cbd  ca6717                JP          Z,WIPE_WALLS
+  7760  3cc0  feef                  CP          $ef                                    ;If Key Row = 4 "SPC"
+  7761  3cc2  ca3022                JP          Z,NO_ACTION_TAKEN
+  7762  3cc5  fedf                  CP          $df                                    ;If Key Row = 5 "A"
+  7763  3cc7  ca3022                JP          Z,NO_ACTION_TAKEN
+  7764                          KEY_COL_7:
+  7765  3cca  2c                    INC         L
+  7766  3ccb  7e                    LD          A,(HL)                  ;A = Key Column 7
+  7767  3ccc  fefe                  CP          $fe                                    ;If Key Row = 0 "2"
+  7768  3cce  ca3022                JP          Z,NO_ACTION_TAKEN
+  7769  3cd1  fefd                  CP          $fd                                    ;If Key Row = 1 "W"
+  7770  3cd3  cacc27                JP          Z,DO_PICK_UP
+  7771  3cd6  fefb                  CP          $fb                                    ;If Key Row = 2 "1"
+  7772  3cd8  ca3022                JP          Z,NO_ACTION_TAKEN
+  7773  3cdb  fef7                  CP          $f7                                    ;If Key Row = 3 "Q"
+  7774  3cdd  caee3c                JP          Z,MAX_HEALTH_ARROWS_FOOD
+  7775  3ce0  feef                  CP          $ef                                    ;If Key Row = 4 "SHFT"
+  7776  3ce2  ca3022                JP          Z,NO_ACTION_TAKEN
+  7777  3ce5  fedf                  CP          $df                                    ;If Key Row = 5 "CTRL"
+  7778  3ce7  ca3022                JP          Z,NO_ACTION_TAKEN
+  7779  3cea  c33022                JP          NO_ACTION_TAKEN
+  7780  3ced  00                    NOP
+  7781                          MAX_HEALTH_ARROWS_FOOD:
+  7782  3cee  21933a                LD          HL,PLAYER_PHYS_HEALTH
+  7783  3cf1  3e99                  LD          A,$99
+  7784  3cf3  77                    LD          (HL),A
+  7785  3cf4  23                    INC         HL
+  7786  3cf5  77                    LD          (HL),A
+  7787  3cf6  23                    INC         HL
+  7788  3cf7  77                    LD          (HL),A
+  7789  3cf8  23                    INC         HL
+  7790  3cf9  77                    LD          (HL),A
+  7791  3cfa  23                    INC         HL
+  7792  3cfb  77                    LD          (HL),A
+  7793  3cfc  23                    INC         HL
+  7794  3cfd  77                    LD          (HL),A
+  7795  3cfe  21ab3a                LD          HL,FOOD_INV
+  7796  3d01  77                    LD          (HL),A
+  7797  3d02  23                    INC         HL
+  7798  3d03  77                    LD          (HL),A
+  7799  3d04  cd153e                CALL        PLAY_POWER_UP_SOUND
+  7800  3d07  cd5d3d                CALL        REDRAW_STATS
+  7801  3d0a  c39c2a                JP          INPUT_DEBOUNCE
+  7802  3d0d  00                    db          $00
+  7803  3d0e  00                    db          $00
+  7804  3d0f  00                    db          $00
+  7805  3d10  00                    db          $00
+  7806  3d11  00                    db          $00
+  7807  3d12  00                    db          $00
+  7808  3d13  00                    db          $00
+  7809  3d14  00                    db          $00
+  7810  3d15  00                    db          $00
+  7811  3d16  00                    db          $00
+  7812  3d17  00                    db          $00
+  7813  3d18  00                    db          $00
+  7814  3d19  00                    db          $00
+  7815  3d1a  00                    db          $00
+  7816  3d1b  00                    db          $00
+  7817  3d1c  00                    db          $00
+  7818  3d1d  00                    db          $00
+  7819  3d1e  00                    db          $00
+  7820  3d1f  00                    db          $00
+  7821  3d20  00                    db          $00
+  7822  3d21  00                    db          $00
+  7823  3d22  00                    db          $00
+  7824  3d23  00                    db          $00
+  7825  3d24  00                    db          $00
+  7826  3d25  00                    db          $00
+  7827  3d26  00                    db          $00
+  7828  3d27  00                    db          $00
+  7829  3d28  00                    db          $00
+  7830  3d29  00                    db          $00
+  7831  3d2a  00                    db          $00
+  7832  3d2b  00                    db          $00
+  7833  3d2c  00                    db          $00
+  7834  3d2d  00                    db          $00
+  7835  3d2e  00                    db          $00
+  7836  3d2f  00                    db          $00
+  7837                          DO_TELEPORT:
+  7838  3d30  3a0039                LD          A,(MAP_LADDER_OFFSET)
+  7839  3d33  32793a                LD          (PLAYER_MAP_POS),A
+  7840  3d36  cdf03d                CALL        PLAY_TELEPORT_SOUND
+  7841  3d39  c3962a                JP          UPDATE_VIEWPORT
+  7842  3d3c  00                    db          $00
+  7843  3d3d  00                    db          $00
+  7844  3d3e  00                    db          $00
+  7845  3d3f  00                    db          $00
+  7846  3d40  00                    db          $00
+  7847  3d41  00                    db          $00
+  7848  3d42  00                    db          $00
+  7849  3d43  00                    db          $00
+  7850  3d44  00                    db          $00
+  7851  3d45  00                    db          $00
+  7852  3d46  00                    db          $00
+  7853  3d47  00                    db          $00
+  7854  3d48  00                    db          $00
+  7855  3d49  00                    db          $00
+  7856  3d4a  00                    db          $00
+  7857  3d4b  00                    db          $00
+  7858  3d4c  00                    db          $00
+  7859  3d4d  00                    db          $00
+  7860  3d4e  00                    db          $00
+  7861  3d4f  00                    db          $00
+  7862  3d50  00                    db          $00
+  7863  3d51  00                    db          $00
+  7864  3d52  00                    db          $00
+  7865  3d53  00                    db          $00
+  7866  3d54  00                    db          $00
+  7867  3d55  00                    db          $00
+  7868  3d56  00                    db          $00
+  7869  3d57  00                    db          $00
+  7870  3d58  00                    db          $00
+  7871  3d59  00                    db          $00
+  7872  3d5a  00                    db          $00
+  7873  3d5b  00                    db          $00
+  7874  3d5c  00                    db          $00
+  7875                          REDRAW_STATS:
+  7876  3d5d  cd0017                CALL        DRAW_ICON_BAR
+  7877  3d60  21933a                LD          HL,PLAYER_PHYS_HEALTH
+  7878  3d63  114130                LD          DE,CHRRAM_PHYS_HEALTH_1000              ;= $20
+  7879  3d66  0602                  LD          B,0x2
+  7880  3d68  cdfd32                CALL        RECALC_AND_REDRAW_BCD
+  7881  3d6b  21973a                LD          HL,PLAYER_SPRT_HEALTH
+  7882  3d6e  114730                LD          DE,CHRRAM_SPRT_HEALTH_10                ;= $20
+  7883  3d71  0601                  LD          B,0x1
+  7884  3d73  c3fd32                JP          RECALC_AND_REDRAW_BCD
+  7885                          CHECK_RING:
+  7886  3d76  f5                    PUSH        AF
+  7887  3d77  3a763a                LD          A,(RING_INV_SLOT)
+  7888  3d7a  cdd83d                CALL        LEVEL_TO_COLRAM_FIX
+  7889  3d7d  321734                LD          (COLRAM_RING_IDX),A                     ;= $60    `
+  7890  3d80  f1                    POP         AF
+  7891  3d81  c9                    RET
+  7892  3d82  00                    db          $00
+  7893  3d83  00                    db          $00
+  7894  3d84  00                    db          $00
+  7895  3d85  00                    db          $00
+  7896  3d86  00                    db          $00
+  7897  3d87  00                    db          $00
+  7898  3d88  00                    db          $00
+  7899  3d89  00                    db          $00
+  7900  3d8a  00                    db          $00
+  7901  3d8b  00                    db          $00
+  7902  3d8c  00                    db          $00
+  7903  3d8d  00                    db          $00
+  7904  3d8e  00                    db          $00
+  7905  3d8f  00                    db          $00
+  7906  3d90  00                    db          $00
+  7907  3d91  00                    db          $00
+  7908  3d92  00                    db          $00
+  7909  3d93  00                    db          $00
+  7910  3d94  00                    db          $00
+  7911  3d95  00                    db          $00
+  7912  3d96  00                    db          $00
+  7913  3d97  00                    db          $00
+  7914                          CHECK_HELMET:
+  7915  3d98  f5                    PUSH        AF
+  7916  3d99  3a753a                LD          A,(HELMET_INV_SLOT)
+  7917  3d9c  cdd83d                CALL        LEVEL_TO_COLRAM_FIX
+  7918  3d9f  321534                LD          (COLRAM_HELMET_IDX),A                   ;= $60    `
+  7919  3da2  f1                    POP         AF
+  7920  3da3  c9                    RET
+  7921  3da4  00                    db          $00
+  7922  3da5  00                    db          $00
+  7923  3da6  00                    db          $00
+  7924  3da7  00                    db          $00
+  7925  3da8  00                    db          $00
+  7926  3da9  00                    db          $00
+  7927  3daa  00                    db          $00
+  7928  3dab  00                    db          $00
+  7929  3dac  00                    db          $00
+  7930  3dad  00                    db          $00
+  7931  3dae  00                    db          $00
+  7932  3daf  00                    db          $00
+  7933  3db0  00                    db          $00
+  7934  3db1  00                    db          $00
+  7935  3db2  00                    db          $00
+  7936  3db3  00                    db          $00
+  7937  3db4  00                    db          $00
+  7938  3db5  00                    db          $00
+  7939  3db6  00                    db          $00
+  7940  3db7  00                    db          $00
+  7941                          CHECK_ARMOR:
+  7942  3db8  f5                    PUSH        AF
+  7943  3db9  3a743a                LD          A,(ARMOR_INV_SLOT)
+  7944  3dbc  cdd83d                CALL        LEVEL_TO_COLRAM_FIX
+  7945  3dbf  321334                LD          (COLRAM_ARMOR_IDX),A                    ;= $60    `
+  7946  3dc2  f1                    POP         AF
+  7947  3dc3  c9                    RET
+  7948  3dc4  00                    db          $00
+  7949  3dc5  00                    db          $00
+  7950  3dc6  00                    db          $00
+  7951  3dc7  00                    db          $00
+  7952  3dc8  00                    db          $00
+  7953  3dc9  00                    db          $00
+  7954  3dca  00                    db          $00
+  7955  3dcb  00                    db          $00
+  7956  3dcc  00                    db          $00
+  7957  3dcd  00                    db          $00
+  7958  3dce  00                    db          $00
+  7959  3dcf  00                    db          $00
+  7960  3dd0  00                    db          $00
+  7961  3dd1  00                    db          $00
+  7962  3dd2  00                    db          $00
+  7963  3dd3  00                    db          $00
+  7964  3dd4  00                    db          $00
+  7965  3dd5  00                    db          $00
+  7966  3dd6  00                    db          $00
+  7967  3dd7  00                    db          $00
+  7968                          LEVEL_TO_COLRAM_FIX:
+  7969  3dd8  87                    ADD         A,A
+  7970  3dd9  d601                  SUB         0x1
+  7971  3ddb  cb27                  SLA         A
+  7972  3ddd  cb27                  SLA         A
+  7973  3ddf  cb27                  SLA         A
+  7974  3de1  cb27                  SLA         A
+  7975  3de3  c9                    RET
+  7976                          RHA_REDRAW:
+  7977  3de4  cd763d                CALL        CHECK_RING
+  7978  3de7  cd983d                CALL        CHECK_HELMET
+  7979  3dea  cdb83d                CALL        CHECK_ARMOR
+  7980  3ded  c39c2a                JP          INPUT_DEBOUNCE
+  7981                          PLAY_TELEPORT_SOUND:
+  7982  3df0  012002                LD          BC,$220
+  7983  3df3  111800                LD          DE,$18
+  7984  3df6  cd3c22                CALL        PLAY_SOUND_LOOP
+  7985  3df9  011001                LD          BC,$110
+  7986  3dfc  111800                LD          DE,$18
+  7987  3dff  cd3c22                CALL        PLAY_SOUND_LOOP
+  7988  3e02  018800                LD          BC,$88
+  7989  3e05  111800                LD          DE,$18
+  7990  3e08  cd3c22                CALL        PLAY_SOUND_LOOP
+  7991  3e0b  014400                LD          BC,$44
+  7992  3e0e  111800                LD          DE,$18
+  7993  3e11  cd3c22                CALL        PLAY_SOUND_LOOP
+  7994  3e14  c9                    RET
+  7995                          PLAY_POWER_UP_SOUND:
+  7996  3e15  012002                LD          BC,$220
+  7997  3e18  111800                LD          DE,$18
+  7998  3e1b  cd3c22                CALL        PLAY_SOUND_LOOP
+  7999  3e1e  010002                LD          BC,$200
+  8000  3e21  111800                LD          DE,$18
+  8001  3e24  cd3c22                CALL        PLAY_SOUND_LOOP
+  8002  3e27  01e001                LD          BC,$1e0
+  8003  3e2a  111800                LD          DE,$18
+  8004  3e2d  cd3c22                CALL        PLAY_SOUND_LOOP
+  8005  3e30  01c001                LD          BC,$1c0
+  8006  3e33  116000                LD          DE,$60
+  8007  3e36  cd3c22                CALL        PLAY_SOUND_LOOP
+  8008  3e39  c9                    RET
+  8009  3e3a  00                    db          $00
+  8010  3e3b  00                    db          $00
+  8011  3e3c  00                    db          $00
+  8012  3e3d  00                    db          $00
+  8013  3e3e  00                    db          $00
+  8014  3e3f  00                    db          $00
+  8015  3e40  00                    db          $00
+  8016  3e41  00                    db          $00
+  8017  3e42  00                    db          $00
+  8018  3e43  00                    db          $00
+  8019  3e44  00                    db          $00
+  8020  3e45  00                    db          $00
+  8021  3e46  00                    db          $00
+  8022  3e47  00                    db          $00
+  8023  3e48  00                    db          $00
+  8024  3e49  00                    db          $00
+  8025  3e4a  00                    db          $00
+  8026  3e4b  00                    db          $00
+  8027  3e4c  00                    db          $00
+  8028  3e4d  00                    db          $00
+  8029  3e4e  00                    db          $00
+  8030  3e4f  00                    db          $00
+  8031  3e50  00                    db          $00
+  8032  3e51  00                    db          $00
+  8033  3e52  00                    db          $00
+  8034  3e53  00                    db          $00
+  8035  3e54  00                    db          $00
+  8036  3e55  00                    db          $00
+  8037  3e56  00                    db          $00
+  8038  3e57  00                    db          $00
+  8039  3e58  00                    db          $00
+  8040  3e59  00                    db          $00
+  8041  3e5a  00                    db          $00
+  8042  3e5b  00                    db          $00
+  8043  3e5c  00                    db          $00
+  8044  3e5d  00                    db          $00
+  8045  3e5e  00                    db          $00
+  8046  3e5f  00                    db          $00
+  8047  3e60  00                    db          $00
+  8048  3e61  00                    db          $00
+  8049  3e62  00                    db          $00
+  8050  3e63  00                    db          $00
+  8051  3e64  00                    db          $00
+  8052  3e65  00                    db          $00
+  8053  3e66  00                    db          $00
+  8054  3e67  00                    db          $00
+  8055  3e68  00                    db          $00
+  8056  3e69  00                    db          $00
+  8057  3e6a  00                    db          $00
+  8058  3e6b  00                    db          $00
+  8059  3e6c  00                    db          $00
+  8060  3e6d  00                    db          $00
+  8061  3e6e  00                    db          $00
+  8062  3e6f  00                    db          $00
+  8063  3e70  00                    db          $00
+  8064  3e71  00                    db          $00
+  8065  3e72  00                    db          $00
+  8066  3e73  00                    db          $00
+  8067  3e74  00                    db          $00
+  8068  3e75  00                    db          $00
+  8069  3e76  00                    db          $00
+  8070  3e77  00                    db          $00
+  8071  3e78  00                    db          $00
+  8072  3e79  00                    db          $00
+  8073  3e7a  00                    db          $00
+  8074  3e7b  00                    db          $00
+  8075  3e7c  00                    db          $00
+  8076  3e7d  00                    db          $00
+  8077  3e7e  00                    db          $00
+  8078  3e7f  00                    db          $00
+  8079  3e80  00                    db          $00
+  8080  3e81  00                    db          $00
+  8081  3e82  00                    db          $00
+  8082  3e83  00                    db          $00
+  8083  3e84  00                    db          $00
+  8084  3e85  00                    db          $00
+  8085  3e86  00                    db          $00
+  8086  3e87  00                    db          $00
+  8087  3e88  00                    db          $00
+  8088  3e89  00                    db          $00
+  8089  3e8a  00                    db          $00
+  8090  3e8b  00                    db          $00
+  8091  3e8c  00                    db          $00
+  8092  3e8d  00                    db          $00
+  8093  3e8e  00                    db          $00
+  8094  3e8f  00                    db          $00
+  8095  3e90  00                    db          $00
+  8096  3e91  00                    db          $00
+  8097  3e92  00                    db          $00
+  8098  3e93  00                    db          $00
+  8099  3e94  00                    db          $00
+  8100  3e95  00                    db          $00
+  8101  3e96  00                    db          $00
+  8102  3e97  00                    db          $00
+  8103  3e98  00                    db          $00
+  8104  3e99  00                    db          $00
+  8105  3e9a  00                    db          $00
+  8106  3e9b  00                    db          $00
+  8107  3e9c  00                    db          $00
+  8108  3e9d  00                    db          $00
+  8109  3e9e  00                    db          $00
+  8110  3e9f  00                    db          $00
+  8111  3ea0  00                    db          $00
+  8112  3ea1  00                    db          $00
+  8113  3ea2  00                    db          $00
+  8114  3ea3  00                    db          $00
+  8115  3ea4  00                    db          $00
+  8116  3ea5  00                    db          $00
+  8117  3ea6  00                    db          $00
+  8118  3ea7  00                    db          $00
+  8119  3ea8  00                    db          $00
+  8120  3ea9  00                    db          $00
+  8121  3eaa  00                    db          $00
+  8122  3eab  00                    db          $00
+  8123  3eac  00                    db          $00
+  8124  3ead  00                    db          $00
+  8125  3eae  00                    db          $00
+  8126  3eaf  00                    db          $00
+  8127  3eb0  00                    db          $00
+  8128  3eb1  00                    db          $00
+  8129  3eb2  00                    db          $00
+  8130  3eb3  00                    db          $00
+  8131  3eb4  00                    db          $00
+  8132  3eb5  00                    db          $00
+  8133  3eb6  00                    db          $00
+  8134  3eb7  00                    db          $00
+  8135  3eb8  00                    db          $00
+  8136  3eb9  00                    db          $00
+  8137  3eba  00                    db          $00
+  8138  3ebb  00                    db          $00
+  8139  3ebc  00                    db          $00
+  8140  3ebd  00                    db          $00
+  8141  3ebe  00                    db          $00
+  8142  3ebf  00                    db          $00
+  8143  3ec0  00                    db          $00
+  8144  3ec1  00                    db          $00
+  8145  3ec2  00                    db          $00
+  8146  3ec3  00                    db          $00
+  8147  3ec4  00                    db          $00
+  8148  3ec5  00                    db          $00
+  8149  3ec6  00                    db          $00
+  8150  3ec7  00                    db          $00
+  8151  3ec8  00                    db          $00
+  8152  3ec9  00                    db          $00
+  8153  3eca  00                    db          $00
+  8154  3ecb  00                    db          $00
+  8155  3ecc  00                    db          $00
+  8156  3ecd  00                    db          $00
+  8157  3ece  00                    db          $00
+  8158  3ecf  00                    db          $00
+  8159  3ed0  00                    db          $00
+  8160  3ed1  00                    db          $00
+  8161  3ed2  00                    db          $00
+  8162  3ed3  00                    db          $00
+  8163  3ed4  00                    db          $00
+  8164  3ed5  00                    db          $00
+  8165  3ed6  00                    db          $00
+  8166  3ed7  00                    db          $00
+  8167  3ed8  00                    db          $00
+  8168  3ed9  00                    db          $00
+  8169  3eda  00                    db          $00
+  8170  3edb  00                    db          $00
+  8171  3edc  00                    db          $00
+  8172  3edd  00                    db          $00
+  8173  3ede  00                    db          $00
+  8174  3edf  00                    db          $00
+  8175  3ee0  00                    db          $00
+  8176  3ee1  00                    db          $00
+  8177  3ee2  00                    db          $00
+  8178  3ee3  00                    db          $00
+  8179  3ee4  00                    db          $00
+  8180  3ee5  00                    db          $00
+  8181  3ee6  00                    db          $00
+  8182  3ee7  00                    db          $00
+  8183  3ee8  00                    db          $00
+  8184  3ee9  00                    db          $00
+  8185  3eea  00                    db          $00
+  8186  3eeb  00                    db          $00
+  8187  3eec  00                    db          $00
+  8188  3eed  00                    db          $00
+  8189  3eee  00                    db          $00
+  8190  3eef  00                    db          $00
+  8191  3ef0  00                    db          $00
+  8192  3ef1  00                    db          $00
+  8193  3ef2  00                    db          $00
+  8194  3ef3  00                    db          $00
+  8195  3ef4  00                    db          $00
+  8196  3ef5  00                    db          $00
+  8197  3ef6  00                    db          $00
+  8198  3ef7  00                    db          $00
+  8199  3ef8  00                    db          $00
+  8200  3ef9  00                    db          $00
+  8201  3efa  00                    db          $00
+  8202  3efb  00                    db          $00
+  8203  3efc  00                    db          $00
+  8204  3efd  00                    db          $00
+  8205  3efe  00                    db          $00
+  8206                          GFX_POINTERS:
+  8207  3eff  00                    db          0h
+  8208                          GFX_PTR_BUCKLER:
+  8209  3f00  5202                  dw        BUCKLER                                 ;= $01,$01,$01,$01,$01
+  8210                          GFX_PTR_BUCKLER_S:
+  8211  3f02  6502                  dw        BUCKLER_S                               ;= $01,$01
+  8212                          GFX_PTR_BUCKLER_T:
+  8213  3f04  6a02                  dw        BUCKLER_T                               ;= $00,$87,$FF
+  8214                          GFX_PTR_RING:
+  8215  3f06  0802                  dw        RING                                    ;= $01,$01,$01,$01,$01,$01,$01
+  8216                          GFX_PTR_RING_S:
+  8217  3f08  1202                  dw        RING_S                                  ;= $01,$01,$01
+  8218                          GFX_PTR_RING_T:
+  8219  3f0a  1802                  dw        RING_T                                  ;= $00,".",$FF
+  8220                          GFX_PTR_HELMET:
+  8221  3f0c  8b02                  dw        HELMET                                  ;= $01,$01,$01,$01,$01,$01
+  8222                          GFX_PTR_HELMET_S:
+  8223  3f0e  9902                  dw        HELMET_S                                ;= $01,$01,$01
+  8224                          GFX_PTR_HELMET_T:
+  8225  3f10  a302                  dw        HELMET_T                                ;= $00,"^",$FF
+  8226                          GFX_PTR_ARMOR:
+  8227  3f12  b203                  dw        ARMOR                                   ;= $01,$01,$01,$01,$01
+  8228                          GFX_PTR_ARMOR_S:
+  8229  3f14  ca03                  dw        ARMOR_S                                 ;= $01,$01
+  8230                          GFX_PTR_ARMOR_T:
+  8231  3f16  db03                  dw        ARMOR_T                                 ;= $00,$A0,$C7,$D9,$01
+  8232                          GFX_PTR_PAVISE:
+  8233  3f18  e503                  dw        PAVICE                                  ;= $01,$01,$01,$01,$01
+  8234                          GFX_PTR_PAVISE_S:
+  8235  3f1a  fd03                  dw        PAVICE_S                                ;= $01,$01
+  8236                          GFX_PTR_PAVISE_T:
+  8237  3f1c  0b04                  dw        PAVICE_T                                ;= $00,$7F,$01
+  8238                          GFX_PTR_ARROW_L:
+  8239  3f1e  1b02                  dw        ARROW_FLYING_LEFT                       ;= $01,$01,$01,$01,$01,$01
+  8240                          GFX_PTR_ARROW_R:
+  8241  3f20  2402                  dw        ARROW_FLYING_RIGHT                      ;= $01,$01,$01,$01,$01,$01
+  8242                          GFX_PTR_ARROW_L_2:
+  8243  3f22  1b02                  dw        ARROW_FLYING_LEFT                       ;= $01,$01,$01,$01,$01,$01
+  8244                          GFX_PTR_BOW:
+  8245  3f24  c102                  dw        BOW                                     ;= $01,$01,$01,$01,$01
+  8246                          GFX_PTR_BOW_S:
+  8247  3f26  d502                  dw        BOW_S                                   ;= $01,$01
+  8248                          GFX_PTR_BOW_T:
+  8249  3f28  e002                  dw        BOW_T                                   ;= $00,"{",$FF
+  8250                          GFX_PTR_SCROLL:
+  8251  3f2a  9a10                  dw        SCROLL                                  ;= $01,$01,$01,$01,$01
+  8252                          GFX_PTR_SCROLL_S:
+  8253  3f2c  b510                  dw        SCROLL_S                                ;= $01,$01
+  8254                          GFX_PTR_SCROLL_NEW_T:
+  8255  3f2e  bf10                  dw        SCROLL_T                                ;= $00,"H",$FF
+  8256                          GFX_PTR_AXE:
+  8257  3f30  e302                  dw        AXE                                     ;= $01,$01,$01,$01,$01
+  8258                          GFX_PTR_AXE_S:
+  8259  3f32  f802                  dw        AXE_S                                   ;= $01,$01
+  8260                          GFX_PTR_AXE_T:
+  8261  3f34  0803                  dw        AXE_T                                   ;= $00,$11,$FF
+  8262                          GFX_PTR_FIREBALL:
+  8263  3f36  eb04                  dw        FIREBALL                                ;= $01,$01,$01,$01,$01
+  8264                          GFX_PTR_FIREBALL_S:
+  8265  3f38  fc04                  dw        FIREBALL_S                              ;= $01,$01
+  8266                          GFX_PTR_FIREBALL_T:
+  8267  3f3a  0105                  dw        FIREBALL_T                              ;= $00,$D3,$FF
+  8268                          GFX_PTR_MACE:
+  8269  3f3c  bb04                  dw        MACE                                    ;= $01,$01,$01,$01,$01
+  8270                          GFX_PTR_MACE_S:
+  8271  3f3e  d604                  dw        MACE_S                                  ;= $01,$01
+  8272                          GFX_PTR_MACE_T:
+  8273  3f40  e804                  dw        MACE_T                                  ;= $00,"T",$FF
+  8274                          GFX_PTR_STAFF:
+  8275  3f42  7b10                  dw        STAFF                                   ;= $01,$01,$01,$01,$01
+  8276                          GFX_PTR_STAFF_S:
+  8277  3f44  8e10                  dw        STAFF_S                                 ;= $01,$01
+  8278                          GFX_PTR_STAFF_T:
+  8279  3f46  9710                  dw        STAFF_T                                 ;= $00,"\\",$FF
+  8280                          GFX_PTR_CROSSBOW:
+  8281  3f48  c210                  dw        CROSSBOW                                ;= $01,$01,$01,$01,$01
+  8282                          GFX_PTR_CROSSBOW_S:
+  8283  3f4a  e510                  dw        CROSSBOW_S                              ;= $01,$01
+  8284                          GFX_PTR_CROSSBOW_T:
+  8285  3f4c  ed10                  dw        CROSSBOW_T                              ;= $A0,$91,$A0,$D8,$02,$04,$90,$FF
+  8286  3f4e  5600                  dw        EXCL_MARK_GFX
+  8287  3f50  5600                  dw        EXCL_MARK_GFX
+  8288  3f52  5600                  dw        EXCL_MARK_GFX
+  8289  3f54  5600                  dw        EXCL_MARK_GFX
+  8290  3f56  5600                  dw        EXCL_MARK_GFX
+  8291  3f58  5600                  dw        EXCL_MARK_GFX
+  8292                          GFX_PTR_ARROW_R_2:
+  8293  3f5a  2402                  dw        ARROW_FLYING_RIGHT                      ;= $01,$01,$01,$01,$01,$01
+  8294  3f5c  5600                  dw        EXCL_MARK_GFX
+  8295  3f5e  5600                  dw        EXCL_MARK_GFX
+  8296                          GFX_PTR_LADDER:
+  8297  3f60  8e04                  dw        LADDER                                  ;= $01,$01,$01,$01,$01
+  8298                          GFX_PTR_LADDER_S:
+  8299  3f62  a704                  dw        LADDER_S                                ;= $01,$01
+  8300                          GFX_PTR_LADDER_T:
+  8301  3f64  b704                  dw        LADDER_T                                ;= $00,$CD,$97,$FF
+  8302                          GFX_PTR_CHEST:
+  8303  3f66  5f03                  dw        CHEST                                   ;= $01,$01,$01,$01,$01
+  8304                          GFX_PTR_CHEST_S:
+  8305  3f68  9d03                  dw        CHEST_S                                 ;= $01,$E0,$1F,$1F,$B0,$01
+  8306                          GFX_PTR_CHEST_T:
+  8307  3f6a  af03                  dw        CHEST_T                                 ;= $00,$FC,$FF
+  8308                          GFX_PTR_FOOD:
+  8309  3f6c  0b03                  dw        FOOD                                    ;= $01,$01,$01,$01,$01
+  8310                          GFX_PTR_FOOD_S:
+  8311  3f6e  2203                  dw        FOOD_S                                  ;= $01,$01
+  8312                          GFX_PTR_FOOD_T:
+  8313  3f70  2c03                  dw        FOOD_T                                  ;= $00,"#",$FF
+  8314                          GFX_PTR_QUIVER:
+  8315  3f72  2d02                  dw        QUIVER                                  ;= $01,$01,$01,$01,$01,$01
+  8316                          GFX_PTR_QUIVER_S:
+  8317  3f74  4402                  dw        QUIVER_S                                ;= $01,$01
+  8318                          GFX_PTR_QUIVER_T:
+  8319  3f76  4f02                  dw        QUIVER_T                                ;= $00,$F0,$FF
+  8320                          GFX_PTR_LOCK_CHEST:
+  8321  3f78  7e03                  dw        LOCKED_CHEST                            ;= $01,$01,$01,$01,$01
+  8322                          GFX_PTR_LOCK_CHEST_S:
+  8323  3f7a  9d03                  dw        CHEST_S                                 ;= $01,$E0,$1F,$1F,$B0,$01
+  8324                          GFX_PTR_LOCK_CHEST_T:
+  8325  3f7c  af03                  dw        CHEST_T                                 ;= $00,$FC,$FF
+  8326  3f7e  5600                  dw        EXCL_MARK_GFX
+  8327  3f80  5600                  dw        EXCL_MARK_GFX
+  8328  3f82  5600                  dw        EXCL_MARK_GFX
+  8329                          GFX_PTR_KEY:
+  8330  3f84  a602                  dw        KEY                                     ;= $01,$01,$01,$01,$01,$01
+  8331                          GFX_PTR_KEY_S:
+  8332  3f86  b802                  dw        KEY_S                                   ;= $01,$01,$01
+  8333                          GFX_PTR_KEY_T:
+  8334  3f88  be02                  dw        KEY_T                                   ;= $FF,"-",$FF
+  8335                          GFX_PTR_AMULET:
+  8336  3f8a  6304                  dw        AMULET                                  ;= $01,$01,$01,$01,$01
+  8337                          GFX_PTR_AMULET_S:
+  8338  3f8c  7b04                  dw        AMULET_S                                ;= $01,$01
+  8339                          GFX_PTR_AMULET_T:
+  8340  3f8e  8b04                  dw        AMULET_T                                ;= $00,"&",$FF
+  8341                          GFX_PTR_CHALICE:
+  8342  3f90  6d02                  dw        CHALICE                                 ;= $01,$01,$01,$01,$01,$01
+  8343                          GFX_PTR_CHALICE_S:
+  8344  3f92  8002                  dw        CHALICE_S                               ;= $01,$01
+  8345                          GFX_PTR_CHALICE_T:
+  8346  3f94  8802                  dw        CHALICE_T                               ;= $00,"Y",$FF
+  8347                          GFX_PTR_WARRIOR_POTION:
+  8348  3f96  f510                  dw        WARRIOR_POTION                          ;= $01,$01,$01,$01,$01
+  8349                          GFX_PTR_WARRIOR_POTION_S:
+  8350  3f98  3411                  dw        WARRIOR_POTION_S                        ;= $01,$01
+  8351                          GFX_PTR_WARRIOR_POTION_T:
+  8352  3f9a  5511                  dw        POTION_T                                ;= $00,"U",$02,$04,"_",$FF
+  8353                          GFX_PTR_MAGE_POTION:
+  8354  3f9c  0a11                  dw        MAGE_POTION                             ;= $01,$01,$01,$01,$01
+  8355                          GFX_PTR_MAGE_POTION_S:
+  8356  3f9e  3f11                  dw        MAGE_POTION_S                           ;= $01,$01
+  8357                          GFX_PTR_MAGE_POTION_T:
+  8358  3fa0  5511                  dw        POTION_T                                ;= $00,"U",$02,$04,"_",$FF
+  8359                          GFX_PTR_MAP:
+  8360  3fa2  2f03                  dw        MAP                                     ;= $01,$01,$01,$01,$01
+  8361                          GFX_PTR_MAP_S:
+  8362  3fa4  4e03                  dw        MAP_S                                   ;= $01,$01
+  8363                          GFX_PTR_MAP_T:
+  8364  3fa6  5c03                  dw        MAP_T                                   ;= $00,$D5,$FF
+  8365                          GFX_PTR_CHAOS_POTION:
+  8366  3fa8  1f11                  dw        CHAOS_POTION                            ;= $01,$01,$01,$01,$01
+  8367                          GFX_PTR_CHAOS_POTION_S:
+  8368  3faa  4a11                  dw        CHAOS_POTION_S                          ;= $01,$01
+  8369                          GFX_PTR_CHAOS_POTION_T:
+  8370  3fac  5511                  dw        POTION_T                                ;= $00,"U",$02,$04,"_",$FF
+  8371  3fae  5600                  dw        EXCL_MARK_GFX
+  8372  3fb0  5600                  dw        EXCL_MARK_GFX
+  8373  3fb2  5600                  dw        EXCL_MARK_GFX
+  8374                          GFX_END_PT1:
+  8375  3fb4  0000                  dw        NO_GFX                                  ;= $FF
+  8376                          GFX_PTR_SKELETON:
+  8377  3fb6  b506                  dw        SKELETON                                ;= $04,$04,$04,$04
+  8378                          GFX_PTR_SKELETON_S:
+  8379  3fb8  f306                  dw        SKELETON_S                              ;= $04,$04,$04
+  8380  3fba  0000                  dw        NO_GFX                                  ;= $FF
+  8381                          GFX_PTR_SNAKE:
+  8382  3fbc  5c06                  dw        SNAKE                                   ;= $04,$04,$04
+  8383                          GFX_PTR_SNAKE_S:
+  8384  3fbe  9d06                  dw        SNAKE_S                                 ;= $04,$04,$04
+  8385  3fc0  0000                  dw        NO_GFX                                  ;= $FF
+  8386                          GFX_PTR_SPIDER:
+  8387  3fc2  2005                  dw        SPIDER                                  ;= $04,$04
+  8388                          GFX_PTR_SPIDER_S:
+  8389  3fc4  5105                  dw        SPIDER_S                                ;= $04,$04,$04,$04
+  8390  3fc6  0000                  dw        NO_GFX                                  ;= $FF
+  8391                          GFX_PTR_MIMIC:
+  8392  3fc8  6a05                  dw        MIMIC                                   ;= $04,$02,$D7,$96,$00,$00,$96,$C9,$01
+  8393                          GFX_PTR_MIMIC_S:
+  8394  3fca  9d05                  dw        MIMIC_S                                 ;= $01,$E0,$1F,$1F,$B0,$01
+  8395  3fcc  0000                  dw        NO_GFX                                  ;= $FF
+  8396                          GFX_PTR_MALOCCHIO:
+  8397  3fce  af05                  dw        MALOCCHIO                               ;= $04,$04,$04,$04
+  8398                          GFX_PTR_MALOCCHIO_S:
+  8399  3fd0  e505                  dw        MALOCCHIO_S                             ;= $04,$04,$04,$04
+  8400  3fd2  0000                  dw        NO_GFX                                  ;= $FF
+  8401                          GFX_PTR_DRAGON:
+  8402  3fd4  0100                  dw        DRAGON                                  ;= $04,$04,$04,$04
+  8403                          GFX_PTR_DRAGON_S:
+  8404  3fd6  6d00                  dw        DRAGON_S                                ;= $04,$04,$04,$C9,$C9,$C0,$C0,$01
+  8405                          GFX_PTR_END_A:
+  8406  3fd8  0000                  dw        NO_GFX                                  ;= $FF
+  8407                          GFX_PTR_MUMMY:
+  8408  3fda  0907                  dw        MUMMY                                   ;= $04,$04,$04,$04
+  8409                          GFX_PTR_MUMMY_S:
+  8410  3fdc  6c07                  dw        MUMMY_S                                 ;= $04,$04,$04
+  8411                          GFX_PTR_END_B:
+  8412  3fde  0000                  dw        NO_GFX                                  ;= $FF
+  8413                          GFX_PTR_NECRO:
+  8414  3fe0  8507                  dw        NECROMANCER                             ;= $04,$04,$04,$04
+  8415                          GFX_PTR_NECRO_S:
+  8416  3fe2  e007                  dw        NECROMANCER_S                           ;= $04,$04,$04
+  8417                          GFX_PTR_END_C:
+  8418  3fe4  0000                  dw        NO_GFX                                  ;= $FF
+  8419                          GFX_PTR_GRYPHON:
+  8420  3fe6  0110                  dw        GRYPHON                                 ;= $04,$04,$04,$04
+  8421                          GFX_PTR_GRYPHON_S:
+  8422  3fe8  6110                  dw        GRYPHON_S                               ;= $04,$04,$04,$B8,$B8,$B0,$01
+  8423                          GFX_PTR_END_D:
+  8424  3fea  0000                  dw        NO_GFX                                  ;= $FF
+  8425                          GFX_PTR_MINOTAUR:
+  8426  3fec  ff05                  dw        MINOTAUR                                ;= $04,$04,$04,$04
+  8427                          GFX_PTR_MINOTAUR_S:
+  8428  3fee  4606                  dw        MINOTAUR_S                              ;= $04,$04,$04,$04
+  8429                          
+  8430  3ff0  0000000000000000      ds 16, $00
               0000000000000000  
-  8430                          
+  8431                          

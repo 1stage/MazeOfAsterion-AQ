@@ -3146,17 +3146,17 @@ STILL_ON_TITLE:
     JR          BLINK_EXIT_ALL
 DO_OPEN_EYES:
     LD          DE,$32d6
-    LD          HL,$dad6
+    LD          HL,$dad6                    ; Pinned to TITLE_SCREEN (0xD800) + 726
     LD          BC,$44
     LDIR
     LD          DE,$36d6
-    LD          HL,$ded6
+    LD          HL,$ded6                    ; Pinned to TITLE_SCREEN (0XD800) + 1750
     LD          BC,$44
     LDIR
     RET
 DO_CLOSE_EYES:
     LD          HL,$32d6
-    LD          BC,$d1d0
+    LD          BC,$d1d0                    ; Value, not an address 
     LD          (HL),B
     INC         HL
     LD          (HL),B
@@ -3174,7 +3174,7 @@ DO_CLOSE_EYES:
     DEC         HL
     LD          (HL),C
     LD          HL,$36d6
-    LD          BC,$f00f
+    LD          BC,$f00f                    ; Value, not an address
     LD          (HL),B
     INC         HL
     LD          (HL),C
@@ -3442,11 +3442,11 @@ LAB_ram_e035:
     NOP
 DRAW_TITLE:
     LD          DE,CHRRAM                               ;= $20
-    LD          HL,$D800                                ;= $20
+    LD          HL,$D800                    ; Pinned to TITLE_SCREEN (0xD800)
     LD          BC,$3e8
     LDIR                                                ;= $20
     LD          DE,COLRAM                               ;= $60
-    LD          HL,$DC00                                ;= $70
+    LD          HL,$DC00                    ; Pinned to TITLE_SCREEN (0xD800) + 1000
     LD          BC,$3e8
     LDIR                                                ;= $60
                                                         ;= $70
@@ -4984,7 +4984,7 @@ LAB_ram_ea0c:
     LD          HL,CHHRAM_INV_6_IDX                     ;= $20
     LD          DE,DAT_ram_324c                         ;= $20
     CALL        SUB_ram_e99e
-    LD          HL,$ea9f
+    LD          HL,WAIT_FOR_INPUT                    ; WAIT FOR INPUT label --- UNDO???
     PUSH        HL
     LD          HL,ITEM_MOVE_CHR_BUFFER
     LD          DE,CHHRAM_INV_6_IDX                     ;= $20
@@ -5007,7 +5007,7 @@ DO_SWAP_PACK:
     LD          HL,DAT_ram_31b4                         ;= $20
     LD          DE,CHRRAM_RIGHT_HD_GFX_IDX              ;= $20
     CALL        SUB_ram_e99e
-    LD          HL,$ea9f
+    LD          HL,WAIT_FOR_INPUT                    ; WAIT FOR INPUT label --- UNDO???
     PUSH        HL
     LD          HL,ITEM_MOVE_CHR_BUFFER
     LD          DE,DAT_ram_31b4                         ;= $20
@@ -6599,7 +6599,7 @@ LAB_ram_f4e4:
     DEC         B
     RET
 REDRAW_START:
-    LD          HL,$f7a1
+    LD          HL,CALC_WEST_REDRAW_2                            ; CALC_WEST_REDRAW (0xF79B) + 7... UNDO? was 0xF7A1
     PUSH        HL
     LD          HL,PLAYER_MAP_POS
     LD          E,(HL)
@@ -6696,7 +6696,7 @@ REDRAW_START:
     CALL        CALC_WEST_REDRAW
     LD          D,$ff
     LD          E,$f0
-    LD          (DIR_FACING_FW),DE                      ;DE = $fff0 (WEST)
+    LD          (DIR_FACING_FW),DE                      ;DE = 0xFFF0 (WEST)
     LD          B,$10                                  ;RED on BLK
     LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
     LD          DE,WEST_TXT                             ;= "\a",$FF
@@ -7033,6 +7033,7 @@ CALC_WEST_REDRAW:
     INC         L
     LD          (HL),A
     RET
+CALC_WEST_REDRAW_2:
     LD          IX,ITEM_F2                              ;= $60
     LD          DE,(DIR_FACING_FW)
     LD          A,(PLAYER_MAP_POS)
@@ -7516,7 +7517,7 @@ UPDATE_SCR_SAVER_TIMER:
 MINOTAUR_DEAD:
     CALL        DRAW_BKGD
     LD          HL,DAT_ram_3050                         ;= $20
-    LD          DE,THE_END_PART_A                       ;WAS LD DE, $c25d
+    LD          DE,THE_END_PART_A                       ;WAS LD DE, 0xC25D
     LD          B,$10                                  ;RED on BLK
     CALL        GFX_DRAW
     LD          HL,DAT_ram_30a0                         ;= $20
