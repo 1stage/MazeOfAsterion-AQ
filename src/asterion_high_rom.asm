@@ -2152,10 +2152,6 @@ PLAYER_DIES:
     CALL        SLEEP_ZERO                              ;byte SLEEP_ZERO(void)
     JP          SCREEN_SAVER_FULL_SCREEN
 
-; Delete next during high rom reshuffle
-YOU_DIED_TXT_OLD:
-    DB          $7F,$A0,"You died ",$FF
-
 DO_USE_PHYS_POTION:
     CALL        PLAY_USE_PHYS_POTION_SOUND
     INC         B                                       ;Change from LEVEL to
@@ -3063,8 +3059,6 @@ REDRAW_START:
     LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
     LD          DE,WEST_TXT                             ;= "\a",$FF
     JP          GFX_DRAW
-WEST_TXT:
-    db          "\a",$FF
 REDRAW_VIEW:
     LD          A,(DE)
     AND         $e0
@@ -3170,8 +3164,6 @@ FACING_NORTH:
     LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
     LD          DE,NORTH_TXT                            ;= "\b",$FF
     JP          GFX_DRAW
-NORTH_TXT:
-    db          "\b",$FF
 FACING_SOUTH:
     LD          A,E
     ADD         A,$10
@@ -3279,8 +3271,6 @@ FACING_SOUTH:
     LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
     LD          DE,SOUTH_TXT                            ;= "\t",$FF
     JP          GFX_DRAW
-SOUTH_TXT:
-    db          "\t",$FF
 FACING_EAST:
     INC         E
     LD          A,(DE)
@@ -3371,8 +3361,6 @@ FACING_EAST:
     LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
     LD          DE,EAST_TXT                             ;= $06,$FF
     JP          GFX_DRAW
-EAST_TXT:
-    db          $06,$FF
 CALC_WEST_REDRAW:
     LD          A,(DE)
     AND         0x7

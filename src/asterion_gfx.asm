@@ -961,3 +961,14 @@ THE_END_PART_B:
 ;
 YOU_DIED_TXT:
     DB         $7F,$A0,"You died ",$FF
+
+; Characters for the pointer on the COMPASS
+WEST_TXT:
+    db          "\a",$FF
+NORTH_TXT:
+    db          "\b",$FF
+SOUTH_TXT:
+    db          "\t",$FF
+EAST_TXT:
+    db          $06,$FF
+
