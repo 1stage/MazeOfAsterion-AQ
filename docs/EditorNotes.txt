@@ -43,3 +43,11 @@ To convert all hexadecimal values in the "00h" format to C-style "0x00" using VS
 To find all addresses $c000 to $ffff, RegEx \$[c-fC-F][0-9a-fA-F]{3}
 
 ===================
+
+To fill to the end of a 4k file...
+
+    defs         $4000 - $, $00
+
+(4k example given with $4000)
+
+===================

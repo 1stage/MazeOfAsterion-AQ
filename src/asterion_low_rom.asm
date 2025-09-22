@@ -3144,11 +3144,11 @@ STILL_ON_TITLE:
     JR          BLINK_EXIT_ALL
 DO_OPEN_EYES:
     LD          DE,$32d6
-    LD          HL,$dad6                    ; Pinned to TITLE_SCREEN (0xD800) + 726
+    LD          HL,TS_EYES_OPEN_CHR                    ; Pinned to TITLE_SCREEN (0xD800) + 726; WAS 0xdad6
     LD          BC,$44
     LDIR
     LD          DE,$36d6
-    LD          HL,$ded6                    ; Pinned to TITLE_SCREEN (0XD800) + 1750
+    LD          HL,TS_EYES_OPTN_COL                    ; Pinned to TITLE_SCREEN (0XD800) + 1750; WAS 0xded6
     LD          BC,$44
     LDIR
     RET

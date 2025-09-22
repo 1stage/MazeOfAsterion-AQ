@@ -54,11 +54,11 @@ LAB_ram_e035:
     NOP
 DRAW_TITLE:
     LD          DE,CHRRAM                               ;= $20
-    LD          HL,$D800                    ; Pinned to TITLE_SCREEN (0xD800)
+    LD          HL,TITLE_SCREEN                    ; Pinned to TITLE_SCREEN ; WAS 0xD800
     LD          BC,$3e8
     LDIR                                                ;= $20
     LD          DE,COLRAM                               ;= $60
-    LD          HL,$DC00                    ; Pinned to TITLE_SCREEN (0xD800) + 1000
+    LD          HL,TITLE_SCREEN_COL                    ; Pinned to TITLE_SCREEN ; WAS 0xD800 + 1024
     LD          BC,$3e8
     LDIR                                                ;= $60
                                                         ;= $70
@@ -5039,4 +5039,23 @@ GFX_PTR_MINOTAUR:
 GFX_PTR_MINOTAUR_S:
     dw        MINOTAUR_S                              ;= $04,$04,$04,$04
 
-    ds 16, $00
+    defs         $4000 - $, $00
+
+    ; db        $00
+    ; db        $00
+    ; db        $00
+    ; db        $00
+    ; db        $00
+    ; db        $00
+    ; db        $00
+    ; db        $00
+    ; db        $00
+    ; db        $00
+    ; db        $00
+    ; db        $00
+    ; db        $00
+    ; db        $00
+    ; db        $00
+    ; db        $00
+
+;    ds 16, $00
