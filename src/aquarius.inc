@@ -1,5 +1,4 @@
 ; Aquarius SYSROM Routines
-EXCL_MARK_GFX EQU $0056
 SLEEP_ZERO EQU $1d48        
 SLEEP EQU $1d4b        
 FILL_FULL_1024 EQU $1e59        
