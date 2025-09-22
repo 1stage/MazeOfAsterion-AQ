@@ -115,9 +115,10 @@ try {
     Move-Item $OutputBinSrc (Join-Path $BuildFolder $OutputBin) -Force
     Write-Status "Moved $OutputBin to build folder" -Color $Green
     
-    # Move listing and map files if they exist
+    # Move listing, map, and object files if they exist
     $ListFile = $SourceFile -replace '\.asm$', '.lis'
     $MapFile = $SourceFile -replace '\.asm$', '.map'
+    $ObjectFile = $SourceFile -replace '\.asm$', '.o'
     
     if (Test-Path $ListFile) {
         Move-Item $ListFile (Join-Path $BuildFolder (Split-Path $ListFile -Leaf)) -Force
@@ -127,6 +128,11 @@ try {
     if (Test-Path $MapFile) {
         Move-Item $MapFile (Join-Path $BuildFolder (Split-Path $MapFile -Leaf)) -Force
         Write-Status "Moved map file to build folder" -Color $Green
+    }
+    
+    if (Test-Path $ObjectFile) {
+        Move-Item $ObjectFile (Join-Path $BuildFolder (Split-Path $ObjectFile -Leaf)) -Force
+        Write-Status "Moved object file to build folder" -Color $Green
     }
     
 } catch {
@@ -181,15 +187,19 @@ if ($AqplusEmuDisk -and (Test-Path $AqplusEmuDisk)) {
     Write-Status "  AQPLUS_EMU_DISK copy: Skipped" -Color "White"
 }
 
-# Check for listing and map files in build folder
+# Check for listing, map, and object files in build folder
 $ListFile = Join-Path $BuildFolder "asterion.lis"
 $MapFile = Join-Path $BuildFolder "asterion.map"
+$ObjectFile = Join-Path $BuildFolder "asterion.o"
 
 if (Test-Path $ListFile) {
     Write-Status "  Listing: $ListFile" -Color "White"
 }
 if (Test-Path $MapFile) {
     Write-Status "  Map: $MapFile" -Color "White"
+}
+if (Test-Path $ObjectFile) {
+    Write-Status "  Object: $ObjectFile" -Color "White"
 }
 
 Write-Status "Build completed successfully!" -Color $Green

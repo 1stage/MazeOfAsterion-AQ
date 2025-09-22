@@ -1135,21 +1135,21 @@ DO_HC_SHIFT_ACTIONS:
     JP          Z,DO_TELEPORT
     JP          NO_ACTION_TAKEN
 DRAW_BKGD:
-    LD          A,$20                                  ;Set VIEWPORT fill chars to SPACE
-    LD          HL,$3028
-    LD          BC,$1818                               ;24 x 24 cells
+    LD          A,$20                                  ; Set VIEWPORT fill chars to SPACE
+    LD          HL,IDX_VIEWPORT_CHRRAM                 ; Set CHRRAM starting point at the beginning of the VIEWPORT
+    LD          BC,$1818                               ; 24 x 24 cells
     CALL        FILL_CHRCOL_RECT
-    LD          C,0x8                                   ;8 rows of ceiling
-    LD          HL,$3428
-    LD          A,$f0                                  ;DKGRY on BLK
+    LD          C,0x8                                  ; 8 rows of ceiling
+    LD          HL,COLRAM_VIEWPORT_IDX                 ; Set COLRAM starting point at the beginning of the VIEWPORT
+    LD          A,$f0                                  ; DKGRY on BLK
     CALL        DRAW_CHRCOLS
-    LD          C,0x6                                   ;6 more rows of ceiling
+    LD          C,0x6                                  ; 6 more rows of ceiling
     ADD         HL,DE
-    LD          A,0x0                                   ;BLK on BLK
+    LD          A,0x0                                  ; BLK on BLK
     CALL        DRAW_CHRCOLS
-    LD          C,0xa                                   ;10 rows of floor
+    LD          C,0xa                                  ; 10 rows of floor
     ADD         HL,DE
-    LD          A,$df                                  ;DKGRN on DKGRY
+    LD          A,$df                                  ; DKGRN on DKGRY
     CALL        DRAW_CHRCOLS
     LD          A,(CURR_MONSTER_PHYS)
     CP          0x0

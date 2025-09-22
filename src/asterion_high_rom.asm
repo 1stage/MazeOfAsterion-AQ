@@ -2578,14 +2578,14 @@ SUB_ram_f2c4:
     LD          A,0x1
     ADD         A,(HL)
     DAA
-    JP          C,LAB_ram_f2dc
+    JP          C,DRAW_99_LOOP_NOTICE
 LAB_ram_f2d0:
     LD          (HL),A
     LD          B,0x1
     CALL        RECALC_AND_REDRAW_BCD
     CALL        REDRAW_START
     JP          REDRAW_VIEWPORT
-LAB_ram_f2dc:
+DRAW_99_LOOP_NOTICE:
     CALL        DRAW_BKGD
     LD          HL,DAT_ram_3051                         ;= $20
     LD          DE,LEVEL_99_LOOP                        ;= "Looks like this dungeon",$01
