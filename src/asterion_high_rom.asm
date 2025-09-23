@@ -996,8 +996,8 @@ DO_PICK_UP:
     JP          Z,LAB_ram_e844
     CP          0x4                                     ;Compare to RING (0x4)
     JP          C,CHECK_FOOD_ARROWS                     ;Jump if less than RING (C)
-    CP          $10                                    ;Compare to PAVICE ($10)
-    JP          NC,CHECK_FOOD_ARROWS                    ;Jump if PAVICE or greater (NC)
+    CP          $10                                     ;Compare to PAVISE ($10)
+    JP          NC,CHECK_FOOD_ARROWS                    ;Jump if PAVISE or greater (NC)
 PROCESS_RHA:
     CALL        PICK_UP_F0_ITEM
     LD          HL,ARMOR_INV_SLOT                       ;Start with ARMOR slot

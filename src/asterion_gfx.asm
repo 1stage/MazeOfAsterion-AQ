@@ -119,27 +119,27 @@ ARMOR_T:
     db          $00,$97,$A0,$C3,$FF
 
 ; =================================
-; PAVICE -
+; PAVISE -
 ;   OBJECT TYPE:  $04
 ;   OBJECT INDEX:
-;       $00 - RED PAVICE
-;       $01 - YELLOW PAVICE
-;       $02 - MAGENTA PAVICE
-;       $03 - WHITE PAVICE
-; The PAVICE is a large shield item that can be picked up and swapped to the LEFT HAND for protection. 
+;       $00 - RED PAVISE
+;       $01 - YELLOW PAVISE
+;       $02 - MAGENTA PAVISE
+;       $03 - WHITE PAVISE
+; The PAVISE is a large shield item that can be picked up and swapped to the LEFT HAND for protection. 
 ;
-PAVICE:
+PAVISE:
     db          $01,$01,$01,$01,$01
     db          $E8,$F0,$F0,$B4,$01
     db          $EA,$7F,$7F,$B5,$01
     db          $EA,$7F,$7F,$B5,$01
     db          $00,$EF,$BF,$FF
-PAVICE_S:
+PAVISE_S:
     db          $01,$01
     db          $00,$F4,$F8,$01
     db          $00,$7F,$7F,$01
     db          $00,$AB,$A7,$FF
-PAVICE_T:
+PAVISE_T:
     db          $00,$7F,$01
     db          $00,$C2,$FF
 

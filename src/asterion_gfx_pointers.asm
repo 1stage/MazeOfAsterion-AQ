@@ -25,11 +25,11 @@ GFX_PTR_ARMOR_S:
 GFX_PTR_ARMOR_T:
     dw        ARMOR_T                                 ;= $00,$A0,$C7,$D9,$01
 GFX_PTR_PAVISE:
-    dw        PAVICE                                  ;= $01,$01,$01,$01,$01
+    dw        PAVISE                                  ;= $01,$01,$01,$01,$01
 GFX_PTR_PAVISE_S:
-    dw        PAVICE_S                                ;= $01,$01
+    dw        PAVISE_S                                ;= $01,$01
 GFX_PTR_PAVISE_T:
-    dw        PAVICE_T                                ;= $00,$7F,$01
+    dw        PAVISE_T                                ;= $00,$7F,$01
 GFX_PTR_ARROW_L:
     dw        ARROW_FLYING_LEFT                       ;= $01,$01,$01,$01,$01,$01
 GFX_PTR_ARROW_R:

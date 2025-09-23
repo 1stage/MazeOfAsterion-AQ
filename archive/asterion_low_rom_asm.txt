@@ -197,18 +197,18 @@ ARMOR_S:
 ARMOR_T:
     db          $00,$A0,$C7,$D9,$01
     db          $00,$97,$A0,$C3,$FF
-PAVICE:
+PAVISE:
     db          $01,$01,$01,$01,$01
     db          $E8,$F0,$F0,$B4,$01
     db          $EA,$7F,$7F,$B5,$01
     db          $EA,$7F,$7F,$B5,$01
     db          $00,$EF,$BF,$FF
-PAVICE_S:
+PAVISE_S:
     db          $01,$01
     db          $00,$F4,$F8,$01
     db          $00,$7F,$7F,$01
     db          $00,$AB,$A7,$FF
-PAVICE_T:
+PAVISE_T:
     db          $00,$7F,$01
     db          $00,$C2,$FF
 AUTHORS:
