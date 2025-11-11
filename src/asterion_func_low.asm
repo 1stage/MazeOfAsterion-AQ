@@ -158,7 +158,7 @@ DRAW_WALL_F2:
 DRAW_DOOR_F2_OPEN:
     LD          HL,COLRAM_F1_DOOR_IDX
     LD          A,0x0								; BLK on BLK
-UPDATE_FO_ITEM:
+UPDATE_F0_ITEM:
     LD          BC,$404								; 4 x 4 rectangle
     JP          FILL_CHRCOL_RECT
 DRAW_WALL_FL0:
@@ -499,7 +499,7 @@ SUB_ram_cb4f:
     INC         DE
     INC         DE
     JP          DRAW_VERTICAL_LINE_3_UP
-DRAW_FRO_DOOR:
+DRAW_FR0_DOOR:
     CALL        SUB_ram_cb4f
     LD          A,$f0								; DKGRY on BLK
 								; WAS DKCYN on DKBLU

@@ -1141,13 +1141,13 @@ PICK_UP_NON_TREASURE:
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
     LD          DE,ITEM_MOVE_CHR_BUFFER
     CALL        UPDATE_MELEE_OBJECTS
-    LD          HL,CHRRAM_FO_ITEM_IDX
+    LD          HL,CHRRAM_F0_ITEM_IDX
     LD          DE,CHRRAM_RIGHT_HD_GFX_IDX
     CALL        SUB_ram_e99e
     LD          HL,ITEM_MOVE_CHR_BUFFER
-    LD          DE,CHRRAM_FO_ITEM_IDX
+    LD          DE,CHRRAM_F0_ITEM_IDX
     CALL        SUB_ram_e97d
-    LD          HL,COLRAM_FO_ITEM_IDX
+    LD          HL,COLRAM_F0_ITEM_IDX
     LD          DE,$f00								;  BLK on DKGY /
 								;  BLK on BLK
 								;  WAS BLK on DKCYN /
@@ -1202,12 +1202,12 @@ PICK_UP_F0_ITEM:
     EX          AF,AF'								;  Save item
     LD          A,$fe								;  Empty item
     LD          (BC),A
-    LD          HL,CHRRAM_FO_ITEM_IDX
+    LD          HL,CHRRAM_F0_ITEM_IDX
     LD          A,$20								;  SPACE char
-    CALL        UPDATE_FO_ITEM
-    LD          HL,COLRAM_FO_ITEM_IDX
+    CALL        UPDATE_F0_ITEM
+    LD          HL,COLRAM_F0_ITEM_IDX
     LD          A,$df								;  DKGRN on DKGRY
-    CALL        UPDATE_FO_ITEM
+    CALL        UPDATE_F0_ITEM
     EX          AF,AF'								;  Restore item
     RRA								;  Rotate A right, A:0 to carry
     RR          D								;  Rotate D right
@@ -3786,7 +3786,7 @@ LAB_ram_fa19:
     RRCA
     JP          NC,LAB_ram_faa3
 LAB_ram_fa2e:
-    CALL        DRAW_FRO_DOOR
+    CALL        DRAW_FR0_DOOR
     JP          LAB_ram_faa3
 LAB_ram_fa34:
     RRCA
