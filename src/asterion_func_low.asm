@@ -111,11 +111,11 @@ DRAW_CHRCOLS:
 DRAW_F0_WALL:
     LD          HL,COLRAM_F0_WALL_MAP_IDX
     LD          BC,RECT(16,16)							; 16 x 16 rectangle
-    LD          A,$44								; BLU on BLU
+    LD          A,COLOR(BLU,BLU)								; BLU on BLU
     JP          FILL_CHRCOL_RECT
 DRAW_F0_WALL_AND_CLOSED_DOOR:
     CALL        DRAW_F0_WALL
-    LD          A,$22								; GRN on GRN
+    LD          A,COLOR(GRN,GRN)								; GRN on GRN
 DRAW_DOOR_F0:
     LD          HL,COLRAM_F0_DOOR_IDX
     LD          BC,RECT(8,12)								; 8 x 12 rectangle
@@ -139,7 +139,7 @@ DRAW_WALL_F1:
     JP          DRAW_CHRCOLS
 DRAW_WALL_F1_AND_CLOSED_DOOR:
     CALL        DRAW_WALL_F1
-    LD          A,$2d								; GRN on DKGRN
+    LD          A,COLOR(GRN,DKGRN)								; GRN on DKGRN
 DRAW_DOOR_F1_OPEN:
     LD          HL,COLRAM_F1_DOOR_IDX
     LD          BC,RECT(4,6)								; 4 x 6 rectangle
@@ -151,7 +151,7 @@ DRAW_WALL_F1_AND_OPEN_DOOR:
 DRAW_WALL_F2:
     LD          BC,RECT(4,4)								; 4 x 4 rectangle
     LD          HL,COLRAM_F1_DOOR_IDX
-    LD          A,$ff								; DKGRY on DKGRY
+    LD          A,COLOR(DKGRY,DKGRY)								; DKGRY on DKGRY
                                                     ; WAS BLK on DKBLU
                                                     ; WAS LD A,0xb
     JP          FILL_CHRCOL_RECT
@@ -302,8 +302,8 @@ SUB_ram_c9f9:
     JP          DRAW_CHRCOLS
 DRAW_WALL_FL22:
     LD          HL,COLRAM_FL22_WALL_IDX
-    LD          BC,$404								; 4 x 4 rectangle
-    LD          A,$ff								; DKGRY on DKGRY
+    LD          BC,RECT(4,4)								; 4 x 4 rectangle
+    LD          A,COLOR(DKGRY,DKGRY)								; DKGRY on DKGRY
     JP          FILL_CHRCOL_RECT
 DRAW_L1_WALL:
     LD          HL,CHRRAM_FL1_WALL_IDX
@@ -380,7 +380,7 @@ DRAW_L1_DOOR:
 SUB_ram_cab0:
     LD          HL,DAT_ram_356c
     LD          BC,RECT(4,8)								; 4 x 8 rectangle
-    LD          A,$4b								; BLU on DKBLU
+    LD          A,COLOR(BLU,DKBLU)								; BLU on DKBLU
     CALL        FILL_CHRCOL_RECT
     LD          HL,DAT_ram_316c
     LD          C,0x8
@@ -402,7 +402,7 @@ DRAW_L1_DOOR_2:
 DRAW_WALL_FL2:
     LD          HL,COLRAM_FL2_WALL_IDX
     LD          BC,RECT(2,4)								; 2 x 4 rectangle
-    LD          A,$11								; BLK on DKGRY
+    LD          A,COLOR(RED,RED)								; RED on RED
     CALL        FILL_CHRCOL_RECT
     LD          C,0x4
     LD          HL,COLRAM_FL2_PLUS_WALL_IDX
@@ -412,8 +412,8 @@ DRAW_WALL_FL2:
     JP          DRAW_CHRCOLS
 DRAW_WALL_FL2_EMPTY:
     LD          HL,COLRAM_FL2_WALL_IDX
-    LD          BC,$404								; 4 x 4 rectangle
-    LD          A,0x0								; BLK on BLK
+    LD          BC,RECT(4,4)								; 4 x 4 rectangle
+    LD          A,COLOR(BLK,BLK)								; BLK on BLK
     JP          FILL_CHRCOL_RECT
 DRAW_WALL_L2:
     LD          A,$ca								; Right slash char
@@ -692,7 +692,7 @@ LAB_ram_cc85:
 SUB_ram_cc9a:
     LD          HL,DAT_ram_3578
     LD          BC,RECT(4,8)								; 4 x 8 rectangle
-    LD          A,$4b								; BLU on DKBLU
+    LD          A,COLOR(BLU,DKBLU)								; BLU on DKBLU
     CALL        FILL_CHRCOL_RECT
     LD          HL,DAT_ram_3178
     LD          C,0x8
@@ -714,7 +714,7 @@ LAB_ram_ccba:
 SUB_ram_ccc3:
     LD          HL,DAT_ram_35ca
     LD          BC,RECT(2,4)								; 2 x 4 rectangle
-    LD          A,0x0								; BLK on BLK
+    LD          A,COLOR(BLK,BLK)								; BLK on BLK
     CALL        FILL_CHRCOL_RECT
     LD          C,0x4
     LD          HL,DAT_ram_35c8
@@ -1431,7 +1431,7 @@ WIPE_WALLS_LOOP:
 DRAW_WALL_FL22_EMPTY:
     LD          HL,COLRAM_FL22_WALL_IDX
     LD          BC,RECT(4,4)								; 4 x 4 rectangle
-    LD          A,0x0								; BLK on BLK
+    LD          A,COLOR(BLK,BLK)								; BLK on BLK
     CALL        FILL_CHRCOL_RECT
     LD          HL,DAT_ram_3230
     LD          BC,RECT(4,1)								; 4 x 1 rectangle
@@ -1444,7 +1444,7 @@ DRAW_WALL_FL2_NEW:
     CALL        FILL_CHRCOL_RECT
     LD          HL,$35bc
     LD          BC,RECT(2,4)								; 2 x 4 rectangle
-    LD          A,0xf								; BLK on DKGRY
+    LD          A,COLOR(BLK,DKGRY)								; BLK on DKGRY
     CALL        FILL_CHRCOL_RECT
     LD          C,0x4
     LD          HL,$35be

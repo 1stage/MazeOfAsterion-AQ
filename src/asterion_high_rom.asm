@@ -230,7 +230,7 @@ USE_MAP:
     CALL        SOUND_03
     LD          BC,RECT(24,24)								;  24 x 24
     LD          HL,COLRAM_VIEWPORT_IDX
-    LD          A,$b0								;  DKBLU on BLK
+    LD          A,COLOR(DKBLU,BLK)								;  DKBLU on BLK
 								;  Was DKGN on BLK
     CALL        FILL_CHRCOL_RECT								;  Fill map colors
     EXX								;  Swap BC  DE  HL
@@ -395,7 +395,7 @@ FIX_RH_COLORS:
     PUSH        AF
     PUSH        BC
     PUSH        HL
-    LD          A,$f0								;  DKGRN on BLK
+    LD          A,COLOR(DKGRY,BLK)								;  DKGRY on BLK
     LD          BC,RECT(4,4)								;   4 x 4 rectangle
     LD          HL,COLRAM_RH_ITEM_IDX
     CALL        FILL_CHRCOL_RECT
@@ -2134,7 +2134,7 @@ REDUCE_HEALTH_SMALL:
 PLAYER_DIES:
     LD          HL,COLRAM_VIEWPORT_IDX
     LD          BC,RECT(24,24)								;  24 x 24 rectangle
-    XOR         A
+    LD          A,COLOR(BLK,BLK)
     CALL        FILL_CHRCOL_RECT
     LD          HL,CHRRAM_YOU_DIED_IDX
     LD          DE,YOU_DIED_TXT
