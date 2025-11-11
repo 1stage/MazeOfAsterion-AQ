@@ -1,7 +1,7 @@
 DRAW_DOOR_BOTTOM_SETUP:
     LD          DE,COLOR(GRN,DKCYN)					; GRN on DKCYN
 								                    ; (bottom of closed door)
-DRAW_SINGLE_PIXEL_DOWN:
+DRAW_SINGLE_CHAR_DOWN:
     LD          (HL),A
     SCF
     CCF
@@ -181,10 +181,10 @@ DRAW_WALL_FL0:
                                                     ; WAS DKCYN on BLU
                                                     ; WAS LD A,$94
     DEC         DE
-    CALL        DRAW_SINGLE_PIXEL_DOWN
+    CALL        DRAW_SINGLE_CHAR_DOWN
     LD          A,$c0
     LD          HL,DAT_ram_33c0
-    CALL        DRAW_SINGLE_PIXEL_DOWN
+    CALL        DRAW_SINGLE_CHAR_DOWN
     LD          HL,IDX_VIEWPORT_CHRRAM
     LD          A,$c1
     INC         DE
@@ -323,7 +323,7 @@ DRAW_L1_WALL:
     ADD         HL,DE
     LD          A,$c0								; RIGHT angle CHR
     DEC         DE
-    CALL        DRAW_SINGLE_PIXEL_DOWN
+    CALL        DRAW_SINGLE_CHAR_DOWN
     LD          HL,DAT_ram_3547
     LD          A,$b0								; DKBLU on BLK
 								; WAS DKBLU on CYN
@@ -343,7 +343,7 @@ DRAW_L1_WALL:
 								; WAS DKCYN on DKBLU
 								; WAS LD A,$9b
     DEC         DE
-    JP          DRAW_SINGLE_PIXEL_DOWN
+    JP          DRAW_SINGLE_CHAR_DOWN
     RET
 DRAW_FL1_DOOR:
     CALL        DRAW_L1_WALL
@@ -643,7 +643,7 @@ DRAW_WALL_FR1:
 SUB_ram_cc4d:
     POP         IX
     LD          DE,$27
-    CALL        DRAW_SINGLE_PIXEL_DOWN
+    CALL        DRAW_SINGLE_CHAR_DOWN
     INC         DE
     ADD         HL,DE
     POP         AF
@@ -657,7 +657,7 @@ SUB_ram_cc4d:
     ADD         HL,DE
     POP         AF
     INC         DE
-    CALL        DRAW_SINGLE_PIXEL_DOWN
+    CALL        DRAW_SINGLE_CHAR_DOWN
     JP          (IX)
 SUB_ram_cc6d:
     CALL        DRAW_WALL_FR1

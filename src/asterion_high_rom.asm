@@ -3536,7 +3536,7 @@ CHECK_WALL_F2:
     JP          C,F2_WALL
     CALL        DRAW_DOOR_F2_OPEN
 LAB_ram_f86d:
-    LD          DE,WALL_F3_STATE
+    LD          DE,WALL_FL2_STATE
     LD          A,(DE)
     RRCA
     JP          NC,LAB_ram_f87b
