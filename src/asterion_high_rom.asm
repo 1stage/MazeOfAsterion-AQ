@@ -1893,9 +1893,9 @@ ROTATE_FACING_LEFT:                                      ; Decrement DIR_FACING_
     ; Effects: Updates DIR_FACING_SHORT (4->3->2->1->4 cycle)
     LD          A,(DIR_FACING_SHORT)
     DEC         A
-    JP          NZ,LAB_ram_ee14
-    LD          A,0x4
-LAB_ram_ee14:
+    JP          NZ,STORE_LEFT_FACING
+    LD          A,0x4                                   ; Wrap: 1 decremented becomes 4
+STORE_LEFT_FACING:
     LD          (DIR_FACING_SHORT),A
     RET
 DO_TURN_RIGHT:
@@ -1910,9 +1910,9 @@ ROTATE_FACING_RIGHT:                                     ; Increment DIR_FACING_
     LD          A,(DIR_FACING_SHORT)
     INC         A
     CP          0x5
-    JP          NZ,LAB_ram_ee2e
-    LD          A,0x1
-LAB_ram_ee2e:
+    JP          NZ,STORE_RIGHT_FACING
+    LD          A,0x1                                   ; Wrap: 5 becomes 1
+STORE_RIGHT_FACING:
     LD          (DIR_FACING_SHORT),A
     RET
 DO_GLANCE_RIGHT:

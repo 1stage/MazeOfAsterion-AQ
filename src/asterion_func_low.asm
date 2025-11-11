@@ -200,7 +200,7 @@ DRAW_DOOR_FLO:
     LD          A,0x4                                   ;BLK on BLU
                                                         ;WAS DKBLU on BLU
                                                         ;LD A,$b4
-    JP          LAB_ram_c99e
+    JP          DRAW_FL0_DOOR_FRAME
 SUB_ram_c996:
     CALL        DRAW_WALL_FL0
     LD          A,$f2                                  ;DKGRY on GRN
@@ -208,8 +208,8 @@ SUB_ram_c996:
                                                         ;WAS LD A,$92
     EX          AF,AF'
     LD          A,$24                                  ;GRN on BLU
-LAB_ram_c99e:
-    LD          HL,DAT_ram_351a                         ;= $60    `
+DRAW_FL0_DOOR_FRAME:
+    LD          HL,COLRAM_FL0_DOOR_FRAME_IDX            ;= $60    `
     CALL        DRAW_VERTICAL_LINE_3_DOWN
     DEC         DE
     ADD         HL,DE
@@ -235,29 +235,29 @@ SUB_ram_c9c5:
     LD          BC,$410                                ;4 x 10 rectangle
     JP          FILL_CHRCOL_RECT
 SUB_ram_c9d0:
-    LD          HL,DAT_ram_3168                         ;= $20
+    LD          HL,CHRRAM_L1_WALL_IDX                   ;= $20
     LD          BC,$408                                ;4 x 8 rectangle
     LD          A,$20                                  ;Change to SPACE 32 / $20
                                                         ;WAS d134 / $86 crosshatch char
                                                         ;WAS LD A, $86
     CALL        FILL_CHRCOL_RECT
-    LD          HL,DAT_ram_3568                         ;= $60
+    LD          HL,COLRAM_L1_WALL_IDX                   ;= $60
     LD          C,0x8
     LD          A,$4b                                  ;BLU on DKBLU
     JP          DRAW_CHRCOLS
 SUB_ram_c9e5:
     CALL        SUB_ram_c9d0
     LD          A,$dd                                  ;DKGRN on DKGRN
-LAB_ram_c9ea:
-    LD          HL,DAT_ram_35ba                         ;= $60    `
+DRAW_L1_DOOR_PATTERN:
+    LD          HL,COLRAM_L1_DOOR_PATTERN_IDX           ;= $60    `
     LD          BC,$206                                ;2 x 6 rectangle
     JP          DRAW_CHRCOLS
 SUB_ram_c9f3:
     CALL        SUB_ram_c9d0
     XOR         A
-    JP          LAB_ram_c9ea
+    JP          DRAW_L1_DOOR_PATTERN
 SUB_ram_c9f9:
-    LD          HL,DAT_ram_3168                         ;= $20
+    LD          HL,CHRRAM_L1_WALL_IDX                   ;= $20
     LD          A,$c1
     LD          (HL),A                    ;= $20
     LD          DE,$28
@@ -270,7 +270,7 @@ SUB_ram_c9f9:
     ADD         HL,DE
     DEC         HL
     LD          (HL),A                    ;= $20
-    LD          HL,DAT_ram_3568                         ;= $60
+    LD          HL,COLRAM_L1_WALL_IDX                   ;= $60
     LD          A,$bf                                  ;DKBLU on DKGRY
                                                         ;WAS DKBLU on DKCYN
                                                         ;WAS LD A,$b9
