@@ -1,12 +1,12 @@
-SUB_ram_c869:
+DRAW_DOOR_BOTTOM_SETUP:
     LD          DE,$29                                 ;GRN on DKCYN
                                                         ;(bottom of closed door)
-SUB_ram_c86c:
+DRAW_SINGLE_PIXEL_DOWN:
     LD          (HL),A
     SCF
     CCF
     SBC         HL,DE
-SUB_ram_c871:
+DRAW_VERTICAL_LINE_3_DOWN:
     LD          (HL),A
     SCF
     CCF
@@ -17,35 +17,21 @@ SUB_ram_c871:
     RET
     LD          DE,$29                                 ;GRN on DKCYN
                                                         ;(bottom of closed door)
-SUB_ram_c87e:
+DRAW_VERTICAL_LINE_3_UP:
     LD          (HL),A
     ADD         HL,DE
-LAB_ram_c880:
+CONTINUE_VERTICAL_LINE_UP:
     LD          (HL),A
     ADD         HL,DE
     LD          (HL),A
     ADD         HL,DE
     LD          (HL),A
     RET
-SUB_ram_c886:
+DRAW_CROSS_PATTERN_RIGHT:
     LD          (HL),A
     ADD         HL,DE
     LD          (HL),A
     INC         HL
-    LD          (HL),A
-    ADD         HL,DE
-    INC         HL
-    LD          (HL),A
-    DEC         HL
-    LD          (HL),A
-    DEC         HL
-    LD          (HL),A
-    RET
-SUB_ram_c893:
-    LD          (HL),A
-    ADD         HL,DE
-    LD          (HL),A
-    DEC         HL
     LD          (HL),A
     ADD         HL,DE
     INC         HL
@@ -55,7 +41,21 @@ SUB_ram_c893:
     DEC         HL
     LD          (HL),A
     RET
-SUB_ram_c8a0:
+DRAW_CROSS_PATTERN_LEFT:
+    LD          (HL),A
+    ADD         HL,DE
+    LD          (HL),A
+    DEC         HL
+    LD          (HL),A
+    ADD         HL,DE
+    INC         HL
+    LD          (HL),A
+    DEC         HL
+    LD          (HL),A
+    DEC         HL
+    LD          (HL),A
+    RET
+DRAW_HORIZONTAL_LINE_3_RIGHT:
     LD          (HL),A
     INC         HL
     LD          (HL),A
@@ -69,7 +69,7 @@ SUB_ram_c8a0:
     ADD         HL,DE
     LD          (HL),A
     RET
-SUB_ram_c8ad:
+DRAW_HORIZONTAL_LINE_3_LEFT:
     LD          (HL),A
     INC         HL
     LD          (HL),A
@@ -166,30 +166,30 @@ DRAW_WALL_FL0:
     LD          A,$40                                  ;BLU on BLK
                                                         ;WAS BLU on CYN
                                                         ;WAS LD A,$46
-    CALL        SUB_ram_c869
+    CALL        DRAW_DOOR_BOTTOM_SETUP
     DEC         DE
     ADD         HL,DE
     LD          A,0x4                                   ;BLK on BLU
-    CALL        SUB_ram_c886
+    CALL        DRAW_CROSS_PATTERN_RIGHT
     ADD         HL,DE
     LD          BC,$410                                ;Jump into COLRAM and down one row
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        SUB_ram_c8a0
+    CALL        DRAW_HORIZONTAL_LINE_3_RIGHT
     ADD         HL,DE
     LD          A,$f4                                  ;DKGRY on BLU
                                                         ;WAS DKCYN on BLU
                                                         ;WAS LD A,$94
     DEC         DE
-    CALL        SUB_ram_c86c
+    CALL        DRAW_SINGLE_PIXEL_DOWN
     LD          A,$c0
     LD          HL,DAT_ram_33c0                         ;= $20
-    CALL        SUB_ram_c86c
+    CALL        DRAW_SINGLE_PIXEL_DOWN
     LD          HL,IDX_VIEWPORT_CHRRAM                  ;= $20
     LD          A,$c1
     INC         DE
     INC         DE
-    JP          SUB_ram_c87e
+    JP          DRAW_VERTICAL_LINE_3_UP
     RET
 DRAW_DOOR_FLO:
     CALL        DRAW_WALL_FL0
@@ -210,24 +210,24 @@ SUB_ram_c996:
     LD          A,$24                                  ;GRN on BLU
 LAB_ram_c99e:
     LD          HL,DAT_ram_351a                         ;= $60    `
-    CALL        SUB_ram_c871
+    CALL        DRAW_VERTICAL_LINE_3_DOWN
     DEC         DE
     ADD         HL,DE
     EX          AF,AF'
-    CALL        SUB_ram_c886
+    CALL        DRAW_CROSS_PATTERN_RIGHT
     ADD         HL,DE
     LD          BC,$30c
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        SUB_ram_c8a0
+    CALL        DRAW_HORIZONTAL_LINE_3_RIGHT
     ADD         HL,DE
     DEC         DE
-    CALL        SUB_ram_c871
+    CALL        DRAW_VERTICAL_LINE_3_DOWN
     LD          HL,DAT_ram_30c8                         ;= $20
     LD          A,$c1
     INC         DE
     INC         DE
-    JP          LAB_ram_c880
+    JP          CONTINUE_VERTICAL_LINE_UP
     RET
 SUB_ram_c9c5:
     LD          HL,DAT_ram_34c8                         ;= $60    `
@@ -308,42 +308,42 @@ DRAW_WALL_FL22:
 DRAW_L1_WALL:
     LD          HL,CHRRAM_FL1_WALL_IDX                  ;= $20
     LD          A,$c1                                  ;LEFT angle CHR
-    CALL        SUB_ram_c869
+    CALL        DRAW_DOOR_BOTTOM_SETUP
     DEC         DE
     ADD         HL,DE
     LD          A,$20                                  ;Change to SPACE 32 / $20
                                                         ;WAS d134 / $86 crosshatch char
                                                         ;WAS LD A, $86
-    CALL        SUB_ram_c886
+    CALL        DRAW_CROSS_PATTERN_RIGHT
     ADD         HL,DE
     LD          BC,$408                                ;4 x 8 rectangle
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        SUB_ram_c8a0
+    CALL        DRAW_HORIZONTAL_LINE_3_RIGHT
     ADD         HL,DE
     LD          A,$c0                                  ;RIGHT angle CHR
     DEC         DE
-    CALL        SUB_ram_c86c
+    CALL        DRAW_SINGLE_PIXEL_DOWN
     LD          HL,DAT_ram_3547                         ;= $60    `
     LD          A,$b0                                  ;DKBLU on BLK
                                                         ;WAS DKBLU on CYN
                                                         ;WAS LD A,$b6
-    CALL        SUB_ram_c869
+    CALL        DRAW_DOOR_BOTTOM_SETUP
     DEC         DE
     ADD         HL,DE
     LD          A,$4b                                  ;BLU on DKBLU
-    CALL        SUB_ram_c886
+    CALL        DRAW_CROSS_PATTERN_RIGHT
     ADD         HL,DE
     LD          BC,$408                                ;Jump to COLRAM + 32 cells
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        SUB_ram_c8a0
+    CALL        DRAW_HORIZONTAL_LINE_3_RIGHT
     ADD         HL,DE
     LD          A,$fb                                  ;DKGRY on DKBLU
                                                         ;WAS DKCYN on DKBLU
                                                         ;WAS LD A,$9b
     DEC         DE
-    JP          SUB_ram_c86c
+    JP          DRAW_SINGLE_PIXEL_DOWN
     RET
 DRAW_FL1_DOOR:
     CALL        DRAW_L1_WALL
@@ -493,12 +493,12 @@ SUB_ram_cb4f:
     LD          HL,DAT_ram_303f                         ;= $20
     LD          A,$c0                                  ;Right angle char
     LD          DE,$27
-    CALL        SUB_ram_c87e
+    CALL        DRAW_VERTICAL_LINE_3_UP
     LD          HL,DAT_ram_335c                         ;= $20
     INC         A
     INC         DE
     INC         DE
-    JP          SUB_ram_c87e
+    JP          DRAW_VERTICAL_LINE_3_UP
 DRAW_FRO_DOOR:
     CALL        SUB_ram_cb4f
     LD          A,$f0                                  ;DKGRY on BLK
@@ -520,24 +520,24 @@ LAB_ram_cb86:
     LD          HL,DAT_ram_352d                         ;= $60    `
     DEC         DE
     DEC         DE
-    CALL        SUB_ram_c871
+    CALL        DRAW_VERTICAL_LINE_3_DOWN
     INC         DE
     ADD         HL,DE
     EX          AF,AF'
-    CALL        SUB_ram_c893
+    CALL        DRAW_CROSS_PATTERN_LEFT
     ADD         HL,DE
     LD          BC,$30c
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        SUB_ram_c8ad
+    CALL        DRAW_HORIZONTAL_LINE_3_LEFT
     ADD         HL,DE
     INC         DE
-    CALL        SUB_ram_c871
+    CALL        DRAW_VERTICAL_LINE_3_DOWN
     LD          HL,DAT_ram_30df                         ;= $20
     LD          A,$c0                                  ;Right angle char
     DEC         DE
     DEC         DE
-    JP          LAB_ram_c880
+    JP          CONTINUE_VERTICAL_LINE_UP
 SUB_ram_cbae:
     LD          HL,DAT_ram_34dc                         ;= $60    `
     LD          A,0x4                                   ;BLK on BLU
@@ -643,21 +643,21 @@ DRAW_WALL_FR1:
 SUB_ram_cc4d:
     POP         IX
     LD          DE,$27
-    CALL        SUB_ram_c86c
+    CALL        DRAW_SINGLE_PIXEL_DOWN
     INC         DE
     ADD         HL,DE
     POP         AF
-    CALL        SUB_ram_c893
+    CALL        DRAW_CROSS_PATTERN_LEFT
     ADD         HL,DE
     DEC         HL
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
     INC         HL
-    CALL        SUB_ram_c8ad
+    CALL        DRAW_HORIZONTAL_LINE_3_LEFT
     ADD         HL,DE
     POP         AF
     INC         DE
-    CALL        SUB_ram_c86c
+    CALL        DRAW_SINGLE_PIXEL_DOWN
     JP          (IX)
 SUB_ram_cc6d:
     CALL        DRAW_WALL_FR1
