@@ -396,7 +396,7 @@ FIX_RH_COLORS:
     PUSH        BC
     PUSH        HL
     LD          A,$f0								;  DKGRN on BLK
-    LD          BC,$404								;   4 x 4 rectangle
+    LD          BC,RECT(4,4)								;   4 x 4 rectangle
     LD          HL,COLRAM_RH_ITEM_IDX
     CALL        FILL_CHRCOL_RECT
     POP         HL

@@ -118,7 +118,7 @@ DRAW_F0_WALL_AND_CLOSED_DOOR:
     LD          A,$22								; GRN on GRN
 DRAW_DOOR_F0:
     LD          HL,COLRAM_F0_DOOR_IDX
-    LD          BC,$80c								; 8 x 12 rectangle
+    LD          BC,RECT(8,12)								; 8 x 12 rectangle
     JP          FILL_CHRCOL_RECT
 DRAW_WALL_F0_AND_OPEN_DOOR:
     CALL        DRAW_F0_WALL
@@ -128,7 +128,7 @@ DRAW_WALL_F0_AND_OPEN_DOOR:
     JP          DRAW_DOOR_F0
 DRAW_WALL_F1:
     LD          HL,CHRRAM_F1_WALL_IDX
-    LD          BC,$808								; 8 x 8 rectangle
+    LD          BC,RECT(8,8)								; 8 x 8 rectangle
     LD          A,$20								; Change to SPACE 32 / $20
                                                     ; WAS d134 / $86 crosshatch char
                                                     ; WAS LD A, $86
@@ -142,14 +142,14 @@ DRAW_WALL_F1_AND_CLOSED_DOOR:
     LD          A,$2d								; GRN on DKGRN
 DRAW_DOOR_F1_OPEN:
     LD          HL,COLRAM_F1_DOOR_IDX
-    LD          BC,$406								; 4 x 6 rectangle
+    LD          BC,RECT(4,6)								; 4 x 6 rectangle
     JP          FILL_CHRCOL_RECT
 DRAW_WALL_F1_AND_OPEN_DOOR:
     CALL        DRAW_WALL_F1
     LD          A,0x0								; BLK on BLK
     JP          DRAW_DOOR_F1_OPEN
 DRAW_WALL_F2:
-    LD          BC,$404								; 4 x 4 rectangle
+    LD          BC,RECT(4,4)								; 4 x 4 rectangle
     LD          HL,COLRAM_F1_DOOR_IDX
     LD          A,$ff								; DKGRY on DKGRY
                                                     ; WAS BLK on DKBLU
@@ -232,7 +232,7 @@ DRAW_FL0_DOOR_FRAME:
 SUB_ram_c9c5:
     LD          HL,DAT_ram_34c8
     LD          A,0x4								; BLK on BLU
-    LD          BC,$410								; 4 x 16 rectangle
+    LD          BC,RECT(4,16)								; 4 x 16 rectangle
     JP          FILL_CHRCOL_RECT
 SUB_ram_c9d0:
     LD          HL,CHRRAM_L1_WALL_IDX
@@ -379,7 +379,7 @@ DRAW_L1_DOOR:
     RET
 SUB_ram_cab0:
     LD          HL,DAT_ram_356c
-    LD          BC,$408								; 4 x 8 rectangle
+    LD          BC,RECT(4,8)								; 4 x 8 rectangle
     LD          A,$4b								; BLU on DKBLU
     CALL        FILL_CHRCOL_RECT
     LD          HL,DAT_ram_316c
@@ -401,7 +401,7 @@ DRAW_L1_DOOR_2:
     JP          DRAW_CHRCOLS
 DRAW_WALL_FL2:
     LD          HL,COLRAM_FL2_WALL_IDX
-    LD          BC,$204								; 2 x 4 rectangle
+    LD          BC,RECT(2,4)								; 2 x 4 rectangle
     LD          A,$11								; BLK on DKGRY
     CALL        FILL_CHRCOL_RECT
     LD          C,0x4
@@ -541,7 +541,7 @@ LAB_ram_cb86:
 SUB_ram_cbae:
     LD          HL,DAT_ram_34dc
     LD          A,0x4								; BLK on BLU
-    LD          BC,$410								; 4 x 16 rectangle
+    LD          BC,RECT(4,16)								; 4 x 16 rectangle
     JP          FILL_CHRCOL_RECT
 SUB_ram_cbb9:
     LD          HL,DAT_ram_317c
@@ -691,7 +691,7 @@ LAB_ram_cc85:
     RET
 SUB_ram_cc9a:
     LD          HL,DAT_ram_3578
-    LD          BC,$408								; 4 x 8 rectangle
+    LD          BC,RECT(4,8)								; 4 x 8 rectangle
     LD          A,$4b								; BLU on DKBLU
     CALL        FILL_CHRCOL_RECT
     LD          HL,DAT_ram_3178
@@ -713,7 +713,7 @@ LAB_ram_ccba:
     JP          DRAW_CHRCOLS
 SUB_ram_ccc3:
     LD          HL,DAT_ram_35ca
-    LD          BC,$204								; 2 x 4 rectangle
+    LD          BC,RECT(2,4)								; 2 x 4 rectangle
     LD          A,0x0								; BLK on BLK
     CALL        FILL_CHRCOL_RECT
     LD          C,0x4
@@ -1430,20 +1430,20 @@ WIPE_WALLS_LOOP:
     JP          INPUT_DEBOUNCE
 DRAW_WALL_FL22_EMPTY:
     LD          HL,COLRAM_FL22_WALL_IDX
-    LD          BC,$404								; 4 x 4 rectangle
+    LD          BC,RECT(4,4)								; 4 x 4 rectangle
     LD          A,0x0								; BLK on BLK
     CALL        FILL_CHRCOL_RECT
     LD          HL,DAT_ram_3230
-    LD          BC,$401								; 4 x 1 rectangle
+    LD          BC,RECT(4,1)								; 4 x 1 rectangle
     LD          A,$20								; SPACE char
     JP          FILL_CHRCOL_RECT
 DRAW_WALL_FL2_NEW:
     LD          HL,$3234								; Bottom CHARRAM IDX of FL2
-    LD          BC,$401								; 4 x 1 rectangle
+    LD          BC,RECT(4,1)								; 4 x 1 rectangle
     LD          A,$90								; Thin base line char
     CALL        FILL_CHRCOL_RECT
     LD          HL,$35bc
-    LD          BC,$204								; 2 x 4 rectangle
+    LD          BC,RECT(2,4)								; 2 x 4 rectangle
     LD          A,0xf								; BLK on DKGRY
     CALL        FILL_CHRCOL_RECT
     LD          C,0x4
