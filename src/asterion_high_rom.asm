@@ -1526,8 +1526,8 @@ LAB_ram_eb7b:
     AND         A
     JP          NZ,LAB_ram_ebd6
 LAB_ram_eb96:
-    CALL        SUB_ram_ee23
-    CALL        SUB_ram_ee23
+    CALL        ROTATE_FACING_RIGHT
+    CALL        ROTATE_FACING_RIGHT
     JP          LAB_ram_ebc0
 LAB_ram_eb9e:
     DEC         B
@@ -1538,7 +1538,7 @@ LAB_ram_eb9e:
     AND         A
     JP          NZ,LAB_ram_ebd6
 LAB_ram_ebab:
-    CALL        SUB_ram_ee0b
+    CALL        ROTATE_FACING_LEFT
     JP          LAB_ram_ebc0
 LAB_ram_ebb0:
     DEC         B
@@ -1549,7 +1549,7 @@ LAB_ram_ebb0:
     AND         A
     JP          NZ,LAB_ram_ebd6
 LAB_ram_ebbd:
-    CALL        SUB_ram_ee23
+    CALL        ROTATE_FACING_RIGHT
 LAB_ram_ebc0:
     CALL        REDRAW_START
     CALL        REDRAW_VIEWPORT
@@ -1888,7 +1888,9 @@ DO_TURN_LEFT:
     JP          NZ,NO_ACTION_TAKEN
     LD          HL,UPDATE_VIEWPORT
     PUSH        HL
-SUB_ram_ee0b:
+ROTATE_FACING_LEFT:                                      ; Decrement DIR_FACING_SHORT (1-4 wraps to 4-1).
+    ; Called by DO_TURN_LEFT and DO_GLANCE_LEFT.
+    ; Effects: Updates DIR_FACING_SHORT (4->3->2->1->4 cycle)
     LD          A,(DIR_FACING_SHORT)
     DEC         A
     JP          NZ,LAB_ram_ee14
@@ -1902,7 +1904,9 @@ DO_TURN_RIGHT:
     JP          NZ,NO_ACTION_TAKEN
     LD          HL,UPDATE_VIEWPORT
     PUSH        HL
-SUB_ram_ee23:
+ROTATE_FACING_RIGHT:                                     ; Increment DIR_FACING_SHORT (1-4 wraps to 1).
+    ; Called by DO_TURN_RIGHT and DO_GLANCE_RIGHT.
+    ; Effects: Updates DIR_FACING_SHORT (1->2->3->4->1 cycle)
     LD          A,(DIR_FACING_SHORT)
     INC         A
     CP          0x5
@@ -1915,7 +1919,7 @@ DO_GLANCE_RIGHT:
     LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,NO_ACTION_TAKEN
-    CALL        SUB_ram_ee23
+    CALL        ROTATE_FACING_RIGHT
     CALL        REDRAW_START
     CALL        REDRAW_VIEWPORT
     CALL        SLEEP_ZERO                              ;byte SLEEP_ZERO(void)
@@ -1924,7 +1928,7 @@ DO_GLANCE_LEFT:
     LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,NO_ACTION_TAKEN
-    CALL        SUB_ram_ee0b
+    CALL        ROTATE_FACING_LEFT
     CALL        REDRAW_START
     CALL        REDRAW_VIEWPORT
     CALL        SLEEP_ZERO                              ;byte SLEEP_ZERO(void)
@@ -2411,7 +2415,7 @@ LAB_ram_f157:
     LD          A,$3c
     ADD         A,B
     LD          (MONSTER_SPRITE_FRAME),A
-    JP          LAB_ram_f22b
+    JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f17d:
     ; [$1F] Zombie: D=3, HP=(1,1), Sprite=$3C+level (spiritual/purple)
     DEC         A
@@ -2421,7 +2425,7 @@ LAB_ram_f17d:
     LD          A,$3c
     ADD         A,B
     LD          (MONSTER_SPRITE_FRAME),A
-    JP          LAB_ram_f22b
+    JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f18e:
     ; [$20] Ghost/Wraith: D=4, HP=(0,2), Sprite=$24+level (physical/red)
     DEC         A
@@ -2431,7 +2435,7 @@ LAB_ram_f18e:
     LD          A,$24
     ADD         A,B
     LD          (MONSTER_SPRITE_FRAME),A
-    JP          LAB_ram_f22b
+    JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f19f:
     ; [$21] Demon: D=5, HP=(2,3), Sprite=$3C+level (spiritual/purple)
     DEC         A
@@ -2441,7 +2445,7 @@ LAB_ram_f19f:
     LD          A,$3c
     ADD         A,B
     LD          (MONSTER_SPRITE_FRAME),A
-    JP          LAB_ram_f22b
+    JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f1af:
     ; [$22] Goblin: D=3, HP=(3,2), Sprite=$24+level (physical/red)
     DEC         A
@@ -2451,7 +2455,7 @@ LAB_ram_f1af:
     LD          A,$24
     ADD         A,B
     LD          (MONSTER_SPRITE_FRAME),A
-    JP          LAB_ram_f22b
+    JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f1bf:
     ; [$23] Troll: D=8, HP=(4,5), Sprite=$24+level (physical/red)
     DEC         A
@@ -2461,7 +2465,7 @@ LAB_ram_f1bf:
     LD          A,$24
     ADD         A,B
     LD          (MONSTER_SPRITE_FRAME),A
-    JP          LAB_ram_f22b
+    JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f1cf:
     ; [$24] Vampire: D=6, HP=(2,4), Sprite=$3C+level (spiritual/purple)
     DEC         A
@@ -2471,7 +2475,7 @@ LAB_ram_f1cf:
     LD          A,$3c
     ADD         A,B
     LD          (MONSTER_SPRITE_FRAME),A
-    JP          LAB_ram_f22b
+    JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f1e0:
     ; [$25] Dragon: D=19, HP=(5,5), Sprite=$24+level (physical/red)
     DEC         A
@@ -2481,7 +2485,7 @@ LAB_ram_f1e0:
     LD          A,$24
     ADD         A,B
     LD          (MONSTER_SPRITE_FRAME),A
-    JP          LAB_ram_f22b
+    JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f1f0:
     ; [$26] Harpy: D=4, HP=(4,5), Sprite=$3C+level (spiritual/purple)
     DEC         A
@@ -2491,12 +2495,12 @@ LAB_ram_f1f0:
     LD          A,$3c
     ADD         A,B
     LD          (MONSTER_SPRITE_FRAME),A
-    JP          LAB_ram_f22b
+    JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f200:
     ; [$27] Minotaur/Boss: D=17, HP=(4,5), Sprite varies by player health
     ;   If PHYS+SPRT > damage: $24+level (physical/red); else $3C+level (spiritual/purple - mercy)
     DEC         A
-    JP          NZ,LAB_ram_f228
+    JP          NZ,INVALID_MONSTER_CODE
     LD          D,$11
     LD          HL,$405
     EXX
@@ -2508,18 +2512,20 @@ LAB_ram_f200:
     LD          H,0x0
     CALL        RECALC_PHYS_HEALTH
     EXX
-    JP          NC,LAB_ram_f224
-    LD          A,$24
-LAB_ram_f21e:
+    JP          NC,MINOTAUR_MERCY_SPRITE
+    LD          A,$24                                  ; Player survives: physical sprite (harder)
+MINOTAUR_SET_SPRITE:
     ADD         A,B
     LD          (MONSTER_SPRITE_FRAME),A
-    JP          LAB_ram_f22b
-LAB_ram_f224:
-    LD          A,$3c
-    JP          LAB_ram_f21e
-LAB_ram_f228:
+    JP          SEED_MONSTER_HP_AND_ATTACK
+MINOTAUR_MERCY_SPRITE:
+    LD          A,$3c                                  ; Player would die: spiritual sprite (easier)
+    JP          MINOTAUR_SET_SPRITE
+INVALID_MONSTER_CODE:
     JP          NO_ACTION_TAKEN
-LAB_ram_f22b:
+SEED_MONSTER_HP_AND_ATTACK:                              ; Seeds monster HP and calculates initial attack value.
+    ; Uses D (base damage), HL (HP pair) from dispatch table above.
+    ; Outputs: CURR_MONSTER_SPRT, BYTE_ram_3aa5 (HP triplets), WEAPON_VALUE_HOLDER (attack BCD)
     CALL        GET_RANDOM_0_TO_7                       ; Get random 0-7, then compute monster spiritual HP
     PUSH        HL
     LD          HL,CURR_MONSTER_SPRT
