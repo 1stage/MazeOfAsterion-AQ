@@ -131,7 +131,10 @@ ARMOR_INV_SLOT EQU $3a74
 HELMET_INV_SLOT EQU $3a75 
 RING_INV_SLOT EQU $3a76 
 PLAYER_PREV_MAP_LOC EQU $3a77 
-LAST_ITEM_HELD EQU $3a78
+COMBAT_BUSY_FLAG EQU $3a78 ; Set to $01 when a monster combat round is in progress / resolving.
+							   ; Acts as a busy semaphore to gate player actions (turn, glance,
+							   ; ladder usage, rest, some item uses). Cleared when combat ends or
+							   ; on death. Not an inventory slot.
 PLAYER_MAP_POS EQU $3a79 
 RIGHT_HAND_ITEM EQU $3a7a 
 LEFT_HAND_ITEM EQU $3a7b 

@@ -163,7 +163,7 @@ DO_JUMP_BACK:
     LD          (DIR_FACING_FW),HL
     LD          A,(BYTE_ram_3aa0)
     LD          (DIR_FACING_SHORT),A
-    LD          A,(LAST_ITEM_HELD)
+    LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          Z,UPDATE_VIEWPORT
     CALL        CLEAR_MONSTER_STATS
@@ -172,7 +172,7 @@ LAB_ram_e201:
     LD          BC,$500
     LD          DE,$20
     CALL        PLAY_SOUND_LOOP
-    LD          A,(LAST_ITEM_HELD)
+    LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          Z,WAIT_FOR_INPUT
     JP          INIT_MELEE_ANIM
@@ -697,7 +697,7 @@ CLEAR_MONSTER_STATS:
                                                         ;A  = $00 after
                                                         ;Reset C & N, Set Z
                                                         ;
-    LD          (LAST_ITEM_HELD),A                   ;ItemHolder = $00
+    LD          (COMBAT_BUSY_FLAG),A                    ;Clear combat busy flag
     LD          BC,$403
     LD          HL,CHRRAM_LEVEL_IDX                     ;= $20
     LD          A,$20
@@ -1493,7 +1493,7 @@ LAB_ram_eb53:
     CP          $31
     JP          NZ,LAB_ram_eb40
     CALL        UPDATE_SCR_SAVER_TIMER
-    LD          A,(LAST_ITEM_HELD)
+    LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,LAB_ram_ebd6
     LD          B,0x4
@@ -1555,7 +1555,7 @@ LAB_ram_ebc0:
     CALL        REDRAW_VIEWPORT
 LAB_ram_ebc6:
     CALL        SUB_ram_cd5f
-    JP          SUB_ram_f130
+    JP          INIT_MONSTER_COMBAT
 LAB_ram_ebcc:
     LD          A,(WALL_F0_STATE)                       ;= $20
     BIT         0x2,A
@@ -1883,7 +1883,7 @@ DOOR_CLOSE_ANIM_LOOP:
     LD          BC,$1600
     JP          SLEEP                                   ;byte SLEEP(short cycleCount)
 DO_TURN_LEFT:
-    LD          A,(LAST_ITEM_HELD)
+    LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,NO_ACTION_TAKEN
     LD          HL,UPDATE_VIEWPORT
@@ -1897,7 +1897,7 @@ LAB_ram_ee14:
     LD          (DIR_FACING_SHORT),A
     RET
 DO_TURN_RIGHT:
-    LD          A,(LAST_ITEM_HELD)
+    LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,NO_ACTION_TAKEN
     LD          HL,UPDATE_VIEWPORT
@@ -1912,7 +1912,7 @@ LAB_ram_ee2e:
     LD          (DIR_FACING_SHORT),A
     RET
 DO_GLANCE_RIGHT:
-    LD          A,(LAST_ITEM_HELD)
+    LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,NO_ACTION_TAKEN
     CALL        SUB_ram_ee23
@@ -1921,7 +1921,7 @@ DO_GLANCE_RIGHT:
     CALL        SLEEP_ZERO                              ;byte SLEEP_ZERO(void)
     JP          DO_TURN_LEFT
 DO_GLANCE_LEFT:
-    LD          A,(LAST_ITEM_HELD)
+    LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,NO_ACTION_TAKEN
     CALL        SUB_ram_ee0b
@@ -1963,7 +1963,7 @@ DO_USE_CHAOS_POTION:
                                                         ;so do TOTAL HEAL
 PROCESS_POTION_UPDATES:
     CALL        REDRAW_STATS
-    LD          A,(LAST_ITEM_HELD)
+    LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,INIT_MELEE_ANIM
     JP          INPUT_DEBOUNCE
@@ -2133,7 +2133,7 @@ PLAYER_DIES:
     LD          HL,CHRRAM_YOU_DIED_IDX                  ;= $20
     LD          DE,YOU_DIED_TXT
     LD          A,(INPUT_HOLDER)
-    LD          (LAST_ITEM_HELD),A
+    LD          (COMBAT_BUSY_FLAG),A
     RLCA
     RLCA
     RLCA
@@ -2231,7 +2231,7 @@ LAB_ram_f054:
     CALL        ITEM_MAP_CHECK
     EX          AF,AF'
     LD          (BC),A
-    LD          A,(LAST_ITEM_HELD)
+    LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,INIT_MELEE_ANIM
     JP          UPDATE_VIEWPORT
@@ -2308,7 +2308,7 @@ CHECK_OTHERS:
     CALL        SUB_ram_eea9
 LAB_ram_f0e9:
     CALL        SUB_ram_f0f2
-    JP          SUB_ram_f130
+    JP          INIT_MONSTER_COMBAT
 SUB_ram_f0ef:
     CALL        SUB_ram_eea9
 SUB_ram_f0f2:
@@ -2335,20 +2335,30 @@ LAB_ram_f119:
     JP          NZ,NO_ACTION_TAKEN
 LAB_ram_f11e:
     LD          D,A
-    LD          A,(LAST_ITEM_HELD)
+    LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          Z,NO_ACTION_TAKEN
     XOR         A                                       ;A  = $00
                                                         ;Reset C & N, Set Z
-    LD          (LAST_ITEM_HELD),A
+    LD          (COMBAT_BUSY_FLAG),A
     CALL        SUB_ram_f0ef
     JP          WAIT_FOR_INPUT
-SUB_ram_f130:
-    LD          A,(LAST_ITEM_HELD)
+INIT_MONSTER_COMBAT:                                     ; Monster combat round initializer.
+    ; Preconditions: Right-hand item already decoded into B (weapon level) and ITEM_F1 holds
+    ; monster/item code at player position. COMBAT_BUSY_FLAG must be 0 for a new round.
+    ; Effects:
+    ;   - Sets COMBAT_BUSY_FLAG to 1 (gates movement / turning until resolution)
+    ;   - Extracts monster "color" (difficulty tier) & level bits from ITEM_F1
+    ;   - Derives additive damage component C from dungeon level (BCD math with RLD)
+    ;   - Selects monster base damage seed D and HP (HL) via branch table
+    ;   - Computes weapon value (via CALC_WEAPON_VALUE later) after random reductions
+    ;   - Stores monster sprite frame index into BYTE_ram_3a8a for draw routines
+    ;   - Seeds CURR_MONSTER_SPRT and BYTE_ram_3aa5 (physical/spiritual HP triplets)
+    LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,INIT_MELEE_ANIM
     INC         A
-    LD          (LAST_ITEM_HELD),A
+    LD          (COMBAT_BUSY_FLAG),A
     LD          A,(ITEM_F1)                             ;= $60
     LD          B,0x0
     SRL         A
@@ -2560,7 +2570,7 @@ SUB_ram_f298:
     LD          (HL),A
     RET
 DO_USE_LADDER:
-    LD          A,(LAST_ITEM_HELD)
+    LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,NO_ACTION_TAKEN
     LD          A,(ITEM_F0)                             ;= $60
@@ -3882,7 +3892,7 @@ MINOTAUR_DEAD_SOUND_LOOP:
     DJNZ        MINOTAUR_DEAD_SOUND_LOOP
     JP          SCREEN_SAVER_FULL_SCREEN
 DO_REST:
-    LD          A,(LAST_ITEM_HELD)                   ;Load food inventory into A
+    LD          A,(COMBAT_BUSY_FLAG)                   ;Load combat busy flag into A (was mislabeled)
     AND         A
     JP          NZ,NO_ACTION_TAKEN                      ;If food is empty, do nothing
 CHK_NEEDS_HEALING:
