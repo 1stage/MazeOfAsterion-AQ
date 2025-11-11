@@ -139,9 +139,9 @@ FW_WALLS_CLEAR_CHK_MONSTER:
                                                         ;Do nothing.
     LD          BC,(DIR_FACING_FW)                      ;Way is clear!
                                                         ;Move forward.
-    LD          (BYTE_ram_3a9e),BC
+    LD          (PREV_DIR_VECTOR),BC
     LD          A,(DIR_FACING_SHORT)
-    LD          (BYTE_ram_3aa0),A
+    LD          (PREV_DIR_FACING),A
     LD          A,(PLAYER_MAP_POS)
     LD          (PLAYER_PREV_MAP_LOC),A
     ADD         A,B
@@ -153,7 +153,7 @@ DO_JUMP_BACK:
     CP          (HL)
     JP          Z,LAB_ram_e201
     EX          AF,AF'
-    LD          HL,(BYTE_ram_3a9e)
+    LD          HL,(PREV_DIR_VECTOR)
     LD          A,(DIR_FACING_BW)
     NEG                                                 ;Negate A
     CP          H
@@ -161,7 +161,7 @@ DO_JUMP_BACK:
     EX          AF,AF'
     LD          (PLAYER_MAP_POS),A
     LD          (DIR_FACING_FW),HL
-    LD          A,(BYTE_ram_3aa0)
+    LD          A,(PREV_DIR_FACING)
     LD          (DIR_FACING_SHORT),A
     LD          A,(COMBAT_BUSY_FLAG)
     AND         A
@@ -406,8 +406,8 @@ FIX_RH_COLORS:
     RET
 SUB_ram_e39a:
     CALL        SOUND_05
-    LD          A,(BYTE_ram_3a87)
-    LD          HL,(BYTE_ram_3a85)
+    LD          A,(ITEM_ANIM_STATE)
+    LD          HL,(ITEM_ANIM_LOOP_COUNT)
     DEC         A
     JP          NZ,LAB_ram_e3cd
     DEC         L
@@ -419,19 +419,19 @@ SUB_ram_e39a:
     LD          L,0x4
 LAB_ram_e3b6:
     LD          A,0x4
-    LD          (BYTE_ram_3a87),A
-    LD          (BYTE_ram_3a85),HL
-    LD          HL,(BYTE_ram_3a83)
+    LD          (ITEM_ANIM_STATE),A
+    LD          (ITEM_ANIM_LOOP_COUNT),HL
+    LD          HL,(ITEM_ANIM_CHRRAM_PTR)
     LD          BC,$29
     XOR         A
     SBC         HL,BC
-    LD          (BYTE_ram_3a83),HL
+    LD          (ITEM_ANIM_CHRRAM_PTR),HL
     JP          LAB_ram_e3d7
 LAB_ram_e3cd:
-    LD          (BYTE_ram_3a87),A
-    LD          HL,(BYTE_ram_3a83)
+    LD          (ITEM_ANIM_STATE),A
+    LD          HL,(ITEM_ANIM_CHRRAM_PTR)
     DEC         HL
-    LD          (BYTE_ram_3a83),HL
+    LD          (ITEM_ANIM_CHRRAM_PTR),HL
 LAB_ram_e3d7:
     LD          BC,$c8
     XOR         A
@@ -444,13 +444,13 @@ LAB_ram_e3d7:
     LD          C,L
     LD          A,(RAM_AC)
     LD          (MON_FS),A
-    LD          A,(BYTE_ram_3a82)
+    LD          A,(ITEM_SPRITE_INDEX)
     CALL        CHK_ITEM
     LD          A,$32
     LD          (MON_FS),A
     LD          A,(TIMER_A)
     ADD         A,$ff
-    LD          (BYTE_ram_3a89),A
+    LD          (ITEM_ANIM_TIMER_COPY),A
     RET
 SUB_ram_e401:
     LD          A,L
@@ -522,7 +522,7 @@ LAB_ram_e448:
     LD          L,A
     RET
 SUB_ram_e450:
-    LD          DE,(BYTE_ram_3a83)
+    LD          DE,(ITEM_ANIM_CHRRAM_PTR)
     LD          HL,ITEM_MOVE_CHR_BUFFER
     JP          SUB_ram_e97d
 LAB_ram_e45a:
@@ -762,13 +762,13 @@ ANIMATE_MELEE_ROUND:
     LD          B,0x0
     LD          A,(RAM_AF)
     LD          (MON_FS),A
-    LD          A,(BYTE_ram_3a8a)
+    LD          A,(MONSTER_SPRITE_FRAME)
     CALL        CHK_ITEM
     LD          A,$32
     LD          (MON_FS),A
     LD          A,(TIMER_A)
     ADD         A,$ff
-    LD          (BYTE_ram_3a8c),A
+    LD          (MONSTER_ANIM_TIMER_COPY),A
     RET
 SUB_ram_e635:
     LD          DE,(MONSTER_ATT_POS_OFFSET)
@@ -791,7 +791,7 @@ LAB_ram_e656:
 LAB_ram_e658:
     DJNZ        LAB_ram_e656
     LD          L,A
-    LD          A,(BYTE_ram_3a8a)
+    LD          A,(MONSTER_SPRITE_FRAME)
     AND         $fc
     CP          $24
     JP          NZ,LAB_ram_e693
@@ -1464,7 +1464,7 @@ TIMER_UPDATED_CHECK_INPUT:
     CP          $31
     JP          NZ,LAB_ram_eb27
     LD          HL,TIMER_A
-    LD          A,(BYTE_ram_3a89)
+    LD          A,(ITEM_ANIM_TIMER_COPY)
     CP          (HL)
     JP          NZ,WAIT_FOR_INPUT
     CALL        SUB_ram_e450
@@ -1472,7 +1472,7 @@ TIMER_UPDATED_CHECK_INPUT:
     JP          WAIT_FOR_INPUT
 LAB_ram_eb27:
     LD          HL,TIMER_A
-    LD          A,(BYTE_ram_3a8c)
+    LD          A,(MONSTER_ANIM_TIMER_COPY)
     CP          (HL)
     JP          NZ,WAIT_FOR_INPUT
     CALL        SUB_ram_e635
@@ -1482,7 +1482,7 @@ LAB_ram_eb27:
     JP          WAIT_FOR_INPUT
 LAB_ram_eb40:
     LD          HL,TIMER_A
-    LD          A,(BYTE_ram_3a8c)
+    LD          A,(MONSTER_ANIM_TIMER_COPY)
     CP          (HL)
     JP          NZ,WAIT_FOR_INPUT
     CALL        SUB_ram_e635
@@ -1973,9 +1973,11 @@ PLAY_USE_PHYS_POTION_SOUND:
     CALL        SOUND_03
     CALL        SOUND_03
     JP          CLEAR_RIGHT_HAND
-SUB_ram_eea9:
+SWAP_TO_ALT_REGS:                                        ; Swap to alternate register set (EXX).
+    ; Used before clearing right hand item to preserve main register state.
     EXX
-CLEAR_RIGHT_HAND:
+CLEAR_RIGHT_HAND:                                        ; Clear right-hand item slot and draw empty sprite.
+    ; Effects: Sets RIGHT_HAND_ITEM to $FE (empty), draws "poof" animation in right-hand area.
     LD          A,$fe
     LD          (RIGHT_HAND_ITEM),A
     LD          DE,POOF_6                               ;= "    ",$01
@@ -2305,24 +2307,28 @@ CHECK_OTHERS:
     CP          $10                                    ;Compare to LADDER
     JP          NC,LAB_ram_f113
     LD          D,A
-    CALL        SUB_ram_eea9
+    CALL        SWAP_TO_ALT_REGS
 LAB_ram_f0e9:
-    CALL        SUB_ram_f0f2
+    CALL        SETUP_ITEM_ANIMATION
     JP          INIT_MONSTER_COMBAT
-SUB_ram_f0ef:
-    CALL        SUB_ram_eea9
-SUB_ram_f0f2:
+CLEAR_RIGHT_ITEM_AND_SETUP_ANIM:                         ; Clear right-hand item and set up animation.
+    ; Used when consumable weapons break (bow/crossbow/scroll/staff).
+    CALL        SWAP_TO_ALT_REGS
+SETUP_ITEM_ANIMATION:                                    ; Configure item animation parameters.
+    ; Inputs: D = item type, B = item level
+    ; Effects: Sets ITEM_ANIM_STATE, ITEM_SPRITE_INDEX, ITEM_ANIM_LOOP_COUNT, ITEM_ANIM_CHRRAM_PTR
+    ; and initiates animation via LAB_ram_e3d7.
     LD          A,0x3
-    LD          (BYTE_ram_3a87),A
+    LD          (ITEM_ANIM_STATE),A
     LD          A,D
     SLA         A
     SLA         A
     OR          B
-    LD          (BYTE_ram_3a82),A
+    LD          (ITEM_SPRITE_INDEX),A
     LD          HL,$203
-    LD          (BYTE_ram_3a85),HL
+    LD          (ITEM_ANIM_LOOP_COUNT),HL
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX              ;= $20
-    LD          (BYTE_ram_3a83),HL
+    LD          (ITEM_ANIM_CHRRAM_PTR),HL
     LD          A,L
     LD          (RAM_AD),A
     JP          LAB_ram_e3d7
@@ -2341,7 +2347,7 @@ LAB_ram_f11e:
     XOR         A                                       ;A  = $00
                                                         ;Reset C & N, Set Z
     LD          (COMBAT_BUSY_FLAG),A
-    CALL        SUB_ram_f0ef
+    CALL        CLEAR_RIGHT_ITEM_AND_SETUP_ANIM
     JP          WAIT_FOR_INPUT
 INIT_MONSTER_COMBAT:                                     ; Monster combat round initializer.
     ; Preconditions: Right-hand item already decoded into B (weapon level) and ITEM_F1 holds
@@ -2352,7 +2358,7 @@ INIT_MONSTER_COMBAT:                                     ; Monster combat round 
     ;   - Derives additive damage component C from dungeon level (BCD math with RLD)
     ;   - Selects monster base damage seed D and HP (HL) via branch table
     ;   - Computes weapon value (via CALC_WEAPON_VALUE later) after random reductions
-    ;   - Stores monster sprite frame index into BYTE_ram_3a8a for draw routines
+    ;   - Stores monster sprite frame index into MONSTER_SPRITE_FRAME for draw routines
     ;   - Seeds CURR_MONSTER_SPRT and BYTE_ram_3aa5 (physical/spiritual HP triplets)
     LD          A,(COMBAT_BUSY_FLAG)
     AND         A
@@ -2397,7 +2403,7 @@ LAB_ram_f157:
     LD          HL,$304
     LD          A,$3c
     ADD         A,B
-    LD          (BYTE_ram_3a8a),A
+    LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f17d:
     DEC         A
@@ -2406,7 +2412,7 @@ LAB_ram_f17d:
     LD          HL,$101
     LD          A,$3c
     ADD         A,B
-    LD          (BYTE_ram_3a8a),A
+    LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f18e:
     DEC         A
@@ -2415,7 +2421,7 @@ LAB_ram_f18e:
     LD          HL,0x2
     LD          A,$24
     ADD         A,B
-    LD          (BYTE_ram_3a8a),A
+    LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f19f:
     DEC         A
@@ -2424,7 +2430,7 @@ LAB_ram_f19f:
     LD          HL,$203
     LD          A,$3c
     ADD         A,B
-    LD          (BYTE_ram_3a8a),A
+    LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f1af:
     DEC         A
@@ -2433,7 +2439,7 @@ LAB_ram_f1af:
     LD          HL,$302
     LD          A,$24
     ADD         A,B
-    LD          (BYTE_ram_3a8a),A
+    LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f1bf:
     DEC         A
@@ -2442,7 +2448,7 @@ LAB_ram_f1bf:
     LD          HL,$405
     LD          A,$24
     ADD         A,B
-    LD          (BYTE_ram_3a8a),A
+    LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f1cf:
     DEC         A
@@ -2451,7 +2457,7 @@ LAB_ram_f1cf:
     LD          HL,$204
     LD          A,$3c
     ADD         A,B
-    LD          (BYTE_ram_3a8a),A
+    LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f1e0:
     DEC         A
@@ -2460,7 +2466,7 @@ LAB_ram_f1e0:
     LD          HL,$505
     LD          A,$24
     ADD         A,B
-    LD          (BYTE_ram_3a8a),A
+    LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f1f0:
     DEC         A
@@ -2469,7 +2475,7 @@ LAB_ram_f1f0:
     LD          HL,$405
     LD          A,$3c
     ADD         A,B
-    LD          (BYTE_ram_3a8a),A
+    LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f200:
     DEC         A
@@ -2489,7 +2495,7 @@ LAB_ram_f200:
     LD          A,$24
 LAB_ram_f21e:
     ADD         A,B
-    LD          (BYTE_ram_3a8a),A
+    LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f224:
     LD          A,$3c
@@ -2497,16 +2503,16 @@ LAB_ram_f224:
 LAB_ram_f228:
     JP          NO_ACTION_TAKEN
 LAB_ram_f22b:
-    CALL        SUB_ram_f27f
+    CALL        GET_RANDOM_0_TO_7                       ; Get random 0-7, then compute monster spiritual HP
     PUSH        HL
     LD          HL,CURR_MONSTER_SPRT
-    CALL        SUB_ram_f298
+    CALL        WRITE_HP_TRIPLET                        ; Write spiritual HP triplet
     POP         HL
     LD          D,H
-    CALL        SUB_ram_f27f
+    CALL        GET_RANDOM_0_TO_7                       ; Get random 0-7, then compute monster physical HP
     PUSH        HL
     LD          HL,BYTE_ram_3aa5
-    CALL        SUB_ram_f298
+    CALL        WRITE_HP_TRIPLET                        ; Write physical HP triplet
     POP         HL
     LD          D,L
     LD          E,0x0
@@ -2534,11 +2540,21 @@ REDRAW_MONSTER_HEALTH:
     LD          HL,CURR_MONSTER_SPRT
     LD          B,0x1
     JP          RECALC_AND_REDRAW_BCD
-SUB_ram_f27f:
+GET_RANDOM_0_TO_7:                                       ; Get random value 0-7 for damage reduction.
+    ; Outputs: E = random value 0-7
+    ; Side effects: Updates screen saver timer, falls through to CALC_WEAPON_VALUE
     CALL        UPDATE_SCR_SAVER_TIMER
     AND         0x7
     LD          E,A
-CALC_WEAPON_VALUE:
+CALC_WEAPON_VALUE:                                       ; Compute BCD attack/damage value.
+    ; Inputs:
+    ;   B = weapon level (0-3)
+    ;   D = base damage seed
+    ;   E = random subtraction value (0-7)
+    ;   C = level-derived additive component (BCD)
+    ; Outputs:
+    ;   A = final weapon value in BCD
+    ; Formula: A = (D * (B+1)) - E + C, all BCD normalized, with underflow protection
     PUSH        BC                                      ;Save original weaponLevel
     INC         B                                       ;B = B + 1
     LD          A,D                                     ;A = D
@@ -2551,14 +2567,17 @@ LAB_ram_f28c:
     SUB         E                                       ;A = A - E
     DAA                                                 ;Normalize for BCD
     JP          NC,LAB_ram_f294
-    ADC         A,E                                     ;A = A + E (and CARRY)
+    ADC         A,E                                     ;A = A + E (and CARRY) to undo underflow
     DAA                                                 ;Normalize for BCD
 LAB_ram_f294:
     ADD         A,C                                     ;A = A + C
     DAA                                                 ;Normalize for BCD
     POP         BC                                      ;BC = Original weaponLevel
     RET                                                 ;A = new weaponValue
-SUB_ram_f298:
+WRITE_HP_TRIPLET:                                       ; Write BCD HP value as triplet: value, doubled, carry.
+    ; Inputs: A = BCD health value, HL = destination pointer
+    ; Effects: Writes (HL) = A, (HL+1) = A*2 (BCD), (HL+2) = carry from doubling
+    ; Used to store health stats in a 3-byte normalized format.
     LD          (HL),A
     INC         HL
     ADD         A,A

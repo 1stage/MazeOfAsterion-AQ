@@ -141,15 +141,15 @@ LEFT_HAND_ITEM EQU $3a7b
 INV_ITEM_SLOT_1 EQU $3a7c 
 INV_ITEM_SLOT_2 EQU $3a7d 
 INV_ITEM_SLOT_3 EQU $3a7e 
-BYTE_ram_3a82 EQU $3a82 
-BYTE_ram_3a83 EQU $3a83
-BYTE_ram_3a85 EQU $3a85
-BYTE_ram_3a87 EQU $3a87 
+ITEM_SPRITE_INDEX EQU $3a82 ; Encoded item/weapon sprite: (item_type << 2) | level
+ITEM_ANIM_CHRRAM_PTR EQU $3a83 ; 16-bit pointer to character RAM for item animation draw
+ITEM_ANIM_LOOP_COUNT EQU $3a85 ; 16-bit animation loop counter (decrements each frame)
+ITEM_ANIM_STATE EQU $3a87 ; Item animation state/phase counter
 
-BYTE_ram_3a89 EQU $3a89 
-BYTE_ram_3a8a EQU $3a8a 
+ITEM_ANIM_TIMER_COPY EQU $3a89 ; Cached timer value for item animation sync
+MONSTER_SPRITE_FRAME EQU $3a8a ; Monster sprite frame index (base + level offset)
 MELEE_ANIM_STATE EQU $3a8b 
-BYTE_ram_3a8c EQU $3a8c 
+MONSTER_ANIM_TIMER_COPY EQU $3a8c ; Cached timer value for monster animation sync 
 MONSTER_ATT_POS_COUNT EQU $3a8d 
 MONSTER_ATT_POS_OFFSET EQU $3a8f 
 RNDHOLD_AA EQU $3a91
@@ -159,8 +159,8 @@ PLAYER_SPRT_HEALTH EQU $3a97
 PLAYER_SPRT_HEALTH_MAX EQU $3a98 
 WEAPON_PHYS EQU $3a99 
 WEAPON_SPRT EQU $3a9b 
-BYTE_ram_3a9e EQU $3a9e
-BYTE_ram_3aa0 EQU $3aa0 
+PREV_DIR_VECTOR EQU $3a9e ; 16-bit saved direction vector (BC) for jump-back logic
+PREV_DIR_FACING EQU $3aa0 ; Saved direction facing (1-4) for jump-back logic 
 ITEM_HOLDER EQU $3aa1 
 CURR_MONSTER_SPRT EQU $3aa2 
 CURR_MONSTER_PHYS EQU $3aa3
