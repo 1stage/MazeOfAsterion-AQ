@@ -1,5 +1,5 @@
 DRAW_DOOR_BOTTOM_SETUP:
-    LD          DE,$29								; GRN on DKCYN
+    LD          DE,COLOR(GRN,DKCYN)					; GRN on DKCYN
 								                    ; (bottom of closed door)
 DRAW_SINGLE_PIXEL_DOWN:
     LD          (HL),A
@@ -15,7 +15,7 @@ DRAW_VERTICAL_LINE_3_DOWN:
     SBC         HL,DE
     LD          (HL),A
     RET
-    LD          DE,$29								; GRN on DKCYN
+    LD          DE,COLOR(GRN,DKCYN)					; GRN on DKCYN
 								                    ; (bottom of closed door)
 DRAW_VERTICAL_LINE_3_UP:
     LD          (HL),A
@@ -122,7 +122,7 @@ DRAW_DOOR_F0:
     JP          FILL_CHRCOL_RECT
 DRAW_WALL_F0_AND_OPEN_DOOR:
     CALL        DRAW_F0_WALL
-    LD          A,$f0								; DKGRY on BLK
+    LD          A,COLOR(DKGRY,BLK)								; DKGRY on BLK
 								                    ; WAS BLK on DKBLU
 								                    ; WAS LD A,0xb
     JP          DRAW_DOOR_F0
@@ -135,7 +135,7 @@ DRAW_WALL_F1:
     CALL        FILL_CHRCOL_RECT
     LD          C,0x8
     LD          HL,COLRAM_F0_DOOR_IDX
-    LD          A,$4b								; BLU on DKBLU
+    LD          A,COLOR(BLU,DKBLU)								; BLU on DKBLU
     JP          DRAW_CHRCOLS
 DRAW_WALL_F1_AND_CLOSED_DOOR:
     CALL        DRAW_WALL_F1
@@ -146,7 +146,7 @@ DRAW_DOOR_F1_OPEN:
     JP          FILL_CHRCOL_RECT
 DRAW_WALL_F1_AND_OPEN_DOOR:
     CALL        DRAW_WALL_F1
-    LD          A,0x0								; BLK on BLK
+    LD          A,COLOR(BLK,BLK)								; BLK on BLK
     JP          DRAW_DOOR_F1_OPEN
 DRAW_WALL_F2:
     LD          BC,RECT(4,4)								; 4 x 4 rectangle
@@ -157,19 +157,19 @@ DRAW_WALL_F2:
     JP          FILL_CHRCOL_RECT
 DRAW_DOOR_F2_OPEN:
     LD          HL,COLRAM_F1_DOOR_IDX
-    LD          A,0x0								; BLK on BLK
+    LD          A,COLOR(BLK,BLK)								; BLK on BLK
 UPDATE_F0_ITEM:
-    LD          BC,$404								; 4 x 4 rectangle
+    LD          BC,RECT(4,4)								; 4 x 4 rectangle
     JP          FILL_CHRCOL_RECT
 DRAW_WALL_FL0:
     LD          HL,COLRAM_FL00_WALL_IDX
-    LD          A,$40								; BLU on BLK
+    LD          A,COLOR(BLU,BLK)					; BLU on BLK
                                                     ; WAS BLU on CYN
                                                     ; WAS LD A,$46
     CALL        DRAW_DOOR_BOTTOM_SETUP
     DEC         DE
     ADD         HL,DE
-    LD          A,0x4								; BLK on BLU
+    LD          A,COLOR(BLK,BLU)    				; BLK on BLU
     CALL        DRAW_CROSS_PATTERN_RIGHT
     ADD         HL,DE
     LD          BC,$410								; Jump into COLRAM and down one row
@@ -177,7 +177,7 @@ DRAW_WALL_FL0:
     ADD         HL,DE
     CALL        DRAW_HORIZONTAL_LINE_3_RIGHT
     ADD         HL,DE
-    LD          A,$f4								; DKGRY on BLU
+    LD          A,COLOR(DKGRY,BLU)					; DKGRY on BLU
                                                     ; WAS DKCYN on BLU
                                                     ; WAS LD A,$94
     DEC         DE
@@ -193,21 +193,21 @@ DRAW_WALL_FL0:
     RET
 DRAW_DOOR_FLO:
     CALL        DRAW_WALL_FL0
-    LD          A,$f0								; DKGRY on BLK
+    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
                                                     ; WAS DKCYN on DKBLU
                                                     ; WAS LD A,$9b
     EX          AF,AF'
-    LD          A,0x4								; BLK on BLU
+    LD          A,COLOR(BLK,BLU)					; BLK on BLU
                                                     ; WAS DKBLU on BLU
                                                     ; LD A,$b4
     JP          DRAW_FL0_DOOR_FRAME
 SUB_ram_c996:
     CALL        DRAW_WALL_FL0
-    LD          A,$f2								; DKGRY on GRN
+    LD          A,COLOR(DKGRY,GRN)					; DKGRY on GRN
                                                     ; WAS DKCYN on GRN
                                                     ; WAS LD A,$92
     EX          AF,AF'
-    LD          A,$24								; GRN on BLU
+    LD          A,COLOR(GRN,BLU)					; GRN on BLU
 DRAW_FL0_DOOR_FRAME:
     LD          HL,COLRAM_FL0_DOOR_FRAME_IDX
     CALL        DRAW_VERTICAL_LINE_3_DOWN
@@ -231,7 +231,7 @@ DRAW_FL0_DOOR_FRAME:
     RET
 SUB_ram_c9c5:
     LD          HL,DAT_ram_34c8
-    LD          A,0x4								; BLK on BLU
+    LD          A,COLOR(BLK,BLU)							; BLK on BLU
     LD          BC,RECT(4,16)								; 4 x 16 rectangle
     JP          FILL_CHRCOL_RECT
 SUB_ram_c9d0:
@@ -243,14 +243,14 @@ SUB_ram_c9d0:
     CALL        FILL_CHRCOL_RECT
     LD          HL,COLRAM_L1_WALL_IDX
     LD          C,0x8
-    LD          A,$4b								; BLU on DKBLU
+    LD          A,COLOR(BLU,DKBLU)					; BLU on DKBLU
     JP          DRAW_CHRCOLS
 SUB_ram_c9e5:
     CALL        SUB_ram_c9d0
-    LD          A,$dd								; DKGRN on DKGRN
+    LD          A,COLOR(DKGRN,DKGRN)				; DKGRN on DKGRN
 DRAW_L1_DOOR_PATTERN:
     LD          HL,COLRAM_L1_DOOR_PATTERN_IDX
-    LD          BC,$206								; 2 x 6 rectangle
+    LD          BC,RECT(2,6)						; 2 x 6 rectangle
     JP          DRAW_CHRCOLS
 SUB_ram_c9f3:
     CALL        SUB_ram_c9d0
