@@ -223,12 +223,12 @@ USE_MAP:
     JP          Z,INIT_MELEE_ANIM
     EXX								;  Swap BC  DE  HL
 								;  with BC' DE' HL'
-    LD          BC,$1818								;  24 x 24
+    LD          BC,RECT(24,24)								;  24 x 24
     LD          HL,IDX_VIEWPORT_CHRRAM
     LD          A,$20								;  SPACE character fill
     CALL        FILL_CHRCOL_RECT								;  Fill map CHARs with SPACES
     CALL        SOUND_03
-    LD          BC,$1818								;  24 x 24
+    LD          BC,RECT(24,24)								;  24 x 24
     LD          HL,COLRAM_VIEWPORT_IDX
     LD          A,$b0								;  DKBLU on BLK
 								;  Was DKGN on BLK
@@ -2133,7 +2133,7 @@ REDUCE_HEALTH_SMALL:
     RET
 PLAYER_DIES:
     LD          HL,COLRAM_VIEWPORT_IDX
-    LD          BC,$1818								;  18 x 18 rectangle
+    LD          BC,RECT(24,24)								;  24 x 24 rectangle
     XOR         A
     CALL        FILL_CHRCOL_RECT
     LD          HL,CHRRAM_YOU_DIED_IDX

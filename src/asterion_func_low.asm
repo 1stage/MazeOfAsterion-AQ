@@ -110,7 +110,7 @@ DRAW_CHRCOLS:
     JP          DRAW_CHRCOLS
 DRAW_F0_WALL:
     LD          HL,COLRAM_F0_WALL_MAP_IDX
-    LD          BC,$1010							; 16 x 16 rectangle
+    LD          BC,RECT(16,16)							; 16 x 16 rectangle
     LD          A,$44								; BLU on BLU
     JP          FILL_CHRCOL_RECT
 DRAW_F0_WALL_AND_CLOSED_DOOR:
@@ -232,7 +232,7 @@ DRAW_FL0_DOOR_FRAME:
 SUB_ram_c9c5:
     LD          HL,DAT_ram_34c8
     LD          A,0x4								; BLK on BLU
-    LD          BC,$410								; 4 x 10 rectangle
+    LD          BC,$410								; 4 x 16 rectangle
     JP          FILL_CHRCOL_RECT
 SUB_ram_c9d0:
     LD          HL,CHRRAM_L1_WALL_IDX
@@ -541,7 +541,7 @@ LAB_ram_cb86:
 SUB_ram_cbae:
     LD          HL,DAT_ram_34dc
     LD          A,0x4								; BLK on BLU
-    LD          BC,$410								; 4 x 10 rectangle
+    LD          BC,$410								; 4 x 16 rectangle
     JP          FILL_CHRCOL_RECT
 SUB_ram_cbb9:
     LD          HL,DAT_ram_317c
@@ -1137,7 +1137,7 @@ DO_HC_SHIFT_ACTIONS:
 DRAW_BKGD:
     LD          A,$20								;  Set VIEWPORT fill chars to SPACE
     LD          HL,IDX_VIEWPORT_CHRRAM								;  Set CHRRAM starting point at the beginning of the VIEWPORT
-    LD          BC,$1818								;  24 x 24 cells
+    LD          BC,RECT(24,24)								;  24 x 24 cells
     CALL        FILL_CHRCOL_RECT
     LD          C,0x8								;  8 rows of ceiling
     LD          HL,COLRAM_VIEWPORT_IDX								;  Set COLRAM starting point at the beginning of the VIEWPORT
