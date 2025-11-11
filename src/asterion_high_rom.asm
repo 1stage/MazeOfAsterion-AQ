@@ -2397,8 +2397,15 @@ LAB_ram_f157:
     LD          A,D
     RLD
     EX          AF,AF'
-    SUB         $1e
+    ; ===== MONSTER TYPE DISPATCH TABLE =====
+    ; Switches on monster code ($1E-$27) to set base damage D, HP (HL), and sprite frame base.
+    ; Each entry sets:
+    ;   D = base damage seed (BCD)
+    ;   HL = HP pair (H=spiritual HP, L=physical HP) - note: order reversed in some docs
+    ;   MONSTER_SPRITE_FRAME = sprite base ($24=physical/red, $3C=spiritual/purple) + level (B=0-3)
+    SUB         $1e                                    ; Monster codes start at $1E
     JP          NZ,LAB_ram_f17d
+    ; [$1E] Skeleton: D=7, HP=(3,4), Sprite=$3C+level (spiritual/purple)
     LD          D,0x7
     LD          HL,$304
     LD          A,$3c
@@ -2406,6 +2413,7 @@ LAB_ram_f157:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f17d:
+    ; [$1F] Zombie: D=3, HP=(1,1), Sprite=$3C+level (spiritual/purple)
     DEC         A
     JP          NZ,LAB_ram_f18e
     LD          D,0x3
@@ -2415,6 +2423,7 @@ LAB_ram_f17d:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f18e:
+    ; [$20] Ghost/Wraith: D=4, HP=(0,2), Sprite=$24+level (physical/red)
     DEC         A
     JP          NZ,LAB_ram_f19f
     LD          D,0x4
@@ -2424,6 +2433,7 @@ LAB_ram_f18e:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f19f:
+    ; [$21] Demon: D=5, HP=(2,3), Sprite=$3C+level (spiritual/purple)
     DEC         A
     JP          NZ,LAB_ram_f1af
     LD          D,0x5
@@ -2433,6 +2443,7 @@ LAB_ram_f19f:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f1af:
+    ; [$22] Goblin: D=3, HP=(3,2), Sprite=$24+level (physical/red)
     DEC         A
     JP          NZ,LAB_ram_f1bf
     LD          D,0x3
@@ -2442,6 +2453,7 @@ LAB_ram_f1af:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f1bf:
+    ; [$23] Troll: D=8, HP=(4,5), Sprite=$24+level (physical/red)
     DEC         A
     JP          NZ,LAB_ram_f1cf
     LD          D,0x8
@@ -2451,6 +2463,7 @@ LAB_ram_f1bf:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f1cf:
+    ; [$24] Vampire: D=6, HP=(2,4), Sprite=$3C+level (spiritual/purple)
     DEC         A
     JP          NZ,LAB_ram_f1e0
     LD          D,0x6
@@ -2460,6 +2473,7 @@ LAB_ram_f1cf:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f1e0:
+    ; [$25] Dragon: D=19, HP=(5,5), Sprite=$24+level (physical/red)
     DEC         A
     JP          NZ,LAB_ram_f1f0
     LD          D,$13
@@ -2469,6 +2483,7 @@ LAB_ram_f1e0:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f1f0:
+    ; [$26] Harpy: D=4, HP=(4,5), Sprite=$3C+level (spiritual/purple)
     DEC         A
     JP          NZ,LAB_ram_f200
     LD          D,0x4
@@ -2478,6 +2493,8 @@ LAB_ram_f1f0:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          LAB_ram_f22b
 LAB_ram_f200:
+    ; [$27] Minotaur/Boss: D=17, HP=(4,5), Sprite varies by player health
+    ;   If PHYS+SPRT > damage: $24+level (physical/red); else $3C+level (spiritual/purple - mercy)
     DEC         A
     JP          NZ,LAB_ram_f228
     LD          D,$11
