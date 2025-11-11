@@ -416,3 +416,16 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Z80 Assembly and build artifacts
+build/
+*.bin
+*.rom
+*.lis
+*.map
+*.o
+*.obj
+
+# Assembly temporary files
+*.tmp
+*.bak

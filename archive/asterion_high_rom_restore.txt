@@ -1,82 +1,82 @@
 GAMEINIT:
-    LD          SP,$3fff						;  Set SP to top of BANK0 RAM
-    CALL        WIPE_VARIABLE_SPACE				;  Wipe variable space first...
-    LD          (HL),0x2						;  ($3a62) = 0x2
-    INC         L							    ;  HL = $3a63
-    LD          A,$32							;  A = $32
-    LD          (HL),A							;  ($3a63) = $32
-    INC         L								;  HL = $3a64
-    LD          (HL),A							;  ($3a64) = $32
-    INC         L								;  HL = $3a65
-    LD          (HL),A							;  ($3a65) = $32
-    INC         L								;  HL = $3a66
-    DEC         A								;  A = $31
-    LD          (HL),A							;  ($3a66) = $31
-    INC         L								;  HL = $3a67
-    LD          (HL),A							;  ($3a67) = $31
-    INC         L								;  HL = $3a68
-    LD          B,$12							;  B = $12
-    XOR         A								;  A = 0x0, F = $44 (Z and P set)
+    LD          SP,$3fff                      ;Set SP to top of BANK0 RAM
+    CALL        WIPE_VARIABLE_SPACE                     ;Wipe variable space first...
+    LD          (HL),0x2              ;($3a62) = 0x2
+    INC         L                                       ;HL = $3a63
+    LD          A,$32                                  ;A = $32
+    LD          (HL),A                          ;($3a63) = $32
+    INC         L                                       ;HL = $3a64
+    LD          (HL),A                          ;($3a64) = $32
+    INC         L                                       ;HL = $3a65
+    LD          (HL),A                          ;($3a65) = $32
+    INC         L                                       ;HL = $3a66
+    DEC         A                                       ;A = $31
+    LD          (HL),A                          ;($3a66) = $31
+    INC         L                                       ;HL = $3a67
+    LD          (HL),A                          ;($3a67) = $31
+    INC         L                                       ;HL = $3a68
+    LD          B,$12                                  ;B = $12
+    XOR         A                                       ;A = 0x0, F = $44 (Z and P set)
 LAB_ram_e029:
-    LD          (HL),A							;  ($3a68) = $00
-    INC         L								;  HL = $3a69 to $3a7a,
-								                ;  A = 0x0, F = $28
-    DJNZ        LAB_ram_e029					;  Loop if Not Z (B is decremented)
-    LD          A,$18								;  A = $18 (HL = $3a7a, B = 0x0)
-    LD          (HL),A								;  ($3a7a) = $18
-    INC         HL								;  HL = $3a7b
-    LD          A,$fe								;  A = $fe
-    LD          B,$10								;  B = $10
+    LD          (HL),A                   ;($3a68) = $00
+    INC         L                                       ;HL = $3a69 to $3a7a,
+                                                        ;A = 0x0, F = $28
+    DJNZ        LAB_ram_e029                            ;Loop if Not Z (B is decremented)
+    LD          A,$18                                  ;A = $18 (HL = $3a7a, B = 0x0)
+    LD          (HL),A                         ;($3a7a) = $18
+    INC         HL                                      ;HL = $3a7b
+    LD          A,$fe                                  ;A = $fe
+    LD          B,$10                                  ;B = $10
 LAB_ram_e035:
-    LD          (HL),A
+    LD          (HL),A                         ;= $60
     INC         HL
-    DJNZ        LAB_ram_e035								;  Loop if Not Z (B is decremented)
-    LD          B,$20								;  Set fill CHR to SPACE 32/$20
-    LD          HL,CHRRAM								;  HL = $3000 (Start of CHRRAM)
-    CALL        FILL_FULL_1024								;  byte FILL_FULL_1024(word chrColValue...
-    LD          HL,$5e								;  HL = $005e
-    LD          (TIMER_E),HL								;  ($3a9c) = $0053
-    LD          A,R								;  Semi-random number into A
+    DJNZ        LAB_ram_e035                            ;Loop if Not Z (B is decremented)
+    LD          B,$20                                  ;Set fill CHR to SPACE 32/$20
+    LD          HL,CHRRAM                               ;HL = $3000 (Start of CHRRAM)
+    CALL        FILL_FULL_1024                          ;byte FILL_FULL_1024(word chrColValue...
+    LD          HL,$5e                                 ;HL = $005e
+    LD          (TIMER_E),HL                            ;($3a9c) = $0053
+    LD          A,R                                     ;Semi-random number into A
     LD          H,A
     LD          (RNDHOLD_AA),HL
     LD          BC,$7f
     LD          A,0x7
-    OUT         (C),A
+    OUT         (C),A                          ;= db
     DEC         C
     LD          A,$3f
-    OUT         (C),A
-    LD          B,0x6								;  BLK on CYN
-    LD          HL,COLRAM
-    CALL        FILL_FULL_1024								;  byte FILL_FULL_1024(word chrColValue...
+    OUT         (C),A                          ;= db
+    LD          B,0x6                                   ;BLK on CYN
+    LD          HL,COLRAM                               ;= $60
+    CALL        FILL_FULL_1024                          ;byte FILL_FULL_1024(word chrColValue...
     CALL        CHK_ITEM
     CALL        DRAW_TITLE
     JP          INPUT_DEBOUNCE
 DRAW_TITLE:
-    LD          DE,CHRRAM
-    LD          HL,TITLE_SCREEN								;   Pinned to TITLE_SCREEN								;   WAS 0xD800
+    LD          DE,CHRRAM                               ;= $20
+    LD          HL,TITLE_SCREEN                    ; Pinned to TITLE_SCREEN ; WAS 0xD800
     LD          BC,$3e8
-    LDIR
-    LD          DE,COLRAM
-    LD          HL,TITLE_SCREEN_COL								;   Pinned to TITLE_SCREEN								;   WAS 0xD800 + 1024
+    LDIR                                                ;= $20
+    LD          DE,COLRAM                               ;= $60
+    LD          HL,TITLE_SCREEN_COL                    ; Pinned to TITLE_SCREEN ; WAS 0xD800 + 1024
     LD          BC,$3e8
-    LDIR
-
+    LDIR                                                ;= $60
+                                                        ;= $70
     RET
 BLANK_SCRN:
-    LD          HL,CHRRAM
-    LD          B,$20								;  SPACE char
-    CALL        FILL_FULL_1024								;  byte FILL_FULL_1024(word chrColValue...
-    LD          HL,COLRAM
-    LD          B,$d0								;  DKGRN on BLK
-    CALL        FILL_FULL_1024								;  byte FILL_FULL_1024(word chrColValue...
-    LD          DE,STATS_TXT								;  DE = STATS_TXT
-    LD          HL,CHRRAM_STATS_TOP								;  HL = CHRRAM_STATS_TOP
-    LD          B,$d0								;  DKGRN on BLK
+    LD          HL,CHRRAM                               ;= $20
+    LD          B,$20                                  ;SPACE char
+    CALL        FILL_FULL_1024                          ;byte FILL_FULL_1024(word chrColValue...
+    LD          HL,COLRAM                               ;= $60
+    LD          B,$d0                                  ;DKGRN on BLK
+    CALL        FILL_FULL_1024                          ;byte FILL_FULL_1024(word chrColValue...
+    LD          DE,STATS_TXT                            ;DE = STATS_TXT
+    LD          HL,CHRRAM_STATS_TOP                     ;HL = CHRRAM_STATS_TOP
+    LD          B,$d0                                  ;DKGRN on BLK
     CALL        GFX_DRAW
-    LD          HL,IDX_HEALTH_SPACER
+    LD          HL,IDX_HEALTH_SPACER                    ;= $20
     CALL        GFX_DRAW
-    LD          HL,$30								;  Set starting PHYS HEALTH = 30
-    LD          E,$15								;  Set starting SPRT HEALTH = 15
+    LD          HL,$30                                 ;Set starting PHYS HEALTH = 30
+    LD          E,$15                                  ;Set starting SPRT HEALTH = 15
     LD          (PLAYER_PHYS_HEALTH),HL
     LD          (PLAYER_PHYS_HEALTH_MAX),HL
     LD          A,E
@@ -86,11 +86,11 @@ BLANK_SCRN:
     LD          HL,$20
     LD          (BYTE_ram_3aa9),HL
     LD          A,$14
-    LD          (FOOD_INV),A								;  Set starting FOOD_INV  = 14
-    LD          (ARROW_INV),A								;  Set starting ARROW INV = 14
-    LD          B,$10								;  RED on BLK
-    LD          HL,CHRRAM_LEFT_HAND_ITEM_IDX
-    LD          DE,BOW
+    LD          (FOOD_INV),A                            ;Set starting FOOD_INV  = 14
+    LD          (ARROW_INV),A                           ;Set starting ARROW INV = 14
+    LD          B,$10                                  ;RED on BLK
+    LD          HL,CHRRAM_LEFT_HAND_ITEM_IDX            ;= $20
+    LD          DE,BOW                                  ;= $01,$01,$01,$01,$01
     CALL        GFX_DRAW
     CALL        FIX_ICON_COLORS
     CALL        DRAW_COMPASS
@@ -101,7 +101,7 @@ BLANK_SCRN:
     LD          (RIGHT_HAND_ITEM),A
     RRCA
     JP          C,LAB_ram_e103
-    LD          B,$10								;  Right hand RED SHIELD_L
+    LD          B,$10                                  ;Right hand RED SHIELD_L
     JP          ADJUST_SHIELD_LEVEL
 LAB_ram_e103:
     LD          B,$30
@@ -112,10 +112,10 @@ ADJUST_SHIELD_LEVEL:
     ADD         A,B
     LD          B,A
 LAB_ram_e10c:
-    LD          A,$18								;  Left hand RED BOW
+    LD          A,$18                                  ;Left hand RED BOW
     LD          (LEFT_HAND_ITEM),A
-    LD          HL,CHRRAM_RIGHT_HAND_ITEM_IDX
-    LD          DE,BUCKLER
+    LD          HL,CHRRAM_RIGHT_HAND_ITEM_IDX           ;= $20
+    LD          DE,BUCKLER                              ;= $01,$01,$01,$01,$01
     CALL        GFX_DRAW
     CALL        BUILD_MAP
     CALL        SUB_ram_cdbf
@@ -125,20 +125,20 @@ LAB_ram_e10c:
     JP          DO_SWAP_HANDS
 
 DO_MOVE_FW_CHK_WALLS:
-    LD          A,(WALL_F0_STATE)
-    CP          0x0								;  Check for no wall in F0
+    LD          A,(WALL_F0_STATE)                       ;= $20
+    CP          0x0                                     ;Check for no wall in F0
     JP          Z,FW_WALLS_CLEAR_CHK_MONSTER
-    BIT         0x2,A								;  Check for closed door
+    BIT         0x2,A                                   ;Check for closed door
     JP          Z,NO_ACTION_TAKEN
 FW_WALLS_CLEAR_CHK_MONSTER:
-    LD          A,(ITEM_F1)
+    LD          A,(ITEM_F1)                             ;= $60
     INC         A
     INC         A
-    CP          $7a								;  Check for monster in F1
-    JP          NC,NO_ACTION_TAKEN								;  Monster in your way!
-								;  Do nothing.
-    LD          BC,(DIR_FACING_FW)								;  Way is clear!
-								;  Move forward.
+    CP          $7a                                    ;Check for monster in F1
+    JP          NC,NO_ACTION_TAKEN                      ;Monster in your way!
+                                                        ;Do nothing.
+    LD          BC,(DIR_FACING_FW)                      ;Way is clear!
+                                                        ;Move forward.
     LD          (PREV_DIR_VECTOR),BC
     LD          A,(DIR_FACING_SHORT)
     LD          (PREV_DIR_FACING),A
@@ -155,7 +155,7 @@ DO_JUMP_BACK:
     EX          AF,AF'
     LD          HL,(PREV_DIR_VECTOR)
     LD          A,(DIR_FACING_BW)
-    NEG								;  Negate A
+    NEG                                                 ;Negate A
     CP          H
     JP          Z,NO_ACTION_TAKEN
     EX          AF,AF'
@@ -186,10 +186,10 @@ PLAY_INV_COUNT_BLIPS:
     DEC         D
     JP          Z,INPUT_DEBOUNCE
     EX          AF,AF'
-    LD          BC,BYTE_ram_2400								;  = $FF
-    CALL        SLEEP								;  byte SLEEP(short cycleCount)
+    LD          BC,BYTE_ram_2400                        ;= $FF
+    CALL        SLEEP                                   ;byte SLEEP(short cycleCount)
     EX          AF,AF'
-    OUT         (SPEAKER),A
+    OUT         (SPEAKER),A                             ;= db
     DEC         A
     JP          PLAY_INV_COUNT_BLIPS
 DO_COUNT_ARROWS:
@@ -205,7 +205,7 @@ PLAY_SOUND_LOOP:
     LD          A,E
     OR          D
     RET         Z
-    OUT         (SPEAKER),A								;  Send sound to speaker
+    OUT         (SPEAKER),A                             ;Send sound to speaker
     LD          H,B
     LD          L,C
 LAB_ram_e244:
@@ -216,68 +216,68 @@ LAB_ram_e244:
     JP          PLAY_SOUND_LOOP
 USE_MAP:
     LD          A,(GAME_BOOLEANS)
-    BIT         0x2,A								;  See if HAVE MAP bit is set
+    BIT         0x2,A                                   ;See if HAVE MAP bit is set
     JP          Z,NO_ACTION_TAKEN
     LD          A,(MAP_INV_SLOT)
     AND         A
     JP          Z,INIT_MELEE_ANIM
-    EXX								;  Swap BC  DE  HL
-								;  with BC' DE' HL'
-    LD          BC,$1818								;  24 x 24
-    LD          HL,IDX_VIEWPORT_CHRRAM
-    LD          A,$20								;  SPACE character fill
-    CALL        FILL_CHRCOL_RECT								;  Fill map CHARs with SPACES
+    EXX                                                 ;Swap BC  DE  HL
+                                                        ;with BC' DE' HL'
+    LD          BC,$1818                               ;24 x 24
+    LD          HL,IDX_VIEWPORT_CHRRAM                  ;= $20
+    LD          A,$20                                  ;SPACE character fill
+    CALL        FILL_CHRCOL_RECT                        ;Fill map CHARs with SPACES
     CALL        SOUND_03
-    LD          BC,$1818								;  24 x 24
-    LD          HL,COLRAM_VIEWPORT_IDX
-    LD          A,$b0								;  DKBLU on BLK
-								;  Was DKGN on BLK
-    CALL        FILL_CHRCOL_RECT								;  Fill map colors
-    EXX								;  Swap BC  DE  HL
-								;  with BC' DE' HL'
+    LD          BC,$1818                               ;24 x 24
+    LD          HL,COLRAM_VIEWPORT_IDX                  ;= $60    `
+    LD          A,$b0                                  ;DKBLU on BLK
+                                                        ;Was DKGN on BLK
+    CALL        FILL_CHRCOL_RECT                        ;Fill map colors
+    EXX                                                 ;Swap BC  DE  HL
+                                                        ;with BC' DE' HL'
     PUSH        AF
     LD          A,(MAP_INV_SLOT)
     LD          B,A
     POP         AF
     DEC         B
-    JP          Z,DRAW_RED_MAP								;  Walls and player
+    JP          Z,DRAW_RED_MAP                          ;Walls and player
     DEC         B
-    JP          Z,DRAW_YELLOW_MAP								;  Walls, player, and ladder
+    JP          Z,DRAW_YELLOW_MAP                       ;Walls, player, and ladder
     DEC         B
-    JP          Z,DRAW_PURPLE_MAP								;  Walls, player, ladder,
-								;  and monsters
-    JP          DRAW_WHITE_MAP								;  Walls, player, ladder,
-								;  monsters, and items
+    JP          Z,DRAW_PURPLE_MAP                       ;Walls, player, ladder,
+                                                        ;and monsters
+    JP          DRAW_WHITE_MAP                          ;Walls, player, ladder,
+                                                        ;monsters, and items
 DRAW_PURPLE_MAP:
-    LD          HL,$78a8								;  Item range for monsters:
-								;  78 - skeleton
-								;  a8 - db?
+    LD          HL,$78a8                               ;Item range for monsters:
+                                                        ;78 - skeleton
+                                                        ;a8 - db?
     CALL        MAP_ITEM_MONSTER
 UPDATE_MONSTER_CELLS:
     JP          Z,DRAW_YELLOW_MAP
     LD          A,(BC)
     INC         C
     INC         C
-    EXX								;  Swap BC  DE  HL
-								;  with BC' DE' HL'
-    LD          D,$b1								;  Set current map position color
-								;  to $b1 DKBLU on RED
-								;  was DKGRN on YEL
+    EXX                                                 ;Swap BC  DE  HL
+                                                        ;with BC' DE' HL'
+    LD          D,$b1                                  ;Set current map position color
+                                                        ;to $b1 DKBLU on RED
+                                                        ;was DKGRN on YEL
     CALL        UPDATE_COLRAM_FROM_OFFSET
-    EXX								;  Swap BC  DE  HL
-								;  with BC' DE' HL'
+    EXX                                                 ;Swap BC  DE  HL
+                                                        ;with BC' DE' HL'
     CALL        FIND_NEXT_ITEM_MONSTER_LOOP
     JP          UPDATE_MONSTER_CELLS
 DRAW_YELLOW_MAP:
-    LD          D,$b5								;  Set current map position color
-								;  to $b5, DKBLU on PUR
-								;  was DKGRN on PUR
+    LD          D,$b5                                  ;Set current map position color
+                                                        ;to $b5, DKBLU on PUR
+                                                        ;was DKGRN on PUR
     LD          A,(ITEM_HOLDER)
     CALL        UPDATE_COLRAM_FROM_OFFSET
 DRAW_RED_MAP:
-    LD          BC,$1018								;  16 x 20
+    LD          BC,$1018                               ;16 x 20
     LD          DE,HC_LAST_INPUT
-    LD          HL,CHRRAM_WALL_F0_IDX
+    LD          HL,CHRRAM_WALL_F0_IDX                   ;= $20
 CALC_MINIMAP_WALL:
     INC         DE
     LD          A,D
@@ -289,22 +289,22 @@ CALC_MINIMAP_WALL:
     AND         0xf
     JP          NZ,LAB_ram_e2d6
 SET_MINIMAP_N_WALL:
-    LD          A,$a3								;  A = $a3, map CHAR N wall
+    LD          A,$a3                                  ;A = $a3, map CHAR N wall
     JP          DRAW_MINIMAP_WALL
 SET_MINIMAP_NO_WALLS:
-    LD          A,$a0								;  A = $a0, map CHAR no walls
+    LD          A,$a0                                  ;A = $a0, map CHAR no walls
     JP          DRAW_MINIMAP_WALL
 SET_MINIMAP_NW_WALLS:
-    LD          A,$b7								;  A = $b7, map CHAR N and W walls
+    LD          A,$b7                                  ;A = $b7, map CHAR N and W walls
     JP          DRAW_MINIMAP_WALL
 LAB_ram_e2d6:
     LD          A,(DE)
     AND         $f0
     JP          NZ,SET_MINIMAP_NW_WALLS
 SET_MINIMAP_W_WALL:
-    LD          A,$b5								;  A = $b5, map CHAR W wall
+    LD          A,$b5                                  ;A = $b5, map CHAR W wall
 DRAW_MINIMAP_WALL:
-    LD          (HL),A
+    LD          (HL),A              ;= $20
     INC         HL
     DJNZ        CALC_MINIMAP_WALL
     ADD         HL,BC
@@ -312,9 +312,9 @@ DRAW_MINIMAP_WALL:
     JP          CALC_MINIMAP_WALL
 SET_MINIMAP_PLAYER_LOC:
     LD          A,(PLAYER_MAP_POS)
-    LD          D,$b7								;  Set player position color
-								;  to $b7 DKBLU on WHT
-								;  was DKGRN on WHT
+    LD          D,$b7                                  ;Set player position color
+                                                        ;to $b7 DKBLU on WHT
+                                                        ;was DKGRN on WHT
     CALL        UPDATE_COLRAM_FROM_OFFSET
     CALL        WAIT_A_TICK
 READ_KEY:
@@ -325,18 +325,18 @@ READ_KEY:
 ENABLE_HC:
     LD          C,$f7
     LD          A,0xf
-    OUT         (C),A
+    OUT         (C),A                              ;= db
     DEC         C
 READ_HC:
-    IN          A,(C)
+    IN          A,(C)                     ;= db
     INC         A
     JP          NZ,READ_KEY
     INC         C
     LD          A,0xe
 DISABLE_HC:
-    OUT         (C),A
+    OUT         (C),A                              ;= db
     DEC         C
-    IN          A,(C)
+    IN          A,(C)                     ;= db
     INC         A
     JP          NZ,READ_KEY
     JP          UPDATE_VIEWPORT
@@ -348,10 +348,10 @@ FIND_NEXT_ITEM_MONSTER_LOOP:
     INC         A
     RET         Z
     LD          A,(BC)
-    CP          H								;  CP A to H (low end of itemRange)
+    CP          H                                       ;CP A to H (low end of itemRange)
     INC         BC
     JP          C,FIND_NEXT_ITEM_MONSTER_LOOP
-    CP          L								;  CP A to L (high end of itemRange)
+    CP          L                                       ;CP A to L (high end of itemRange)
     JP          NC,FIND_NEXT_ITEM_MONSTER_LOOP
     DEC         C
     DEC         BC
@@ -359,7 +359,7 @@ FIND_NEXT_ITEM_MONSTER_LOOP:
 UPDATE_COLRAM_FROM_OFFSET:
     PUSH        AF
     AND         0xf
-    LD          HL,COLRAM_F0_WALL_MAP_IDX
+    LD          HL,COLRAM_F0_WALL_MAP_IDX               ;= $60    `
     LD          C,A
     LD          B,0x0
     ADD         HL,BC
@@ -373,31 +373,31 @@ UPDATE_COLRAM_FROM_OFFSET:
     RL          B
     LD          C,A
     ADD         HL,BC
-    LD          (HL),D								;  LD (HL),D
+    LD          (HL),D                                  ;LD (HL),D
     RET
 CHK_ITEM_BREAK:
-    LD          A,B								;  A  = itemLevel (0-3)
-    RLCA								;  A  = A * 2
-    RLCA								;  A  = A * 2
-    RLCA								;  A  = A * 2
-    LD          C,A								;  B  = A
-    CALL        MAKE_RANDOM_BYTE								;  A  = Random Byte
-    ADD         A,C								;  A  = A + B (orig A * 8)
-    JP          C,ITEM_POOFS_RH								;  If A > 255, item breaks
-    ADD         A,0x5								;  A  = A + 5
-    RET         NC								;  If A < 255, item doesn't break
+    LD          A,B                                     ;A  = itemLevel (0-3)
+    RLCA                                                ;A  = A * 2
+    RLCA                                                ;A  = A * 2
+    RLCA                                                ;A  = A * 2
+    LD          C,A                                     ;B  = A
+    CALL        MAKE_RANDOM_BYTE                        ;A  = Random Byte
+    ADD         A,C                                     ;A  = A + B (orig A * 8)
+    JP          C,ITEM_POOFS_RH                         ;If A > 255, item breaks
+    ADD         A,0x5                                   ;A  = A + 5
+    RET         NC                                      ;If A < 255, item doesn't break
 ITEM_POOFS_RH:
-    SCF								;  Set C
+    SCF                                                 ;Set C
     EX          AF,AF'
-    LD          HL,CHRRAM_RH_POOF_IDX
+    LD          HL,CHRRAM_RH_POOF_IDX                   ;= $20
     CALL        PLAY_POOF_ANIM
 FIX_RH_COLORS:
     PUSH        AF
     PUSH        BC
     PUSH        HL
-    LD          A,$f0								;  DKGRN on BLK
-    LD          BC,$404								;   4 x 4 rectangle
-    LD          HL,COLRAM_RH_ITEM_IDX
+    LD          A,$f0                                  ;DKGRN on BLK
+    LD          BC,$404                                ; 4 x 4 rectangle
+    LD          HL,COLRAM_RH_ITEM_IDX                   ;= $60    `
     CALL        FILL_CHRCOL_RECT
     POP         HL
     POP         BC
@@ -496,11 +496,11 @@ SUB_ram_e427:
 RECALC_PHYS_HEALTH:
     LD          A,L
     SUB         E
-    DAA								;  Normalize BCD
+    DAA                                                 ;Normalize BCD
     LD          L,A
     LD          A,H
     SBC         A,D
-    DAA								;  Normalize BCD
+    DAA                                                 ;Normalize BCD
     LD          H,A
     RET
 SUB_ram_e439:
@@ -587,7 +587,7 @@ LAB_ram_e4c3:
     LD          A,$61
     CP          L
     JP          NC,MONSTER_KILLED
-    LD          A,(COLRAM_PHYS_STATS_1000)
+    LD          A,(COLRAM_PHYS_STATS_1000)              ;= $60
     CALL        SUB_ram_e5ba
     LD          HL,(PLAYER_PHYS_HEALTH_MAX)
     CALL        SUB_ram_e439
@@ -604,7 +604,7 @@ INCREASE_MAX_PHYS_HEALTH:
     LD          HL,(PLAYER_PHYS_HEALTH_MAX)
     LD          A,L
     ADD         A,0x1
-    DAA								;  Correct for BCD
+    DAA                                                 ;Correct for BCD
     LD          L,A
     LD          A,H
     ADC         A,0x0
@@ -669,7 +669,7 @@ LAB_ram_e557:
     DEC         A
     CP          $86
     JP          C,ITEM_USED_UP
-    LD          A,(COLRAM_SPRT_STATS_10)
+    LD          A,(COLRAM_SPRT_STATS_10)                ;= $60
     CALL        SUB_ram_e5ba
     LD          A,(PLAYER_SPRT_HEALTH_MAX)
     CP          B
@@ -683,7 +683,7 @@ REDUCE_ITEM_BY_30:
 INCREASE_MAX_SPRT_HEALTH:
     LD          A,(PLAYER_SPRT_HEALTH_MAX)
     ADD         A,0x1
-    DAA								;  Correct for BCD
+    DAA                                                 ;Correct for BCD
     LD          (PLAYER_SPRT_HEALTH_MAX),A
     LD          A,C
     SUB         $10
@@ -693,13 +693,13 @@ INCREASE_MAX_SPRT_HEALTH:
 ITEM_USED_UP:
     JP          MONSTER_KILLED
 CLEAR_MONSTER_STATS:
-    XOR         A								;  A  = $fe on entry (usually)
-								;  A  = $00 after
-								;  Reset C & N, Set Z
-								;  
-    LD          (COMBAT_BUSY_FLAG),A								;  Clear combat busy flag
+    XOR         A                                       ;A  = $fe on entry (usually)
+                                                        ;A  = $00 after
+                                                        ;Reset C & N, Set Z
+                                                        ;
+    LD          (COMBAT_BUSY_FLAG),A                    ;Clear combat busy flag
     LD          BC,$403
-    LD          HL,CHRRAM_LEVEL_IDX
+    LD          HL,CHRRAM_LEVEL_IDX                     ;= $20
     LD          A,$20
     JP          FILL_CHRCOL_RECT
 SUB_ram_e5ba:
@@ -854,14 +854,14 @@ DO_SWAP_HANDS:
     LD          HL,RIGHT_HAND_ITEM
     LD          BC,LEFT_HAND_ITEM
     CALL        SUB_ram_ea62
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
+    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX              ;= $20
     LD          DE,ITEM_MOVE_CHR_BUFFER
     CALL        UPDATE_MELEE_OBJECTS
-    LD          HL,CHRRAM_LEFT_HD_GFX_IDX
-    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX
+    LD          HL,CHRRAM_LEFT_HD_GFX_IDX               ;= $20
+    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX              ;= $20
     CALL        SUB_ram_e99e
     LD          HL,ITEM_MOVE_CHR_BUFFER
-    LD          DE,CHRRAM_LEFT_HD_GFX_IDX
+    LD          DE,CHRRAM_LEFT_HD_GFX_IDX               ;= $20
     CALL        SUB_ram_e97d
     CALL        NEW_RIGHT_HAND_ITEM
     LD          BC,0x0
@@ -907,13 +907,13 @@ LAB_ram_e72b:
     RET
 NEW_RIGHT_HAND_ITEM:
     LD          A,(RIGHT_HAND_ITEM)
-    CP          $18								;  Less than RED Bow
+    CP          $18                                    ;Less than RED Bow
     JP          C,LAB_ram_e7c0
-    CP          $34								;  Greater than WHITE Crossbow
+    CP          $34                                    ;Greater than WHITE Crossbow
     JP          NC,LAB_ram_e7c0
-    LD          BC,0x0								;  C = 0
-    LD          E,0x0								;  E = 0
-    SRL         A								;  Div A by 2
+    LD          BC,0x0                                  ;C = 0
+    LD          E,0x0                                   ;E = 0
+    SRL         A                                       ;Div A by 2
     RR          B
     RRA
     RL          B
@@ -953,7 +953,7 @@ LAB_ram_e786:
 LAB_ram_e78b:
     CALL        CALC_WEAPON_VALUE
     ADD         A,A
-    DAA								;  BCD Correction
+    DAA                                                 ;BCD Correction
     LD          L,A
     LD          A,0x0
     RLA
@@ -968,17 +968,17 @@ LAB_ram_e79e:
     LD          HL,0x0
     LD          (WEAPON_PHYS),HL
 LAB_ram_e7aa:
-    LD          DE,CHRRAM_PHYS_WEAPON_IDX
+    LD          DE,CHRRAM_PHYS_WEAPON_IDX               ;= $20
     LD          HL,WEAPON_PHYS
     LD          B,0x2
     CALL        RECALC_AND_REDRAW_BCD
-    LD          DE,CHRRAM_SPRT_WEAPON_IDX
+    LD          DE,CHRRAM_SPRT_WEAPON_IDX               ;= $20
     LD          HL,WEAPON_SPRT
     LD          B,0x1
     JP          RECALC_AND_REDRAW_BCD
 LAB_ram_e7c0:
-    LD          HL,0x0								;  HL = 0
-    XOR         A								;  A  = 0
+    LD          HL,0x0                                  ;HL = 0
+    XOR         A                                       ;A  = 0
     LD          (WEAPON_PHYS),HL
     LD          (WEAPON_SPRT),A
     JP          LAB_ram_e7aa
@@ -986,26 +986,26 @@ DO_PICK_UP:
     LD          A,(ITEM_HOLDER)
     LD          B,A
     LD          A,(PLAYER_MAP_POS)
-    CP          B								;  Check difference between
-								;  item and item location
+    CP          B                                       ;Check difference between
+                                                        ;item and item location
     JP          Z,NO_ACTION_TAKEN
     INC         A
     JP          Z,NO_ACTION_TAKEN
     DEC         A
     CALL        ITEM_MAP_CHECK
     JP          Z,LAB_ram_e844
-    CP          0x4								;  Compare to RING (0x4)
-    JP          C,CHECK_FOOD_ARROWS								;  Jump if less than RING (C)
-    CP          $10								;  Compare to PAVISE ($10)
-    JP          NC,CHECK_FOOD_ARROWS								;  Jump if PAVISE or greater (NC)
+    CP          0x4                                     ;Compare to RING (0x4)
+    JP          C,CHECK_FOOD_ARROWS                     ;Jump if less than RING (C)
+    CP          $10                                     ;Compare to PAVISE ($10)
+    JP          NC,CHECK_FOOD_ARROWS                    ;Jump if PAVISE or greater (NC)
 PROCESS_RHA:
     CALL        PICK_UP_F0_ITEM
-    LD          HL,ARMOR_INV_SLOT								;  Start with ARMOR slot
-    DEC         A								;  Subtract 1 from A:
-								;  - Armor
-    JP          NZ,NOT_ARMOR								;  Treat as NOT ARMOR
-    INC         HL								;  HL = HELMET_INV_SLOT
-    INC         HL								;  HL = RING_INV_SLOT
+    LD          HL,ARMOR_INV_SLOT                       ;Start with ARMOR slot
+    DEC         A                                       ;Subtract 1 from A:
+                                                        ;- Armor
+    JP          NZ,NOT_ARMOR                            ;Treat as NOT ARMOR
+    INC         HL                                      ;HL = HELMET_INV_SLOT
+    INC         HL                                      ;HL = RING_INV_SLOT
 NOT_ARMOR:
     DEC         A
     JP          NZ,NOT_HELMET
@@ -1025,42 +1025,42 @@ NOT_HELMET:
     CALL        SUB_ram_e9c1
     LD          A,E
     SUB         C
-    DAA								;  BCD Correction
+    DAA                                                 ;BCD Correction
     LD          C,A
     LD          A,D
     SUB         B
-    DAA								;  BCD Correction
+    DAA                                                 ;BCD Correction
     LD          B,A
 LAB_ram_e812:
     LD          A,(SHIELD_SPRT)
     ADD         A,C
-    DAA								;  BCD Correction
+    DAA                                                 ;BCD Correction
     LD          (SHIELD_SPRT),A
     LD          A,(SHIELD_PHYS)
     ADD         A,B
-    DAA								;  BCD Correction
+    DAA                                                 ;BCD Correction
     LD          (SHIELD_PHYS),A
     LD          A,(SHIELD_PHYS+1)
     ADC         A,0x0
-    DAA								;  BCD Correction
+    DAA                                                 ;BCD Correction
     LD          (SHIELD_PHYS+1),A
     LD          HL,SHIELD_PHYS
-    LD          DE,CHRRAM_PHYS_SHIELD_IDX
+    LD          DE,CHRRAM_PHYS_SHIELD_IDX               ;= $20
     LD          B,0x2
     CALL        RECALC_AND_REDRAW_BCD
     LD          HL,SHIELD_SPRT
-    LD          DE,CHRRAM_SPRT_SHIELD_IDX
+    LD          DE,CHRRAM_SPRT_SHIELD_IDX               ;= $20
     LD          B,0x1
     CALL        RECALC_AND_REDRAW_BCD
-    JP          RHA_REDRAW								;  Was JP AWAITING_INPUT
-								;  (c3 9c ea)
+    JP          RHA_REDRAW                              ;Was JP AWAITING_INPUT
+                                                        ;(c3 9c ea)
 LAB_ram_e844:
     CALL        Z,SUB_ram_e9e1
 CHECK_FOOD_ARROWS:
     CP          $48
-    JP          C,CHECK_MAP_NECKLACE_CHARMS								;  CHEST or lower
+    JP          C,CHECK_MAP_NECKLACE_CHARMS             ;CHEST or lower
     CP          $50
-    JP          NC,CHECK_MAP_NECKLACE_CHARMS								;  LOCKED CHEST or higher
+    JP          NC,CHECK_MAP_NECKLACE_CHARMS            ;LOCKED CHEST or higher
     CALL        PICK_UP_F0_ITEM
     INC         D
     RL          D
@@ -1087,11 +1087,11 @@ LAB_ram_e872:
     LD          HL,(BYTE_ram_3aa9)
     LD          A,D
     ADD         A,L
-    DAA								;  BCD correct
+    DAA                                                 ;BCD correct
     LD          L,A
     LD          A,H
     ADC         A,0x0
-    DAA								;  BCD correct
+    DAA                                                 ;BCD correct
     LD          H,A
     LD          (BYTE_ram_3aa9),HL
     RET
@@ -1105,18 +1105,18 @@ ADD_ARROWS_TO_INV:
     LD          (ARROW_INV),A
     JP          INPUT_DEBOUNCE
 CHECK_MAP_NECKLACE_CHARMS:
-    CP          $6c								;  Red MAP
+    CP          $6c                                    ;Red MAP
     JP          Z,PROCESS_MAP
-    CP          $6d								;  Yellow MAP
+    CP          $6d                                    ;Yellow MAP
     JP          Z,PROCESS_MAP
-    CP          $de								;  Purple MAP
+    CP          $de                                    ;Purple MAP
     JP          Z,PROCESS_MAP
-    CP          $df								;  White MAP
+    CP          $df                                    ;White MAP
     JP          Z,PROCESS_MAP
-    CP          $5c								;  WHITE KEY or lower
+    CP          $5c                                    ;WHITE KEY or lower
     JP          C,PICK_UP_NON_TREASURE
     CP          $64
-    JP          NC,PICK_UP_NON_TREASURE								;  WARRIOR POTION or higher
+    JP          NC,PICK_UP_NON_TREASURE                 ;WARRIOR POTION or higher
     CALL        PICK_UP_F0_ITEM
     JP          INPUT_DEBOUNCE
 PROCESS_MAP:
@@ -1130,37 +1130,37 @@ PROCESS_MAP:
     PUSH        AF
     LD          A,(MAP_INV_SLOT)
     CALL        LEVEL_TO_COLRAM_FIX
-    LD          (COLRAM_MAP_IDX),A
+    LD          (COLRAM_MAP_IDX),A                      ;= $60    `
     POP         AF
     JP          INPUT_DEBOUNCE
 PICK_UP_NON_TREASURE:
     LD          HL,RIGHT_HAND_ITEM
     LD          A,(HL)
-    LD          (ITEM_F0),A
+    LD          (ITEM_F0),A                             ;= $60
     CALL        SUB_ram_ea62
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
+    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX              ;= $20
     LD          DE,ITEM_MOVE_CHR_BUFFER
     CALL        UPDATE_MELEE_OBJECTS
-    LD          HL,CHRRAM_FO_ITEM_IDX
-    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX
+    LD          HL,CHRRAM_FO_ITEM_IDX                   ;= $20
+    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX              ;= $20
     CALL        SUB_ram_e99e
     LD          HL,ITEM_MOVE_CHR_BUFFER
-    LD          DE,CHRRAM_FO_ITEM_IDX
+    LD          DE,CHRRAM_FO_ITEM_IDX                   ;= $20
     CALL        SUB_ram_e97d
-    LD          HL,COLRAM_FO_ITEM_IDX
-    LD          DE,$f00								;  BLK on DKGY /
-								;  BLK on BLK
-								;  WAS BLK on DKCYN /
-								;      BLK on BLK
-								;  WAS LD DE,$0900
-    LD          C,$f0								;  Floor color (for compare)
-								;  DKGRY on BLK
-								;  WAS DKCYN on BLK
+    LD          HL,COLRAM_FO_ITEM_IDX                   ;= $60    `
+    LD          DE,$f00                                ;BLK on DKGY /
+                                                        ;BLK on BLK
+                                                        ;WAS BLK on DKCYN /
+                                                        ;    BLK on BLK
+                                                        ;WAS LD DE,$0900
+    LD          C,$f0                                  ;Floor color (for compare)
+                                                        ;DKGRY on BLK
+                                                        ;WAS DKCYN on BLK
     CALL        RECOLOR_ITEM
-    LD          HL,COLRAM_RH_ITEM_IDX
-    LD          DE,$f0								;  Floor color (for fill)
-								;  DKGRY on BLK
-								;  WAS DKCYN on BLK
+    LD          HL,COLRAM_RH_ITEM_IDX                   ;= $60    `
+    LD          DE,$f0                                 ;Floor color (for fill)
+                                                        ;DKGRY on BLK
+                                                        ;WAS DKCYN on BLK
     LD          C,0x0
     CALL        RECOLOR_ITEM
     CALL        NEW_RIGHT_HAND_ITEM
@@ -1181,8 +1181,8 @@ LAB_ram_e926:
     INC         HL
     DJNZ        LAB_ram_e91f
     PUSH        DE
-    LD          DE,$24								;  Jump ahead 36 cells
-								;  (40 - 4)
+    LD          DE,$24                                 ;Jump ahead 36 cells
+                                                        ;(40 - 4)
     ADD         HL,DE
     POP         DE
     EX          AF,AF'
@@ -1195,35 +1195,35 @@ LAB_ram_e935:
     OR          C
     JP          LAB_ram_e926
 WAIT_A_TICK:
-    LD          BC,$8600								;  Sleep for 134 "cycles"
-    JP          SLEEP								;  byte SLEEP(short cycleCount)
+    LD          BC,$8600                               ;Sleep for 134 "cycles"
+    JP          SLEEP                                   ;byte SLEEP(short cycleCount)
 PICK_UP_F0_ITEM:
-    AND         A								;  Reset flags
-    EX          AF,AF'								;  Save item
-    LD          A,$fe								;  Empty item
+    AND         A                                       ;Reset flags
+    EX          AF,AF'                                  ;Save item
+    LD          A,$fe                                  ;Empty item
     LD          (BC),A
-    LD          HL,CHRRAM_FO_ITEM_IDX
-    LD          A,$20								;  SPACE char
+    LD          HL,CHRRAM_FO_ITEM_IDX                   ;= $20
+    LD          A,$20                                  ;SPACE char
     CALL        UPDATE_FO_ITEM
-    LD          HL,COLRAM_FO_ITEM_IDX
-    LD          A,$df								;  DKGRN on DKGRY
+    LD          HL,COLRAM_FO_ITEM_IDX                   ;= $60    `
+    LD          A,$df                                  ;DKGRN on DKGRY
     CALL        UPDATE_FO_ITEM
-    EX          AF,AF'								;  Restore item
-    RRA								;  Rotate A right, A:0 to carry
-    RR          D								;  Rotate D right
-								;  Carry (from A:0) to D:7
-    RRA								;  Rotate A right, A:0 (was A:1) to carry
-    RL          D								;  Rotate D left, carry to D:0
-								;  D:7 to carry
-    RL          D								;  Rotate D left, carry to D;0
-								;  D:7 to carry
-								;  D  = item level
+    EX          AF,AF'                                  ;Restore item
+    RRA                                                 ;Rotate A right, A:0 to carry
+    RR          D                                       ;Rotate D right
+                                                        ;Carry (from A:0) to D:7
+    RRA                                                 ;Rotate A right, A:0 (was A:1) to carry
+    RL          D                                       ;Rotate D left, carry to D:0
+                                                        ;D:7 to carry
+    RL          D                                       ;Rotate D left, carry to D;0
+                                                        ;D:7 to carry
+                                                        ;D  = item level
     RET
 UPDATE_MELEE_OBJECTS:
     LD          A,0x4
 LAB_ram_e962:
     LD          BC,0x4
-    LDIR								;  = "OM"
+    LDIR                                                ;= "OM"
     DEC         A
     JP          Z,LAB_ram_e972
     LD          BC,$24
@@ -1240,7 +1240,7 @@ SUB_ram_e97d:
     LD          A,0x4
 LAB_ram_e97f:
     LD          BC,0x4
-    LDIR								;  = "OM"
+    LDIR                                                ;= "OM"
     DEC         A
     JP          Z,LAB_ram_e991
     EX          DE,HL
@@ -1261,7 +1261,7 @@ SUB_ram_e99e:
     LD          A,0x4
 LAB_ram_e9a0:
     LD          BC,0x4
-    LDIR								;  = "OM"
+    LDIR                                                ;= "OM"
     DEC         A
     JP          Z,LAB_ram_e9b3
     LD          BC,$24
@@ -1283,8 +1283,8 @@ LAB_ram_e9b3:
 SUB_ram_e9c1:
     DEC         A
     JP          NZ,LAB_ram_e9c8
-    LD          BC,$501								;  PHYS = 5
-								;  SPRT = 1
+    LD          BC,$501                                ;PHYS = 5
+                                                        ;SPRT = 1
     RET
 LAB_ram_e9c8:
     DEC         A
@@ -1299,7 +1299,7 @@ LAB_ram_e9cf:
 LAB_ram_e9d6:
     DEC         A
     JP          NZ,LAB_ram_e9dd
-    LD          BC,BYTE_ram_2613								;  = $FF
+    LD          BC,BYTE_ram_2613                        ;= $FF
     RET
 LAB_ram_e9dd:
     LD          BC,0x0
@@ -1340,28 +1340,28 @@ LAB_ram_ea0c:
     LD          HL,ITEM_MOVE_COL_BUFFER
     INC         BC
     CALL        SUB_ram_ea62
-    LD          HL,DAT_ram_31b4
+    LD          HL,DAT_ram_31b4                         ;= $20
     LD          DE,ITEM_MOVE_CHR_BUFFER
     CALL        UPDATE_MELEE_OBJECTS
-    LD          HL,DAT_ram_3111
-    LD          DE,DAT_ram_31b4
+    LD          HL,DAT_ram_3111                         ;= $20
+    LD          DE,DAT_ram_31b4                         ;= $20
     CALL        SUB_ram_e99e
-    LD          HL,DAT_ram_310c
-    LD          DE,DAT_ram_3111
+    LD          HL,DAT_ram_310c                         ;= $20
+    LD          DE,DAT_ram_3111                         ;= $20
     CALL        SUB_ram_e99e
-    LD          HL,CHHRAM_INV_4_IDX
-    LD          DE,DAT_ram_310c
+    LD          HL,CHHRAM_INV_4_IDX                     ;= $20
+    LD          DE,DAT_ram_310c                         ;= $20
     CALL        SUB_ram_e99e
-    LD          HL,DAT_ram_324c
-    LD          DE,CHHRAM_INV_4_IDX
+    LD          HL,DAT_ram_324c                         ;= $20
+    LD          DE,CHHRAM_INV_4_IDX                     ;= $20
     CALL        SUB_ram_e99e
-    LD          HL,CHHRAM_INV_6_IDX
-    LD          DE,DAT_ram_324c
+    LD          HL,CHHRAM_INV_6_IDX                     ;= $20
+    LD          DE,DAT_ram_324c                         ;= $20
     CALL        SUB_ram_e99e
-    LD          HL,WAIT_FOR_INPUT								;   WAIT FOR INPUT label --- UNDO???
+    LD          HL,WAIT_FOR_INPUT                    ; WAIT FOR INPUT label --- UNDO???
     PUSH        HL
     LD          HL,ITEM_MOVE_CHR_BUFFER
-    LD          DE,CHHRAM_INV_6_IDX
+    LD          DE,CHHRAM_INV_6_IDX                     ;= $20
     CALL        SUB_ram_e97d
     JP          WAIT_A_TICK
 SUB_ram_ea62:
@@ -1375,16 +1375,16 @@ DO_SWAP_PACK:
     LD          HL,INV_ITEM_SLOT_1
     LD          BC,RIGHT_HAND_ITEM
     CALL        SUB_ram_ea62
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
+    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX              ;= $20
     LD          DE,ITEM_MOVE_CHR_BUFFER
     CALL        UPDATE_MELEE_OBJECTS
-    LD          HL,DAT_ram_31b4
-    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX
+    LD          HL,DAT_ram_31b4                         ;= $20
+    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX              ;= $20
     CALL        SUB_ram_e99e
-    LD          HL,WAIT_FOR_INPUT								;   WAIT FOR INPUT label --- UNDO???
+    LD          HL,WAIT_FOR_INPUT                    ; WAIT FOR INPUT label --- UNDO???
     PUSH        HL
     LD          HL,ITEM_MOVE_CHR_BUFFER
-    LD          DE,DAT_ram_31b4
+    LD          DE,DAT_ram_31b4                         ;= $20
     CALL        SUB_ram_e97d
     CALL        NEW_RIGHT_HAND_ITEM
     JP          WAIT_A_TICK
@@ -1407,11 +1407,11 @@ WAIT_FOR_INPUT:
 SCREEN_SAVER_FULL_SCREEN:
     LD          HL,$800
 SCREEN_SAVER_REDRAW_LOOP:
-    LD          DE,COLRAM
+    LD          DE,COLRAM                               ;= $60
 RECALC_SCREEN_SAVER_COLORS:
-    LD          A,(DE)
+    LD          A,(DE)                          ;= $60
     RRCA
-    LD          (DE),A
+    LD          (DE),A                          ;= $60
     INC         DE
     LD          A,$38
     CP          D
@@ -1423,35 +1423,35 @@ CHECK_INPUT_DURING_SCREEN_SAVER:
     DEC         L
     JP          Z,SCREEN_SAVER_REDRAW_LOOP
     LD          BC,$140
-    CALL        SLEEP								;  byte SLEEP(short cycleCount)
+    CALL        SLEEP                                   ;byte SLEEP(short cycleCount)
     LD          BC,$ff
     IN          A,(C)
     INC         A
     JP          NZ,LAB_ram_eaf5
     LD          C,$f7
     LD          A,0xf
-    OUT         (C),A
+    OUT         (C),A                              ;= db
     DEC         C
-    IN          A,(C)
+    IN          A,(C)                     ;= db
     INC         A
     JP          NZ,LAB_ram_eaf5
     INC         C
     LD          A,0xe
-    OUT         (C),A
+    OUT         (C),A                              ;= db
     DEC         C
-    IN          A,(C)
+    IN          A,(C)                     ;= db
     INC         A
     JP          Z,CHECK_INPUT_DURING_SCREEN_SAVER
 LAB_ram_eaf5:
-    LD          DE,COLRAM
+    LD          DE,COLRAM                               ;= $60
 LAB_ram_eaf8:
     LD          B,H
-    LD          A,(DE)
+    LD          A,(DE)                          ;= $60
 LAB_ram_eafa:
     RRCA
     DJNZ        LAB_ram_eafa
-    LD          (DE),A
-    INC         DE
+    LD          (DE),A                          ;= $60
+    INC         DE                  ;= $60
     LD          A,$38
     CP          D
     JP          NZ,LAB_ram_eaf8
@@ -1497,16 +1497,16 @@ LAB_ram_eb53:
     AND         A
     JP          NZ,LAB_ram_ebd6
     LD          B,0x4
-    LD          HL,ITEM_F1
-    LD          A,(HL)
+    LD          HL,ITEM_F1                              ;= $60
+    LD          A,(HL)                         ;= $60
     INC         A
     INC         A
-    LD          HL,ITEM_FR1
+    LD          HL,ITEM_FR1                             ;= $60
 LAB_ram_eb6f:
     CP          $7a
     JP          NC,LAB_ram_eb7b
     INC         HL
-    LD          A,(HL)
+    LD          A,(HL)                         ;= $60
     INC         A
     INC         A
     DJNZ        LAB_ram_eb6f
@@ -1520,7 +1520,7 @@ LAB_ram_eb7b:
     JP          NC,LAB_ram_ebd6
     DEC         B
     JP          NZ,LAB_ram_eb9e
-    LD          A,(DAT_ram_33fd)
+    LD          A,(DAT_ram_33fd)                        ;= $20
     BIT         0x2,A
     JP          NZ,LAB_ram_eb96
     AND         A
@@ -1532,7 +1532,7 @@ LAB_ram_eb96:
 LAB_ram_eb9e:
     DEC         B
     JP          NZ,LAB_ram_ebb0
-    LD          A,(DAT_ram_33f5)
+    LD          A,(DAT_ram_33f5)                        ;= $20
     BIT         0x2,A
     JP          NZ,LAB_ram_ebab
     AND         A
@@ -1543,7 +1543,7 @@ LAB_ram_ebab:
 LAB_ram_ebb0:
     DEC         B
     JP          NZ,LAB_ram_ebcc
-    LD          A,(DAT_ram_33f9)
+    LD          A,(DAT_ram_33f9)                        ;= $20
     BIT         0x2,A
     JP          NZ,LAB_ram_ebbd
     AND         A
@@ -1557,7 +1557,7 @@ LAB_ram_ebc6:
     CALL        SUB_ram_cd5f
     JP          INIT_MONSTER_COMBAT
 LAB_ram_ebcc:
-    LD          A,(WALL_F0_STATE)
+    LD          A,(WALL_F0_STATE)                       ;= $20
     BIT         0x2,A
     JP          NZ,LAB_ram_ebc6
     AND         A
@@ -1569,35 +1569,35 @@ LAB_ram_ebd6:
     JP          NZ,LAB_ram_ec52
     LD          C,$f7
     LD          A,0xf
-    OUT         (C),A
+    OUT         (C),A                              ;= db
     DEC         C
-    IN          A,(C)
+    IN          A,(C)                     ;= db
     INC         A
     JP          NZ,LAB_ram_ebf7
     INC         C
     LD          A,0xe
-    OUT         (C),A
+    OUT         (C),A                              ;= db
     DEC         C
-    IN          A,(C)
+    IN          A,(C)                     ;= db
     INC         A
     JP          Z,WAIT_FOR_INPUT
 LAB_ram_ebf7:
     CALL        PLAY_DESCENDING_SOUND
-    LD          HL,HC_INPUT_HOLDER
+    LD          HL,HC_INPUT_HOLDER                      ;= $6060
 DISABLE_JOY_04:
     LD          C,$f7
     LD          A,0xf
-    OUT         (C),A
+    OUT         (C),A                              ;= db
     DEC         C
-    IN          A,(C)
-    LD          (HL),A
+    IN          A,(C)                     ;= db
+    LD          (HL),A                 ;= $6060
     INC         HL
     INC         C
 ENABLE_JOY_04:
     LD          A,0xe
-    OUT         (C),A
+    OUT         (C),A                              ;= db
     DEC         C
-    IN          A,(C)
+    IN          A,(C)                     ;= db
     LD          (HL),A
     LD          A,(INPUT_HOLDER)
     AND         A
@@ -1609,7 +1609,7 @@ ENABLE_JOY_04:
     INC         A
     JP          Z,TITLE_CHK_FOR_HC_INPUT
 HC_LEVEL_SELECT_LOOP:
-    CP          $60								;  K3 pressed on title screen
+    CP          $60                                    ;K3 pressed on title screen
     JP          Z,SET_DIFFICULTY_1
     CP          $7c
     JP          Z,SET_DIFFICULTY_2
@@ -1618,7 +1618,7 @@ HC_LEVEL_SELECT_LOOP:
     JP          SET_DIFFICULTY_4
 TITLE_CHK_FOR_HC_INPUT:
     DEC         HL
-    LD          A,(HL)
+    LD          A,(HL)                 ;= $6060
     INC         A
     JP          HC_LEVEL_SELECT_LOOP
 PLAY_DESCENDING_SOUND:
@@ -1626,46 +1626,46 @@ PLAY_DESCENDING_SOUND:
     LD          (TIMER_A),A
     LD          (TIMER_B),A
     LD          (TIMER_C),A
-    OUT         (SPEAKER),A
+    OUT         (SPEAKER),A                             ;= db
     LD          BC,$f0
-    CALL        SLEEP								;  byte SLEEP(short cycleCount)
+    CALL        SLEEP                                   ;byte SLEEP(short cycleCount)
     INC         A
-    OUT         (SPEAKER),A
+    OUT         (SPEAKER),A                             ;= db
     LD          BC,$4c0
-    CALL        SLEEP								;  byte SLEEP(short cycleCount)
+    CALL        SLEEP                                   ;byte SLEEP(short cycleCount)
     RET
 LAB_ram_ec52:
     CALL        PLAY_DESCENDING_SOUND
-    LD          HL,KEY_INPUT_COL0
-    LD          BC,0xfeff								;   Was LD, BC, GFX_POINTERS
+    LD          HL,KEY_INPUT_COL0                       ;= $60
+    LD          BC,0xfeff                               ; Was LD, BC, GFX_POINTERS
     LD          D,0x8
 SELECT_DIFFICULTY_LOOP:
     IN          A,(C)
-    LD          (HL),A
-
+    LD          (HL),A                  ;= $20
+                                                        ;= $60
     INC         L
     RLC         B
     DEC         D
     JP          NZ,SELECT_DIFFICULTY_LOOP
     LD          A,(INPUT_HOLDER)
     AND         A
-    JP          NZ,KEY_COMPARE								;  OLD = e12c								;   NEW = fbe0
+    JP          NZ,KEY_COMPARE                          ;OLD = e12c ; NEW = fbe0
     LD          A,(DUNGEON_LEVEL)
     AND         A
     JP          NZ,GAMEINIT
-    LD          A,(KEY_INPUT_COL6)
+    LD          A,(KEY_INPUT_COL6)                      ;= $60
     CP          $fe
-    JP          Z,SET_DIFFICULTY_1								;  Key 3 pressed on Title Screen
+    JP          Z,SET_DIFFICULTY_1                      ;Key 3 pressed on Title Screen
     CP          $df
-    JP          Z,SHOW_AUTHOR								;  Key A pressed (and held)
-								;  on title screen
-    LD          A,(KEY_INPUT_COL7)
+    JP          Z,SHOW_AUTHOR                           ;Key A pressed (and held)
+                                                        ;on title screen
+    LD          A,(KEY_INPUT_COL7)                      ;= $60
     CP          $fe
-    JP          Z,SET_DIFFICULTY_2								;  Key 2 pressed on Title Screen
+    JP          Z,SET_DIFFICULTY_2                      ;Key 2 pressed on Title Screen
     CP          $fb
-    JP          Z,SET_DIFFICULTY_3								;  Key 1 pressed on Title Screen
+    JP          Z,SET_DIFFICULTY_3                      ;Key 1 pressed on Title Screen
 SET_DIFFICULTY_4:
-    LD          A,0x0								;  Some other key pressed on Title Screen
+    LD          A,0x0                                   ;Some other key pressed on Title Screen
 GOTO_GAME_START:
     LD          (INPUT_HOLDER),A
     LD          A,(GAME_BOOLEANS)
@@ -1682,50 +1682,50 @@ SET_DIFFICULTY_3:
     LD          A,0x3
     JP          GOTO_GAME_START
 CHK_ITEM:
-    CP          $fe								;   Compare A to $FE
-    RET         Z								;   If A == Z, exit ($FE = no item)
-    SRL         A								;   Shift A right logical, Bit 0 to C
-    LD          E,A								;   New value A into E
-    JP          C,ITEM_WAS_YL_WH								;   If C (ITEM was YEL or WHT), jump ahead
-    LD          D,$10								;   (ITEM was RED or MAG) D = $10
-    JP          ITEM_WAS_RD_MG								;   Jump ahead
+    CP          $fe                             ; Compare A to $FE
+    RET         Z                               ; If A == Z, exit ($FE = no item)
+    SRL         A                               ; Shift A right logical, Bit 0 to C
+    LD          E,A                             ; New value A into E
+    JP          C,ITEM_WAS_YL_WH                ; If C (ITEM was YEL or WHT), jump ahead
+    LD          D,$10                           ; (ITEM was RED or MAG) D = $10
+    JP          ITEM_WAS_RD_MG                  ; Jump ahead
 ITEM_WAS_YL_WH:
-    LD          D,$30								;   (ITEM was YEL or WHTD D = $30
+    LD          D,$30                           ; (ITEM was YEL or WHTD D = $30
 ITEM_WAS_RD_MG:
-    SRL         A								;   Shift A right logical, Bit 0 to C
-    JP          NC,ITEM_NOT_RD_YL								;   If not C (ITEM was not RED or YEL), jump ahead
-    LD          A,$40								;   A = $40
-    ADD         A,D								;   Add D to A
-    LD          D,A								;   D = $40 + $10 (RD MG) or D = $40 + $30 (YL WH)
+    SRL         A                               ; Shift A right logical, Bit 0 to C
+    JP          NC,ITEM_NOT_RD_YL               ; If not C (ITEM was not RED or YEL), jump ahead
+    LD          A,$40                           ; A = $40
+    ADD         A,D                             ; Add D to A
+    LD          D,A                             ; D = $40 + $10 (RD MG) or D = $40 + $30 (YL WH)
 ITEM_NOT_RD_YL:
-    RES         0x0,E								;   Set Bit 0 of E (old ITEM SRL)
-    LD          A,E								;   Save E back into A
-    SLA         A								;   Shift A right logical
-    ADD         A,E								;   Add E () to A
-    ADD         A,B								;   Add B (color?) to A
-    LD          B,D								;   Put D ($10, $30, or $40) into B
-    LD          L,A								;   Put A into L
-    LD          H,$ff								;   Put $FF into H
-    LD          E,(HL)								;   ITEM/MONSTER GFX_PTR, E = low byte
-    INC         HL								;   Increment HL
-    LD          D,(HL)								;   ITEM/MONSTER GFX_PTR, D = high byte
+    RES         0x0,E                           ; Set Bit 0 of E (old ITEM SRL)
+    LD          A,E                             ; Save E back into A
+    SLA         A                               ; Shift A right logical
+    ADD         A,E                             ; Add E () to A
+    ADD         A,B                             ; Add B (color?) to A
+    LD          B,D                             ; Put D ($10, $30, or $40) into B
+    LD          L,A                             ; Put A into L
+    LD          H,$ff                           ; Put $FF into H
+    LD          E,(HL)                          ; ITEM/MONSTER GFX_PTR, E = low byte
+    INC         HL                              ; Increment HL
+    LD          D,(HL)                          ; ITEM/MONSTER GFX_PTR, D = high byte
     LD          A,(MON_FS)
     LD          H,A
     LD          L,C
     JP          GFX_DRAW
 DO_OPEN_CLOSE:
-    LD          A,(ITEM_F0)
-    LD          C,0x0								;  C  = 0
-    SRL         A								;  Move item LEVEL
-								;  into C
+    LD          A,(ITEM_F0)                             ;= $60
+    LD          C,0x0                                   ;C  = 0
+    SRL         A                                       ;Move item LEVEL
+                                                        ;into C
     RR          C
     SRL         A
     RL          C
     RL          C
-    CP          $11								;  Compare to BOX
-								;  44,45,46,47 2 @ SRL = 11
+    CP          $11                                    ;Compare to BOX
+                                                        ;44,45,46,47 2 @ SRL = 11
     JP          NZ,LAB_ram_ed1b
-    LD          A,C								;  A = C (item level)
+    LD          A,C                                     ;A = C (item level)
     AND         A
     JP          Z,DO_OPEN_BOX
     CALL        UPDATE_SCR_SAVER_TIMER
@@ -1736,15 +1736,15 @@ LAB_ram_ecf6:
     ADD         A,C
     LD          C,A
 DO_OPEN_BOX:
-    LD          A,R								;  Semi-random number into A
+    LD          A,R                                     ;Semi-random number into A
     AND         0x7
 PICK_RANDOM_ITEM:
     SUB         0x7
     JP          NC,PICK_RANDOM_ITEM
-    ADD         A,$1d								;  $1d is +1 above range
+    ADD         A,$1d                                  ;$1d is +1 above range
     RR          C
     RR          B
-    RR          C								;  C = C/8
+    RR          C                                       ;C = C/8
     RLA
     RL          B
     RLA
@@ -1760,65 +1760,65 @@ LAB_ram_ed1b:
     LD          L,A
     LD          A,(DIR_FACING_SHORT)
     DEC         A
-    JP          Z,NORTH_OPEN_CLOSE_DOOR								;  Is facing NORTH
+    JP          Z,NORTH_OPEN_CLOSE_DOOR                 ;Is facing NORTH
     DEC         A
-    JP          Z,SHIFT_EAST_OPEN_CLOSE_DOOR								;  Is facing EAST
+    JP          Z,SHIFT_EAST_OPEN_CLOSE_DOOR            ;Is facing EAST
     DEC         A
-    JP          NZ,LAB_ram_ed4b								;  Is facing WEST
-    LD          A,L								;  Is facing SOUTH
+    JP          NZ,LAB_ram_ed4b                         ;Is facing WEST
+    LD          A,L                                     ;Is facing SOUTH
     ADD         A,$10
-    LD          L,A								;  Shift SOUTH and process as NORTH
+    LD          L,A                                     ;Shift SOUTH and process as NORTH
 NORTH_OPEN_CLOSE_DOOR:
-    BIT         0x6,(HL)								;  N WALL check
-    JP          Z,NO_ACTION_TAKEN								;  ...if no N WALL
-    BIT         0x5,(HL)								;  N hidden DOOR check
-    JP          Z,SET_N_DOOR_MASK								;  ...if no N hidden DOOR
-    LD          A,$44								;  WALL mask
+    BIT         0x6,(HL)                                ;N WALL check
+    JP          Z,NO_ACTION_TAKEN                       ;...if no N WALL
+    BIT         0x5,(HL)                                ;N hidden DOOR check
+    JP          Z,SET_N_DOOR_MASK                       ;...if no N hidden DOOR
+    LD          A,$44                                  ;WALL mask
     JP          OPEN_N_CHECK
 SET_N_DOOR_MASK:
-    LD          A,$22								;  DOOR mask
+    LD          A,$22                                  ;DOOR mask
 OPEN_N_CHECK:
-    BIT         0x7,(HL)								;  N DOOR-OPEN check
-    JP          NZ,CLOSE_N_DOOR								;  ...if N DOOR not OPEN
-    SET         0x7,(HL)								;  Set N door closed on wall map
+    BIT         0x7,(HL)                                ;N DOOR-OPEN check
+    JP          NZ,CLOSE_N_DOOR                         ;...if N DOOR not OPEN
+    SET         0x7,(HL)                                ;Set N door closed on wall map
     JP          SET_F0_DOOR_OPEN
 SHIFT_EAST_OPEN_CLOSE_DOOR:
-    INC         L								;  Shift EAST and process as WEST
+    INC         L                                       ;Shift EAST and process as WEST
 LAB_ram_ed4b:
-    BIT         0x1,(HL)								;  W WALL check
-    JP          Z,NO_ACTION_TAKEN								;  ...if no W WALL
-    BIT         0x0,(HL)								;  W DOOR check
-    JP          Z,SET_W_DOOR_MASK								;  ...if no W DOOR
-    LD          A,$44								;  WALL mask
+    BIT         0x1,(HL)                                ;W WALL check
+    JP          Z,NO_ACTION_TAKEN                       ;...if no W WALL
+    BIT         0x0,(HL)                                ;W DOOR check
+    JP          Z,SET_W_DOOR_MASK                       ;...if no W DOOR
+    LD          A,$44                                  ;WALL mask
     JP          LAB_ram_ed5c
 SET_W_DOOR_MASK:
     LD          A,$22
 LAB_ram_ed5c:
-    BIT         0x2,(HL)								;  DOOR-OPEN check
-    JP          NZ,CLOSE_W_DOOR								;  ...if DOOR-OPEN
-    SET         0x2,(HL)								;  Set W door closed on wall map
+    BIT         0x2,(HL)                                ;DOOR-OPEN check
+    JP          NZ,CLOSE_W_DOOR                         ;...if DOOR-OPEN
+    SET         0x2,(HL)                                ;Set W door closed on wall map
 SET_F0_DOOR_OPEN:
-    LD          HL,WALL_F0_STATE
-    SET         0x2,(HL)
-    EX          AF,AF'								;  Save MASK state from A
+    LD          HL,WALL_F0_STATE                        ;= $20
+    SET         0x2,(HL)                 ;= $20
+    EX          AF,AF'                                  ;Save MASK state from A
 WAIT_TO_REDRAW_F0_DOOR:
-    IN          A,(VSYNC)
+    IN          A,(VSYNC)                               ;= db
     INC         A
     JP          Z,WAIT_TO_REDRAW_F0_DOOR
-    LD          A,0x0								;  BLK on BLK
-								;  WAS BLU on BLU
-								;  WAS LD A,$bb
+    LD          A,0x0                                   ;BLK on BLK
+                                                        ;WAS BLU on BLU
+                                                        ;WAS LD A,$bb
     CALL        DRAW_DOOR_F0
-    LD          A,(ITEM_F1)
+    LD          A,(ITEM_F1)                             ;= $60
     LD          BC,$28a
     CALL        CHK_ITEM
-    LD          HL,COLRAM_F0_DOOR_IDX
+    LD          HL,COLRAM_F0_DOOR_IDX                   ;= $60
     LD          DE,ITEM_MOVE_CHR_BUFFER
     CALL        SUB_ram_edaf
     CALL        SETUP_OPEN_DOOR_SOUND
     EXX
     LD          HL,BYTE_ram_3a58
-    LD          DE,DAT_ram_3728
+    LD          DE,DAT_ram_3728                         ;= $60
     LD          A,0xc
 LAB_ram_ed91:
     EX          AF,AF'
@@ -1826,7 +1826,7 @@ LAB_ram_ed91:
     CALL        LO_HI_PITCH_SOUND
     EXX
     LD          BC,0x8
-    LDIR
+    LDIR                                                ;= $60
     LD          BC,$10
     SBC         HL,BC
     EX          DE,HL
@@ -1849,24 +1849,24 @@ LAB_ram_edb1:
     EX          AF,AF'
     JP          DRAW_DOOR_F0
 CLOSE_N_DOOR:
-    RES         0x7,(HL)								;  Set N Door map flag to closed
+    RES         0x7,(HL)                                ;Set N Door map flag to closed
     JP          START_DOOR_CLOSE_ANIM
 CLOSE_W_DOOR:
-    RES         0x2,(HL)								;  Set W Door map flag to closed
+    RES         0x2,(HL)                                ;Set W Door map flag to closed
 START_DOOR_CLOSE_ANIM:
-    LD          HL,WALL_F0_STATE
-    RES         0x2,(HL)
+    LD          HL,WALL_F0_STATE                        ;= $20
+    RES         0x2,(HL)                 ;= $20
     EX          AF,AF'
     LD          A,(PLAYER_MAP_POS)
     LD          (PLAYER_PREV_MAP_LOC),A
     CALL        SETUP_CLOSE_DOOR_SOUND
     EXX
     EX          AF,AF'
-    LD          HL,COLRAM_F0_DOOR_IDX
+    LD          HL,COLRAM_F0_DOOR_IDX                   ;= $60
     LD          DE,$20
     LD          BC,$c08
 DOOR_CLOSE_ANIM_LOOP:
-    LD          (HL),A
+    LD          (HL),A              ;= $60
     INC         L
     DEC         C
     JP          NZ,DOOR_CLOSE_ANIM_LOOP
@@ -1881,20 +1881,20 @@ DOOR_CLOSE_ANIM_LOOP:
     CALL        CLEAR_MONSTER_STATS
     JP          WAIT_FOR_INPUT
     LD          BC,$1600
-    JP          SLEEP								;  byte SLEEP(short cycleCount)
+    JP          SLEEP                                   ;byte SLEEP(short cycleCount)
 DO_TURN_LEFT:
     LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,NO_ACTION_TAKEN
     LD          HL,UPDATE_VIEWPORT
     PUSH        HL
-ROTATE_FACING_LEFT:								;   Decrement DIR_FACING_SHORT (1-4 wraps to 4-1).
-								;   Called by DO_TURN_LEFT and DO_GLANCE_LEFT.
-								;   Effects: Updates DIR_FACING_SHORT (4->3->2->1->4 cycle)
+ROTATE_FACING_LEFT:                                      ; Decrement DIR_FACING_SHORT (1-4 wraps to 4-1).
+    ; Called by DO_TURN_LEFT and DO_GLANCE_LEFT.
+    ; Effects: Updates DIR_FACING_SHORT (4->3->2->1->4 cycle)
     LD          A,(DIR_FACING_SHORT)
     DEC         A
     JP          NZ,STORE_LEFT_FACING
-    LD          A,0x4								;   Wrap: 1 decremented becomes 4
+    LD          A,0x4                                   ; Wrap: 1 decremented becomes 4
 STORE_LEFT_FACING:
     LD          (DIR_FACING_SHORT),A
     RET
@@ -1904,14 +1904,14 @@ DO_TURN_RIGHT:
     JP          NZ,NO_ACTION_TAKEN
     LD          HL,UPDATE_VIEWPORT
     PUSH        HL
-ROTATE_FACING_RIGHT:								;   Increment DIR_FACING_SHORT (1-4 wraps to 1).
-								;   Called by DO_TURN_RIGHT and DO_GLANCE_RIGHT.
-								;   Effects: Updates DIR_FACING_SHORT (1->2->3->4->1 cycle)
+ROTATE_FACING_RIGHT:                                     ; Increment DIR_FACING_SHORT (1-4 wraps to 1).
+    ; Called by DO_TURN_RIGHT and DO_GLANCE_RIGHT.
+    ; Effects: Updates DIR_FACING_SHORT (1->2->3->4->1 cycle)
     LD          A,(DIR_FACING_SHORT)
     INC         A
     CP          0x5
     JP          NZ,STORE_RIGHT_FACING
-    LD          A,0x1								;   Wrap: 5 becomes 1
+    LD          A,0x1                                   ; Wrap: 5 becomes 1
 STORE_RIGHT_FACING:
     LD          (DIR_FACING_SHORT),A
     RET
@@ -1922,7 +1922,7 @@ DO_GLANCE_RIGHT:
     CALL        ROTATE_FACING_RIGHT
     CALL        REDRAW_START
     CALL        REDRAW_VIEWPORT
-    CALL        SLEEP_ZERO								;  byte SLEEP_ZERO(void)
+    CALL        SLEEP_ZERO                              ;byte SLEEP_ZERO(void)
     JP          DO_TURN_LEFT
 DO_GLANCE_LEFT:
     LD          A,(COMBAT_BUSY_FLAG)
@@ -1931,40 +1931,40 @@ DO_GLANCE_LEFT:
     CALL        ROTATE_FACING_LEFT
     CALL        REDRAW_START
     CALL        REDRAW_VIEWPORT
-    CALL        SLEEP_ZERO								;  byte SLEEP_ZERO(void)
+    CALL        SLEEP_ZERO                              ;byte SLEEP_ZERO(void)
     JP          DO_TURN_RIGHT
 DO_USE_ATTACK:
     LD          A,(RIGHT_HAND_ITEM)
     LD          B,0x0
-    SRL         A								;  Remove "color/level" in bit 0
-								;  to compare item type, below.
-    RR          B								;  Push bit 0 from A
-								;  (via Carry Flag) to B
-    SRL         A								;  Remove second "color/level" in bit 1
-								;  to compare item type, below
-    RL          B								;  Move bits 0 & 1
-								;  from A to B...
-    RL          B								;  B now has the LEVEL value (0-3)
-    CP          $16								;  Compare to KEY
-								;  58,59,5A,5B 2 @ SRL = 16
+    SRL         A                                       ;Remove "color/level" in bit 0
+                                                        ;to compare item type, below.
+    RR          B                                       ;Push bit 0 from A
+                                                        ;(via Carry Flag) to B
+    SRL         A                                       ;Remove second "color/level" in bit 1
+                                                        ;to compare item type, below
+    RL          B                                       ;Move bits 0 & 1
+                                                        ;from A to B...
+    RL          B                                       ;B now has the LEVEL value (0-3)
+    CP          $16                                    ;Compare to KEY
+                                                        ;58,59,5A,5B 2 @ SRL = 16
     JP          Z,DO_USE_KEY
-    CP          $19								;  Compare to PHYS POTION
-								;  64,65,66,67 2 @ SRL = 19
+    CP          $19                                    ;Compare to PHYS POTION
+                                                        ;64,65,66,67 2 @ SRL = 19
     JP          Z,DO_USE_PHYS_POTION
-    CP          $1a								;  Compare to SPRT POTION
-								;  68,69,6A,6B 2 @ SRL = 1A
+    CP          $1a                                    ;Compare to SPRT POTION
+                                                        ;68,69,6A,6B 2 @ SRL = 1A
     JP          Z,DO_USE_SPRT_POTION
-    CP          $1c								;  Compare to CHAOS POTION
-								;  70,71,72,73 2 @ SRL = 1c
+    CP          $1c                                    ;Compare to CHAOS POTION
+                                                        ;70,71,72,73 2 @ SRL = 1c
     JP          NZ,USE_SOMETHING_ELSE
 DO_USE_CHAOS_POTION:
     CALL        PLAY_USE_PHYS_POTION_SOUND
     INC         B
     DEC         B
-    JP          NZ,CHECK_YELLOW_L_POTION								;  If NZ, handle other colors
-								;  of LARGE POTION
-    CALL        TOTAL_HEAL								;  LARGE Potion is RED
-								;  so do TOTAL HEAL
+    JP          NZ,CHECK_YELLOW_L_POTION                ;If NZ, handle other colors
+                                                        ;of LARGE POTION
+    CALL        TOTAL_HEAL                              ;LARGE Potion is RED
+                                                        ;so do TOTAL HEAL
 PROCESS_POTION_UPDATES:
     CALL        REDRAW_STATS
     LD          A,(COMBAT_BUSY_FLAG)
@@ -1977,15 +1977,15 @@ PLAY_USE_PHYS_POTION_SOUND:
     CALL        SOUND_03
     CALL        SOUND_03
     JP          CLEAR_RIGHT_HAND
-SWAP_TO_ALT_REGS:								;   Swap to alternate register set (EXX).
-								;   Used before clearing right hand item to preserve main register state.
+SWAP_TO_ALT_REGS:                                        ; Swap to alternate register set (EXX).
+    ; Used before clearing right hand item to preserve main register state.
     EXX
-CLEAR_RIGHT_HAND:								;   Clear right-hand item slot and draw empty sprite.
-								;   Effects: Sets RIGHT_HAND_ITEM to $FE (empty), draws "poof" animation in right-hand area.
+CLEAR_RIGHT_HAND:                                        ; Clear right-hand item slot and draw empty sprite.
+    ; Effects: Sets RIGHT_HAND_ITEM to $FE (empty), draws "poof" animation in right-hand area.
     LD          A,$fe
     LD          (RIGHT_HAND_ITEM),A
-    LD          DE,POOF_6								;  = "    ",$01
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
+    LD          DE,POOF_6                               ;= "    ",$01
+    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX              ;= $20
     LD          B,$d0
     CALL        GFX_DRAW
     EXX
@@ -1998,19 +1998,19 @@ TOTAL_HEAL:
     RET
 REDRAW_STATS_OLD:
     LD          HL,PLAYER_PHYS_HEALTH
-    LD          DE,CHRRAM_PHYS_HEALTH_1000
+    LD          DE,CHRRAM_PHYS_HEALTH_1000              ;= $20
     LD          B,0x2
     CALL        RECALC_AND_REDRAW_BCD
     LD          HL,PLAYER_SPRT_HEALTH
-    LD          DE,CHRRAM_SPRT_HEALTH_10
+    LD          DE,CHRRAM_SPRT_HEALTH_10                ;= $20
     LD          B,0x1
-    JP          RECALC_AND_REDRAW_BCD								;  Waz JP FUN_ram_f2fd
-								;  (c3 fd f2)
+    JP          RECALC_AND_REDRAW_BCD                   ;Waz JP FUN_ram_f2fd
+                                                        ;(c3 fd f2)
 CHECK_YELLOW_L_POTION:
     DEC         B
     JP          NZ,CHECK_PURPLE_L_POTION
-    LD          BC,$10								;  Set PHYS increase to 10
-    LD          E,0x0								;  Set SPRT increase to 0
+    LD          BC,$10                                 ;Set PHYS increase to 10
+    LD          E,0x0                                   ;Set SPRT increase to 0
 PROCESS_LARGE_POTION:
     CALL        CALC_CURR_PHYS_HEALTH
     CALL        CALC_MAX_PHYS_HEALTH
@@ -2018,64 +2018,64 @@ PROCESS_LARGE_POTION:
 CHECK_PURPLE_L_POTION:
     DEC         B
     JP          NZ,CHECK_WHITE_L_POTION
-    LD          BC,0x0								;  Set PHYS increase to 0
-    LD          E,0x6								;  Set SPRT increase to 6
+    LD          BC,0x0                                  ;Set PHYS increase to 0
+    LD          E,0x6                    ;Set SPRT increase to 6
     JP          PROCESS_LARGE_POTION
 CHECK_WHITE_L_POTION:
-    CALL        MAKE_RANDOM_BYTE								;  Get RANDOM BYTE
-								;  and put into A
-    AND         0x3								;  Range it to 0-3
+    CALL        MAKE_RANDOM_BYTE                        ;Get RANDOM BYTE
+                                                        ;and put into A
+    AND         0x3                                     ;Range it to 0-3
     DEC         A
-    JP          NZ,LAB_ram_ef08								;  If NZ, check for case 1
-    LD          E,0x0								;  Case 0: set SPRT increase to 0
-    LD          BC,$20								;  Set PHYS increase to 20
-    JP          PROCESS_LARGE_POTION								;  ...and reprocess
+    JP          NZ,LAB_ram_ef08                         ;If NZ, check for case 1
+    LD          E,0x0                    ;Case 0: set SPRT increase to 0
+    LD          BC,$20                                 ;Set PHYS increase to 20
+    JP          PROCESS_LARGE_POTION                    ;...and reprocess
 LAB_ram_ef08:
     DEC         A
     JP          NZ,LAB_ram_ef12
-    LD          BC,0x0								;  Set PHYS increase to 0
-    LD          E,$12								;  Set SPRT increase to 12
+    LD          BC,0x0                                  ;Set PHYS increase to 0
+    LD          E,$12                ;Set SPRT increase to 12
     JP          PROCESS_LARGE_POTION
 LAB_ram_ef12:
     DEC         A
     JP          NZ,CHECK_CASE_3_WL_POTION
-    CALL        TOTAL_HEAL								;  Fill up PHYS and SPRT
-    LD          BC,$10								;  Set PHYS increase to 10
-    LD          E,0x6								;  Set SPRT increase to 6
+    CALL        TOTAL_HEAL                              ;Fill up PHYS and SPRT
+    LD          BC,$10                                 ;Set PHYS increase to 10
+    LD          E,0x6                    ;Set SPRT increase to 6
     JP          PROCESS_LARGE_POTION
 CHECK_CASE_3_WL_POTION:
-    LD          BC,$30								;  Set PHYS decrease to 30
-    LD          E,$15								;  Set SPRT decrease to 15
+    LD          BC,$30                                 ;Set PHYS decrease to 30
+    LD          E,$15                                  ;Set SPRT decrease to 15
     CALL        REDUCE_HEALTH_BIG
     LD          BC,$15
     LD          E,0x7
     CALL        REDUCE_HEALTH_SMALL
     JP          PROCESS_POTION_UPDATES
 CALC_CURR_PHYS_HEALTH:
-    LD          HL,(PLAYER_PHYS_HEALTH)								;  Load current PHYS Health
-								;  into HL
+    LD          HL,(PLAYER_PHYS_HEALTH)                 ;Load current PHYS Health
+                                                        ;into HL
     LD          A,L
     ADD         A,C
-    DAA								;  Correct 1000s & 100s
-								;  for BCD
+    DAA                                                 ;Correct 1000s & 100s
+                                                        ;for BCD
     LD          L,A
     LD          A,H
     ADC         A,B
-    DAA								;  Correct 10s & 1s
-								;  for BCD
+    DAA                                                 ;Correct 10s & 1s
+                                                        ;for BCD
     CP          0x2
     LD          H,A
     JP          NZ,UPDATE_HEALTH_VALUES
     LD          H,0x1
-    LD          L,$99								;  Max PHYS Health of 199
+    LD          L,$99                                  ;Max PHYS Health of 199
 UPDATE_HEALTH_VALUES:
     LD          (PLAYER_PHYS_HEALTH),HL
     LD          A,(PLAYER_SPRT_HEALTH)
     ADD         A,E
-    DAA								;  Correct for BCD
+    DAA                                                 ;Correct for BCD
     LD          (PLAYER_SPRT_HEALTH),A
     RET         NC
-    LD          A,$99								;  Max SPRT Health of 99
+    LD          A,$99                                  ;Max SPRT Health of 99
     LD          (PLAYER_SPRT_HEALTH),A
     RET
 CALC_MAX_PHYS_HEALTH:
@@ -2132,11 +2132,11 @@ REDUCE_HEALTH_SMALL:
     LD          (PLAYER_SPRT_HEALTH_MAX),A
     RET
 PLAYER_DIES:
-    LD          HL,COLRAM_VIEWPORT_IDX
-    LD          BC,$1818								;  18 x 18 rectangle
+    LD          HL,COLRAM_VIEWPORT_IDX                  ;= $60    `
+    LD          BC,$1818                               ;18 x 18 rectangle
     XOR         A
     CALL        FILL_CHRCOL_RECT
-    LD          HL,CHRRAM_YOU_DIED_IDX
+    LD          HL,CHRRAM_YOU_DIED_IDX                  ;= $20
     LD          DE,YOU_DIED_TXT
     LD          A,(INPUT_HOLDER)
     LD          (COMBAT_BUSY_FLAG),A
@@ -2155,45 +2155,45 @@ PLAYER_DIES:
     LD          A,$32
     LD          (RAM_AD),A
     CALL        SUB_ram_cdd3
-    CALL        SLEEP_ZERO								;  byte SLEEP_ZERO(void)
+    CALL        SLEEP_ZERO                              ;byte SLEEP_ZERO(void)
     JP          SCREEN_SAVER_FULL_SCREEN
 
 DO_USE_PHYS_POTION:
     CALL        PLAY_USE_PHYS_POTION_SOUND
-    INC         B								;  Change from LEVEL to
-								;  COLOR value (Level + 1)
+    INC         B                                       ;Change from LEVEL to
+                                                        ;COLOR value (Level + 1)
     LD          H,B
     LD          L,B
-    LD          (COLRAM_PHYS_STATS_1000),HL								;  Update PHYS color (1000s & 100s)
-								;  to potion level on BLK
-    LD          (COLRAM_PHYS_STATS_10),HL								;  Update PHYS color (10s & 1s)
-								;  to potion level on BLK
-    LD          H,$d0								;  DKGRN on BLK
+    LD          (COLRAM_PHYS_STATS_1000),HL             ;Update PHYS color (1000s & 100s)
+                                                        ;to potion level on BLK
+    LD          (COLRAM_PHYS_STATS_10),HL               ;Update PHYS color (10s & 1s)
+                                                        ;to potion level on BLK
+    LD          H,$d0                                  ;DKGRN on BLK
     LD          L,H
-    LD          (COLRAM_SPRT_STATS_10),HL								;  Update SPRT color (10s)
-								;  to DKGRN on BLACK
-    LD          (COLRAM_SPRT_STATS_1),HL								;  Update SPRT color (1s)
-								;  to DKGRN on BLACK
+    LD          (COLRAM_SPRT_STATS_10),HL               ;Update SPRT color (10s)
+                                                        ;to DKGRN on BLACK
+    LD          (COLRAM_SPRT_STATS_1),HL                ;Update SPRT color (1s)
+                                                        ;to DKGRN on BLACK
     JP          PROCESS_POTION_UPDATES
 DO_USE_SPRT_POTION:
     CALL        PLAY_USE_PHYS_POTION_SOUND
-    INC         B								;  Change from LEVEL to
-								;  COLOR value (Level + 1)
+    INC         B                                       ;Change from LEVEL to
+                                                        ;COLOR value (Level + 1)
     LD          H,B
     LD          L,B
-    LD          (COLRAM_SPRT_STATS_10),HL								;  Update SPRT color (10s)
-								;  to potion level on BLK
-    LD          (COLRAM_SPRT_STATS_1),HL								;  Update SPRT color (1s)
-								;  to potion level on BLK
-    LD          H,$d0								;  DKGRN on BLK
+    LD          (COLRAM_SPRT_STATS_10),HL               ;Update SPRT color (10s)
+                                                        ;to potion level on BLK
+    LD          (COLRAM_SPRT_STATS_1),HL                ;Update SPRT color (1s)
+                                                        ;to potion level on BLK
+    LD          H,$d0                                  ;DKGRN on BLK
     LD          L,H
-    LD          (COLRAM_PHYS_STATS_1000),HL								;  Update PHYS color (1000s & 100s)
-								;  to DKGRN on BLK
-    LD          (COLRAM_PHYS_STATS_10),HL								;  Update PHYS color (10s & 1s)
-								;  to DKGRN on BLK
+    LD          (COLRAM_PHYS_STATS_1000),HL             ;Update PHYS color (1000s & 100s)
+                                                        ;to DKGRN on BLK
+    LD          (COLRAM_PHYS_STATS_10),HL               ;Update PHYS color (10s & 1s)
+                                                        ;to DKGRN on BLK
     JP          PROCESS_POTION_UPDATES
 DO_USE_KEY:
-    LD          A,(ITEM_F0)
+    LD          A,(ITEM_F0)                             ;= $60
     LD          C,0x0
     SRL         A
     RR          C
@@ -2217,7 +2217,7 @@ LAB_ram_f043:
     ADD         A,C
     LD          B,A
 LAB_ram_f048:
-    LD          A,R								;  Semi-random number into A
+    LD          A,R                                     ;Semi-random number into A
     AND         0x7
 LAB_ram_f04c:
     JP          Z,LAB_ram_f071
@@ -2254,42 +2254,42 @@ LAB_ram_f07c:
     JP          LAB_ram_f054
 USE_SOMETHING_ELSE:
     EX          AF,AF'
-    LD          A,(WALL_F0_STATE)
+    LD          A,(WALL_F0_STATE)                       ;= $20
     AND         A
     JP          Z,CHECK_FOR_NON_ITEMS
     BIT         0x2,A
     JP          Z,CHECK_FOR_END_ITEM
 CHECK_FOR_NON_ITEMS:
-    LD          A,(ITEM_F1)
-    CP          $fe								;  Compare to EMPTY
+    LD          A,(ITEM_F1)                             ;= $60
+    CP          $fe                                    ;Compare to EMPTY
     JP          Z,CHECK_FOR_END_ITEM
-    CP          $78								;  Compare to MONSTERS
+    CP          $78                                    ;Compare to MONSTERS
     JP          NC,CHECK_IF_BOW_XBOW
 CHECK_FOR_END_ITEM:
     EX          AF,AF'
-    CP          $ff								;  Compare to EMPTY-END
+    CP          $ff                                    ;Compare to EMPTY-END
     JP          NZ,NO_ACTION_TAKEN
     EX          AF,AF'
 CHECK_IF_BOW_XBOW:
     EX          AF,AF'
-    CP          0x6								;  Compare to BOW
+    CP          0x6                                     ;Compare to BOW
     JP          NZ,CHECK_IF_SCROLL_STAFF
 USE_BOW_XBOW:
-    PUSH        BC								;  Save BC
-    LD          A,(ARROW_INV)								;  Get Arrow Inventory
-    SUB         0x1								;  Decrease by 1
-    JP          C,NO_ACTION_TAKEN								;  If Arrow Inv <1, end
+    PUSH        BC                                      ;Save BC
+    LD          A,(ARROW_INV)                           ;Get Arrow Inventory
+    SUB         0x1                                     ;Decrease by 1
+    JP          C,NO_ACTION_TAKEN                       ;If Arrow Inv <1, end
     LD          (ARROW_INV),A
     CALL        CHK_ITEM_BREAK
     POP         BC
     JP          NC,BOW_XBOW_NO_BREAK
-    LD          A,$fe								;  $fe = EMPTY ITEM
-    LD          (RIGHT_HAND_ITEM),A								;  Put EMPTY ITEM into Right Hand
+    LD          A,$fe                                  ;$fe = EMPTY ITEM
+    LD          (RIGHT_HAND_ITEM),A                     ;Put EMPTY ITEM into Right Hand
 BOW_XBOW_NO_BREAK:
     LD          D,0x5
     JP          LAB_ram_f0e9
 CHECK_IF_SCROLL_STAFF:
-    CP          0x7								;  Compare to SCROLL
+    CP          0x7                                     ;Compare to SCROLL
     JP          NZ,CHECK_OTHERS
 USE_SCROLL_STAFF:
     PUSH        BC
@@ -2299,29 +2299,29 @@ USE_SCROLL_STAFF:
     LD          A,$fe
     LD          (RIGHT_HAND_ITEM),A
 SCROLL_STAFF_NO_BREAK:
-    LD          D,0x9								;  Use FIREBALL ammo
+    LD          D,0x9                                   ;Use FIREBALL ammo
     JP          LAB_ram_f0e9
 CHECK_OTHERS:
-    CP          0xb								;  Compare to STAFF
+    CP          0xb                                     ;Compare to STAFF
     JP          Z,USE_SCROLL_STAFF
-    CP          0xc								;  Compare to XBOW
+    CP          0xc                                     ;Compare to XBOW
     JP          Z,USE_BOW_XBOW
-    CP          0x6								;  Compare to BOW
+    CP          0x6                                     ;Compare to BOW
     JP          C,NO_ACTION_TAKEN
-    CP          $10								;  Compare to LADDER
+    CP          $10                                    ;Compare to LADDER
     JP          NC,LAB_ram_f113
     LD          D,A
     CALL        SWAP_TO_ALT_REGS
 LAB_ram_f0e9:
     CALL        SETUP_ITEM_ANIMATION
     JP          INIT_MONSTER_COMBAT
-CLEAR_RIGHT_ITEM_AND_SETUP_ANIM:								;   Clear right-hand item and set up animation.
-								;   Used when consumable weapons break (bow/crossbow/scroll/staff).
+CLEAR_RIGHT_ITEM_AND_SETUP_ANIM:                         ; Clear right-hand item and set up animation.
+    ; Used when consumable weapons break (bow/crossbow/scroll/staff).
     CALL        SWAP_TO_ALT_REGS
-SETUP_ITEM_ANIMATION:								;   Configure item animation parameters.
-								;   Inputs: D = item type, B = item level
-								;   Effects: Sets ITEM_ANIM_STATE, ITEM_SPRITE_INDEX, ITEM_ANIM_LOOP_COUNT, ITEM_ANIM_CHRRAM_PTR
-								;   and initiates animation via LAB_ram_e3d7.
+SETUP_ITEM_ANIMATION:                                    ; Configure item animation parameters.
+    ; Inputs: D = item type, B = item level
+    ; Effects: Sets ITEM_ANIM_STATE, ITEM_SPRITE_INDEX, ITEM_ANIM_LOOP_COUNT, ITEM_ANIM_CHRRAM_PTR
+    ; and initiates animation via LAB_ram_e3d7.
     LD          A,0x3
     LD          (ITEM_ANIM_STATE),A
     LD          A,D
@@ -2331,7 +2331,7 @@ SETUP_ITEM_ANIMATION:								;   Configure item animation parameters.
     LD          (ITEM_SPRITE_INDEX),A
     LD          HL,$203
     LD          (ITEM_ANIM_LOOP_COUNT),HL
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
+    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX              ;= $20
     LD          (ITEM_ANIM_CHRRAM_PTR),HL
     LD          A,L
     LD          (RAM_AD),A
@@ -2348,28 +2348,28 @@ LAB_ram_f11e:
     LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          Z,NO_ACTION_TAKEN
-    XOR         A								;  A  = $00
-								;  Reset C & N, Set Z
+    XOR         A                                       ;A  = $00
+                                                        ;Reset C & N, Set Z
     LD          (COMBAT_BUSY_FLAG),A
     CALL        CLEAR_RIGHT_ITEM_AND_SETUP_ANIM
     JP          WAIT_FOR_INPUT
-INIT_MONSTER_COMBAT:								;   Monster combat round initializer.
-								;   Preconditions: Right-hand item already decoded into B (weapon level) and ITEM_F1 holds
-								;   monster/item code at player position. COMBAT_BUSY_FLAG must be 0 for a new round.
-								;   Effects:
-								;     - Sets COMBAT_BUSY_FLAG to 1 (gates movement / turning until resolution)
-								;     - Extracts monster "color" (difficulty tier) & level bits from ITEM_F1
-								;     - Derives additive damage component C from dungeon level (BCD math with RLD)
-								;     - Selects monster base damage seed D and HP (HL) via branch table
-								;     - Computes weapon value (via CALC_WEAPON_VALUE later) after random reductions
-								;     - Stores monster sprite frame index into MONSTER_SPRITE_FRAME for draw routines
-								;     - Seeds CURR_MONSTER_SPRT and BYTE_ram_3aa5 (physical/spiritual HP triplets)
+INIT_MONSTER_COMBAT:                                     ; Monster combat round initializer.
+    ; Preconditions: Right-hand item already decoded into B (weapon level) and ITEM_F1 holds
+    ; monster/item code at player position. COMBAT_BUSY_FLAG must be 0 for a new round.
+    ; Effects:
+    ;   - Sets COMBAT_BUSY_FLAG to 1 (gates movement / turning until resolution)
+    ;   - Extracts monster "color" (difficulty tier) & level bits from ITEM_F1
+    ;   - Derives additive damage component C from dungeon level (BCD math with RLD)
+    ;   - Selects monster base damage seed D and HP (HL) via branch table
+    ;   - Computes weapon value (via CALC_WEAPON_VALUE later) after random reductions
+    ;   - Stores monster sprite frame index into MONSTER_SPRITE_FRAME for draw routines
+    ;   - Seeds CURR_MONSTER_SPRT and BYTE_ram_3aa5 (physical/spiritual HP triplets)
     LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,INIT_MELEE_ANIM
     INC         A
     LD          (COMBAT_BUSY_FLAG),A
-    LD          A,(ITEM_F1)
+    LD          A,(ITEM_F1)                             ;= $60
     LD          B,0x0
     SRL         A
     RR          B
@@ -2401,15 +2401,15 @@ LAB_ram_f157:
     LD          A,D
     RLD
     EX          AF,AF'
-								;   ===== MONSTER TYPE DISPATCH TABLE =====
-								;   Switches on monster code ($1E-$27) to set base damage D, HP (HL), and sprite frame base.
-								;   Each entry sets:
-								;     D = base damage seed (BCD)
-								;     HL = HP pair (H=spiritual HP, L=physical HP) - note: order reversed in some docs
-								;     MONSTER_SPRITE_FRAME = sprite base ($24=physical/red, $3C=spiritual/purple) + level (B=0-3)
-    SUB         $1e								;   Monster codes start at $1E
+    ; ===== MONSTER TYPE DISPATCH TABLE =====
+    ; Switches on monster code ($1E-$27) to set base damage D, HP (HL), and sprite frame base.
+    ; Each entry sets:
+    ;   D = base damage seed (BCD)
+    ;   HL = HP pair (H=spiritual HP, L=physical HP) - note: order reversed in some docs
+    ;   MONSTER_SPRITE_FRAME = sprite base ($24=physical/red, $3C=spiritual/purple) + level (B=0-3)
+    SUB         $1e                                    ; Monster codes start at $1E
     JP          NZ,LAB_ram_f17d
-								;   [$1E] Skeleton: D=7, HP=(3,4), Sprite=$3C+level (spiritual/purple)
+    ; [$1E] Skeleton: D=7, HP=(3,4), Sprite=$3C+level (spiritual/purple)
     LD          D,0x7
     LD          HL,$304
     LD          A,$3c
@@ -2417,7 +2417,7 @@ LAB_ram_f157:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f17d:
-								;   [$1F] Zombie: D=3, HP=(1,1), Sprite=$3C+level (spiritual/purple)
+    ; [$1F] Zombie: D=3, HP=(1,1), Sprite=$3C+level (spiritual/purple)
     DEC         A
     JP          NZ,LAB_ram_f18e
     LD          D,0x3
@@ -2427,7 +2427,7 @@ LAB_ram_f17d:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f18e:
-								;   [$20] Ghost/Wraith: D=4, HP=(0,2), Sprite=$24+level (physical/red)
+    ; [$20] Ghost/Wraith: D=4, HP=(0,2), Sprite=$24+level (physical/red)
     DEC         A
     JP          NZ,LAB_ram_f19f
     LD          D,0x4
@@ -2437,7 +2437,7 @@ LAB_ram_f18e:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f19f:
-								;   [$21] Demon: D=5, HP=(2,3), Sprite=$3C+level (spiritual/purple)
+    ; [$21] Demon: D=5, HP=(2,3), Sprite=$3C+level (spiritual/purple)
     DEC         A
     JP          NZ,LAB_ram_f1af
     LD          D,0x5
@@ -2447,7 +2447,7 @@ LAB_ram_f19f:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f1af:
-								;   [$22] Goblin: D=3, HP=(3,2), Sprite=$24+level (physical/red)
+    ; [$22] Goblin: D=3, HP=(3,2), Sprite=$24+level (physical/red)
     DEC         A
     JP          NZ,LAB_ram_f1bf
     LD          D,0x3
@@ -2457,7 +2457,7 @@ LAB_ram_f1af:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f1bf:
-								;   [$23] Troll: D=8, HP=(4,5), Sprite=$24+level (physical/red)
+    ; [$23] Troll: D=8, HP=(4,5), Sprite=$24+level (physical/red)
     DEC         A
     JP          NZ,LAB_ram_f1cf
     LD          D,0x8
@@ -2467,7 +2467,7 @@ LAB_ram_f1bf:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f1cf:
-								;   [$24] Vampire: D=6, HP=(2,4), Sprite=$3C+level (spiritual/purple)
+    ; [$24] Vampire: D=6, HP=(2,4), Sprite=$3C+level (spiritual/purple)
     DEC         A
     JP          NZ,LAB_ram_f1e0
     LD          D,0x6
@@ -2477,7 +2477,7 @@ LAB_ram_f1cf:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f1e0:
-								;   [$25] Dragon: D=19, HP=(5,5), Sprite=$24+level (physical/red)
+    ; [$25] Dragon: D=19, HP=(5,5), Sprite=$24+level (physical/red)
     DEC         A
     JP          NZ,LAB_ram_f1f0
     LD          D,$13
@@ -2487,7 +2487,7 @@ LAB_ram_f1e0:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f1f0:
-								;   [$26] Harpy: D=4, HP=(4,5), Sprite=$3C+level (spiritual/purple)
+    ; [$26] Harpy: D=4, HP=(4,5), Sprite=$3C+level (spiritual/purple)
     DEC         A
     JP          NZ,LAB_ram_f200
     LD          D,0x4
@@ -2497,8 +2497,8 @@ LAB_ram_f1f0:
     LD          (MONSTER_SPRITE_FRAME),A
     JP          SEED_MONSTER_HP_AND_ATTACK
 LAB_ram_f200:
-								;   [$27] Minotaur/Boss: D=17, HP=(4,5), Sprite varies by player health
-								;     If PHYS+SPRT > damage: $24+level (physical/red); else $3C+level (spiritual/purple - mercy)
+    ; [$27] Minotaur/Boss: D=17, HP=(4,5), Sprite varies by player health
+    ;   If PHYS+SPRT > damage: $24+level (physical/red); else $3C+level (spiritual/purple - mercy)
     DEC         A
     JP          NZ,INVALID_MONSTER_CODE
     LD          D,$11
@@ -2513,29 +2513,29 @@ LAB_ram_f200:
     CALL        RECALC_PHYS_HEALTH
     EXX
     JP          NC,MINOTAUR_MERCY_SPRITE
-    LD          A,$24								;   Player survives: physical sprite (harder)
+    LD          A,$24                                  ; Player survives: physical sprite (harder)
 MINOTAUR_SET_SPRITE:
     ADD         A,B
     LD          (MONSTER_SPRITE_FRAME),A
     JP          SEED_MONSTER_HP_AND_ATTACK
 MINOTAUR_MERCY_SPRITE:
-    LD          A,$3c								;   Player would die: spiritual sprite (easier)
+    LD          A,$3c                                  ; Player would die: spiritual sprite (easier)
     JP          MINOTAUR_SET_SPRITE
 INVALID_MONSTER_CODE:
     JP          NO_ACTION_TAKEN
-SEED_MONSTER_HP_AND_ATTACK:								;   Seeds monster HP and calculates initial attack value.
-								;   Uses D (base damage), HL (HP pair) from dispatch table above.
-								;   Outputs: CURR_MONSTER_SPRT, BYTE_ram_3aa5 (HP triplets), WEAPON_VALUE_HOLDER (attack BCD)
-    CALL        GET_RANDOM_0_TO_7								;   Get random 0-7, then compute monster spiritual HP
+SEED_MONSTER_HP_AND_ATTACK:                              ; Seeds monster HP and calculates initial attack value.
+    ; Uses D (base damage), HL (HP pair) from dispatch table above.
+    ; Outputs: CURR_MONSTER_SPRT, BYTE_ram_3aa5 (HP triplets), WEAPON_VALUE_HOLDER (attack BCD)
+    CALL        GET_RANDOM_0_TO_7                       ; Get random 0-7, then compute monster spiritual HP
     PUSH        HL
     LD          HL,CURR_MONSTER_SPRT
-    CALL        WRITE_HP_TRIPLET								;   Write spiritual HP triplet
+    CALL        WRITE_HP_TRIPLET                        ; Write spiritual HP triplet
     POP         HL
     LD          D,H
-    CALL        GET_RANDOM_0_TO_7								;   Get random 0-7, then compute monster physical HP
+    CALL        GET_RANDOM_0_TO_7                       ; Get random 0-7, then compute monster physical HP
     PUSH        HL
     LD          HL,BYTE_ram_3aa5
-    CALL        WRITE_HP_TRIPLET								;   Write physical HP triplet
+    CALL        WRITE_HP_TRIPLET                        ; Write physical HP triplet
     POP         HL
     LD          D,L
     LD          E,0x0
@@ -2543,64 +2543,64 @@ SEED_MONSTER_HP_AND_ATTACK:								;   Seeds monster HP and calculates initial a
     LD          (WEAPON_VALUE_HOLDER),A
     CALL        REDRAW_MONSTER_HEALTH
 INIT_MELEE_ANIM:
-    LD          A,0x3								;  A  = $03
+    LD          A,0x3                                   ;A  = $03
     LD          (MELEE_ANIM_STATE),A
-    LD          HL,$206								;  HL = $ce
+    LD          HL,$206                                ;HL = $ce
     LD          (MONSTER_ATT_POS_COUNT),HL
-    LD          HL,$31ea								;  HL = $0020 db?
-								;  Always $20 (SPACE char)?
+    LD          HL,$31ea                               ;HL = $0020 db?
+                                                        ;Always $20 (SPACE char)?
     LD          (MONSTER_ATT_POS_OFFSET),HL
     LD          A,L
     LD          (RAM_AE),A
     CALL        ANIMATE_MELEE_ROUND
     JP          WAIT_FOR_INPUT
 REDRAW_MONSTER_HEALTH:
-    LD          DE,CHRRAM_MONSTER_PHYS								;  WAS LD DE,$333d
+    LD          DE,CHRRAM_MONSTER_PHYS                  ;WAS LD DE,$333d
     LD          HL,CURR_MONSTER_PHYS
     LD          B,0x2
     CALL        RECALC_AND_REDRAW_BCD
-    LD          DE,CHRRAM_MONSTER_SPRT								;  WAS LD DE,$338f
+    LD          DE,CHRRAM_MONSTER_SPRT                  ;WAS LD DE,$338f
     LD          HL,CURR_MONSTER_SPRT
     LD          B,0x1
     JP          RECALC_AND_REDRAW_BCD
-GET_RANDOM_0_TO_7:								;   Get random value 0-7 for damage reduction.
-								;   Outputs: E = random value 0-7
-								;   Side effects: Updates screen saver timer, falls through to CALC_WEAPON_VALUE
+GET_RANDOM_0_TO_7:                                       ; Get random value 0-7 for damage reduction.
+    ; Outputs: E = random value 0-7
+    ; Side effects: Updates screen saver timer, falls through to CALC_WEAPON_VALUE
     CALL        UPDATE_SCR_SAVER_TIMER
     AND         0x7
     LD          E,A
-CALC_WEAPON_VALUE:								;   Compute BCD attack/damage value.
-								;   Inputs:
-								;     B = weapon level (0-3)
-								;     D = base damage seed
-								;     E = random subtraction value (0-7)
-								;     C = level-derived additive component (BCD)
-								;   Outputs:
-								;     A = final weapon value in BCD
-								;   Formula: A = (D * (B+1)) - E + C, all BCD normalized, with underflow protection
-    PUSH        BC								;  Save original weaponLevel
-    INC         B								;  B = B + 1
-    LD          A,D								;  A = D
+CALC_WEAPON_VALUE:                                       ; Compute BCD attack/damage value.
+    ; Inputs:
+    ;   B = weapon level (0-3)
+    ;   D = base damage seed
+    ;   E = random subtraction value (0-7)
+    ;   C = level-derived additive component (BCD)
+    ; Outputs:
+    ;   A = final weapon value in BCD
+    ; Formula: A = (D * (B+1)) - E + C, all BCD normalized, with underflow protection
+    PUSH        BC                                      ;Save original weaponLevel
+    INC         B                                       ;B = B + 1
+    LD          A,D                                     ;A = D
     JP          LAB_ram_f28c
 LAB_ram_f28a:
-    ADD         A,D								;  A = A + D
-    DAA								;  Normalize for BCD
+    ADD         A,D                                     ;A = A + D
+    DAA                                                 ;Normalize for BCD
 LAB_ram_f28c:
-    DJNZ        LAB_ram_f28a								;  B = B - 1
-    SUB         E								;  A = A - E
-    DAA								;  Normalize for BCD
+    DJNZ        LAB_ram_f28a                            ;B = B - 1
+    SUB         E                                       ;A = A - E
+    DAA                                                 ;Normalize for BCD
     JP          NC,LAB_ram_f294
-    ADC         A,E								;  A = A + E (and CARRY) to undo underflow
-    DAA								;  Normalize for BCD
+    ADC         A,E                                     ;A = A + E (and CARRY) to undo underflow
+    DAA                                                 ;Normalize for BCD
 LAB_ram_f294:
-    ADD         A,C								;  A = A + C
-    DAA								;  Normalize for BCD
-    POP         BC								;  BC = Original weaponLevel
-    RET								;  A = new weaponValue
-WRITE_HP_TRIPLET:								;   Write BCD HP value as triplet: value, doubled, carry.
-								;   Inputs: A = BCD health value, HL = destination pointer
-								;   Effects: Writes (HL) = A, (HL+1) = A*2 (BCD), (HL+2) = carry from doubling
-								;   Used to store health stats in a 3-byte normalized format.
+    ADD         A,C                                     ;A = A + C
+    DAA                                                 ;Normalize for BCD
+    POP         BC                                      ;BC = Original weaponLevel
+    RET                                                 ;A = new weaponValue
+WRITE_HP_TRIPLET:                                       ; Write BCD HP value as triplet: value, doubled, carry.
+    ; Inputs: A = BCD health value, HL = destination pointer
+    ; Effects: Writes (HL) = A, (HL+1) = A*2 (BCD), (HL+2) = carry from doubling
+    ; Used to store health stats in a 3-byte normalized format.
     LD          (HL),A
     INC         HL
     ADD         A,A
@@ -2615,7 +2615,7 @@ DO_USE_LADDER:
     LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,NO_ACTION_TAKEN
-    LD          A,(ITEM_F0)
+    LD          A,(ITEM_F0)                             ;= $60
     CP          $42
     JP          NZ,NO_ACTION_TAKEN
     LD          A,(PLAYER_MAP_POS)
@@ -2625,7 +2625,7 @@ DO_USE_LADDER:
     CALL        SUB_ram_f2c4
     JP          RESET_SHIFT_MODE
 SUB_ram_f2c4:
-    LD          DE,$3002								;  WAS $33df
+    LD          DE,$3002                               ;WAS $33df
     LD          HL,DUNGEON_LEVEL
     LD          A,0x1
     ADD         A,(HL)
@@ -2639,19 +2639,19 @@ LAB_ram_f2d0:
     JP          REDRAW_VIEWPORT
 DRAW_99_LOOP_NOTICE:
     CALL        DRAW_BKGD
-    LD          HL,DAT_ram_3051
-    LD          DE,LEVEL_99_LOOP								;  = "Looks like this dungeon",$01
+    LD          HL,DAT_ram_3051                         ;= $20
+    LD          DE,LEVEL_99_LOOP                        ;= "Looks like this dungeon",$01
     LD          B,$f0
     CALL        GFX_DRAW
     LD          B,$1e
 LAB_ram_f2ec:
     EXX
-    CALL        SLEEP_ZERO								;  byte SLEEP_ZERO(void)
+    CALL        SLEEP_ZERO                              ;byte SLEEP_ZERO(void)
     EXX
     DJNZ        LAB_ram_f2ec
     LD          A,$90
     LD          HL,DUNGEON_LEVEL
-    LD          DE,CHHRAM_LVL_IDX
+    LD          DE,CHHRAM_LVL_IDX                       ;= $20
     JP          LAB_ram_f2d0
 RECALC_AND_REDRAW_BCD:
     PUSH        DE
@@ -2662,16 +2662,16 @@ RECALC_AND_REDRAW_BCD:
     EX          AF,AF'
 LAB_ram_f306:
     LD          A,(HL)
-    AND         0xf								;  Wipe upper nybble
-    ADD         A,$30								;  Numeric char offset
+    AND         0xf                                     ;Wipe upper nybble
+    ADD         A,$30                                  ;Numeric char offset
     LD          (DE),A
     LD          A,(HL)
-    AND         $f0								;  Wipe lower nybble
-    RRCA								;  Move upper
-    RRCA								;  nybble to
-    RRCA								;  lower
-    RRCA								;  nybble
-    ADD         A,$30								;  Numeric char offset
+    AND         $f0                                    ;Wipe lower nybble
+    RRCA                                                ;Move upper
+    RRCA                                                ;nybble to
+    RRCA                                                ;lower
+    RRCA                                                ;nybble
+    ADD         A,$30                                  ;Numeric char offset
     INC         DE
     LD          (DE),A
     INC         DE
@@ -2683,20 +2683,20 @@ LAB_ram_f306:
     LD          B,A
 LAB_ram_f31f:
     LD          A,(DE)
-    CP          $30								;  Numeric char offset
+    CP          $30                                    ;Numeric char offset
     JP          NZ,LAB_ram_f32d
-    LD          (HL),$20								;  SPACE char for ZERO
-    INC         HL								;  Move forward one cell
-    DEC         DE								;  Move backwards one byte
-								;  (big endian)
+    LD          (HL),$20                               ;SPACE char for ZERO
+    INC         HL                                      ;Move forward one cell
+    DEC         DE                                      ;Move backwards one byte
+                                                        ;(big endian)
     DJNZ        LAB_ram_f31f
     LD          A,(DE)
     JP          LAB_ram_f333
 LAB_ram_f32d:
     LD          (HL),A
-    INC         HL								;  Move forward one cell
-    DEC         DE								;  Move backwards one byte
-								;  (big endian)
+    INC         HL                                      ;Move forward one cell
+    DEC         DE                                      ;Move backwards one byte
+                                                        ;(big endian)
     LD          A,(DE)
     DJNZ        LAB_ram_f32d
 LAB_ram_f333:
@@ -2704,22 +2704,22 @@ LAB_ram_f333:
     RET
 GFX_DRAW:
     PUSH        HL
-    LD          C,$28								;  $28 = +40, down one row
+    LD          C,$28                                  ;$28 = +40, down one row
 LAB_ram_f338:
-    LD          A,(DE)								;  = "\b",$FF
-								;  = $FF
+    LD          A,(DE)                       ;= "\b",$FF
+                                                        ;= $FF
     INC         DE
     INC         A
-    JP          NZ,LAB_ram_f33f								;  Check for $ff end of graphic char
+    JP          NZ,LAB_ram_f33f                         ;Check for $ff end of graphic char
     POP         HL
     RET
 LAB_ram_f33f:
-    DEC         A								;  $00 = no char, move right one column...
+    DEC         A                                       ;$00 = no char, move right one column...
     JP          NZ,LAB_ram_f345
     INC         HL
     JP          LAB_ram_f338
 LAB_ram_f345:
-    CP          0x1								;  $01 = down one row, back to index
+    CP          0x1                                     ;$01 = down one row, back to index
     JP          NZ,LAB_ram_f352
     LD          A,B
     LD          B,0x0
@@ -2729,12 +2729,12 @@ LAB_ram_f345:
     LD          B,A
     JP          LAB_ram_f338
 LAB_ram_f352:
-    CP          0x2								;  $02 = back up one column
+    CP          0x2                                     ;$02 = back up one column
     JP          NZ,LAB_ram_f359
     DEC         HL
     JP          LAB_ram_f338
 LAB_ram_f359:
-    CP          0x3								;  $03 = down one row, same column
+    CP          0x3                                     ;$03 = down one row, same column
     JP          NZ,LAB_ram_f367
     LD          A,B
     LD          B,0x0
@@ -2745,7 +2745,7 @@ LAB_ram_f359:
     LD          B,A
     JP          LAB_ram_f338
 LAB_ram_f367:
-    CP          0x4								;  $04 = up one row, same column
+    CP          0x4                                     ;$04 = up one row, same column
     JP          NZ,LAB_ram_f377
     LD          A,B
     LD          B,0x0
@@ -2756,22 +2756,22 @@ LAB_ram_f367:
     LD          B,A
     JP          LAB_ram_f338
 LAB_ram_f377:
-    CP          $a0								;  $a0 = reverse FG & BG colors
+    CP          $a0                                    ;$a0 = reverse FG & BG colors
     JP          NZ,LAB_ram_f385
-    RRC         B								;  Swap hi and lo nybbles (FG & BG colo...
+    RRC         B                                       ;Swap hi and lo nybbles (FG & BG colo...
     RRC         B
     RRC         B
     RRC         B
     JP          LAB_ram_f338
 LAB_ram_f385:
-    LD          (HL),A
+    LD          (HL),A              ;= $20
     INC         H
     INC         H
     INC         H
     INC         H
     LD          A,0xf
     CP          B
-    LD          A,(HL)
+    LD          A,(HL)                    ;= $60
     JP          C,LAB_ram_f398
     RLCA
     RLCA
@@ -2783,7 +2783,7 @@ LAB_ram_f398:
     AND         0xf
 LAB_ram_f39a:
     OR          B
-    LD          (HL),A
+    LD          (HL),A                    ;= $60
     DEC         H
     DEC         H
     DEC         H
@@ -2816,8 +2816,8 @@ GEN_MAP_NW_WALL_LOOP:
     LD          HL,MAP_LADDER_OFFSET
     LD          (HL),A
     INC         L
-    LD          (HL),$42								;  Put ladder object into map
-								;  (always 1st item after offset)
+    LD          (HL),$42                   ;Put ladder object into map
+                                                        ;(always 1st item after offset)
     INC         L
     LD          A,(INPUT_HOLDER)
     LD          B,A
@@ -2846,10 +2846,10 @@ GEN_ITEM_MAP:
     JP          Z,GEN_ITEM_MAP
     LD          (HL),C
     INC         HL
-    LD          (HL),$9f								;  Full ITEM_monster range $009f
+    LD          (HL),$9f                ;Full ITEM_monster range $009f
     INC         HL
 LAB_ram_f3fd:
-    LD          B,$50								;  Max 50 items+monstersdb?
+    LD          B,$50                                  ;Max 50 items+monstersdb?
 GEN_RND_ITEM:
     CALL        MAKE_RANDOM_BYTE
     INC         A
@@ -2977,8 +2977,8 @@ LAB_ram_f4bc:
     DEC         B
     JP          LAB_ram_f49d
 SETUP_MAP_COPY:
-    LD          DE,TEMP_MAP								;  DE = Temp Map
-    LD          HL,MAP_LADDER_OFFSET								;  HL = Real Map
+    LD          DE,TEMP_MAP                             ;DE = Temp Map
+    LD          HL,MAP_LADDER_OFFSET                    ;HL = Real Map
     INC         B
     DEC         B
     JP          Z,MAP_DONE
@@ -2987,7 +2987,7 @@ COPY_TEMP_MAP_TO_REAL_MAP:
     LD          (HL),A
     INC         HL
     INC         DE
-    DJNZ        COPY_TEMP_MAP_TO_REAL_MAP								;  Loop while B is not zero
+    DJNZ        COPY_TEMP_MAP_TO_REAL_MAP               ;Loop while B is not zero
 MAP_DONE:
     LD          (HL),$ff
     RET
@@ -3009,12 +3009,12 @@ LAB_ram_f4e4:
     DEC         B
     RET
 REDRAW_START:
-    LD          HL,CALC_WEST_REDRAW_2								;   CALC_WEST_REDRAW (0xF79B) + 7... UNDO? was 0xF7A1
+    LD          HL,CALC_WEST_REDRAW_2                            ; CALC_WEST_REDRAW (0xF79B) + 7... UNDO? was 0xF7A1
     PUSH        HL
     LD          HL,PLAYER_MAP_POS
     LD          E,(HL)
-    LD          D,$38								;  DE = Player map position in RAM
-    LD          HL,WALL_F0_STATE
+    LD          D,$38                                  ;DE = Player map position in RAM
+    LD          HL,WALL_F0_STATE                        ;= $20
     LD          C,0x5
     LD          A,(DIR_FACING_SHORT)
     DEC         A
@@ -3024,8 +3024,8 @@ REDRAW_START:
     DEC         A
     JP          Z,FACING_SOUTH
     LD          A,(DE)
-    AND         0x7								;  Keep low 3 bits, reset top 5 bits
-    LD          (HL),A
+    AND         0x7                                     ;Keep low 3 bits, reset top 5 bits
+    LD          (HL),A                   ;= $20
     DEC         E
     CALL        CALC_WEST_REDRAW
     DEC         E
@@ -3035,7 +3035,7 @@ REDRAW_START:
     LD          E,A
     CALL        REDRAW_VIEW
     INC         L
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
     LD          A,(DE)
     AND         0x7
     CALL        REDRAW_NORTH
@@ -3043,27 +3043,7 @@ REDRAW_START:
     SUB         $10
     LD          E,A
     CALL        REDRAW_VIEW
-    LD          (HL),A
-    LD          A,E
-    SUB         $10
-    LD          E,A
-    LD          A,(DE)
-    AND         0x7
-    CALL        REDRAW_NORTH
-    LD          A,E
-    ADD         A,$21
-    LD          E,A
-    CALL        REDRAW_VIEW
-    LD          (HL),A
-    LD          A,(DE)
-    AND         0x7
-    CALL        REDRAW_NORTH
-    LD          A,E
-    SUB         $10
-    LD          E,A
-    CALL        REDRAW_VIEW
-    INC         L
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
     LD          A,E
     SUB         $10
     LD          E,A
@@ -3074,8 +3054,28 @@ REDRAW_START:
     ADD         A,$21
     LD          E,A
     CALL        REDRAW_VIEW
+    LD          (HL),A                   ;= $20
+    LD          A,(DE)
+    AND         0x7
+    CALL        REDRAW_NORTH
+    LD          A,E
+    SUB         $10
+    LD          E,A
+    CALL        REDRAW_VIEW
     INC         L
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
+    LD          A,E
+    SUB         $10
+    LD          E,A
+    LD          A,(DE)
+    AND         0x7
+    CALL        REDRAW_NORTH
+    LD          A,E
+    ADD         A,$21
+    LD          E,A
+    CALL        REDRAW_VIEW
+    INC         L
+    LD          (HL),A                   ;= $20
     CALL        CALC_WEST_REDRAW
     LD          A,E
     ADD         A,0xe
@@ -3083,13 +3083,13 @@ REDRAW_START:
     CALL        REDRAW_VIEW
     INC         L
     INC         L
-    LD          (HL),A
+    LD          (HL),A                    ;= $20
     LD          A,E
     SUB         $1e
     LD          E,A
     CALL        REDRAW_VIEW
     INC         L
-    LD          (HL),A
+    LD          (HL),A                    ;= $20
     LD          A,E
     SUB         $10
     LD          E,A
@@ -3099,17 +3099,17 @@ REDRAW_START:
     CALL        REDRAW_VIEW
     INC         L
     INC         L
-    LD          (HL),A
+    LD          (HL),A                    ;= $20
     LD          A,E
     ADD         A,$13
     LD          E,A
     CALL        CALC_WEST_REDRAW
     LD          D,$ff
     LD          E,$f0
-    LD          (DIR_FACING_FW),DE								;  DE = 0xFFF0 (WEST)
-    LD          B,$10								;  RED on BLK
-    LD          HL,CHRRAM_POINTER_IDX								;  WAS $31d6
-    LD          DE,WEST_TXT								;  = "\a",$FF
+    LD          (DIR_FACING_FW),DE                      ;DE = 0xFFF0 (WEST)
+    LD          B,$10                                  ;RED on BLK
+    LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
+    LD          DE,WEST_TXT                             ;= "\a",$FF
     JP          GFX_DRAW
 REDRAW_VIEW:
     LD          A,(DE)
@@ -3212,28 +3212,28 @@ FACING_NORTH:
     LD          D,$f0
     LD          E,0x1
     LD          (DIR_FACING_FW),DE
-    LD          B,$10								;  RED on BLK
-    LD          HL,CHRRAM_POINTER_IDX								;  WAS $31d6
-    LD          DE,NORTH_TXT								;  = "\b",$FF
+    LD          B,$10                                  ;RED on BLK
+    LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
+    LD          DE,NORTH_TXT                            ;= "\b",$FF
     JP          GFX_DRAW
 FACING_SOUTH:
     LD          A,E
     ADD         A,$10
     LD          E,A
     CALL        REDRAW_VIEW
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
     LD          A,E
     ADD         A,$10
     LD          E,A
     CALL        REDRAW_VIEW
     INC         L
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
     LD          A,E
     ADD         A,$10
     LD          E,A
     CALL        REDRAW_VIEW
     INC         L
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
     LD          A,E
     SUB         0xf
     LD          E,A
@@ -3248,7 +3248,7 @@ FACING_SOUTH:
     LD          E,A
     LD          A,(DE)
     AND         0x7
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
     LD          A,E
     ADD         A,0xf
     LD          E,A
@@ -3259,7 +3259,7 @@ FACING_SOUTH:
     LD          E,A
     LD          A,(DE)
     AND         0x7
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
     LD          A,E
     ADD         A,$10
     LD          E,A
@@ -3283,7 +3283,7 @@ FACING_SOUTH:
     LD          E,A
     CALL        REDRAW_VIEW
     INC         L
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
     LD          A,E
     ADD         A,$11
     LD          E,A
@@ -3291,7 +3291,7 @@ FACING_SOUTH:
     AND         0x7
     INC         L
     INC         L
-    LD          (HL),A
+    LD          (HL),A                    ;= $20
     LD          A,E
     SUB         $22
     LD          E,A
@@ -3301,7 +3301,7 @@ FACING_SOUTH:
     LD          E,A
     CALL        REDRAW_VIEW
     INC         L
-    LD          (HL),A
+    LD          (HL),A                    ;= $20
     LD          A,E
     ADD         A,$10
     LD          E,A
@@ -3309,25 +3309,25 @@ FACING_SOUTH:
     AND         0x7
     INC         L
     INC         L
-    LD          (HL),A
+    LD          (HL),A                    ;= $20
     LD          A,E
     SUB         $1f
     LD          E,A
     CALL        REDRAW_VIEW
     INC         L
-    LD          (HL),A
+    LD          (HL),A                    ;= $20
     LD          D,$10
     LD          E,$ff
     LD          (DIR_FACING_FW),DE
-    LD          B,$10								;  RED on BLK
-    LD          HL,CHRRAM_POINTER_IDX								;  WAS $31d6
-    LD          DE,SOUTH_TXT								;  = "\t",$FF
+    LD          B,$10                                  ;RED on BLK
+    LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
+    LD          DE,SOUTH_TXT                            ;= "\t",$FF
     JP          GFX_DRAW
 FACING_EAST:
     INC         E
     LD          A,(DE)
     AND         0x7
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
     INC         E
     CALL        CALC_WEST_REDRAW
     INC         E
@@ -3335,7 +3335,7 @@ FACING_EAST:
     DEC         E
     CALL        REDRAW_VIEW
     INC         L
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
     LD          A,E
     SUB         0xf
     LD          E,A
@@ -3346,7 +3346,7 @@ FACING_EAST:
     ADD         A,$1f
     LD          E,A
     CALL        REDRAW_VIEW
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
     INC         E
     LD          A,(DE)
     AND         0x7
@@ -3355,7 +3355,7 @@ FACING_EAST:
     SUB         $12
     LD          E,A
     CALL        REDRAW_VIEW
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
     LD          A,E
     SUB         0xf
     LD          E,A
@@ -3367,7 +3367,7 @@ FACING_EAST:
     LD          E,A
     CALL        REDRAW_VIEW
     INC         L
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
     INC         E
     LD          A,(DE)
     AND         0x7
@@ -3377,7 +3377,7 @@ FACING_EAST:
     LD          E,A
     CALL        REDRAW_VIEW
     INC         L
-    LD          (HL),A
+    LD          (HL),A                   ;= $20
     LD          A,E
     SUB         0xf
     LD          E,A
@@ -3386,13 +3386,13 @@ FACING_EAST:
     CALL        REDRAW_VIEW
     INC         L
     INC         L
-    LD          (HL),A
+    LD          (HL),A                    ;= $20
     LD          A,E
     ADD         A,$1e
     LD          E,A
     CALL        REDRAW_VIEW
     INC         L
-    LD          (HL),A
+    LD          (HL),A                    ;= $20
     INC         E
     CALL        CALC_WEST_REDRAW
     LD          A,E
@@ -3401,7 +3401,7 @@ FACING_EAST:
     CALL        REDRAW_VIEW
     INC         L
     INC         L
-    LD          (HL),A
+    LD          (HL),A                    ;= $20
     LD          A,E
     SUB         $22
     LD          E,A
@@ -3409,9 +3409,9 @@ FACING_EAST:
     LD          D,0x1
     LD          E,$10
     LD          (DIR_FACING_FW),DE
-    LD          B,$10								;  RED on BLK
-    LD          HL,CHRRAM_POINTER_IDX								;  WAS $31d6
-    LD          DE,EAST_TXT
+    LD          B,$10                                  ;RED on BLK
+    LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
+    LD          DE,EAST_TXT                             ;= $06,$FF
     JP          GFX_DRAW
 CALC_WEST_REDRAW:
     LD          A,(DE)
@@ -3420,45 +3420,45 @@ CALC_WEST_REDRAW:
     LD          (HL),A
     RET
 CALC_WEST_REDRAW_2:
-    LD          IX,ITEM_F2
+    LD          IX,ITEM_F2                              ;= $60
     LD          DE,(DIR_FACING_FW)
     LD          A,(PLAYER_MAP_POS)
     ADD         A,D
     ADD         A,D
     CALL        ITEM_MAP_CHECK
-    LD          (IX+0),A
+    LD          (IX+0),A                     ;= $60
     LD          A,H
     SUB         D
     CALL        ITEM_MAP_CHECK
-    LD          (IX+1),A
+    LD          (IX+1),A                     ;= $60
     LD          A,H
     SUB         D
     CALL        ITEM_MAP_CHECK
-    LD          (IX+2),A
+    LD          (IX+2),A                     ;= $60
     LD          A,H
     ADD         A,D
     SUB         E
     CALL        ITEM_MAP_CHECK
-    LD          (IX+3),A
+    LD          (IX+3),A                    ;= $60
     LD          A,H
     ADD         A,E
     ADD         A,E
     CALL        ITEM_MAP_CHECK
-    LD          (IX+4),A
+    LD          (IX+4),A                    ;= $60
     LD          A,H
     SUB         D
     CALL        ITEM_MAP_CHECK
-    LD          (IX+5),A
+    LD          (IX+5),A                     ;= $60
     LD          A,H
     SUB         E
     SUB         E
     CALL        ITEM_MAP_CHECK
-    LD          (IX+6),A
+    LD          (IX+6),A                     ;= $60
     LD          A,H
     SUB         D
     ADD         A,E
     CALL        ITEM_MAP_CHECK
-    LD          (IX+7),A
+    LD          (IX+7),A                     ;= $60
 LAB_ram_f7f0:
     LD          A,$fe
     RET
@@ -3479,40 +3479,40 @@ LAB_ram_f7f7:
     RET
 REDRAW_VIEWPORT:
     CALL        DRAW_BKGD
-    LD          BC,ITEM_F2								;  BC = ITEM_F2
-    LD          DE,WALL_F0_STATE								;  DE = wallAheadTemp
-    LD          A,(DE)								;  A = (wallAheadTemp)
+    LD          BC,ITEM_F2                              ;BC = ITEM_F2
+    LD          DE,WALL_F0_STATE                        ;DE = wallAheadTemp
+    LD          A,(DE)                   ;A = (wallAheadTemp)
     RRCA
-    JP          NC,F0_NO_HD								;  Jump if no hidden door
+    JP          NC,F0_NO_HD                             ;Jump if no hidden door
     EX          AF,AF'
     CALL        DRAW_F0_WALL
     EX          AF,AF'
     RRCA
-    JP          NC,F0_HD_NO_WALL								;  Jump if no wall
+    JP          NC,F0_HD_NO_WALL                        ;Jump if no wall
     RRCA
-    JP          NC,F0_HD_NO_WALL								;  Jump if door closed
+    JP          NC,F0_HD_NO_WALL                        ;Jump if door closed
 F0_NO_HD_WALL_OPEN:
     CALL        DRAW_WALL_F0_AND_OPEN_DOOR
     JP          LAB_ram_f986
 F0_NO_HD:
     RRCA
-    JP          NC,F0_NO_HD_NO_WALL								;  Jump if no wall
+    JP          NC,F0_NO_HD_NO_WALL                     ;Jump if no wall
     RRCA
-    JP          C,F0_NO_HD_WALL_OPEN								;  Jump if door open
+    JP          C,F0_NO_HD_WALL_OPEN                    ;Jump if door open
     CALL        DRAW_F0_WALL_AND_CLOSED_DOOR
     JP          F0_HD_NO_WALL
 F0_NO_HD_NO_WALL:
     INC         DE
-    LD          A,(DE)
+    LD          A,(DE)                   ;= $20
     RRCA
-    JP          NC,F1_NO_HD								;  Jump if no hidden door
+    JP          NC,F1_NO_HD                             ;Jump if no hidden door
     EX          AF,AF'
     CALL        DRAW_WALL_F1
     EX          AF,AF'
     RRCA
-    JP          NC,F1_HD_NO_WALL								;  Jump if no wall
+    JP          NC,F1_HD_NO_WALL                        ;Jump if no wall
     RRCA
-    JP          NC,F1_HD_NO_WALL								;  Jump if door closed
+    JP          NC,F1_HD_NO_WALL                        ;Jump if door closed
 F1_NO_HD_WALL_OPEN:
     CALL        DRAW_WALL_F1_AND_OPEN_DOOR
     JP          LAB_ram_f8b7
@@ -3525,7 +3525,7 @@ F1_NO_HD:
     JP          F1_HD_NO_WALL
 LAB_ram_f85a:
     INC         DE
-    LD          A,(DE)
+    LD          A,(DE)                   ;= $20
     RRCA
     JP          NC,CHECK_WALL_F2
 F2_WALL:
@@ -3536,8 +3536,8 @@ CHECK_WALL_F2:
     JP          C,F2_WALL
     CALL        DRAW_DOOR_F2_OPEN
 LAB_ram_f86d:
-    LD          DE,WALL_F3_STATE
-    LD          A,(DE)
+    LD          DE,WALL_F3_STATE                        ;= $20
+    LD          A,(DE)                   ;= $20
     RRCA
     JP          NC,LAB_ram_f87b
 LAB_ram_f875:
@@ -3547,7 +3547,7 @@ LAB_ram_f87b:
     RRCA
     JP          C,LAB_ram_f875
     INC         DE
-    LD          A,(DE)
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f88b
 LAB_ram_f885:
@@ -3558,8 +3558,8 @@ LAB_ram_f88b:
     JP          C,LAB_ram_f885
     CALL        DRAW_WALL_L2_C_EMPTY
 LAB_ram_f892:
-    LD          DE,DAT_ram_33ed
-    LD          A,(DE)
+    LD          DE,DAT_ram_33ed                         ;= $20
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f8a0
 LAB_ram_f89a:
@@ -3569,7 +3569,7 @@ LAB_ram_f8a0:
     RRCA
     JP          C,LAB_ram_f89a
     INC         DE
-    LD          A,(DE)
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f8b0
 LAB_ram_f8aa:
@@ -3580,12 +3580,12 @@ LAB_ram_f8b0:
     JP          C,LAB_ram_f8aa
     CALL        SUB_ram_cd2c
 LAB_ram_f8b7:
-    LD          A,(ITEM_F2)
+    LD          A,(ITEM_F2)                             ;= $60
     LD          BC,$48a
     CALL        CHK_ITEM
 F1_HD_NO_WALL:
-    LD          DE,DAT_ram_33ef
-    LD          A,(DE)
+    LD          DE,DAT_ram_33ef                         ;= $20
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f8db
     EX          AF,AF'
@@ -3607,7 +3607,7 @@ LAB_ram_f8db:
     JP          LAB_ram_f923
 LAB_ram_f8e9:
     INC         E
-    LD          A,(DE)
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f902
     EX          AF,AF'
@@ -3629,7 +3629,7 @@ LAB_ram_f902:
     JP          LAB_ram_f923
 LAB_ram_f910:
     INC         E
-    LD          A,(DE)
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f91c
 LAB_ram_f916:
@@ -3640,8 +3640,8 @@ LAB_ram_f91c:
     JP          C,LAB_ram_f916
     CALL        DRAW_WALL_FL2_EMPTY
 LAB_ram_f923:
-    LD          DE,DAT_ram_33f2
-    LD          A,(DE)
+    LD          DE,DAT_ram_33f2                         ;= $20
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f93e
     EX          AF,AF'
@@ -3663,7 +3663,7 @@ LAB_ram_f93e:
     JP          LAB_ram_f986
 LAB_ram_f94c:
     INC         E
-    LD          A,(DE)
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f965
     EX          AF,AF'
@@ -3685,7 +3685,7 @@ LAB_ram_f965:
     JP          LAB_ram_f986
 LAB_ram_f973:
     INC         E
-    LD          A,(DE)
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f97f
 LAB_ram_f979:
@@ -3696,12 +3696,12 @@ LAB_ram_f97f:
     JP          C,LAB_ram_f979
     CALL        DRAW_WALL_FR2_EMPTY
 LAB_ram_f986:
-    LD          A,(ITEM_F1)
+    LD          A,(ITEM_F1)                             ;= $60
     LD          BC,$28a
     CALL        CHK_ITEM
 F0_HD_NO_WALL:
-    LD          DE,DAT_ram_33f5
-    LD          A,(DE)
+    LD          DE,DAT_ram_33f5                         ;= $20
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f9aa
     EX          AF,AF'
@@ -3723,7 +3723,7 @@ LAB_ram_f9aa:
     JP          LAB_ram_fa19
 LAB_ram_f9b8:
     INC         E
-    LD          A,(DE)
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f9c4
 LAB_ram_f9be:
@@ -3733,7 +3733,7 @@ LAB_ram_f9c4:
     RRCA
     JP          C,LAB_ram_f9be
     INC         E
-    LD          A,(DE)
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f9f0
     EX          AF,AF'
@@ -3749,7 +3749,7 @@ LAB_ram_f9de:
     CALL        SUB_ram_f9e7
     JP          LAB_ram_fa19
 SUB_ram_f9e7:
-    LD          A,(ITEM_FL1)
+    LD          A,(ITEM_FL1)                            ;= $60
     LD          BC,$4d0
     JP          CHK_ITEM
 LAB_ram_f9f0:
@@ -3774,8 +3774,8 @@ LAB_ram_fa0f:
     CALL        DRAW_WALL_FL22_EMPTY
     CALL        SUB_ram_f9e7
 LAB_ram_fa19:
-    LD          DE,DAT_ram_33f9
-    LD          A,(DE)
+    LD          DE,DAT_ram_33f9                         ;= $20
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_fa34
     EX          AF,AF'
@@ -3797,21 +3797,21 @@ LAB_ram_fa34:
     JP          LAB_ram_faa3
 LAB_ram_fa42:
     INC         E
-    LD          A,(DE)
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_fa57
 LAB_ram_fa48:
     CALL        SUB_ram_cbae
     JP          LAB_ram_faa3
 SUB_ram_fa4e:
-    LD          A,(ITEM_FR1)
+    LD          A,(ITEM_FR1)                            ;= $60
     LD          BC,$4e4
     JP          CHK_ITEM
 LAB_ram_fa57:
     RRCA
     JP          C,LAB_ram_fa48
     INC         E
-    LD          A,(DE)
+    LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_fa7a
     EX          AF,AF'
@@ -3848,16 +3848,16 @@ LAB_ram_fa99:
     CALL        DRAW_WALL_FR222_EMPTY
     CALL        SUB_ram_fa4e
 LAB_ram_faa3:
-    LD          A,(ITEM_F0)
+    LD          A,(ITEM_F0)                             ;= $60
     LD          BC,$8a
     JP          CHK_ITEM
 MAKE_RANDOM_BYTE:
     PUSH        BC
     PUSH        HL
-    LD          B,0x5								;  Run data randomizer 5x
+    LD          B,0x5                                   ;Run data randomizer 5x
     LD          HL,(RNDHOLD_AA)
 RANDOM_BYTE_LOOP:
-    SLA         L								;  L x 2
+    SLA         L                                       ;L x 2
     RL          H
     JP          C,FINISH_BYTE_LOOP
     LD          A,$87
@@ -3902,11 +3902,11 @@ UPDATE_SCR_SAVER_TIMER:
     RET
 MINOTAUR_DEAD:
     CALL        DRAW_BKGD
-    LD          HL,DAT_ram_3050
-    LD          DE,THE_END_PART_A								;  WAS LD DE, 0xC25D
-    LD          B,$10								;  RED on BLK
+    LD          HL,DAT_ram_3050                         ;= $20
+    LD          DE,THE_END_PART_A                       ;WAS LD DE, 0xC25D
+    LD          B,$10                                  ;RED on BLK
     CALL        GFX_DRAW
-    LD          HL,DAT_ram_30a0
+    LD          HL,DAT_ram_30a0                         ;= $20
     CALL        GFX_DRAW
     CALL        MAKE_RANDOM_BYTE
     AND         0x3
@@ -3920,12 +3920,12 @@ MINOTAUR_DEAD:
     LD          B,A
     XOR         A
     LD          (INPUT_HOLDER),A
-    LD          DE,MINOTAUR
-    LD          HL,DAT_ram_32da
+    LD          DE,MINOTAUR                             ;= $04,$04,$04,$04
+    LD          HL,DAT_ram_32da                         ;= $20
     CALL        GFX_DRAW
     CALL        TOTAL_HEAL
     CALL        REDRAW_STATS
-    LD          B,0x2								;  Was LD B,0x6
+    LD          B,0x2                                   ;Was LD B,0x6
 MINOTAUR_DEAD_SOUND_LOOP:
     EXX
     CALL        SUB_ram_cd5f
@@ -3934,12 +3934,12 @@ MINOTAUR_DEAD_SOUND_LOOP:
     DJNZ        MINOTAUR_DEAD_SOUND_LOOP
     JP          SCREEN_SAVER_FULL_SCREEN
 DO_REST:
-    LD          A,(COMBAT_BUSY_FLAG)								;  Load combat busy flag into A (was mislabeled)
+    LD          A,(COMBAT_BUSY_FLAG)                   ;Load combat busy flag into A (was mislabeled)
     AND         A
-    JP          NZ,NO_ACTION_TAKEN								;  If food is empty, do nothing
+    JP          NZ,NO_ACTION_TAKEN                      ;If food is empty, do nothing
 CHK_NEEDS_HEALING:
-    LD          HL,(PLAYER_PHYS_HEALTH_MAX)								;  HL = max PHYS health
-    LD          DE,(PLAYER_PHYS_HEALTH)								;  DE = current PHYS health
+    LD          HL,(PLAYER_PHYS_HEALTH_MAX)             ;HL = max PHYS health
+    LD          DE,(PLAYER_PHYS_HEALTH)                 ;DE = current PHYS health
     CALL        RECALC_PHYS_HEALTH
     OR          L
     JP          NZ,HEAL_PLAYER_PHYS_HEALTH
@@ -3982,127 +3982,127 @@ HEAL_PLAYER_SPRT_HEALTH:
     JP          CHK_NEEDS_HEALING
 KEY_COMPARE:
     LD          A,(RAM_AE)
-    CP          $31								;  Compare to "1" db?
+    CP          $31                                    ;Compare to "1" db?
     JP          NZ,WAIT_FOR_INPUT
 KEY_COL_0:
-    LD          HL,KEY_INPUT_COL0
-    LD          A,(HL)								;  A = Key Column 0
-    CP          $fe								;  If Key Row = 0 "="
+    LD          HL,KEY_INPUT_COL0                       ;= $60
+    LD          A,(HL)                  ;A = Key Column 0
+    CP          $fe                                    ;If Key Row = 0 "="
     JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "BKSP"
+    CP          $fd                                    ;If Key Row = 1 "BKSP"
     JP          Z,NO_ACTION_TAKEN
-    CP          $fb								;  If Key Row = 2 ":"
+    CP          $fb                                    ;If Key Row = 2 ":"
     JP          Z,NO_ACTION_TAKEN
-    CP          $f7								;  If Key Row = 3 "RET"
+    CP          $f7                                    ;If Key Row = 3 "RET"
     JP          Z,NO_ACTION_TAKEN
-    CP          $ef								;  If Key Row = 4 ";"
+    CP          $ef                                    ;If Key Row = 4 ";"
     JP          Z,DO_GLANCE_RIGHT
-    CP          $df								;  If Key Row = 5 "."
+    CP          $df                                    ;If Key Row = 5 "."
     JP          Z,DO_TURN_RIGHT
 KEY_COL_1:
     INC         L
-    LD          A,(HL)								;  A = Key Column 1
-    CP          $fe								;  If Key Row = 0 "-"
+    LD          A,(HL)                  ;A = Key Column 1
+    CP          $fe                                    ;If Key Row = 0 "-"
     JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "/"
+    CP          $fd                                    ;If Key Row = 1 "/"
     JP          Z,NO_ACTION_TAKEN
-    CP          $fb								;  If Key Row = 2 "0"
+    CP          $fb                                    ;If Key Row = 2 "0"
     JP          Z,NO_ACTION_TAKEN
-    CP          $f7								;  If Key Row = 3 "P"
+    CP          $f7                                    ;If Key Row = 3 "P"
     JP          Z,NO_ACTION_TAKEN
-    CP          $ef								;  If Key Row = 4 "L"
+    CP          $ef                                    ;If Key Row = 4 "L"
     JP          Z,DO_MOVE_FW_CHK_WALLS
-    CP          $df								;  If Key Row = 5 ","
+    CP          $df                                    ;If Key Row = 5 ","
     JP          Z,DO_JUMP_BACK
 KEY_COL_2:
     INC         L
-    LD          A,(HL)								;  A = Key Column 2
-    CP          $fe								;  If Key Row = 0 "9"
+    LD          A,(HL)                  ;A = Key Column 2
+    CP          $fe                                    ;If Key Row = 0 "9"
     JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "O"
+    CP          $fd                                    ;If Key Row = 1 "O"
     JP          Z,NO_ACTION_TAKEN
-    CP          $fb								;  If Key Row = 2 "K"
+    CP          $fb                                    ;If Key Row = 2 "K"
     JP          Z,DO_MOVE_FW_CHK_WALLS
-    CP          $f7								;  If Key Row = 3 "M"
+    CP          $f7                                    ;If Key Row = 3 "M"
     JP          Z,DO_TURN_LEFT
-    CP          $ef								;  If Key Row = 4 "N"
+    CP          $ef                                    ;If Key Row = 4 "N"
     JP          Z,DO_USE_ATTACK
-    CP          $df								;  If Key Row = 5 "J"
+    CP          $df                                    ;If Key Row = 5 "J"
     JP          Z,DO_GLANCE_LEFT
 KEY_COL_3:
     INC         L
-    LD          A,(HL)								;  A = Key Column 3
-    CP          $fe								;  If Key Row = 0 "8"
+    LD          A,(HL)                  ;A = Key Column 3
+    CP          $fe                                    ;If Key Row = 0 "8"
     JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "I"
+    CP          $fd                                    ;If Key Row = 1 "I"
     JP          Z,NO_ACTION_TAKEN
-    CP          $fb								;  If Key Row = 2 "7"
+    CP          $fb                                    ;If Key Row = 2 "7"
     JP          Z,NO_ACTION_TAKEN
-    CP          $f7								;  If Key Row = 3 "U"
+    CP          $f7                                    ;If Key Row = 3 "U"
     JP          Z,NO_ACTION_TAKEN
-    CP          $ef								;  If Key Row = 4 "H"
+    CP          $ef                                    ;If Key Row = 4 "H"
     JP          Z,DO_OPEN_CLOSE
-    CP          $df								;  If Key Row = 5 "B"
+    CP          $df                                    ;If Key Row = 5 "B"
     JP          Z,NO_ACTION_TAKEN
 KEY_COL_4:
     INC         L
-    LD          A,(HL)								;  A = Key Column 4
-    CP          $fe								;  If Key Row = 0 "6"
+    LD          A,(HL)                  ;A = Key Column 4
+    CP          $fe                                    ;If Key Row = 0 "6"
     JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "Y"
+    CP          $fd                                    ;If Key Row = 1 "Y"
     JP          Z,USE_MAP
-    CP          $fb								;  If Key Row = 2 "G"
+    CP          $fb                                    ;If Key Row = 2 "G"
     JP          Z,NO_ACTION_TAKEN
-    CP          $f7								;  If Key Row = 3 "V"
+    CP          $f7                                    ;If Key Row = 3 "V"
     JP          Z,NO_ACTION_TAKEN
-    CP          $ef								;  If Key Row = 4 "C"
+    CP          $ef                                    ;If Key Row = 4 "C"
     JP          Z,DO_COUNT_ARROWS
-    CP          $df								;  If Key Row = 5 "F"
+    CP          $df                                    ;If Key Row = 5 "F"
     JP          Z,DO_REST
 KEY_COL_5:
     INC         L
-    LD          A,(HL)								;  A = Key Column 5
-    CP          $fe								;  If Key Row = 0 "5"
+    LD          A,(HL)                  ;A = Key Column 5
+    CP          $fe                                    ;If Key Row = 0 "5"
     JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "T"
+    CP          $fd                                    ;If Key Row = 1 "T"
     JP          Z,DO_TELEPORT
-    CP          $fb								;  If Key Row = 2 "4"
+    CP          $fb                                    ;If Key Row = 2 "4"
     JP          Z,NO_ACTION_TAKEN
-    CP          $f7								;  If Key Row = 3 "R"
+    CP          $f7                                    ;If Key Row = 3 "R"
     JP          Z,DO_SWAP_PACK
-    CP          $ef								;  If Key Row = 4 "D"
+    CP          $ef                                    ;If Key Row = 4 "D"
     JP          Z,DO_USE_LADDER
-    CP          $df								;  If Key Row = 5 "X"
+    CP          $df                                    ;If Key Row = 5 "X"
     JP          Z,DO_COUNT_FOOD
 KEY_COL_6:
     INC         L
-    LD          A,(HL)								;  A = Key Column 6
-    CP          $fe								;  If Key Row = 0 "3"
+    LD          A,(HL)                  ;A = Key Column 6
+    CP          $fe                                    ;If Key Row = 0 "3"
     JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "E"
+    CP          $fd                                    ;If Key Row = 1 "E"
     JP          Z,DO_SWAP_HANDS
-    CP          $fb								;  If Key Row = 2 "S"
+    CP          $fb                                    ;If Key Row = 2 "S"
     JP          Z,DO_ROTATE_PACK
-    CP          $f7								;  If Key Row = 3 "Z"
+    CP          $f7                                    ;If Key Row = 3 "Z"
     JP          Z,WIPE_WALLS
-    CP          $ef								;  If Key Row = 4 "SPC"
+    CP          $ef                                    ;If Key Row = 4 "SPC"
     JP          Z,NO_ACTION_TAKEN
-    CP          $df								;  If Key Row = 5 "A"
+    CP          $df                                    ;If Key Row = 5 "A"
     JP          Z,NO_ACTION_TAKEN
 KEY_COL_7:
     INC         L
-    LD          A,(HL)								;  A = Key Column 7
-    CP          $fe								;  If Key Row = 0 "2"
+    LD          A,(HL)                  ;A = Key Column 7
+    CP          $fe                                    ;If Key Row = 0 "2"
     JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "W"
+    CP          $fd                                    ;If Key Row = 1 "W"
     JP          Z,DO_PICK_UP
-    CP          $fb								;  If Key Row = 2 "1"
+    CP          $fb                                    ;If Key Row = 2 "1"
     JP          Z,NO_ACTION_TAKEN
-    CP          $f7								;  If Key Row = 3 "Q"
+    CP          $f7                                    ;If Key Row = 3 "Q"
     JP          Z,MAX_HEALTH_ARROWS_FOOD
-    CP          $ef								;  If Key Row = 4 "SHFT"
+    CP          $ef                                    ;If Key Row = 4 "SHFT"
     JP          Z,NO_ACTION_TAKEN
-    CP          $df								;  If Key Row = 5 "CTRL"
+    CP          $df                                    ;If Key Row = 5 "CTRL"
     JP          Z,NO_ACTION_TAKEN
     JP          NO_ACTION_TAKEN
 MAX_HEALTH_ARROWS_FOOD:
@@ -4134,32 +4134,32 @@ DO_TELEPORT:
 REDRAW_STATS:
     CALL        DRAW_ICON_BAR
     LD          HL,PLAYER_PHYS_HEALTH
-    LD          DE,CHRRAM_PHYS_HEALTH_1000
+    LD          DE,CHRRAM_PHYS_HEALTH_1000              ;= $20
     LD          B,0x2
     CALL        RECALC_AND_REDRAW_BCD
     LD          HL,PLAYER_SPRT_HEALTH
-    LD          DE,CHRRAM_SPRT_HEALTH_10
+    LD          DE,CHRRAM_SPRT_HEALTH_10                ;= $20
     LD          B,0x1
     JP          RECALC_AND_REDRAW_BCD
 CHECK_RING:
     PUSH        AF
     LD          A,(RING_INV_SLOT)
     CALL        LEVEL_TO_COLRAM_FIX
-    LD          (COLRAM_RING_IDX),A
+    LD          (COLRAM_RING_IDX),A                     ;= $60    `
     POP         AF
     RET
 CHECK_HELMET:
     PUSH        AF
     LD          A,(HELMET_INV_SLOT)
     CALL        LEVEL_TO_COLRAM_FIX
-    LD          (COLRAM_HELMET_IDX),A
+    LD          (COLRAM_HELMET_IDX),A                   ;= $60    `
     POP         AF
     RET
 CHECK_ARMOR:
     PUSH        AF
     LD          A,(ARMOR_INV_SLOT)
     CALL        LEVEL_TO_COLRAM_FIX
-    LD          (COLRAM_ARMOR_IDX),A
+    LD          (COLRAM_ARMOR_IDX),A                    ;= $60    `
     POP         AF
     RET
 LEVEL_TO_COLRAM_FIX:

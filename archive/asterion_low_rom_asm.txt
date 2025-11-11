@@ -17,138 +17,6 @@ DRAGON_S:
     db          $A0,$92,$A0,$F9,$A0,$CA,$A0,$A7,$01
     db          $BA,$BF,$EF,$E9,$01
     db          $D9,$D9,"\a",$AB,$FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
 LEVEL_99_LOOP:
     db          "Looks like this dungeon",$01
     db          "is too small for you",$01
@@ -159,33 +27,6 @@ STATS_TXT:
     db          $D6,$00,$00,$00,$00,"Health",$01
     db          $D6,$00,$00,$00,$00,"Shield",$01
     db          $D6,$00,$00,$00,$00,"Weapon",$FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
 POOF_1:
     db          $D7,$C9,$01
     db          $C7,$D9,$FF
@@ -356,18 +197,18 @@ ARMOR_S:
 ARMOR_T:
     db          $00,$A0,$C7,$D9,$01
     db          $00,$97,$A0,$C3,$FF
-PAVICE:
+PAVISE:
     db          $01,$01,$01,$01,$01
     db          $E8,$F0,$F0,$B4,$01
     db          $EA,$7F,$7F,$B5,$01
     db          $EA,$7F,$7F,$B5,$01
     db          $00,$EF,$BF,$FF
-PAVICE_S:
+PAVISE_S:
     db          $01,$01
     db          $00,$F4,$F8,$01
     db          $00,$7F,$7F,$01
     db          $00,$AB,$A7,$FF
-PAVICE_T:
+PAVISE_T:
     db          $00,$7F,$01
     db          $00,$C2,$FF
 AUTHORS:
@@ -423,35 +264,6 @@ FIREBALL_S:
     db          $00,$D1,$FF
 FIREBALL_T:
     db          $00,$D3,$FF
-GFX_BUFFER:
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
 SPIDER:
     db          $04,$04
     db          $00,$BE,$FD,$01
@@ -568,120 +380,6 @@ NECROMANCER_S:
     db          $9F,$A0,$C9,$D7,$A0,$9F,$01
     db          $00,$12,$99,$01
     db          $00,$FD,$91,$FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
 SUB_ram_c869:
     LD          DE,$29                                 ;GRN on DKCYN
                                                         ;(bottom of closed door)
@@ -792,35 +490,6 @@ DRAW_CHRCOLS:
     RET         Z
     ADD         HL,DE
     JP          DRAW_CHRCOLS
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
 DRAW_F0_WALL:
     LD          HL,COLRAM_F0_WALL_MAP_IDX               ;= $60    `
     LD          BC,$1010                               ;16 x 16 rectangle
@@ -838,7 +507,7 @@ DRAW_WALL_F0_AND_OPEN_DOOR:
     LD          A,$f0                                  ;DKGRY on BLK
                                                         ;WAS BLK on DKBLU
                                                         ;WAS LD A,0xb
-    JR          DRAW_DOOR_F0
+    JP          DRAW_DOOR_F0
 DRAW_WALL_F1:
     LD          HL,CHRRAM_F1_WALL_IDX                   ;= $20
     LD          BC,$808                                ;8 x 8 rectangle
@@ -860,7 +529,7 @@ DRAW_DOOR_F1_OPEN:
 DRAW_WALL_F1_AND_OPEN_DOOR:
     CALL        DRAW_WALL_F1
     LD          A,0x0                                   ;BLK on BLK
-    JR          DRAW_DOOR_F1_OPEN
+    JP          DRAW_DOOR_F1_OPEN
 DRAW_WALL_F2:
     LD          BC,$404                                ;4 x 4 rectangle
     LD          HL,COLRAM_F1_DOOR_IDX                   ;= $60    `
@@ -913,7 +582,7 @@ DRAW_DOOR_FLO:
     LD          A,0x4                                   ;BLK on BLU
                                                         ;WAS DKBLU on BLU
                                                         ;LD A,$b4
-    JR          LAB_ram_c99e
+    JP          LAB_ram_c99e
 SUB_ram_c996:
     CALL        DRAW_WALL_FL0
     LD          A,$f2                                  ;DKGRY on GRN
@@ -968,7 +637,7 @@ LAB_ram_c9ea:
 SUB_ram_c9f3:
     CALL        SUB_ram_c9d0
     XOR         A
-    JR          LAB_ram_c9ea
+    JP          LAB_ram_c9ea
 SUB_ram_c9f9:
     LD          HL,DAT_ram_3168                         ;= $20
     LD          A,$c1
@@ -1069,7 +738,7 @@ DRAW_FL1_DOOR:
     LD          A,0xb                                   ;BLK on DKGRY
                                                         ;WAS BLK on DKBLU
                                                         ;WAS LD A,0xb
-    JR          DRAW_L1_DOOR
+    JP          DRAW_L1_DOOR
 DRAW_L1:
     CALL        DRAW_L1_WALL
     LD          A,$fd                                  ;DKGRY on DKGRN
@@ -1104,7 +773,7 @@ SUB_ram_cab0:
 SUB_ram_cac5:
     CALL        SUB_ram_cab0
     XOR         A
-    JR          DRAW_L1_DOOR_2
+    JP          DRAW_L1_DOOR_2
 DRAW_L1_DOOR_CLOSED:
     CALL        SUB_ram_cab0
     LD          A,$dd                                  ;DKGRN on DKGRN
@@ -1221,7 +890,7 @@ DRAW_FRO_DOOR:
     LD          A,0x4                                   ;BLK on BLU
                                                         ;WAS DKBLU on BLU
                                                         ;WAS LDA A,$b4
-    JR          LAB_ram_cb86
+    JP          LAB_ram_cb86
 SUB_ram_cb7e:
     CALL        SUB_ram_cb4f
     LD          A,$f2                                  ;DKGRY on GRN
@@ -1270,7 +939,7 @@ SUB_ram_cbb9:
 SUB_ram_cbce:
     CALL        SUB_ram_cbb9
     XOR         A
-    JR          LAB_ram_cbd9
+    JP          LAB_ram_cbd9
 SUB_ram_cbd4:
     CALL        SUB_ram_cbb9
     LD          A,$dd                                  ;DKGRN on DKGRNdb?
@@ -1381,7 +1050,7 @@ SUB_ram_cc6d:
     LD          A,$b0                                  ;DKBLU on BLK
     PUSH        AF
     LD          A,0xb                                   ;BLK on DKBLU
-    JR          LAB_ram_cc85
+    JP          LAB_ram_cc85
 SUB_ram_cc7a:
     CALL        DRAW_WALL_FR1
     LD          A,$fd                                  ;DKGRY on DKGRN
@@ -1416,7 +1085,7 @@ SUB_ram_cc9a:
 SUB_ram_ccaf:
     CALL        SUB_ram_cc9a
     XOR         A
-    JR          LAB_ram_ccba
+    JP          LAB_ram_ccba
 SUB_ram_ccb5:
     CALL        SUB_ram_cc9a
     LD          A,$dd                                  ;DKGRN on DKGRN
@@ -1541,7 +1210,7 @@ POOF_SOUND:
     LD          A,0x7
     LD          (SOUND_REPEAT_COUNT),A
     LD          B,0x1
-    JR          DOINK_SOUND
+    JP          DOINK_SOUND
 END_OF_GAME_SOUND:
     LD          A,0x4                                   ;Was LD A,0x7
     LD          (SOUND_REPEAT_COUNT),A
@@ -1667,7 +1336,7 @@ PLAY_PITCH_CHANGE_LOOP:
     DEC         HL
     LD          A,H
     OR          L                                       ;Clear flags
-    JR          NZ,PLAY_PITCH_CHANGE_LOOP
+    JP          NZ,PLAY_PITCH_CHANGE_LOOP
     POP         AF
     OUT         (SPEAKER),A                             ;= db
     XOR         0x1
@@ -1675,21 +1344,21 @@ PLAY_PITCH_CHANGE_LOOP:
     DEC         BC
     LD          A,B
     OR          C
-    JR          NZ,INCREASE_PITCH
+    JP          NZ,INCREASE_PITCH
     POP         AF
     LD          HL,(SND_CYCLE_HOLDER)
     RET
 INCREASE_PITCH:
     LD          HL,PITCH_UP_BOOL
     BIT         0x0,(HL)
-    JR          Z,DECREASE_PITCH
+    JP          Z,DECREASE_PITCH
     LD          HL,(SND_CYCLE_HOLDER)
     SBC         HL,DE
-    JR          PLAY_PITCH_CHANGE
+    JP          PLAY_PITCH_CHANGE
 DECREASE_PITCH:
     LD          HL,(SND_CYCLE_HOLDER)
     ADD         HL,DE
-    JR          PLAY_PITCH_CHANGE
+    JP          PLAY_PITCH_CHANGE
 HC_JOY_INPUT_COMPARE:
     LD          A,(RAM_AE)
     CP          $31                                    ;Compare to "1" db?
@@ -1846,29 +1515,7 @@ DO_HC_SHIFT_ACTIONS:
     JP          Z,DO_TELEPORT
     CP          H
     JP          Z,DO_TELEPORT
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
     JP          NO_ACTION_TAKEN
-    NOP
-    db          $FF
 GRYPHON:                                                    
     db          $04,$04,$04,$04                                                                 
     db          $02,$88,$90,$88,$F0,$01                                                         
@@ -1963,27 +1610,6 @@ COMPASS:
     db          $D7,"n",$C9,$01
     db          "w\be",$01
     db          $C7,"s",$D9,$FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
 DRAW_BKGD:
     LD          A,$20                                  ;Set VIEWPORT fill chars to SPACE
     LD          HL,$3028
@@ -2003,52 +1629,14 @@ DRAW_BKGD:
     CALL        DRAW_CHRCOLS
     LD          A,(CURR_MONSTER_PHYS)
     CP          0x0
-    JR          Z,NOT_IN_BATTLE
+    JP          Z,NOT_IN_BATTLE
     LD          A,(CURR_MONSTER_SPRT)
     CP          0x0
-    JR          Z,NOT_IN_BATTLE
+    JP          Z,NOT_IN_BATTLE
     CALL        REDRAW_MONSTER_HEALTH
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
     RET
 NOT_IN_BATTLE:
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
     RET
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
 WIPE_VARIABLE_SPACE:
     LD          A,0x0
     LD          HL,$3900
@@ -2064,9 +1652,6 @@ CLEAR_MAP_SPACE:
     LD          HL,$3a62
     LD          (NEXT_BLINK_CHECK),HL
     RET
-    db          $FF
-    db          $FF
-    db          $FF
 DRAW_WHITE_MAP:
     LD          HL,$74
     CALL        MAP_ITEM_MONSTER
@@ -2080,903 +1665,8 @@ UPDATE_ITEM_CELLS:
     CALL        UPDATE_COLRAM_FROM_OFFSET
     EXX
     CALL        FIND_NEXT_ITEM_MONSTER_LOOP
-    JR          UPDATE_ITEM_CELLS
+    JP          UPDATE_ITEM_CELLS
     JP          DRAW_PURPLE_MAP
-    db          $00
-SHOW_MAP:
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $F4
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FA
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
 PLAY_POOF_ANIM:
     PUSH        HL                                      ;Save HL register value
     LD          DE,POOF_1                               ;DE = Start of POOF animation graphic
@@ -3017,30 +1707,6 @@ TOGGLE_ITEM_POOF_AND_WAIT:
     CALL        SLEEP                                   ;byte SLEEP(short cycleCount)
     EXX
     RET
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
-    db          $FF
 MONSTER_KILLED:
     LD          HL,CHRRAM_MONSTER_POOF_IDX              ;= $20
     CALL        PLAY_POOF_ANIM
@@ -3057,35 +1723,12 @@ MONSTER_KILLED:
     LD          A,$fe                                  ;A  = $fe (empty item space)
     LD          (BC),A                                  ;itemMapLocRAM = $fe (empty)
     CALL        CLEAR_MONSTER_STATS
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
     POP         HL
     JP          UPDATE_VIEWPORT
 TOGGLE_SHIFT_MODE:
     LD          A,(GAME_BOOLEANS)
     BIT         0x1,A                                   ;NZ if SHIFT MODE
-    JR          NZ,RESET_SHIFT_MODE
+    JP          NZ,RESET_SHIFT_MODE
 SET_SHIFT_MODE:
     SET         0x1,A                                   ;Set SHIFT MODE boolean
     LD          (GAME_BOOLEANS),A
@@ -3116,8 +1759,8 @@ BLINK_ROUTINE:
     PUSH        AF
     LD          A,(GAME_BOOLEANS)
     BIT         0x0,A
-    JR          Z,STILL_ON_TITLE
-    JR          BLINK_EXIT_AF
+    JP          Z,STILL_ON_TITLE
+    JP          BLINK_EXIT_AF
 BLINK_EXIT_ALL:
     POP         DE
     POP         HL
@@ -3132,7 +1775,7 @@ STILL_ON_TITLE:
     LD          B,A
     LD          A,(NEXT_BLINK_CHECK)
     CP          B
-    JR          NZ,BLINK_EXIT_BCAF
+    JP          NZ,BLINK_EXIT_BCAF
     LD          A,R
     LD          (NEXT_BLINK_CHECK),A
     PUSH        HL
@@ -3141,7 +1784,7 @@ STILL_ON_TITLE:
     LD          BC,$8000
     CALL        SLEEP                                   ;byte SLEEP(short cycleCount)
     CALL        DO_OPEN_EYES
-    JR          BLINK_EXIT_ALL
+    JP          BLINK_EXIT_ALL
 DO_OPEN_EYES:
     LD          DE,$32d6
     LD          HL,TS_EYES_OPEN_CHR                    ; Pinned to TITLE_SCREEN (0xD800) + 726; WAS 0xdad6
@@ -3189,9 +1832,6 @@ DO_CLOSE_EYES:
     DEC         HL
     LD          (HL),B
     RET
-    db          $00
-    db          $00
-    db          $00
 DRAW_ICON_BAR:
     PUSH        AF
     PUSH        HL
@@ -3215,8 +1855,6 @@ DRAW_ICON_BAR:
     INC         HL
     INC         HL
     LD          (HL),$85              ;Right side halftone CHR
-    NOP
-    NOP
     INC         HL
     INC         HL
     INC         HL
@@ -3231,16 +1869,6 @@ DRAW_ICON_BAR:
     INC         HL
     INC         HL                                      ;Ring (o) CHR
     LD          (HL),$6f              ;= $20
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
     POP         HL
     POP         AF
     RET
@@ -3260,20 +1888,6 @@ DRAW_COMPASS:
     POP         BC
     POP         AF
     RET
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
 WIPE_WALLS:
     PUSH        AF
     PUSH        BC
@@ -3290,44 +1904,6 @@ WIPE_WALLS_LOOP:
     POP         AF
     CALL        UPDATE_VIEWPORT
     JP          INPUT_DEBOUNCE
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
-    db          $00
 DRAW_WALL_FL22_EMPTY:
     LD          HL,COLRAM_FL22_WALL_IDX                 ;= $60    `
     LD          BC,$404                                ;4 x 4 rectangle
@@ -3369,12 +1945,4 @@ ICON_GREY_FILL_LOOP:
     INC         HL
     LD          (HL),$f0
     DJNZ        ICON_GREY_FILL_LOOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
     RET
