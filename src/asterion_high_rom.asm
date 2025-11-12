@@ -2702,6 +2702,21 @@ LAB_ram_f32d:
 LAB_ram_f333:
     LD          (HL),A
     RET
+;==============================================================================
+; GFX_DRAW - Render AQUASCII graphics with cursor control
+;==============================================================================
+; PURPOSE: Renders character graphics using AQUASCII control codes for positioning
+; INPUT:   HL = starting screen position (CHRRAM address)
+;          DE = graphics data pointer (AQUASCII sequence)  
+;          B  = color byte (foreground in low nibble, background in high nibble)
+; PROCESS: 1. Parse AQUASCII control codes ($00-$04, $A0, $FF)
+;          2. Handle cursor movement and color changes
+;          3. Draw characters to CHRRAM and colors to COLRAM
+; OUTPUT:  Graphics rendered to screen, HL points to next position
+; USES:    All registers modified, uses stack for position tracking
+; NOTES:   Control codes: $00=right, $01=CR+LF, $02=backspace, 
+;          $03=LF, $04=up, $A0=reverse colors, $FF=end
+;==============================================================================
 GFX_DRAW:
     PUSH        HL
     LD          C,$28								;  $28 = +40, down one row
@@ -2719,14 +2734,14 @@ LAB_ram_f33f:
     INC         HL
     JP          LAB_ram_f338
 LAB_ram_f345:
-    CP          0x1								;  $01 = down one row, back to index
+    CP          0x1								;  $01 = down one row, back to index (CR+LF)
     JP          NZ,LAB_ram_f352
-    LD          A,B
-    LD          B,0x0
-    POP         HL
-    ADD         HL,BC
-    PUSH        HL
-    LD          B,A
+    LD          A,B								;  Save color in A
+    LD          B,0x0								;  Clear B for 16-bit math
+    POP         HL								;  Get original line start from stack
+    ADD         HL,BC								;  Move down one row (C=$28=40 chars)
+    PUSH        HL								;  Save new line start to stack
+    LD          B,A								;  Restore color to B
     JP          LAB_ram_f338
 LAB_ram_f352:
     CP          0x2								;  $02 = back up one column
@@ -2734,26 +2749,26 @@ LAB_ram_f352:
     DEC         HL
     JP          LAB_ram_f338
 LAB_ram_f359:
-    CP          0x3								;  $03 = down one row, same column
+    CP          0x3								;  $03 = down one row, same column (LF)
     JP          NZ,LAB_ram_f367
-    LD          A,B
-    LD          B,0x0
-    ADD         HL,BC
-    EX          (SP),HL
-    ADD         HL,BC
-    EX          (SP),HL
-    LD          B,A
+    LD          A,B								;  Save color in A
+    LD          B,0x0								;  Clear B for 16-bit math
+    ADD         HL,BC								;  Move current position down one row
+    EX          (SP),HL							;  Swap current pos with line start on stack
+    ADD         HL,BC								;  Move line start down one row too
+    EX          (SP),HL							;  Put updated line start back on stack
+    LD          B,A								;  Restore color to B
     JP          LAB_ram_f338
 LAB_ram_f367:
-    CP          0x4								;  $04 = up one row, same column
+    CP          0x4								;  $04 = up one row, same column (reverse LF)
     JP          NZ,LAB_ram_f377
-    LD          A,B
-    LD          B,0x0
-    SBC         HL,BC
-    EX          (SP),HL
-    SBC         HL,BC
-    EX          (SP),HL
-    LD          B,A
+    LD          A,B								;  Save color in A
+    LD          B,0x0								;  Clear B for 16-bit math
+    SBC         HL,BC								;  Move current position up one row (subtract 40)
+    EX          (SP),HL							;  Swap current pos with line start on stack
+    SBC         HL,BC								;  Move line start up one row too
+    EX          (SP),HL							;  Put updated line start back on stack
+    LD          B,A								;  Restore color to B
     JP          LAB_ram_f338
 LAB_ram_f377:
     CP          $a0								;  $a0 = reverse FG & BG colors
@@ -2764,31 +2779,37 @@ LAB_ram_f377:
     RRC         B
     JP          LAB_ram_f338
 LAB_ram_f385:
-    LD          (HL),A
-    INC         H
-    INC         H
-    INC         H
-    INC         H
-    LD          A,0xf
-    CP          B
-    LD          A,(HL)
-    JP          C,LAB_ram_f398
-    RLCA
-    RLCA
-    RLCA
-    RLCA
-    AND         $f0
+    LD          (HL),A								;  Draw character to CHRRAM
+    ; Map from CHRRAM to COLRAM: add $400 offset
+    ; CHRRAM $3000-$33FF maps to COLRAM $3400-$37FF
+    INC         H								;  +$100 
+    INC         H								;  +$200
+    INC         H								;  +$300  
+    INC         H								;  +$400 = COLRAM offset
+    ; Determine color nibble placement in COLRAM byte
+    LD          A,0xf								;  Test threshold for nibble selection
+    CP          B								;  Compare color with $0F  
+    LD          A,(HL)								;  Load current COLRAM byte
+    JP          C,LAB_ram_f398							;  If B > $0F, store in low nibble
+    ; Store color in high nibble (background colors $00-$0F)
+    RLCA								;  Rotate current low nibble 
+    RLCA								;  to high nibble position
+    RLCA								;  (preserve existing foreground)
+    RLCA  
+    AND         $f0								;  Keep only high nibble
     JP          LAB_ram_f39a
 LAB_ram_f398:
-    AND         0xf
+    ; Store color in low nibble (foreground colors $10+)  
+    AND         0xf								;  Keep only low nibble of existing
 LAB_ram_f39a:
-    OR          B
-    LD          (HL),A
-    DEC         H
-    DEC         H
-    DEC         H
-    DEC         H
-    INC         HL
+    OR          B								;  Merge new color with existing
+    LD          (HL),A								;  Write combined color to COLRAM
+    ; Return from COLRAM back to CHRRAM: subtract $400 offset
+    DEC         H								;  -$100
+    DEC         H								;  -$200  
+    DEC         H								;  -$300
+    DEC         H								;  -$400 = back to CHRRAM
+    INC         HL								;  Move to next character position
     JP          LAB_ram_f338
 BUILD_MAP:
     LD          HL,MAPSPACE_WALLS
