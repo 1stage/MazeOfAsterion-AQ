@@ -2702,13 +2702,14 @@ LAB_ram_f32d:
 LAB_ram_f333:
     LD          (HL),A
     RET
+
 ;==============================================================================
 ; GFX_DRAW - Render AQUASCII graphics with cursor control
 ;==============================================================================
 ; PURPOSE: Renders character graphics using AQUASCII control codes for positioning
-; INPUT:   HL = starting screen position (CHRRAM address)
+; INPUT:   HL = screen cursor position (CHRRAM address; starts at index for graphic location)
 ;          DE = graphics data pointer (AQUASCII sequence)  
-;          B  = color byte (foreground in low nibble, background in high nibble)
+;          B  = color byte (foreground in high nybble, background in low nybble)
 ; PROCESS: 1. Parse AQUASCII control codes ($00-$04, $A0, $FF)
 ;          2. Handle cursor movement and color changes
 ;          3. Draw characters to CHRRAM and colors to COLRAM
@@ -2718,99 +2719,99 @@ LAB_ram_f333:
 ;          $03=LF, $04=up, $A0=reverse colors, $FF=end
 ;==============================================================================
 GFX_DRAW:
-    PUSH        HL
-    LD          C,$28								;  $28 = +40, down one row
-LAB_ram_f338:
-    LD          A,(DE)								;  = "\b",$FF
-								;  = $FF
-    INC         DE
-    INC         A
-    JP          NZ,LAB_ram_f33f								;  Check for $ff end of graphic char
-    POP         HL
-    RET
-LAB_ram_f33f:
-    DEC         A								;  $00 = no char, move right one column...
-    JP          NZ,LAB_ram_f345
-    INC         HL
-    JP          LAB_ram_f338
-LAB_ram_f345:
-    CP          0x1								;  $01 = down one row, back to index (CR+LF)
-    JP          NZ,LAB_ram_f352
-    LD          A,B								;  Save color in A
-    LD          B,0x0								;  Clear B for 16-bit math
-    POP         HL								;  Get original line start from stack
-    ADD         HL,BC								;  Move down one row (C=$28=40 chars)
-    PUSH        HL								;  Save new line start to stack
-    LD          B,A								;  Restore color to B
-    JP          LAB_ram_f338
-LAB_ram_f352:
-    CP          0x2								;  $02 = back up one column
-    JP          NZ,LAB_ram_f359
-    DEC         HL
-    JP          LAB_ram_f338
-LAB_ram_f359:
-    CP          0x3								;  $03 = down one row, same column (LF)
-    JP          NZ,LAB_ram_f367
-    LD          A,B								;  Save color in A
-    LD          B,0x0								;  Clear B for 16-bit math
-    ADD         HL,BC								;  Move current position down one row
-    EX          (SP),HL							;  Swap current pos with line start on stack
-    ADD         HL,BC								;  Move line start down one row too
-    EX          (SP),HL							;  Put updated line start back on stack
-    LD          B,A								;  Restore color to B
-    JP          LAB_ram_f338
-LAB_ram_f367:
-    CP          0x4								;  $04 = up one row, same column (reverse LF)
-    JP          NZ,LAB_ram_f377
-    LD          A,B								;  Save color in A
-    LD          B,0x0								;  Clear B for 16-bit math
-    SBC         HL,BC								;  Move current position up one row (subtract 40)
-    EX          (SP),HL							;  Swap current pos with line start on stack
-    SBC         HL,BC								;  Move line start up one row too
-    EX          (SP),HL							;  Put updated line start back on stack
-    LD          B,A								;  Restore color to B
-    JP          LAB_ram_f338
-LAB_ram_f377:
-    CP          $a0								;  $a0 = reverse FG & BG colors
-    JP          NZ,LAB_ram_f385
-    RRC         B								;  Swap hi and lo nybbles (FG & BG colo...
+    PUSH        HL                                  ; Save original cursor position on stack
+    LD          C,$28								; $28 = +40, down one row
+GFX_DRAW_MAIN_LOOP:
+    LD          A,(DE)								; Get next AQUASCII byte from string
+    INC         DE                                  ; Advance to next byte in string
+    INC         A                                   ; Test if byte was $FF (becomes $00, sets Z flag)
+    JP          NZ,GFX_MOVE_RIGHT					; If not $FF, continue processing this character
+    POP         HL                                  ; $FF found - restore original HL from stack
+    RET                                             ; End of graphics string, return to caller
+GFX_MOVE_RIGHT:
+    DEC         A								    ; Test if character was $00 (becomes $FF after earlier INC)
+    JP          NZ,GFX_CRLF                         ; If not $00, check for $01 (carriage return)
+    INC         HL                                  ; $00 = move cursor right one position
+    JP          GFX_DRAW_MAIN_LOOP                  ; Continue with next character
+GFX_CRLF:
+    CP          0x1							    	; $01 = down one row, back to index (CR+LF)
+    JP          NZ,GFX_BACKSPACE
+    LD          A,B				    				; Save color in A
+    LD          B,0x0				   				; Clear B for 16-bit math
+    POP         HL						    		; Get original line start from stack
+    ADD         HL,BC								; Move down one row (C=$28=40 chars)
+    PUSH        HL							    	; Save new line start to stack
+    LD          B,A								    ; Restore color to B
+    JP          GFX_DRAW_MAIN_LOOP
+GFX_BACKSPACE:
+    CP          0x2							    	; $02 = back up one column
+    JP          NZ,GFX_LINE_FEED                    ; If not $02, check for $03 (line feed)
+    DEC         HL                                  ; $02 = move cursor back one position
+    JP          GFX_DRAW_MAIN_LOOP                  ; Continue with next character
+GFX_LINE_FEED:
+    CP          0x3							    	; $03 = down one row, same column (LF)
+    JP          NZ,GFX_CURSOR_UP
+    LD          A,B							    	; Save color in A
+    LD          B,0x0								; Clear B for 16-bit math
+    ADD         HL,BC								; Move current position down one row
+    EX          (SP),HL					    		; Put new cursor pos on stack, get line start in HL
+    ADD         HL,BC								; Move line start down one row too
+    EX          (SP),HL					    		; Put updated line start back on stack
+    LD          B,A						    		; Restore color value from A back to B
+    JP          GFX_DRAW_MAIN_LOOP                  ; Continue with next character
+GFX_CURSOR_UP:
+    CP          0x4							    	; $04 = up one row, same column (reverse LF)
+    JP          NZ,GFX_REVERSE_COLOR                ; If not $04, check for $A0 (reverse colors)
+    LD          A,B							    	; Save color in A
+    LD          B,0x0								; Clear B for 16-bit math
+    SBC         HL,BC								; Move current position up one row (subtract 40)
+    EX          (SP),HL						    	; Put new cursor pos on stack, get line start in HL
+    SBC         HL,BC								; Move line start up one row too
+    EX          (SP),HL						    	; Put updated line start back on stack
+    LD          B,A							    	; Restore color value from A back to B
+    JP          GFX_DRAW_MAIN_LOOP                  ; Continue with next character
+GFX_REVERSE_COLOR:
+    CP          $a0							    	; $a0 = reverse FG & BG colors
+    JP          NZ,GFX_DRAW_CHAR                    ; If not $A0, treat as normal character
+    RRC         B							    	; Rotate color byte right 4 times
+    RRC         B                                   ; to swap foreground and background
+    RRC         B                                   ; nybbles (FG=1,BG=2 becomes FG=2,BG=1)
     RRC         B
-    RRC         B
-    RRC         B
-    JP          LAB_ram_f338
-LAB_ram_f385:
-    LD          (HL),A								;  Draw character to CHRRAM
-    ; Map from CHRRAM to COLRAM: add $400 offset
-    ; CHRRAM $3000-$33FF maps to COLRAM $3400-$37FF
-    INC         H								;  +$100 
-    INC         H								;  +$200
-    INC         H								;  +$300  
-    INC         H								;  +$400 = COLRAM offset
-    ; Determine color nibble placement in COLRAM byte
-    LD          A,0xf								;  Test threshold for nibble selection
-    CP          B								;  Compare color with $0F  
-    LD          A,(HL)								;  Load current COLRAM byte
-    JP          C,LAB_ram_f398							;  If B > $0F, store in low nibble
-    ; Store color in high nibble (background colors $00-$0F)
-    RLCA								;  Rotate current low nibble 
-    RLCA								;  to high nibble position
-    RLCA								;  (preserve existing foreground)
+    JP          GFX_DRAW_MAIN_LOOP                  ; Continue with next character
+GFX_DRAW_CHAR:
+    LD          (HL),A								; Draw character to CHRRAM
+                                                    ; Map from CHRRAM to COLRAM: add $400 offset
+                                                    ; CHRRAM $3000-$33FF maps to COLRAM $3400-$37FF
+    INC         H						    		; +$100 
+    INC         H				    				; +$200
+    INC         H			    					; +$300  
+    INC         H		    						; +$400 = COLRAM offset
+                                                    ; Determine color nybble placement in COLRAM byte
+    LD          A,0xf								; Load $0F as threshold value
+    CP          B				    				; Compare $0F with color in B register
+    LD          A,(HL)								; Load current COLRAM byte
+    JP          C,GFX_COLOR_LOW_NYBBLE				; If B > $0F (foreground), store in low nybble
+                                                    ; Store color in high nybble (foreground colors $0x-$Fx)
+    RLCA							            	; Rotate existing COLRAM byte left 4 times
+    RLCA							            	; to move low nybble to high position
+    RLCA				            				; (preserves existing foreground color)
     RLCA  
-    AND         $f0								;  Keep only high nibble
-    JP          LAB_ram_f39a
-LAB_ram_f398:
-    ; Store color in low nibble (foreground colors $10+)  
-    AND         0xf								;  Keep only low nibble of existing
-LAB_ram_f39a:
-    OR          B								;  Merge new color with existing
-    LD          (HL),A								;  Write combined color to COLRAM
-    ; Return from COLRAM back to CHRRAM: subtract $400 offset
-    DEC         H								;  -$100
-    DEC         H								;  -$200  
-    DEC         H								;  -$300
-    DEC         H								;  -$400 = back to CHRRAM
-    INC         HL								;  Move to next character position
-    JP          LAB_ram_f338
+    AND         $f0						    		; Keep only high nybble, clear low nybble
+    JP          GFX_SWAP_FG_BG                      ; Continue to merge with new color
+GFX_COLOR_LOW_NYBBLE:
+                                                    ; Store color in low nybble (background colors $10+)  
+    AND         0xf								    ; Keep only low nybble of existing COLRAM
+GFX_SWAP_FG_BG:
+    OR          B							    	; Merge new color with existing COLRAM byte
+    LD          (HL),A								; Write combined color to COLRAM
+                                                    ; Return from COLRAM back to CHRRAM: subtract $400 offset
+    DEC         H				    				; -$100
+    DEC         H					    			; -$200  
+    DEC         H				    				; -$300
+    DEC         H				    				; -$400 = back to CHRRAM
+    INC         HL					    			; Move to next character position
+    JP          GFX_DRAW_MAIN_LOOP                  ; Continue with next character
+
 BUILD_MAP:
     LD          HL,MAPSPACE_WALLS
     LD          B,0x0
