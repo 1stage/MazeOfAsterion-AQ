@@ -5,17 +5,17 @@
 | SL22 |2| SL2  |2|  S2  |2| SR2  |2| SR22 |
 |      |2|      | |      | |      |2|      |
  ------ - ------ - ------ - ------ - ------ 
-         | FL1  | |  F1  | | FR1  |         
+         | FL1* | |  F1* | | FR1* |         
           ------ - ------ - ------    
          |      |L|      |R|      |    
          | SL1  |1|  S1  |1| SR1  |       
-         |      | |      | |      |       
+         |      |*|      |*|      |       
           ------ - ------ - ------          
-         | FL0  | |  F0  | | FR0  |         
+         | FL0* | |  F0* | | FR0* |         
           ------ - ------ - ------       
          |      |L|      |R|      |       
          | SL0  |0|  S0  |0| SR0  |       
-         |      | |      | |      |       
+         |      |*|      |*|      |       
           ------ - ------ - ------          
                   |  B0  |                  
                    ------       
@@ -28,7 +28,7 @@ Labels that begin with S are map cells:
  - S0 is the map cell in which the player resides
  - S1 is the map cell one space in front of the player
  - S2 is the map cell two spaces in front of the player
- - SB is the map cell one space behind the player
+ - SB is the map cell one space behind the player (not seen)
  - SL0 is the map cell one space to the left of the player
  - SR0 is the map cell one space to the right of the player
  - SL1 is the map cell one space to the left of S1
@@ -38,17 +38,17 @@ Labels that begin with S are map cells:
  - SL22 is the map cell two spaces to the left of S2
  - SR22 is the map cell two spaces to the right of S2
 All other labels are for walls:
- - F0 is the wall in front of the player
- - L0 is the wall to the left of the player
- - R0 is the wall to the right of the player
- - B0 is the wall behind the player
- - FL0 is the wall to the left of F0 (colinear)
- - FR0 is the wall to the right of F0 (colinear)
- - F1 is the wall on the far side of S1
- - L1 is the wall to the left of S1
- - R1 is the wall to the right of S1
- - FL1 is the wall to the left of F1 (colinear)
- - FR1 is the wall to the right of F1 (colinear)
+ - F0* is the wall in front of the player
+ - L0* is the wall to the left of the player
+ - R0* is the wall to the right of the player
+ - B0 is the wall behind the player (not rendered)
+ - FL0* is the wall to the left of F0 (colinear)
+ - FR0* is the wall to the right of F0 (colinear)
+ - F1* is the wall on the far side of S1
+ - L1* is the wall to the left of S1
+ - R1* is the wall to the right of S1
+ - FL1* is the wall to the left of F1 (colinear)
+ - FR1* is the wall to the right of F1 (colinear)
  - F2 is the wall on the far side of S2
  - L2 is the wall to the left of S2
  - R2 is the wall to the right of S2
@@ -58,3 +58,5 @@ All other labels are for walls:
  - FR2 is the wall to the right of F2 (colinear)
  - FL22 is the wall to the left of FL2 (colinear)
  - FR22 is the wall to the right of FR22 (colinear)
+
+Walls with an asterisk can have doors rendered.
