@@ -1,8 +1,8 @@
 ;==============================================================================
 ; DRAW_DOOR_BOTTOM_SETUP - Set up color for door bottom drawing
 ;==============================================================================
-; PURPOSE: Prepares door bottom color (green on dark cyan) and falls through to
-;          DRAW_SINGLE_CHAR_DOWN to draw door frame elements
+; PURPOSE: Prepares door bottom color and falls through to
+;          DRAW_SINGLE_CHAR_UP to draw door frame elements
 ; INPUT:   HL = screen position, A = character to draw
 ; OUTPUT:  DE = door bottom color, character drawn, HL modified
 ;==============================================================================
@@ -11,51 +11,64 @@ DRAW_DOOR_BOTTOM_SETUP:
 								                    ; (bottom of closed door)
 
 ;------------------------------------------------------------------------------
-; DRAW_SINGLE_CHAR_DOWN - Draw single character moving cursor down
+; DRAW_SINGLE_CHAR_UP - Draw single character moving cursor up
 ;------------------------------------------------------------------------------
 ; INPUT:  HL = position, A = character, DE = color or row stride
-; OUTPUT: HL = position moved down by DE, character drawn
+; OUTPUT: HL = position moved up by DE, character drawn
+; PATTERN: X    Execution order: 1
+; REGISTERS MODIFIED: HL (moved up by DE amount)
 ;------------------------------------------------------------------------------
-DRAW_SINGLE_CHAR_DOWN:
+DRAW_SINGLE_CHAR_UP:
     LD          (HL),A                              ; Draw character at current position
     SCF                                             ; Set carry flag 
     CCF                                             ; Clear carry flag (prepare for SBC)
-    SBC         HL,DE                               ; Move cursor down by DE amount
-
-;------------------------------------------------------------------------------
-; DRAW_VERTICAL_LINE_3_DOWN - Draw 3-character vertical line moving downward
-;------------------------------------------------------------------------------
-; INPUT:  HL = starting position, A = character, DE = row stride
-; OUTPUT: HL = position 3 rows down, 3 characters drawn vertically
-;------------------------------------------------------------------------------
-DRAW_VERTICAL_LINE_3_DOWN:
-    LD          (HL),A                              ; Draw character at current position
-    SCF                                             ; Set carry flag
-    CCF                                             ; Clear carry flag (prepare for SBC)
-    SBC         HL,DE                               ; Move cursor down one row
-    LD          (HL),A                              ; Draw character at new position
-    SBC         HL,DE                               ; Move cursor down another row
-    LD          (HL),A                              ; Draw character at final position
-    RET                                             ; Return with cursor 3 rows down
-    LD          DE,COLOR(GRN,DKCYN)					; GRN on DKCYN (door frame setup)
-								                    ; (bottom of closed door)
+    SBC         HL,DE                               ; Move cursor up by DE amount
 
 ;------------------------------------------------------------------------------
 ; DRAW_VERTICAL_LINE_3_UP - Draw 3-character vertical line moving upward
 ;------------------------------------------------------------------------------
-; INPUT:  HL = starting position, A = character, DE = row stride  
+; INPUT:  HL = starting position, A = character, DE = row stride
 ; OUTPUT: HL = position 3 rows up, 3 characters drawn vertically
+; PATTERN: X    Execution order: 3
+;          X                     2  
+;          X                     1
+; REGISTERS MODIFIED: HL (moved up 3 rows)
 ;------------------------------------------------------------------------------
 DRAW_VERTICAL_LINE_3_UP:
     LD          (HL),A                              ; Draw character at current position
-    ADD         HL,DE                               ; Move cursor up one row
-CONTINUE_VERTICAL_LINE_UP:
+    SCF                                             ; Set carry flag
+    CCF                                             ; Clear carry flag (prepare for SBC)
+    SBC         HL,DE                               ; Move cursor up one row
     LD          (HL),A                              ; Draw character at new position
-    ADD         HL,DE                               ; Move cursor up another row
-    LD          (HL),A                              ; Draw character at next position
-    ADD         HL,DE                               ; Move cursor up final row
+    SBC         HL,DE                               ; Move cursor up another row
     LD          (HL),A                              ; Draw character at final position
     RET                                             ; Return with cursor 3 rows up
+
+; Dead Code?    
+;    LD          DE,COLOR(GRN,DKCYN)					; GRN on DKCYN (door frame setup)
+								                    ; (bottom of closed door)
+
+;------------------------------------------------------------------------------
+; DRAW_VERTICAL_LINE_4_DOWN - Draw 4-character vertical line moving downward
+;------------------------------------------------------------------------------
+; INPUT:  HL = starting position, A = character, DE = row stride  
+; OUTPUT: HL = position 3 rows down, 4 characters drawn vertically
+; PATTERN: X    Execution order: 1
+;          X                     2
+;          X                     3  
+;          X                     4
+; REGISTERS MODIFIED: HL (moved down 3 rows)
+;------------------------------------------------------------------------------
+DRAW_VERTICAL_LINE_4_DOWN:
+    LD          (HL),A                              ; Draw character at current position
+    ADD         HL,DE                               ; Move cursor down one row
+CONTINUE_VERTICAL_LINE_DOWN:
+    LD          (HL),A                              ; Draw character at new position
+    ADD         HL,DE                               ; Move cursor down another row
+    LD          (HL),A                              ; Draw character at next position
+    ADD         HL,DE                               ; Move cursor down final row
+    LD          (HL),A                              ; Draw character at final position
+    RET                                             ; Return with cursor 3 rows down
 
 ;------------------------------------------------------------------------------
 ; DRAW_DL_3X3_CORNER - Draw bottom-left corner fill pattern
@@ -289,15 +302,15 @@ DRAW_WALL_FL0:
                                                     ; WAS DKCYN on BLU
                                                     ; WAS LD A,$94
     DEC         DE
-    CALL        DRAW_SINGLE_CHAR_DOWN
+    CALL        DRAW_SINGLE_CHAR_UP
     LD          A,$c0
     LD          HL,DAT_ram_33c0
-    CALL        DRAW_SINGLE_CHAR_DOWN
+    CALL        DRAW_SINGLE_CHAR_UP
     LD          HL,IDX_VIEWPORT_CHRRAM
     LD          A,$c1
     INC         DE
     INC         DE
-    JP          DRAW_VERTICAL_LINE_3_UP
+    JP          DRAW_VERTICAL_LINE_4_DOWN
     RET
 DRAW_DOOR_FLO:
     CALL        DRAW_WALL_FL0
@@ -318,7 +331,7 @@ SUB_ram_c996:
     LD          A,COLOR(GRN,BLU)					; GRN on BLU
 DRAW_FL0_DOOR_FRAME:
     LD          HL,COLRAM_FL0_DOOR_FRAME_IDX
-    CALL        DRAW_VERTICAL_LINE_3_DOWN
+    CALL        DRAW_VERTICAL_LINE_3_UP
     DEC         DE
     ADD         HL,DE
     EX          AF,AF'
@@ -330,12 +343,12 @@ DRAW_FL0_DOOR_FRAME:
     CALL        DRAW_HORIZONTAL_LINE_3_RIGHT
     ADD         HL,DE
     DEC         DE
-    CALL        DRAW_VERTICAL_LINE_3_DOWN
+    CALL        DRAW_VERTICAL_LINE_3_UP
     LD          HL,DAT_ram_30c8
     LD          A,$c1
     INC         DE
     INC         DE
-    JP          CONTINUE_VERTICAL_LINE_UP
+    JP          CONTINUE_VERTICAL_LINE_DOWN
     RET
 SUB_ram_c9c5:
     LD          HL,DAT_ram_34c8
@@ -431,7 +444,7 @@ DRAW_L1_WALL:
     ADD         HL,DE
     LD          A,$c0								; RIGHT angle CHR
     DEC         DE
-    CALL        DRAW_SINGLE_CHAR_DOWN
+    CALL        DRAW_SINGLE_CHAR_UP
     LD          HL,DAT_ram_3547
     LD          A,$b0								; DKBLU on BLK
 								; WAS DKBLU on CYN
@@ -451,7 +464,7 @@ DRAW_L1_WALL:
 								; WAS DKCYN on DKBLU
 								; WAS LD A,$9b
     DEC         DE
-    JP          DRAW_SINGLE_CHAR_DOWN
+    JP          DRAW_SINGLE_CHAR_UP
     RET
 DRAW_FL1_DOOR:
     CALL        DRAW_L1_WALL
@@ -601,12 +614,12 @@ SUB_ram_cb4f:
     LD          HL,DAT_ram_303f
     LD          A,$c0								; Right angle char
     LD          DE,$27
-    CALL        DRAW_VERTICAL_LINE_3_UP
+    CALL        DRAW_VERTICAL_LINE_4_DOWN
     LD          HL,DAT_ram_335c
     INC         A
     INC         DE
     INC         DE
-    JP          DRAW_VERTICAL_LINE_3_UP
+    JP          DRAW_VERTICAL_LINE_4_DOWN
 DRAW_FR0_DOOR:
     CALL        SUB_ram_cb4f
     LD          A,$f0								; DKGRY on BLK
@@ -628,7 +641,7 @@ LAB_ram_cb86:
     LD          HL,DAT_ram_352d
     DEC         DE
     DEC         DE
-    CALL        DRAW_VERTICAL_LINE_3_DOWN
+    CALL        DRAW_VERTICAL_LINE_3_UP
     INC         DE
     ADD         HL,DE
     EX          AF,AF'
@@ -640,12 +653,12 @@ LAB_ram_cb86:
     CALL        DRAW_HORIZONTAL_LINE_3_LEFT
     ADD         HL,DE
     INC         DE
-    CALL        DRAW_VERTICAL_LINE_3_DOWN
+    CALL        DRAW_VERTICAL_LINE_3_UP
     LD          HL,DAT_ram_30df
     LD          A,$c0								; Right angle char
     DEC         DE
     DEC         DE
-    JP          CONTINUE_VERTICAL_LINE_UP
+    JP          CONTINUE_VERTICAL_LINE_DOWN
 SUB_ram_cbae:
     LD          HL,DAT_ram_34dc
     LD          A,0x4								; BLK on BLU
@@ -751,7 +764,7 @@ DRAW_WALL_FR1:
 SUB_ram_cc4d:
     POP         IX
     LD          DE,$27
-    CALL        DRAW_SINGLE_CHAR_DOWN
+    CALL        DRAW_SINGLE_CHAR_UP
     INC         DE
     ADD         HL,DE
     POP         AF
@@ -765,7 +778,7 @@ SUB_ram_cc4d:
     ADD         HL,DE
     POP         AF
     INC         DE
-    CALL        DRAW_SINGLE_CHAR_DOWN
+    CALL        DRAW_SINGLE_CHAR_UP
     JP          (IX)
 SUB_ram_cc6d:
     CALL        DRAW_WALL_FR1
