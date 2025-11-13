@@ -97,18 +97,14 @@ CONTINUE_VERTICAL_LINE_DOWN:
 ;------------------------------------------------------------------------------
 ; INPUT:  HL = top-left position, A = char/color, DE = row stride (VARIABLE!)
 ; OUTPUT: HL = bottom-left position of filled area
-; PATTERN: X . .    Execution order: 1 . .
-;          X X .                     2 3 .
-;          X X X                     6 5 4
 ; 
-; DE REGISTER USAGE ANALYSIS:
-; Called with different stride values for precise positioning:
-; - DE=$27 (40-1): Used in DRAW_L1_WALL, DRAW_WALL_FL0, DRAW_FL0_DOOR_FRAME
-; - DE=$28 (40):   Standard row stride (from SUB_ram_cc4d via INC DE)  
-; - DE=$26 (40-2): Specialized positioning (from LAB_ram_cb86)
+; DE=$28 (40): Standard DL corner pattern (normal screen row width)
+; X . .    Execution order: 1 . .
+; X X .                     2 3 . 
+; X X X                     6 5 4
 ;
 ; NOTE: All corner functions draw downward using ADD HL,DE operations.
-; Part of complete corner function set with variable DE stride support.
+; Different DE values enable precise positioning for various screen contexts.
 ;
 ; REGISTERS MODIFIED: HL (points to bottom-left when done)
 ;------------------------------------------------------------------------------
@@ -132,18 +128,20 @@ DRAW_DL_3X3_CORNER:
 ;------------------------------------------------------------------------------
 ; INPUT:  HL = top-right position, A = char/color, DE = row stride (VARIABLE!)  
 ; OUTPUT: HL = bottom-left position of filled area
-; PATTERN: . . X    Execution order: . . 1
-;          . X X                     . 3 2
-;          X X X                     6 5 4
+; 
+; DE=$28 (40): Standard DR corner pattern (normal screen row width)
+; . . X . .    Execution order: . . 1 . .  
+; . X X . .                     . 3 2 . .    
+; X X X . .                     6 5 4 . .    
 ;
-; DE REGISTER USAGE ANALYSIS:
-; Called with different stride values for precise positioning:
-; - DE=$28 (40):   Standard row stride (from SUB_ram_cc4d via INC DE)
-; - DE=$26 (40-2): Specialized positioning (from LAB_ram_cb86 path)
-; - DE=$27 (40-1): Other positioning contexts (pattern similar to DRAW_DL)
+; DE=$26 (38): Creates STRONG LEFT-SHIFT pattern (stride -2) - RARELY USED
+; . . . . . . X . .    Execution order: . . . . . . 1 . .
+; . . . . 3 2 . . .                     . . . . 3 2 . . .
+; 6 5 4 . . . . . .                     6 5 4 . . . . . .
+; (Note: This pattern exists in code but may not be visually rendered in normal gameplay)
 ;
 ; NOTE: All corner functions draw downward using ADD HL,DE operations.
-; Part of complete corner function set with variable DE stride support.
+; Different DE values enable creating multiple pattern variants from same function.
 ;
 ; REGISTERS MODIFIED: HL (points to bottom-left when done)
 ;------------------------------------------------------------------------------
