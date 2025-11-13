@@ -2707,16 +2707,29 @@ LAB_ram_f333:
 ; GFX_DRAW - Render AQUASCII graphics with cursor control
 ;==============================================================================
 ; PURPOSE: Renders character graphics using AQUASCII control codes for positioning
-; INPUT:   HL = screen cursor position (CHRRAM address; starts at index for graphic location)
-;          DE = graphics data pointer (AQUASCII sequence)  
+;          and cursor movement. Processes graphics strings with embedded control codes
+;          to draw characters and colors to screen memory.
+;
+; INPUT:   HL = screen cursor position (CHRRAM address $3000-$33E7)
+;          DE = graphics data pointer (AQUASCII sequence with control codes)  
 ;          B  = color byte (foreground in high nybble, background in low nybble)
+;
 ; PROCESS: 1. Parse AQUASCII control codes ($00-$04, $A0, $FF)
 ;          2. Handle cursor movement and color changes
 ;          3. Draw characters to CHRRAM and colors to COLRAM
-; OUTPUT:  Graphics rendered to screen, HL points to next position
-; USES:    All registers modified, uses stack for position tracking
-; NOTES:   Control codes: $00=right, $01=CR+LF, $02=backspace, 
-;          $03=LF, $04=up, $A0=reverse colors, $FF=end
+;          4. Continue until $FF terminator found
+;
+; OUTPUT:  Graphics rendered to screen, cursor moved to final position
+;
+; REGISTERS MODIFIED:
+;   INPUT:  HL (cursor position), DE (AQUASCII string pointer), B (color byte)
+;   DURING: A (processing bytes), C ($28), DE (advancing), HL (cursor tracking), B (temp. modified)
+;   OUTPUT: HL (restored to original), DE (past $FF), B (restored), A ($00), C ($28)
+;
+; USES:    Stack for preserving cursor positions during row operations
+; CALLS:   Internal subroutines for each AQUASCII control code
+; NOTES:   Screen is 40x25 characters. Control codes: $00=right, $01=CR+LF, 
+;          $02=backspace, $03=LF, $04=up, $A0=reverse colors, $FF=end
 ;==============================================================================
 GFX_DRAW:
     PUSH        HL                                  ; Save original cursor position on stack

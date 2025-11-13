@@ -41,6 +41,7 @@ DRAW_CROSS_PATTERN_RIGHT:
     DEC         HL
     LD          (HL),A
     RET
+
 DRAW_CROSS_PATTERN_LEFT:
     LD          (HL),A
     ADD         HL,DE
@@ -83,6 +84,13 @@ DRAW_HORIZONTAL_LINE_3_LEFT:
     ADD         HL,DE
     LD          (HL),A
     RET
+
+;------------------------------------------------------------------------------
+; DRAW_ROW - Fill single row with byte value (helper for FILL_CHRCOL_RECT)
+;------------------------------------------------------------------------------
+; INPUT:  HL = starting position, B = width, A = fill value
+; OUTPUT: HL = position after last byte, B = 0, A = unchanged  
+;------------------------------------------------------------------------------
 DRAW_ROW:
     LD          (HL),A
     DEC         B
@@ -96,6 +104,35 @@ DRAW_CELL:
     RET         Z
     ADD         HL,DE								; Goto next row
     JP          DRAW_CELL
+
+;==============================================================================
+; FILL_CHRCOL_RECT - Fill rectangular area with character or color data
+;==============================================================================
+; PURPOSE: Fills a rectangular region of CHRRAM or COLRAM with a single byte value.
+;          Used for drawing walls, doors, backgrounds, and UI elements by writing
+;          the same character or color to multiple screen positions in a rectangle.
+;
+; INPUT:   HL = starting memory address (CHRRAM $3000+ or COLRAM $3400+)
+;          BC = rectangle dimensions (B=width in characters, C=height in rows)
+;          A  = byte value to fill (character code for CHRRAM, color for COLRAM)
+;
+; PROCESS: 1. Set row stride to 40 (screen width in characters)
+;          2. For each row: fill B positions with value A
+;          3. Move to next row (+40 characters) and repeat
+;          4. Continue until C rows completed
+;
+; OUTPUT:  Rectangle filled with specified byte, HL points past last written byte
+;
+; REGISTERS MODIFIED:
+;   INPUT:  HL (start address), BC (dimensions), A (fill value)
+;   DURING: DE (row stride=$28), HL (current position), BC (counters), A (preserved)
+;   OUTPUT: HL (end position), BC (both zero), DE ($28), A (unchanged)
+;
+; USES:    Stack for preserving HL/BC during row operations
+; CALLS:   DRAW_ROW (internal subroutine)
+; NOTES:   Screen is 40x25 characters. Rectangle must fit within memory bounds.
+;          No bounds checking performed - caller responsible for valid coordinates.
+;==============================================================================
 FILL_CHRCOL_RECT:
     LD          DE,$28								; DE = 40 / $28 (next row)
 DRAW_CHRCOLS:
@@ -108,6 +145,7 @@ DRAW_CHRCOLS:
     RET         Z
     ADD         HL,DE
     JP          DRAW_CHRCOLS
+
 DRAW_F0_WALL:
     LD          HL,COLRAM_F0_WALL_MAP_IDX
     LD          BC,RECT(16,16)							; 16 x 16 rectangle
