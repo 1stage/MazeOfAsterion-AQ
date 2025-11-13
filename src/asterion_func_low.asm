@@ -233,7 +233,8 @@ DRAW_UL_3X3_CORNER:
 ;------------------------------------------------------------------------------
 ; INPUT:  HL = starting position, B = width, A = fill value
 ; OUTPUT: HL = position after last byte, B = 0, A = unchanged
-; PATTERN: X X X (horizontal line, width B)
+; PATTERN: Horizontal line (width B)
+; X X ... X    Execution order: 1 2 ... B
 ; REGISTERS MODIFIED: HL (advanced by B positions), B (decremented to 0)
 ;------------------------------------------------------------------------------
 DRAW_ROW:
@@ -244,21 +245,24 @@ DRAW_ROW:
     JP          DRAW_ROW                            ; Continue filling row
 
 ;------------------------------------------------------------------------------
-; DRAW_CELL - Fill single column with byte value (vertical line drawing)
+; DRAW_COLUMN - Fill single column with byte value (vertical line drawing)
 ;------------------------------------------------------------------------------
 ; INPUT:  HL = starting position, C = height, A = fill value, DE = $28 (row stride)
 ; OUTPUT: HL = position after last byte, C = 0, A = unchanged
-; PATTERN: X (vertical line, height C)
-;          X
-;          X
+; PATTERN: Vertical line (height C)
+; X    Execution order: 1
+; X                     2
+; .                     .
+; .                     .
+; X                     C
 ; REGISTERS MODIFIED: HL (advanced by C*DE positions), C (decremented to 0)
 ;------------------------------------------------------------------------------
-DRAW_CELL:
+DRAW_COLUMN:
     LD          (HL),A                              ; Write character/color to current position
     DEC         C                                   ; Decrement remaining height
     RET         Z                                   ; Return if column completed
     ADD         HL,DE								; Move to next row (+40 characters down)
-    JP          DRAW_CELL                           ; Continue filling column vertically
+    JP          DRAW_COLUMN                         ; Continue filling column vertically
 
 ;==============================================================================
 ; FILL_CHRCOL_RECT - Fill rectangular area with character or color data
