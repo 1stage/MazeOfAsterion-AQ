@@ -1,15 +1,23 @@
 ;==============================================================================
-; ASTERION GRAPHICS FUNCTIONS - FUNCTION RENAMING & DE REGISTER ANALYSIS
+; ASTERION GRAPHICS FUNCTIONS - COMPLETE CORNER FUNCTION SET ANALYSIS
 ;==============================================================================
-; ARCHITECTURAL FINDINGS:
-; - Corner functions (DRAW_DL/DR_3X3_CORNER_DOWN) use VARIABLE DE stride values:
-;   * DE=$27 (40-1): Precision left-aligned positioning
-;   * DE=$28 (40):   Standard row stride 
-;   * DE=$26 (40-2): Specialized corner positioning
-; - These are NOT duplicates of DRAW_HORIZONTAL_LINE functions despite 
-;   creating similar L-shaped patterns - they serve different purposes:
-;   * Corner functions = Precision positioning tools with variable strides
-;   * Horizontal functions = Standard drawing primitives with fixed stride
+; ARCHITECTURAL DISCOVERY: COMPLETE 3X3 CORNER FUNCTION FAMILY
+; All functions draw DOWNWARD using ADD HL,DE operations, despite visual pattern names:
+;
+; COMPLETE CORNER FUNCTION SET:
+; - DRAW_DL_3X3_CORNER: Bottom-left corner (start top-left, draw down-left)
+; - DRAW_DR_3X3_CORNER: Bottom-right corner (start top-right, draw down-right)  
+; - DRAW_UL_3X3_CORNER: Upper-left corner (start top-left, draw down-right)
+; - DRAW_UR_3X3_CORNER: Upper-right corner (start top-left, draw down-left)
+;
+; DE REGISTER USAGE - VARIABLE STRIDE VALUES FOR PRECISION POSITIONING:
+; - DE=$27 (40-1): Precision left-aligned positioning
+; - DE=$28 (40):   Standard row stride 
+; - DE=$26 (40-2): Specialized corner positioning
+;
+; NOTE: Previously misnamed as "HORIZONTAL_LINE" functions - these create L-shaped
+; corner patterns, not simple horizontal lines. Function renaming reveals elegant
+; complete corner drawing system with variable stride support for precise graphics.
 ;==============================================================================
 
 ;==============================================================================
@@ -85,7 +93,7 @@ CONTINUE_VERTICAL_LINE_DOWN:
     RET                                             ; Return with cursor 3 rows down
 
 ;------------------------------------------------------------------------------
-; DRAW_DL_3X3_CORNER_DOWN - Draw bottom-left corner fill pattern, downward
+; DRAW_DL_3X3_CORNER - Draw bottom-left corner fill pattern
 ;------------------------------------------------------------------------------
 ; INPUT:  HL = top-left position, A = char/color, DE = row stride (VARIABLE!)
 ; OUTPUT: HL = bottom-left position of filled area
@@ -99,13 +107,12 @@ CONTINUE_VERTICAL_LINE_DOWN:
 ; - DE=$28 (40):   Standard row stride (from SUB_ram_cc4d via INC DE)  
 ; - DE=$26 (40-2): Specialized positioning (from LAB_ram_cb86)
 ;
-; NOTE: Not duplicate of DRAW_HORIZONTAL_LINE functions - serves different
-; architectural purpose as precision positioning tool with variable strides
-; vs standard drawing primitive with fixed stride.
+; NOTE: All corner functions draw downward using ADD HL,DE operations.
+; Part of complete corner function set with variable DE stride support.
 ;
 ; REGISTERS MODIFIED: HL (points to bottom-left when done)
 ;------------------------------------------------------------------------------
-DRAW_DL_3X3_CORNER_DOWN:
+DRAW_DL_3X3_CORNER:
     LD          (HL),A                              ; 1: Draw top-left (0,0)
     ADD         HL,DE                               ; Move down one row  
     LD          (HL),A                              ; 2: Draw middle-left (0,1)
@@ -121,7 +128,7 @@ DRAW_DL_3X3_CORNER_DOWN:
     RET                                             ; Return with cursor positioned bottom-left
 
 ;------------------------------------------------------------------------------
-; DRAW_DR_3X3_CORNER_DOWN - Draw bottom-right corner fill pattern, downward
+; DRAW_DR_3X3_CORNER - Draw bottom-right corner fill pattern
 ;------------------------------------------------------------------------------
 ; INPUT:  HL = top-right position, A = char/color, DE = row stride (VARIABLE!)  
 ; OUTPUT: HL = bottom-left position of filled area
@@ -135,13 +142,12 @@ DRAW_DL_3X3_CORNER_DOWN:
 ; - DE=$26 (40-2): Specialized positioning (from LAB_ram_cb86 path)
 ; - DE=$27 (40-1): Other positioning contexts (pattern similar to DRAW_DL)
 ;
-; NOTE: Not duplicate of DRAW_HORIZONTAL_LINE functions - serves different
-; architectural purpose as precision positioning tool with variable strides
-; vs standard drawing primitive with fixed stride.
+; NOTE: All corner functions draw downward using ADD HL,DE operations.
+; Part of complete corner function set with variable DE stride support.
 ;
 ; REGISTERS MODIFIED: HL (points to bottom-left when done)
 ;------------------------------------------------------------------------------
-DRAW_DR_3X3_CORNER_DOWN:
+DRAW_DR_3X3_CORNER:
     LD          (HL),A                              ; 1: Draw top-right (2,0)
     ADD         HL,DE                               ; Move down one row
     LD          (HL),A                              ; 2: Draw middle-right (2,1)
@@ -157,54 +163,72 @@ DRAW_DR_3X3_CORNER_DOWN:
     RET                                             ; Return with cursor positioned bottom-left
 
 ;------------------------------------------------------------------------------
-; DRAW_HORIZONTAL_LINE_3_RIGHT - Draw L-shaped pattern extending rightward and upward
+; DRAW_UR_3X3_CORNER - Draw upper-right corner fill pattern
 ;------------------------------------------------------------------------------
-; INPUT:  HL = starting position, A = character, DE = row stride
-; OUTPUT: HL = top-left position, L-shaped pattern drawn
-; PATTERN: X . .    Execution order: 6 . .
+; INPUT:  HL = top-left starting position, A = character, DE = row stride (VARIABLE!)
+; OUTPUT: HL = final position after drawing pattern
+; PATTERN: X X X    Execution order: 1 2 3
 ;          X X .                     5 4 .
-;          X X X                     1 2 3
-; REGISTERS MODIFIED: HL (moved to top-left position)
+;          X . .                     6 . .
+; 
+; Creates upper-right corner pattern by starting at top-left and drawing:
+; 1. Full horizontal line (3 chars right)
+; 2. Moving DOWN one row, draw 2 chars from center-left  
+; 3. Moving DOWN another row, draw 1 char at left
+;
+; NOTE: This draws DOWNWARD despite creating "upper" corner visual pattern.
+; Part of complete corner function set with variable DE stride support.
+;
+; REGISTERS MODIFIED: HL (moved to final drawn position)
 ;------------------------------------------------------------------------------
-DRAW_HORIZONTAL_LINE_3_RIGHT:
-    LD          (HL),A                              ; 1: Draw bottom-left (0,0)
+DRAW_UR_3X3_CORNER:
+    LD          (HL),A                              ; 1: Draw top-left (0,0)
     INC         HL                                  ; Move right one position
-    LD          (HL),A                              ; 2: Draw bottom-center (1,0)
+    LD          (HL),A                              ; 2: Draw top-center (1,0)
     INC         HL                                  ; Move right one position  
-    LD          (HL),A                              ; 3: Draw bottom-right (2,0)
-    ADD         HL,DE                               ; Move up one row
+    LD          (HL),A                              ; 3: Draw top-right (2,0)
+    ADD         HL,DE                               ; Move DOWN one row
     DEC         HL                                  ; Move back left one position
-    LD          (HL),A                              ; 4: Draw middle-center (1,-1)
+    LD          (HL),A                              ; 4: Draw middle-center (1,1)
     DEC         HL                                  ; Move left one position
-    LD          (HL),A                              ; 5: Draw middle-left (0,-1)
-    ADD         HL,DE                               ; Move up one row
-    LD          (HL),A                              ; 6: Draw top-left (0,-2)
-    RET                                             ; Return with cursor at top-left
+    LD          (HL),A                              ; 5: Draw middle-left (0,1)
+    ADD         HL,DE                               ; Move DOWN one row
+    LD          (HL),A                              ; 6: Draw bottom-left (0,2)
+    RET                                             ; Return with cursor at bottom-left
 
 ;------------------------------------------------------------------------------
-; DRAW_HORIZONTAL_LINE_3_LEFT - Draw mirrored L-shaped pattern extending rightward and upward  
+; DRAW_UL_3X3_CORNER - Draw upper-left corner fill pattern
 ;------------------------------------------------------------------------------
-; INPUT:  HL = starting position, A = character, DE = row stride
-; OUTPUT: HL = top-right position, mirrored L-shaped pattern drawn
-; PATTERN: . . X    Execution order: . . 6
+; INPUT:  HL = top-left starting position, A = character, DE = row stride (VARIABLE!)
+; OUTPUT: HL = final position after drawing pattern  
+; PATTERN: X X X    Execution order: 1 2 3
 ;          . X X                     . 4 5
-;          X X X                     1 2 3
-; REGISTERS MODIFIED: HL (moved to top-right position)
+;          . . X                     . . 6
+;
+; Creates upper-left corner pattern by starting at top-left and drawing:
+; 1. Full horizontal line (3 chars right)
+; 2. Moving DOWN one row, draw 2 chars from center-right
+; 3. Moving DOWN another row, draw 1 char at right
+;
+; NOTE: This draws DOWNWARD despite creating "upper" corner visual pattern.
+; Part of complete corner function set with variable DE stride support.
+;
+; REGISTERS MODIFIED: HL (moved to final drawn position)
 ;------------------------------------------------------------------------------
-DRAW_HORIZONTAL_LINE_3_LEFT:
-    LD          (HL),A                              ; 1: Draw bottom-left (0,0)
+DRAW_UL_3X3_CORNER:
+    LD          (HL),A                              ; 1: Draw top-left (0,0)
     INC         HL                                  ; Move right one position
-    LD          (HL),A                              ; 2: Draw bottom-center (1,0)
+    LD          (HL),A                              ; 2: Draw top-center (1,0)
     INC         HL                                  ; Move right one position
-    LD          (HL),A                              ; 3: Draw bottom-right (2,0)
-    ADD         HL,DE                               ; Move up one row
+    LD          (HL),A                              ; 3: Draw top-right (2,0)
+    ADD         HL,DE                               ; Move DOWN one row
     DEC         HL                                  ; Move back left one position
-    LD          (HL),A                              ; 4: Draw middle-center (1,-1)
+    LD          (HL),A                              ; 4: Draw middle-center (1,1)
     INC         HL                                  ; Move right one position
-    LD          (HL),A                              ; 5: Draw middle-right (2,-1)
-    ADD         HL,DE                               ; Move up one row
-    LD          (HL),A                              ; 6: Draw top-right (2,-2)
-    RET                                             ; Return with cursor at top-right
+    LD          (HL),A                              ; 5: Draw middle-right (2,1)
+    ADD         HL,DE                               ; Move DOWN one row
+    LD          (HL),A                              ; 6: Draw bottom-right (2,2)
+    RET                                             ; Return with cursor at bottom-right
 
 ;------------------------------------------------------------------------------
 ; DRAW_ROW - Fill single row with byte value (helper for FILL_CHRCOL_RECT)
@@ -341,12 +365,12 @@ DRAW_WALL_FL0:
     DEC         DE
     ADD         HL,DE
     LD          A,COLOR(BLK,BLU)    				; BLK on BLU
-    CALL        DRAW_DL_3X3_CORNER_DOWN
+    CALL        DRAW_DL_3X3_CORNER
     ADD         HL,DE
     LD          BC,$410								; Jump into COLRAM and down one row
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        DRAW_HORIZONTAL_LINE_3_RIGHT
+    CALL        DRAW_UR_3X3_CORNER
     ADD         HL,DE
     LD          A,COLOR(DKGRY,BLU)					; DKGRY on BLU
                                                     ; WAS DKCYN on BLU
@@ -385,12 +409,12 @@ DRAW_FL0_DOOR_FRAME:
     DEC         DE
     ADD         HL,DE
     EX          AF,AF'
-    CALL        DRAW_DL_3X3_CORNER_DOWN
+    CALL        DRAW_DL_3X3_CORNER
     ADD         HL,DE
     LD          BC,$30c
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        DRAW_HORIZONTAL_LINE_3_RIGHT
+    CALL        DRAW_UR_3X3_CORNER
     ADD         HL,DE
     DEC         DE
     CALL        DRAW_VERTICAL_LINE_3_UP
@@ -485,12 +509,12 @@ DRAW_L1_WALL:
     LD          A,$20								; Change to SPACE 32 / $20
                                                     ; WAS d134 / $86 crosshatch char
                                                     ; WAS LD A, $86
-    CALL        DRAW_DL_3X3_CORNER_DOWN
+    CALL        DRAW_DL_3X3_CORNER
     ADD         HL,DE
     LD          BC,$408								; 4 x 8 rectangle
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        DRAW_HORIZONTAL_LINE_3_RIGHT
+    CALL        DRAW_UR_3X3_CORNER
     ADD         HL,DE
     LD          A,$c0								; RIGHT angle CHR
     DEC         DE
@@ -503,12 +527,12 @@ DRAW_L1_WALL:
     DEC         DE
     ADD         HL,DE
     LD          A,$4b								; BLU on DKBLU
-    CALL        DRAW_DL_3X3_CORNER_DOWN
+    CALL        DRAW_DL_3X3_CORNER
     ADD         HL,DE
     LD          BC,$408								; Jump to COLRAM + 32 cells
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        DRAW_HORIZONTAL_LINE_3_RIGHT
+    CALL        DRAW_UR_3X3_CORNER
     ADD         HL,DE
     LD          A,$fb								; DKGRY on DKBLU
 								; WAS DKCYN on DKBLU
@@ -695,12 +719,12 @@ LAB_ram_cb86:
     INC         DE
     ADD         HL,DE
     EX          AF,AF'
-    CALL        DRAW_DR_3X3_CORNER_DOWN
+    CALL        DRAW_DR_3X3_CORNER
     ADD         HL,DE
     LD          BC,$30c
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        DRAW_HORIZONTAL_LINE_3_LEFT
+    CALL        DRAW_UL_3X3_CORNER
     ADD         HL,DE
     INC         DE
     CALL        DRAW_VERTICAL_LINE_3_UP
@@ -818,13 +842,13 @@ SUB_ram_cc4d:
     INC         DE
     ADD         HL,DE
     POP         AF
-    CALL        DRAW_DR_3X3_CORNER_DOWN
+    CALL        DRAW_DR_3X3_CORNER
     ADD         HL,DE
     DEC         HL
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
     INC         HL
-    CALL        DRAW_HORIZONTAL_LINE_3_LEFT
+    CALL        DRAW_UL_3X3_CORNER
     ADD         HL,DE
     POP         AF
     INC         DE
