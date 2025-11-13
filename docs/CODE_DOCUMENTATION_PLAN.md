@@ -77,12 +77,16 @@ JP          C,door_open     ; If bit 2 set, door is open
 
 ## Priority 2: MEDIUM - Graphics Utility Functions
 
-### 2.1 Core Drawing Functions
+### 2.1 Core Drawing Functions ✅ **COMPLETED**
 **Location**: `src/asterion_func_low.asm` drawing utilities
 
-**Functions Needing Headers**:
-- `FILL_CHRCOL_RECT` - Rectangle fill operation
-- `DRAW_CHRCOLS` - Column drawing with color
+**Functions With Enhanced Headers**:
+- ✅ `FILL_CHRCOL_RECT` - Rectangle fill operation (comprehensive header with REGISTERS MODIFIED)
+- ✅ `DRAW_ROW` - Helper function for row filling (concise documentation)
+- **In Progress**: Adding detailed line-by-line contextual comments
+
+**Remaining Functions Needing Headers**:
+- `DRAW_CHRCOLS` - Column drawing with color  
 - `DRAW_VERTICAL_LINE_*` - Line drawing primitives
 - `DRAW_HORIZONTAL_LINE_*` - Line drawing primitives
 
@@ -102,17 +106,44 @@ JP          C,door_open     ; If bit 2 set, door is open
 ;==============================================================================
 ```
 
-### 2.2 Memory Address Calculation Patterns  
+### 2.2 Enhanced Line-by-Line Commenting ✅ **IN PROGRESS**
+**Location**: Core graphics functions in `src/asterion_func_low.asm` and `src/asterion_high_rom.asm`
+
+**Completed Functions**:
+- ✅ `GFX_DRAW` - Full contextual commenting explaining AQUASCII processing, cursor movement, and stack operations
+- **In Progress**: `FILL_CHRCOL_RECT` and associated drawing functions
+
+**Commenting Style**:
+```asm
+PUSH        HL                                  ; Save current row start position  
+PUSH        BC                                  ; Save rectangle dimensions (B=width, C=height)
+CALL        DRAW_ROW                            ; Fill current row with character/color in A
+POP         BC                                  ; Restore rectangle dimensions
+POP         HL                                  ; Restore row start position
+DEC         C                                   ; Decrement remaining height
+RET         Z                                   ; Return if all rows completed
+ADD         HL,DE                               ; Move to start of next row (+40 characters)
+JP          DRAW_CHRCOLS                        ; Continue with next row
+```
+
+**Functions Requiring Line Comments**:
+- `FILL_CHRCOL_RECT` - Rectangle fill with row-by-row processing
+- `DRAW_ROW` - Single row fill operation  
+- `DRAW_F0_WALL` - Far wall rendering with blue color
+- `DRAW_F0_WALL_AND_CLOSED_DOOR` - Wall plus door rendering
+- Related wall/door drawing functions
+
+### 2.3 Memory Address Calculation Patterns  
 **Location**: Graphics functions throughout codebase
 
 **Documentation Needed**:
-- Explain CHRRAM ($3000-$33FF) vs COLRAM ($3400-$37FF) usage
-- Document coordinate system: 40x24 character screen  
+- ✅ Explain CHRRAM ($3000-$33E7) vs COLRAM ($3400-$37E7) usage (40x25 = 1000 bytes each)
+- Document coordinate system: **40x25** character screen (corrected from 40x24)  
 - Explain common offset calculations (DE=$28 for next row)
-- Rectangle encoding in BC register (width in C, height in B)
-- **AQUASCII Control Characters**: Document the 6 control codes used in graphics:
-  - `00`=empty (move right), `01`=return (CR+LF), `02`=backspace  
-  - `03`=linefeed, `04`=previous line, `A0`=reverse colors, `FF`=end graphic
+- Rectangle encoding in BC register (B=width, C=height)
+- ✅ **AQUASCII Control Characters**: Documented in GFX_DRAW function:
+  - `00`=move right, `01`=CR+LF, `02`=backspace  
+  - `03`=LF, `04`=cursor up, `A0`=reverse colors, `FF`=end
 
 ## Priority 3: MEDIUM - Item and Monster Systems
 

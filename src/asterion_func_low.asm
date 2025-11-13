@@ -1,89 +1,153 @@
+;==============================================================================
+; DRAW_DOOR_BOTTOM_SETUP - Set up color for door bottom drawing
+;==============================================================================
+; PURPOSE: Prepares door bottom color (green on dark cyan) and falls through to
+;          DRAW_SINGLE_CHAR_DOWN to draw door frame elements
+; INPUT:   HL = screen position, A = character to draw
+; OUTPUT:  DE = door bottom color, character drawn, HL modified
+;==============================================================================
 DRAW_DOOR_BOTTOM_SETUP:
-    LD          DE,COLOR(GRN,DKCYN)					; GRN on DKCYN
+    LD          DE,COLOR(GRN,DKCYN)					; GRN on DKCYN (door bottom/frame color)
 								                    ; (bottom of closed door)
-DRAW_SINGLE_CHAR_DOWN:
-    LD          (HL),A
-    SCF
-    CCF
-    SBC         HL,DE
-DRAW_VERTICAL_LINE_3_DOWN:
-    LD          (HL),A
-    SCF
-    CCF
-    SBC         HL,DE
-    LD          (HL),A
-    SBC         HL,DE
-    LD          (HL),A
-    RET
-    LD          DE,COLOR(GRN,DKCYN)					; GRN on DKCYN
-								                    ; (bottom of closed door)
-DRAW_VERTICAL_LINE_3_UP:
-    LD          (HL),A
-    ADD         HL,DE
-CONTINUE_VERTICAL_LINE_UP:
-    LD          (HL),A
-    ADD         HL,DE
-    LD          (HL),A
-    ADD         HL,DE
-    LD          (HL),A
-    RET
-DRAW_CROSS_PATTERN_RIGHT:
-    LD          (HL),A
-    ADD         HL,DE
-    LD          (HL),A
-    INC         HL
-    LD          (HL),A
-    ADD         HL,DE
-    INC         HL
-    LD          (HL),A
-    DEC         HL
-    LD          (HL),A
-    DEC         HL
-    LD          (HL),A
-    RET
 
-DRAW_CROSS_PATTERN_LEFT:
-    LD          (HL),A
-    ADD         HL,DE
-    LD          (HL),A
-    DEC         HL
-    LD          (HL),A
-    ADD         HL,DE
-    INC         HL
-    LD          (HL),A
-    DEC         HL
-    LD          (HL),A
-    DEC         HL
-    LD          (HL),A
-    RET
+;------------------------------------------------------------------------------
+; DRAW_SINGLE_CHAR_DOWN - Draw single character moving cursor down
+;------------------------------------------------------------------------------
+; INPUT:  HL = position, A = character, DE = color or row stride
+; OUTPUT: HL = position moved down by DE, character drawn
+;------------------------------------------------------------------------------
+DRAW_SINGLE_CHAR_DOWN:
+    LD          (HL),A                              ; Draw character at current position
+    SCF                                             ; Set carry flag 
+    CCF                                             ; Clear carry flag (prepare for SBC)
+    SBC         HL,DE                               ; Move cursor down by DE amount
+
+;------------------------------------------------------------------------------
+; DRAW_VERTICAL_LINE_3_DOWN - Draw 3-character vertical line moving downward
+;------------------------------------------------------------------------------
+; INPUT:  HL = starting position, A = character, DE = row stride
+; OUTPUT: HL = position 3 rows down, 3 characters drawn vertically
+;------------------------------------------------------------------------------
+DRAW_VERTICAL_LINE_3_DOWN:
+    LD          (HL),A                              ; Draw character at current position
+    SCF                                             ; Set carry flag
+    CCF                                             ; Clear carry flag (prepare for SBC)
+    SBC         HL,DE                               ; Move cursor down one row
+    LD          (HL),A                              ; Draw character at new position
+    SBC         HL,DE                               ; Move cursor down another row
+    LD          (HL),A                              ; Draw character at final position
+    RET                                             ; Return with cursor 3 rows down
+    LD          DE,COLOR(GRN,DKCYN)					; GRN on DKCYN (door frame setup)
+								                    ; (bottom of closed door)
+
+;------------------------------------------------------------------------------
+; DRAW_VERTICAL_LINE_3_UP - Draw 3-character vertical line moving upward
+;------------------------------------------------------------------------------
+; INPUT:  HL = starting position, A = character, DE = row stride  
+; OUTPUT: HL = position 3 rows up, 3 characters drawn vertically
+;------------------------------------------------------------------------------
+DRAW_VERTICAL_LINE_3_UP:
+    LD          (HL),A                              ; Draw character at current position
+    ADD         HL,DE                               ; Move cursor up one row
+CONTINUE_VERTICAL_LINE_UP:
+    LD          (HL),A                              ; Draw character at new position
+    ADD         HL,DE                               ; Move cursor up another row
+    LD          (HL),A                              ; Draw character at next position
+    ADD         HL,DE                               ; Move cursor up final row
+    LD          (HL),A                              ; Draw character at final position
+    RET                                             ; Return with cursor 3 rows up
+
+;------------------------------------------------------------------------------
+; DRAW_DL_3X3_CORNER - Draw bottom-left corner fill pattern
+;------------------------------------------------------------------------------
+; INPUT:  HL = top-left position, A = char/color, DE = row stride ($28)
+; OUTPUT: HL = bottom-left position of filled area
+; PATTERN: X . .    Execution order: 1 . .
+;          X X .                     2 3 .
+;          X X X                     6 5 4
+; REGISTERS MODIFIED: HL (points to bottom-left when done)
+;------------------------------------------------------------------------------
+DRAW_DL_3X3_CORNER:
+    LD          (HL),A                              ; 1: Draw top-left (0,0)
+    ADD         HL,DE                               ; Move down one row  
+    LD          (HL),A                              ; 2: Draw middle-left (0,1)
+    INC         HL                                  ; Move right one position
+    LD          (HL),A                              ; 3: Draw middle-center (1,1)
+    ADD         HL,DE                               ; Move down another row
+    INC         HL                                  ; Move right one more position  
+    LD          (HL),A                              ; 4: Draw bottom-right (2,2)
+    DEC         HL                                  ; Move back left
+    LD          (HL),A                              ; 5: Draw bottom-center (1,2)
+    DEC         HL                                  ; Move left again
+    LD          (HL),A                              ; 6: Draw bottom-left (0,2)
+    RET                                             ; Return with cursor positioned bottom-left
+
+;------------------------------------------------------------------------------
+; DRAW_DR_3X3_CORNER - Draw bottom-right corner fill pattern
+;------------------------------------------------------------------------------
+; INPUT:  HL = top-right position, A = char/color, DE = row stride ($28)  
+; OUTPUT: HL = bottom-left position of filled area
+; PATTERN: . . X    Execution order: . . 1
+;          . X X                     . 3 2
+;          X X X                     6 5 4
+; REGISTERS MODIFIED: HL (points to bottom-left when done)
+;------------------------------------------------------------------------------
+DRAW_DR_3X3_CORNER:
+    LD          (HL),A                              ; 1: Draw top-right (2,0)
+    ADD         HL,DE                               ; Move down one row
+    LD          (HL),A                              ; 2: Draw middle-right (2,1)
+    DEC         HL                                  ; Move left one position
+    LD          (HL),A                              ; 3: Draw middle-center (1,1)
+    ADD         HL,DE                               ; Move down another row
+    INC         HL                                  ; Move right one position
+    LD          (HL),A                              ; 4: Draw bottom-right (2,2)
+    DEC         HL                                  ; Move back left
+    LD          (HL),A                              ; 5: Draw bottom-center (1,2)
+    DEC         HL                                  ; Move left again
+    LD          (HL),A                              ; 6: Draw bottom-left (0,2)
+    RET                                             ; Return with cursor positioned bottom-left
+
+;------------------------------------------------------------------------------
+; DRAW_HORIZONTAL_LINE_3_RIGHT - Draw 3x3 block extending rightward
+;------------------------------------------------------------------------------
+; INPUT:  HL = starting position, A = character, DE = row stride
+; OUTPUT: HL = final position, 3x3 block drawn extending right and up
+;------------------------------------------------------------------------------
 DRAW_HORIZONTAL_LINE_3_RIGHT:
-    LD          (HL),A
-    INC         HL
-    LD          (HL),A
-    INC         HL
-    LD          (HL),A
-    ADD         HL,DE
-    DEC         HL
-    LD          (HL),A
-    DEC         HL
-    LD          (HL),A
-    ADD         HL,DE
-    LD          (HL),A
-    RET
+    LD          (HL),A                              ; Draw bottom-left character
+    INC         HL                                  ; Move right one position
+    LD          (HL),A                              ; Draw bottom-center character
+    INC         HL                                  ; Move right one position  
+    LD          (HL),A                              ; Draw bottom-right character
+    ADD         HL,DE                               ; Move up one row
+    DEC         HL                                  ; Move back left one position
+    LD          (HL),A                              ; Draw middle-center character
+    DEC         HL                                  ; Move left one position
+    LD          (HL),A                              ; Draw middle-left character
+    ADD         HL,DE                               ; Move up one row
+    LD          (HL),A                              ; Draw top-left character
+    RET                                             ; Return with cursor at top-left
+
+;------------------------------------------------------------------------------
+; DRAW_HORIZONTAL_LINE_3_LEFT - Draw 3x3 block extending leftward
+;------------------------------------------------------------------------------
+; INPUT:  HL = starting position, A = character, DE = row stride
+; OUTPUT: HL = final position, 3x3 block drawn extending right and up
+;------------------------------------------------------------------------------
 DRAW_HORIZONTAL_LINE_3_LEFT:
-    LD          (HL),A
-    INC         HL
-    LD          (HL),A
-    INC         HL
-    LD          (HL),A
-    ADD         HL,DE
-    DEC         HL
-    LD          (HL),A
-    INC         HL
-    LD          (HL),A
-    ADD         HL,DE
-    LD          (HL),A
-    RET
+    LD          (HL),A                              ; Draw bottom-left character
+    INC         HL                                  ; Move right one position
+    LD          (HL),A                              ; Draw bottom-center character
+    INC         HL                                  ; Move right one position
+    LD          (HL),A                              ; Draw bottom-right character
+    ADD         HL,DE                               ; Move up one row
+    DEC         HL                                  ; Move back left one position
+    LD          (HL),A                              ; Draw middle-right character
+    INC         HL                                  ; Move right one position
+    LD          (HL),A                              ; Draw middle-far-right character
+    ADD         HL,DE                               ; Move up one row
+    LD          (HL),A                              ; Draw top-right character
+    RET                                             ; Return with cursor at top-right
 
 ;------------------------------------------------------------------------------
 ; DRAW_ROW - Fill single row with byte value (helper for FILL_CHRCOL_RECT)
@@ -92,18 +156,24 @@ DRAW_HORIZONTAL_LINE_3_LEFT:
 ; OUTPUT: HL = position after last byte, B = 0, A = unchanged  
 ;------------------------------------------------------------------------------
 DRAW_ROW:
-    LD          (HL),A
-    DEC         B
-    RET         Z
-    INC         HL
-    JP          DRAW_ROW
-    LD          DE,$28								; DE = 40 (next line) / $28
+    LD          (HL),A                              ; Write character/color to current position
+    DEC         B                                   ; Decrement remaining width
+    RET         Z                                   ; Return if row completed
+    INC         HL                                  ; Move to next position in row
+    JP          DRAW_ROW                            ; Continue filling row
+
+;------------------------------------------------------------------------------
+; DRAW_CELL - Fill single column with byte value (vertical line drawing)
+;------------------------------------------------------------------------------
+; INPUT:  HL = starting position, C = height, A = fill value, DE = $28 (row stride)
+; OUTPUT: HL = position after last byte, C = 0, A = unchanged  
+;------------------------------------------------------------------------------
 DRAW_CELL:
-    LD          (HL),A
-    DEC         C
-    RET         Z
-    ADD         HL,DE								; Goto next row
-    JP          DRAW_CELL
+    LD          (HL),A                              ; Write character/color to current position
+    DEC         C                                   ; Decrement remaining height
+    RET         Z                                   ; Return if column completed
+    ADD         HL,DE								; Move to next row (+40 characters down)
+    JP          DRAW_CELL                           ; Continue filling column vertically
 
 ;==============================================================================
 ; FILL_CHRCOL_RECT - Fill rectangular area with character or color data
@@ -134,54 +204,54 @@ DRAW_CELL:
 ;          No bounds checking performed - caller responsible for valid coordinates.
 ;==============================================================================
 FILL_CHRCOL_RECT:
-    LD          DE,$28								; DE = 40 / $28 (next row)
+    LD          DE,$28								; Set row stride to 40 characters (screen width)
 DRAW_CHRCOLS:
-    PUSH        HL
-    PUSH        BC
-    CALL        DRAW_ROW
-    POP         BC
-    POP         HL
-    DEC         C
-    RET         Z
-    ADD         HL,DE
-    JP          DRAW_CHRCOLS
+    PUSH        HL                                  ; Save current row start position
+    PUSH        BC                                  ; Save rectangle dimensions (B=width, C=height)
+    CALL        DRAW_ROW                            ; Fill current row with character/color in A
+    POP         BC                                  ; Restore rectangle dimensions
+    POP         HL                                  ; Restore row start position
+    DEC         C                                   ; Decrement remaining height
+    RET         Z                                   ; Return if all rows completed
+    ADD         HL,DE                               ; Move to start of next row (+40 characters)
+    JP          DRAW_CHRCOLS                        ; Continue with next row
 
 DRAW_F0_WALL:
-    LD          HL,COLRAM_F0_WALL_MAP_IDX
+    LD          HL,COLRAM_F0_WALL_MAP_IDX           ; Point to far wall color area
     LD          BC,RECT(16,16)							; 16 x 16 rectangle
-    LD          A,COLOR(BLU,BLU)								; BLU on BLU
-    JP          FILL_CHRCOL_RECT
+    LD          A,COLOR(BLU,BLU)								; BLU on BLU (solid blue wall)
+    JP          FILL_CHRCOL_RECT                    ; Fill wall area with blue color
 DRAW_F0_WALL_AND_CLOSED_DOOR:
-    CALL        DRAW_F0_WALL
-    LD          A,COLOR(GRN,GRN)								; GRN on GRN
+    CALL        DRAW_F0_WALL                        ; Draw the wall background first
+    LD          A,COLOR(GRN,GRN)								; GRN on GRN (closed door color)
 DRAW_DOOR_F0:
-    LD          HL,COLRAM_F0_DOOR_IDX
-    LD          BC,RECT(8,12)								; 8 x 12 rectangle
-    JP          FILL_CHRCOL_RECT
+    LD          HL,COLRAM_F0_DOOR_IDX               ; Point to door area within wall
+    LD          BC,RECT(8,12)								; 8 x 12 rectangle (door size)
+    JP          FILL_CHRCOL_RECT                    ; Fill door area with specified color
 DRAW_WALL_F0_AND_OPEN_DOOR:
-    CALL        DRAW_F0_WALL
-    LD          A,COLOR(DKGRY,BLK)								; DKGRY on BLK
+    CALL        DRAW_F0_WALL                        ; Draw the wall background first
+    LD          A,COLOR(DKGRY,BLK)								; DKGRY on BLK (open door/passage color)
 								                    ; WAS BLK on DKBLU
 								                    ; WAS LD A,0xb
-    JP          DRAW_DOOR_F0
+    JP          DRAW_DOOR_F0                        ; Fill door area showing passage through
 DRAW_WALL_F1:
-    LD          HL,CHRRAM_F1_WALL_IDX
-    LD          BC,RECT(8,8)								; 8 x 8 rectangle
-    LD          A,$20								; Change to SPACE 32 / $20
+    LD          HL,CHRRAM_F1_WALL_IDX               ; Point to F1 wall character area
+    LD          BC,RECT(8,8)								; 8 x 8 rectangle (mid-distance wall size)
+    LD          A,$20								; SPACE character (clear wall area)
                                                     ; WAS d134 / $86 crosshatch char
                                                     ; WAS LD A, $86
-    CALL        FILL_CHRCOL_RECT
-    LD          C,0x8
-    LD          HL,COLRAM_F0_DOOR_IDX
-    LD          A,COLOR(BLU,DKBLU)								; BLU on DKBLU
-    JP          DRAW_CHRCOLS
+    CALL        FILL_CHRCOL_RECT                    ; Clear wall character area with spaces
+    LD          C,0x8                               ; Set height for color fill operation
+    LD          HL,COLRAM_F0_DOOR_IDX               ; Point to corresponding color area
+    LD          A,COLOR(BLU,DKBLU)								; BLU on DKBLU (wall color scheme)
+    JP          DRAW_CHRCOLS                        ; Fill color area for wall
 DRAW_WALL_F1_AND_CLOSED_DOOR:
-    CALL        DRAW_WALL_F1
-    LD          A,COLOR(GRN,DKGRN)								; GRN on DKGRN
+    CALL        DRAW_WALL_F1                        ; Draw the F1 wall background first
+    LD          A,COLOR(GRN,DKGRN)								; GRN on DKGRN (closed door at F1 distance)
 DRAW_DOOR_F1_OPEN:
-    LD          HL,COLRAM_F1_DOOR_IDX
-    LD          BC,RECT(4,6)								; 4 x 6 rectangle
-    JP          FILL_CHRCOL_RECT
+    LD          HL,COLRAM_F1_DOOR_IDX               ; Point to door area within F1 wall
+    LD          BC,RECT(4,6)								; 4 x 6 rectangle (smaller door at mid-distance)
+    JP          FILL_CHRCOL_RECT                    ; Fill door area with specified color
 DRAW_WALL_F1_AND_OPEN_DOOR:
     CALL        DRAW_WALL_F1
     LD          A,COLOR(BLK,BLK)								; BLK on BLK
@@ -208,7 +278,7 @@ DRAW_WALL_FL0:
     DEC         DE
     ADD         HL,DE
     LD          A,COLOR(BLK,BLU)    				; BLK on BLU
-    CALL        DRAW_CROSS_PATTERN_RIGHT
+    CALL        DRAW_DL_3X3_CORNER
     ADD         HL,DE
     LD          BC,$410								; Jump into COLRAM and down one row
     CALL        DRAW_CHRCOLS
@@ -252,7 +322,7 @@ DRAW_FL0_DOOR_FRAME:
     DEC         DE
     ADD         HL,DE
     EX          AF,AF'
-    CALL        DRAW_CROSS_PATTERN_RIGHT
+    CALL        DRAW_DL_3X3_CORNER
     ADD         HL,DE
     LD          BC,$30c
     CALL        DRAW_CHRCOLS
@@ -352,7 +422,7 @@ DRAW_L1_WALL:
     LD          A,$20								; Change to SPACE 32 / $20
                                                     ; WAS d134 / $86 crosshatch char
                                                     ; WAS LD A, $86
-    CALL        DRAW_CROSS_PATTERN_RIGHT
+    CALL        DRAW_DL_3X3_CORNER
     ADD         HL,DE
     LD          BC,$408								; 4 x 8 rectangle
     CALL        DRAW_CHRCOLS
@@ -370,7 +440,7 @@ DRAW_L1_WALL:
     DEC         DE
     ADD         HL,DE
     LD          A,$4b								; BLU on DKBLU
-    CALL        DRAW_CROSS_PATTERN_RIGHT
+    CALL        DRAW_DL_3X3_CORNER
     ADD         HL,DE
     LD          BC,$408								; Jump to COLRAM + 32 cells
     CALL        DRAW_CHRCOLS
@@ -562,7 +632,7 @@ LAB_ram_cb86:
     INC         DE
     ADD         HL,DE
     EX          AF,AF'
-    CALL        DRAW_CROSS_PATTERN_LEFT
+    CALL        DRAW_DR_3X3_CORNER
     ADD         HL,DE
     LD          BC,$30c
     CALL        DRAW_CHRCOLS
@@ -685,7 +755,7 @@ SUB_ram_cc4d:
     INC         DE
     ADD         HL,DE
     POP         AF
-    CALL        DRAW_CROSS_PATTERN_LEFT
+    CALL        DRAW_DR_3X3_CORNER
     ADD         HL,DE
     DEC         HL
     CALL        DRAW_CHRCOLS

@@ -196,7 +196,7 @@ The "half-walls" (FL1, FR1, FL2, FR2, FL22, FR22) create the 3D perspective effe
 
 **FL0/FR0 (Immediate Side Walls)**:
 - Use complex character-based drawing with multiple geometric primitives
-- `DRAW_WALL_FL0`: Uses `DRAW_DOOR_BOTTOM_SETUP`, `DRAW_CROSS_PATTERN_RIGHT`, `DRAW_HORIZONTAL_LINE_3_RIGHT`
+- `DRAW_WALL_FL0`: Uses `DRAW_DOOR_BOTTOM_SETUP`, `DRAW_DL_3X3_CORNER`, `DRAW_HORIZONTAL_LINE_3_RIGHT`
 - Creates perspective depth with layered color patterns (BLU on BLK base, BLK on BLU highlights, DKGRY on BLU shadows)
 
 **FL1/FR1 (Near Side Walls)**:
