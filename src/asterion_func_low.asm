@@ -1,4 +1,18 @@
 ;==============================================================================
+; ASTERION GRAPHICS FUNCTIONS - FUNCTION RENAMING & DE REGISTER ANALYSIS
+;==============================================================================
+; ARCHITECTURAL FINDINGS:
+; - Corner functions (DRAW_DL/DR_3X3_CORNER_DOWN) use VARIABLE DE stride values:
+;   * DE=$27 (40-1): Precision left-aligned positioning
+;   * DE=$28 (40):   Standard row stride 
+;   * DE=$26 (40-2): Specialized corner positioning
+; - These are NOT duplicates of DRAW_HORIZONTAL_LINE functions despite 
+;   creating similar L-shaped patterns - they serve different purposes:
+;   * Corner functions = Precision positioning tools with variable strides
+;   * Horizontal functions = Standard drawing primitives with fixed stride
+;==============================================================================
+
+;==============================================================================
 ; DRAW_DOOR_BOTTOM_SETUP - Set up color for door bottom drawing
 ;==============================================================================
 ; PURPOSE: Prepares door bottom color and falls through to
@@ -71,16 +85,27 @@ CONTINUE_VERTICAL_LINE_DOWN:
     RET                                             ; Return with cursor 3 rows down
 
 ;------------------------------------------------------------------------------
-; DRAW_DL_3X3_CORNER - Draw bottom-left corner fill pattern
+; DRAW_DL_3X3_CORNER_DOWN - Draw bottom-left corner fill pattern, downward
 ;------------------------------------------------------------------------------
-; INPUT:  HL = top-left position, A = char/color, DE = row stride ($28)
+; INPUT:  HL = top-left position, A = char/color, DE = row stride (VARIABLE!)
 ; OUTPUT: HL = bottom-left position of filled area
 ; PATTERN: X . .    Execution order: 1 . .
 ;          X X .                     2 3 .
 ;          X X X                     6 5 4
+; 
+; DE REGISTER USAGE ANALYSIS:
+; Called with different stride values for precise positioning:
+; - DE=$27 (40-1): Used in DRAW_L1_WALL, DRAW_WALL_FL0, DRAW_FL0_DOOR_FRAME
+; - DE=$28 (40):   Standard row stride (from SUB_ram_cc4d via INC DE)  
+; - DE=$26 (40-2): Specialized positioning (from LAB_ram_cb86)
+;
+; NOTE: Not duplicate of DRAW_HORIZONTAL_LINE functions - serves different
+; architectural purpose as precision positioning tool with variable strides
+; vs standard drawing primitive with fixed stride.
+;
 ; REGISTERS MODIFIED: HL (points to bottom-left when done)
 ;------------------------------------------------------------------------------
-DRAW_DL_3X3_CORNER:
+DRAW_DL_3X3_CORNER_DOWN:
     LD          (HL),A                              ; 1: Draw top-left (0,0)
     ADD         HL,DE                               ; Move down one row  
     LD          (HL),A                              ; 2: Draw middle-left (0,1)
@@ -96,16 +121,27 @@ DRAW_DL_3X3_CORNER:
     RET                                             ; Return with cursor positioned bottom-left
 
 ;------------------------------------------------------------------------------
-; DRAW_DR_3X3_CORNER - Draw bottom-right corner fill pattern
+; DRAW_DR_3X3_CORNER_DOWN - Draw bottom-right corner fill pattern, downward
 ;------------------------------------------------------------------------------
-; INPUT:  HL = top-right position, A = char/color, DE = row stride ($28)  
+; INPUT:  HL = top-right position, A = char/color, DE = row stride (VARIABLE!)  
 ; OUTPUT: HL = bottom-left position of filled area
 ; PATTERN: . . X    Execution order: . . 1
 ;          . X X                     . 3 2
 ;          X X X                     6 5 4
+;
+; DE REGISTER USAGE ANALYSIS:
+; Called with different stride values for precise positioning:
+; - DE=$28 (40):   Standard row stride (from SUB_ram_cc4d via INC DE)
+; - DE=$26 (40-2): Specialized positioning (from LAB_ram_cb86 path)
+; - DE=$27 (40-1): Other positioning contexts (pattern similar to DRAW_DL)
+;
+; NOTE: Not duplicate of DRAW_HORIZONTAL_LINE functions - serves different
+; architectural purpose as precision positioning tool with variable strides
+; vs standard drawing primitive with fixed stride.
+;
 ; REGISTERS MODIFIED: HL (points to bottom-left when done)
 ;------------------------------------------------------------------------------
-DRAW_DR_3X3_CORNER:
+DRAW_DR_3X3_CORNER_DOWN:
     LD          (HL),A                              ; 1: Draw top-right (2,0)
     ADD         HL,DE                               ; Move down one row
     LD          (HL),A                              ; 2: Draw middle-right (2,1)
@@ -121,52 +157,62 @@ DRAW_DR_3X3_CORNER:
     RET                                             ; Return with cursor positioned bottom-left
 
 ;------------------------------------------------------------------------------
-; DRAW_HORIZONTAL_LINE_3_RIGHT - Draw 3x3 block extending rightward
+; DRAW_HORIZONTAL_LINE_3_RIGHT - Draw L-shaped pattern extending rightward and upward
 ;------------------------------------------------------------------------------
 ; INPUT:  HL = starting position, A = character, DE = row stride
-; OUTPUT: HL = final position, 3x3 block drawn extending right and up
+; OUTPUT: HL = top-left position, L-shaped pattern drawn
+; PATTERN: X . .    Execution order: 6 . .
+;          X X .                     5 4 .
+;          X X X                     1 2 3
+; REGISTERS MODIFIED: HL (moved to top-left position)
 ;------------------------------------------------------------------------------
 DRAW_HORIZONTAL_LINE_3_RIGHT:
-    LD          (HL),A                              ; Draw bottom-left character
+    LD          (HL),A                              ; 1: Draw bottom-left (0,0)
     INC         HL                                  ; Move right one position
-    LD          (HL),A                              ; Draw bottom-center character
+    LD          (HL),A                              ; 2: Draw bottom-center (1,0)
     INC         HL                                  ; Move right one position  
-    LD          (HL),A                              ; Draw bottom-right character
+    LD          (HL),A                              ; 3: Draw bottom-right (2,0)
     ADD         HL,DE                               ; Move up one row
     DEC         HL                                  ; Move back left one position
-    LD          (HL),A                              ; Draw middle-center character
+    LD          (HL),A                              ; 4: Draw middle-center (1,-1)
     DEC         HL                                  ; Move left one position
-    LD          (HL),A                              ; Draw middle-left character
+    LD          (HL),A                              ; 5: Draw middle-left (0,-1)
     ADD         HL,DE                               ; Move up one row
-    LD          (HL),A                              ; Draw top-left character
+    LD          (HL),A                              ; 6: Draw top-left (0,-2)
     RET                                             ; Return with cursor at top-left
 
 ;------------------------------------------------------------------------------
-; DRAW_HORIZONTAL_LINE_3_LEFT - Draw 3x3 block extending leftward
+; DRAW_HORIZONTAL_LINE_3_LEFT - Draw mirrored L-shaped pattern extending rightward and upward  
 ;------------------------------------------------------------------------------
 ; INPUT:  HL = starting position, A = character, DE = row stride
-; OUTPUT: HL = final position, 3x3 block drawn extending right and up
+; OUTPUT: HL = top-right position, mirrored L-shaped pattern drawn
+; PATTERN: . . X    Execution order: . . 6
+;          . X X                     . 4 5
+;          X X X                     1 2 3
+; REGISTERS MODIFIED: HL (moved to top-right position)
 ;------------------------------------------------------------------------------
 DRAW_HORIZONTAL_LINE_3_LEFT:
-    LD          (HL),A                              ; Draw bottom-left character
+    LD          (HL),A                              ; 1: Draw bottom-left (0,0)
     INC         HL                                  ; Move right one position
-    LD          (HL),A                              ; Draw bottom-center character
+    LD          (HL),A                              ; 2: Draw bottom-center (1,0)
     INC         HL                                  ; Move right one position
-    LD          (HL),A                              ; Draw bottom-right character
+    LD          (HL),A                              ; 3: Draw bottom-right (2,0)
     ADD         HL,DE                               ; Move up one row
     DEC         HL                                  ; Move back left one position
-    LD          (HL),A                              ; Draw middle-right character
+    LD          (HL),A                              ; 4: Draw middle-center (1,-1)
     INC         HL                                  ; Move right one position
-    LD          (HL),A                              ; Draw middle-far-right character
+    LD          (HL),A                              ; 5: Draw middle-right (2,-1)
     ADD         HL,DE                               ; Move up one row
-    LD          (HL),A                              ; Draw top-right character
+    LD          (HL),A                              ; 6: Draw top-right (2,-2)
     RET                                             ; Return with cursor at top-right
 
 ;------------------------------------------------------------------------------
 ; DRAW_ROW - Fill single row with byte value (helper for FILL_CHRCOL_RECT)
 ;------------------------------------------------------------------------------
 ; INPUT:  HL = starting position, B = width, A = fill value
-; OUTPUT: HL = position after last byte, B = 0, A = unchanged  
+; OUTPUT: HL = position after last byte, B = 0, A = unchanged
+; PATTERN: X X X (horizontal line, width B)
+; REGISTERS MODIFIED: HL (advanced by B positions), B (decremented to 0)
 ;------------------------------------------------------------------------------
 DRAW_ROW:
     LD          (HL),A                              ; Write character/color to current position
@@ -179,7 +225,11 @@ DRAW_ROW:
 ; DRAW_CELL - Fill single column with byte value (vertical line drawing)
 ;------------------------------------------------------------------------------
 ; INPUT:  HL = starting position, C = height, A = fill value, DE = $28 (row stride)
-; OUTPUT: HL = position after last byte, C = 0, A = unchanged  
+; OUTPUT: HL = position after last byte, C = 0, A = unchanged
+; PATTERN: X (vertical line, height C)
+;          X
+;          X
+; REGISTERS MODIFIED: HL (advanced by C*DE positions), C (decremented to 0)
 ;------------------------------------------------------------------------------
 DRAW_CELL:
     LD          (HL),A                              ; Write character/color to current position
@@ -291,7 +341,7 @@ DRAW_WALL_FL0:
     DEC         DE
     ADD         HL,DE
     LD          A,COLOR(BLK,BLU)    				; BLK on BLU
-    CALL        DRAW_DL_3X3_CORNER
+    CALL        DRAW_DL_3X3_CORNER_DOWN
     ADD         HL,DE
     LD          BC,$410								; Jump into COLRAM and down one row
     CALL        DRAW_CHRCOLS
@@ -335,7 +385,7 @@ DRAW_FL0_DOOR_FRAME:
     DEC         DE
     ADD         HL,DE
     EX          AF,AF'
-    CALL        DRAW_DL_3X3_CORNER
+    CALL        DRAW_DL_3X3_CORNER_DOWN
     ADD         HL,DE
     LD          BC,$30c
     CALL        DRAW_CHRCOLS
@@ -435,7 +485,7 @@ DRAW_L1_WALL:
     LD          A,$20								; Change to SPACE 32 / $20
                                                     ; WAS d134 / $86 crosshatch char
                                                     ; WAS LD A, $86
-    CALL        DRAW_DL_3X3_CORNER
+    CALL        DRAW_DL_3X3_CORNER_DOWN
     ADD         HL,DE
     LD          BC,$408								; 4 x 8 rectangle
     CALL        DRAW_CHRCOLS
@@ -453,7 +503,7 @@ DRAW_L1_WALL:
     DEC         DE
     ADD         HL,DE
     LD          A,$4b								; BLU on DKBLU
-    CALL        DRAW_DL_3X3_CORNER
+    CALL        DRAW_DL_3X3_CORNER_DOWN
     ADD         HL,DE
     LD          BC,$408								; Jump to COLRAM + 32 cells
     CALL        DRAW_CHRCOLS
@@ -645,7 +695,7 @@ LAB_ram_cb86:
     INC         DE
     ADD         HL,DE
     EX          AF,AF'
-    CALL        DRAW_DR_3X3_CORNER
+    CALL        DRAW_DR_3X3_CORNER_DOWN
     ADD         HL,DE
     LD          BC,$30c
     CALL        DRAW_CHRCOLS
@@ -768,7 +818,7 @@ SUB_ram_cc4d:
     INC         DE
     ADD         HL,DE
     POP         AF
-    CALL        DRAW_DR_3X3_CORNER
+    CALL        DRAW_DR_3X3_CORNER_DOWN
     ADD         HL,DE
     DEC         HL
     CALL        DRAW_CHRCOLS
