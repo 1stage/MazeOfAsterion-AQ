@@ -3058,8 +3058,27 @@ REDRAW_START:
     JP          Z,FACING_EAST                   ; Dir facing was 2, east
     DEC         A
     JP          Z,FACING_SOUTH                  ; Dir facing was 3, south
-                                                ; Dir facing was 4, west
+    JP          FACING_WEST                     ; Dir facing was 4, west
 
+; FACING_WEST - Calculate all wall states when player is facing west
+;   - Calculates wall states for all 18 wall positions (including 4 half-walls) plus B0 behind player
+;   - Uses map cursor navigation to sample wall data from MAPSPACE_WALLS
+;   - Calls CALC_HALF_WALLS for FL2, FR2, FL1, FR1 perspective rendering
+;   - Sets compass direction bytes and stages west-pointing compass text
+; Registers:
+; --- Start ---
+;   DE = Player map position in WALL MAP SPACE ($3800+)
+;   HL = WALL_F0_STATE address ($33e8)
+;   C  = Step value for CALC_HALF_WALLS jumps (5)
+; --- In Process ---
+;   A  = Wall data and map position calculations
+;   DE = Map cursor for navigation [S0→S1→S2→SL2→S2→SR2→SL1→S1→SR1→SL0→SL22→S0→SR0→SR1→SR2→SB]
+;   HL = Wall state variable pointer progression ($33e8→$33fd)
+;   C  = Incremented step value (5→6→7→8) for CALC_HALF_WALLS
+; ---  End  ---
+;   DE = WEST_TXT pointer for compass rendering
+;   HL = Final wall state address (WALL_B0_STATE + 1)
+;
 FACING_WEST:    
     LD          A,(DE)                          ; Get S0 walls data
     AND         0x7								; Mask to west wall data (F0)
@@ -3229,6 +3248,25 @@ CALC_HALF_WALLS:
     INC         C           ; Increment C
     RET
 
+; FACING_NORTH - Calculate all wall states when player is facing north
+;   - Calculates wall states for all 18 wall positions (including 4 half-walls) plus B0 behind player
+;   - Uses map cursor navigation to sample wall data from MAPSPACE_WALLS
+;   - Calls CALC_HALF_WALLS for FL2, FR2, FL1, FR1 perspective rendering
+;   - Sets compass direction bytes and stages north-pointing compass text
+; Registers:
+; --- Start ---
+;   DE = Player map position in WALL MAP SPACE ($3800+)
+;   HL = WALL_F0_STATE address ($33e8)
+;   C  = Step value for CALC_HALF_WALLS jumps (5)
+; --- In Process ---
+;   A  = Wall data and map position calculations
+;   DE = Map cursor for navigation [S0→S1→S2→SL2→S2→SR2→S1→SL1→S1→SR1→S0→SL0→SL22→SR0→SR22→SB]
+;   HL = Wall state variable pointer progression ($33e8→$33fd)
+;   C  = Incremented step value (5→6→7→8) for CALC_HALF_WALLS
+; ---  End  ---
+;   DE = NORTH_TXT pointer for compass rendering
+;   HL = Final wall state address (WALL_B0_STATE + 1)
+;
 FACING_NORTH:
     CALL        GET_NORTH_WALL                  ; Get F0 wall data
     LD          (HL),A                          ; Save WALL_F0_STATE ($33e8)
@@ -3312,199 +3350,237 @@ FACING_NORTH:
     LD          DE,NORTH_TXT                    ; Stage north pointing compass text
     JP          CALC_REDRAW_COMPASS
 
+; FACING_SOUTH - Calculate all wall states when player is facing south
+;   - Calculates wall states for all 18 wall positions (including 4 half-walls) plus B0 behind player
+;   - Uses map cursor navigation to sample wall data from MAPSPACE_WALLS
+;   - Calls CALC_HALF_WALLS for FL2, FR2, FL1, FR1 perspective rendering
+;   - Sets compass direction bytes and stages south-pointing compass text
+; Registers:
+; --- Start ---
+;   DE = Player map position in WALL MAP SPACE ($3800+)
+;   HL = WALL_F0_STATE address ($33e8)
+;   C  = Step value for CALC_HALF_WALLS jumps (5)
+; --- In Process ---
+;   A  = Wall data and map position calculations
+;   DE = Map cursor for navigation [S0→S1→S2→(S2+1)→SL2→(SL2+1)→S2→(SR2+1)→SL1→SL2→S1→SR2→SL0→SL1→SL22→S0→SR1→SR2→S0]
+;   HL = Wall state variable pointer progression ($33e8→$33fd)
+;   C  = Incremented step value (5→6→7→8) for CALC_HALF_WALLS
+; ---  End  ---
+;   DE = SOUTH_TXT pointer for compass rendering
+;   HL = Final wall state address (WALL_B0_STATE + 1)
+;
 FACING_SOUTH:
-    LD          A,E
-    ADD         A,$10
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    LD          (HL),A
-    LD          A,E
-    ADD         A,$10
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    INC         L
-    LD          (HL),A
-    LD          A,E
-    ADD         A,$10
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    INC         L
-    LD          (HL),A
-    LD          A,E
-    SUB         0xf
-    LD          E,A
-    CALL        GET_WEST_WALL
-    LD          A,E
-    ADD         A,$10
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    CALL        CALC_HALF_WALLS
-    LD          A,E
-    SUB         $11
-    LD          E,A
-    LD          A,(DE)
-    AND         0x7
-    LD          (HL),A
-    LD          A,E
-    ADD         A,0xf
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    CALL        CALC_HALF_WALLS
-    LD          A,E
-    SUB         $1e
-    LD          E,A
-    LD          A,(DE)
-    AND         0x7
-    LD          (HL),A
-    LD          A,E
-    ADD         A,$10
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    CALL        CALC_HALF_WALLS
-    LD          A,E
-    SUB         $11
-    LD          E,A
-    CALL        GET_WEST_WALL
-    LD          A,E
-    ADD         A,0xf
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    CALL        CALC_HALF_WALLS
-    LD          A,E
-    SUB         $1e
-    LD          E,A
-    CALL        GET_WEST_WALL
-    LD          A,E
-    ADD         A,$10
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    INC         L
-    LD          (HL),A
-    LD          A,E
-    ADD         A,$11
-    LD          E,A
-    LD          A,(DE)
-    AND         0x7
-    INC         L
-    INC         L
-    LD          (HL),A
-    LD          A,E
-    SUB         $22
-    LD          E,A
-    CALL        GET_WEST_WALL
-    LD          A,E
-    ADD         A,0xf
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    INC         L
-    LD          (HL),A
-    LD          A,E
-    ADD         A,$10
-    LD          E,A
-    LD          A,(DE)
-    AND         0x7
-    INC         L
-    INC         L
-    LD          (HL),A
-    LD          A,E
-    SUB         $1f
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    INC         L
-    LD          (HL),A
-    LD          D,$10
+    LD          A,E                             ; Put E in A for math
+    ADD         A,$10                           ; Increase A by 16
+    LD          E,A                             ; Save A to E (Move to S1)
+    CALL        GET_NORTH_WALL                  ; Get F0 wall data
+    LD          (HL),A                          ; Save WALL_F0_STATE ($33e8)
+    LD          A,E                             ; Put E in A for math
+    ADD         A,$10                           ; Increase A by 16
+    LD          E,A                             ; Save A to E (Move to S2)
+    CALL        GET_NORTH_WALL                  ; Get F1 wall data
+    INC         L                               ; Next wall state byte (F1)
+    LD          (HL),A                          ; Save WALL_F1_STATE ($33e9)
+    LD          A,E                             ; Put E in A for math
+    ADD         A,$10                           ; Increase A by 16
+    LD          E,A                             ; Save A to E (Move to S2 + 1)
+    CALL        GET_NORTH_WALL                  ; Get F2 wall data
+    INC         L                               ; Next wall state byte (F2)
+    LD          (HL),A                          ; Save WALL_F2_STATE ($33ea)
+    LD          A,E                             ; Put E in A for math
+    SUB         0xf                             ; Decrease A by 15
+    LD          E,A                             ; Save A to E (Move to SL2)
+    CALL        GET_WEST_WALL                   ; Save WALL_L2_STATE ($33eb)
+    LD          A,E                             ; Put E in A for math
+    ADD         A,$10                           ; Increase A by 16
+    LD          E,A                             ; Save A to E (Move to SL2 + 1)
+    CALL        GET_NORTH_WALL                  ; Get FL2 wall data
+    CALL        CALC_HALF_WALLS                 ; Save FL2 A and B half-states ($33ec & $33f1 (+5))
+    LD          A,E                             ; Put E in A for math
+    SUB         $11                             ; Decrease A by 17
+    LD          E,A                             ; Save A to E (Move to S2)
+    LD          A,(DE)                          ; Get S2 data
+    AND         0x7                             ; Mask to west wall data (R2)
+    LD          (HL),A                          ; Save WALL_R2_STATE ($33ed)
+    LD          A,E                             ; Put E in A for math
+    ADD         A,0xf                           ; Increase A by 15
+    LD          E,A                             ; Save A to E (Move to SR2 + 1)
+    CALL        GET_NORTH_WALL                  ; Get FR2 wall data
+    CALL        CALC_HALF_WALLS                 ; Save FR2 A and B half-states ($33ee & $33f4 (+6))
+    LD          A,E                             ; Put E in A for math
+    SUB         $1e                             ; Decrease A by 30
+    LD          E,A                             ; Save A to E (Move to SL1)
+    LD          A,(DE)                          ; Get SL1 data
+    AND         0x7                             ; Mask to west wall data (L1)
+    LD          (HL),A                          ; Save WALL_L1_STATE ($33ef)
+    LD          A,E                             ; Put E in A for math
+    ADD         A,$10                           ; Increase A by 16
+    LD          E,A                             ; Save A to E (Move to SL2)
+    CALL        GET_NORTH_WALL                  ; Get FL1 wall data
+    CALL        CALC_HALF_WALLS                 ; Save FL1 A and B half-states ($33f0 & $33f7 (+7))
+    LD          A,E                             ; Put E in A for math
+    SUB         $11                             ; Decrease A by 17
+    LD          E,A                             ; Save A to E (Move to S1)
+    CALL        GET_WEST_WALL                   ; Save WALL_R1_STATE ($33f2)
+    LD          A,E                             ; Put E in A for math
+    ADD         A,0xf                           ; Increase A by 15
+    LD          E,A                             ; Save A to E (Move to SR2)
+    CALL        GET_NORTH_WALL                  ; Get FR1 wall data
+    CALL        CALC_HALF_WALLS                 ; Save FR1 A and B half-states ($33f3 & $33fb (+8))
+    LD          A,E                             ; Put E in A for math
+    SUB         $1e                             ; Decrease A by 30
+    LD          E,A                             ; Save A to E (Move to SL0)
+    CALL        GET_WEST_WALL                   ; Save WALL_L0_STATE ($33f5)
+    LD          A,E                             ; Put E in A for math
+    ADD         A,$10                           ; Increase A by 16
+    LD          E,A                             ; Save A to E (Move to SL1)
+    CALL        GET_NORTH_WALL                  ; Get FL0 wall data
+    INC         L                               ; ($33f5)
+    LD          (HL),A                          ; Save WALL_FL0_STATE ($33f6)
+    LD          A,E                             ; Put E in A for math
+    ADD         A,$11                           ; Increase A by 17
+    LD          E,A                             ; Save A to E (Move to SL22)
+    LD          A,(DE)                          ; Get SL22 data
+    AND         0x7                             ; Mask to west wall data (L22)
+    INC         L                               ; ($33f7)
+    INC         L                               ; ($33f8)
+    LD          (HL),A                          ; Save WALL_L22_STATE ($33f8)
+    LD          A,E                             ; Put E in A for math
+    SUB         $22                             ; Decrease A by 34
+    LD          E,A                             ; Save A to E (Move to S0)
+    CALL        GET_WEST_WALL                   ; Save WALL_R0_STATE ($33f9)
+    LD          A,E                             ; Put E in A for math
+    ADD         A,0xf                           ; Increase A by 15
+    LD          E,A                             ; Save A to E (Move to SR1)
+    CALL        GET_NORTH_WALL                  ; Get FR0 wall data
+    INC         L                               ; ($33fa)
+    LD          (HL),A                          ; Save WALL_FR0_STATE ($33fa)
+    LD          A,E                             ; Put E in A for math
+    ADD         A,$10                           ; Increase A by 16
+    LD          E,A                             ; Save A to E (Move to SR2)
+    LD          A,(DE)                          ; Get SR2 data
+    AND         0x7                             ; Mask to west wall data (R22)
+    INC         L                               ; ($33fb)
+    INC         L                               ; ($33fc)
+    LD          (HL),A                          ; Save WALL_R22_STATE ($33fc)
+    LD          A,E                             ; Put E in A for math
+    SUB         $1f                             ; Decrease A by 31
+    LD          E,A                             ; Save A to E (Move to S0)
+    CALL        GET_NORTH_WALL                  ; Get B0 wall data
+    INC         L                               ; ($33fd)
+    LD          (HL),A                          ; Save WALL_B0_STATE ($33fd)
+    LD          D,$10                           ; Set south-facing bytes
     LD          E,$ff
-    LD          (DIR_FACING_HI),DE
-    LD          DE,SOUTH_TXT
+    LD          (DIR_FACING_HI),DE              ; Set south-facing bytes
+    LD          DE,SOUTH_TXT                    ; Stage south pointing compass text
     JP          CALC_REDRAW_COMPASS
 
+; FACING_EAST - Calculate all wall states when player is facing east
+;   - Calculates wall states for all 18 wall positions (including 4 half-walls) plus B0 behind player
+;   - Uses map cursor navigation to sample wall data from MAPSPACE_WALLS
+;   - Calls CALC_HALF_WALLS for FL2, FR2, FL1, FR1 perspective rendering
+;   - Sets compass direction bytes and stages east-pointing compass text
+; Registers:
+; --- Start ---
+;   DE = Player map position in WALL MAP SPACE ($3800+)
+;   HL = WALL_F0_STATE address ($33e8)
+;   C  = Step value for CALC_HALF_WALLS jumps (5)
+; --- In Process ---
+;   A  = Wall data and map position calculations
+;   DE = Map cursor for navigation [S0→S1→S2→(S2+1)→S2→(SL2+1)→SR2→(SR2+1)→S1→SL2→SR1→(SR2)→S0→SL1→(SL2)→SR0→(SR1)→SR22→S0]
+;   HL = Wall state variable pointer progression ($33e8→$33fd)
+;   C  = Incremented step value (5→6→7→8) for CALC_HALF_WALLS
+; ---  End  ---
+;   DE = EAST_TXT pointer for compass rendering
+;   HL = Final wall state address (WALL_B0_STATE + 1)
+;
 FACING_EAST:
-    INC         E
-    LD          A,(DE)
-    AND         0x7
-    LD          (HL),A
-    INC         E
-    CALL        GET_WEST_WALL
-    INC         E
-    CALL        GET_WEST_WALL
-    DEC         E
-    CALL        GET_NORTH_WALL
-    INC         L
-    LD          (HL),A
-    LD          A,E
-    SUB         0xf
-    LD          E,A
-    LD          A,(DE)
-    AND         0x7
-    CALL        CALC_HALF_WALLS
-    LD          A,E
-    ADD         A,$1f
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    LD          (HL),A
-    INC         E
-    LD          A,(DE)
-    AND         0x7
-    CALL        CALC_HALF_WALLS
-    LD          A,E
-    SUB         $12
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    LD          (HL),A
-    LD          A,E
-    SUB         0xf
-    LD          E,A
-    LD          A,(DE)
-    AND         0x7
-    CALL        CALC_HALF_WALLS
-    LD          A,E
-    ADD         A,$1f
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    INC         L
-    LD          (HL),A
-    INC         E
-    LD          A,(DE)
-    AND         0x7
-    CALL        CALC_HALF_WALLS
-    LD          A,E
-    SUB         $12
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    INC         L
-    LD          (HL),A
-    LD          A,E
-    SUB         0xf
-    LD          E,A
-    CALL        GET_WEST_WALL
-    INC         E
-    CALL        GET_NORTH_WALL
-    INC         L
-    INC         L
-    LD          (HL),A
-    LD          A,E
-    ADD         A,$1e
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    INC         L
-    LD          (HL),A
-    INC         E
-    CALL        GET_WEST_WALL
-    LD          A,E
-    ADD         A,$11
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    INC         L
-    INC         L
-    LD          (HL),A
-    LD          A,E
-    SUB         $22
-    LD          E,A
-    CALL        GET_WEST_WALL
-    LD          D,0x1
+    INC         E                               ; Move to S1
+    LD          A,(DE)                          ; Get S1 data
+    AND         0x7                             ; Mask to west wall data (F0)
+    LD          (HL),A                          ; Save WALL_F0_STATE ($33e8)
+    INC         E                               ; Move to S2
+    CALL        GET_WEST_WALL                   ; Save WALL_F1_STATE ($33e9)
+    INC         E                               ; Move to S2 + 1
+    CALL        GET_WEST_WALL                   ; Save WALL_F2_STATE ($33ea)
+    DEC         E                               ; Move to S2
+    CALL        GET_NORTH_WALL                  ; Get L2 wall data
+    INC         L                               ; Next wall state byte (L2)
+    LD          (HL),A                          ; Save WALL_L2_STATE ($33eb)
+    LD          A,E                             ; Put E in A for math
+    SUB         0xf                             ; Decrease A by 15
+    LD          E,A                             ; Save A to E (Move to SL2 + 1)
+    LD          A,(DE)                          ; Get SL2 + 1 data
+    AND         0x7                             ; Mask to west wall data (FL2)
+    CALL        CALC_HALF_WALLS                 ; Save FL2 A and B half-states ($33ec & $33f1 (+5))
+    LD          A,E                             ; Put E in A for math
+    ADD         A,$1f                           ; Increase A by 31
+    LD          E,A                             ; Save A to E (Move to SR2)
+    CALL        GET_NORTH_WALL                  ; Get R2 wall data
+    LD          (HL),A                          ; Save WALL_R2_STATE ($33ed)
+    INC         E                               ; Move to SR2 + 1
+    LD          A,(DE)                          ; Get SR2 + 1 data
+    AND         0x7                             ; Mask to west wall data (FR2)
+    CALL        CALC_HALF_WALLS                 ; Save FR2 A and B half-states ($33ee & $33f4 (+6))
+    LD          A,E                             ; Put E in A for math
+    SUB         $12                             ; Decrease A by 18
+    LD          E,A                             ; Save A to E (Move to S1)
+    CALL        GET_NORTH_WALL                  ; Get L1 wall data
+    LD          (HL),A                          ; Save WALL_L1_STATE ($33ef)
+    LD          A,E                             ; Put E in A for math
+    SUB         0xf                             ; Decrease A by 15
+    LD          E,A                             ; Save A to E (Move to SL2)
+    LD          A,(DE)                          ; Get SL2 data
+    AND         0x7                             ; Mask to west wall data (FL1)
+    CALL        CALC_HALF_WALLS                 ; Save FL1 A and B half-states ($33f0 & $33f7 (+7))
+    LD          A,E                             ; Put E in A for math
+    ADD         A,$1f                           ; Increase A by 31
+    LD          E,A                             ; Save A to E (Move to SR1)
+    CALL        GET_NORTH_WALL                  ; Get R1 wall data
+    INC         L                               ; ($33f2)
+    LD          (HL),A                          ; Save WALL_R1_STATE ($33f2)
+    INC         E                               ; Move to SR2
+    LD          A,(DE)                          ; Get SR2 data
+    AND         0x7                             ; Mask to west wall data (FR1)
+    CALL        CALC_HALF_WALLS                 ; Save FR1 A and B half-states ($33f3 & $33fb (+8))
+    LD          A,E                             ; Put E in A for math
+    SUB         $12                             ; Decrease A by 18
+    LD          E,A                             ; Save A to E (Move to S0)
+    CALL        GET_NORTH_WALL                  ; Get L0 wall data
+    INC         L                               ; ($33f5)
+    LD          (HL),A                          ; Save WALL_L0_STATE ($33f5)
+    LD          A,E                             ; Put E in A for math
+    SUB         0xf                             ; Decrease A by 15
+    LD          E,A                             ; Save A to E (Move to SL1)
+    CALL        GET_WEST_WALL                   ; Save WALL_FL0_STATE ($33f6)
+    INC         E                               ; Move to SL2
+    CALL        GET_NORTH_WALL                  ; Get L22 wall data
+    INC         L                               ; ($33f7)
+    INC         L                               ; ($33f8)
+    LD          (HL),A                          ; Save WALL_L22_STATE ($33f8)
+    LD          A,E                             ; Put E in A for math
+    ADD         A,$1e                           ; Increase A by 30
+    LD          E,A                             ; Save A to E (Move to SR0)
+    CALL        GET_NORTH_WALL                  ; Get R0 wall data
+    INC         L                               ; ($33f9)
+    LD          (HL),A                          ; Save WALL_R0_STATE ($33f9)
+    INC         E                               ; Move to SR1
+    CALL        GET_WEST_WALL                   ; Save WALL_FR0_STATE ($33fa)
+    LD          A,E                             ; Put E in A for math
+    ADD         A,$11                           ; Increase A by 17
+    LD          E,A                             ; Save A to E (Move to SR22)
+    CALL        GET_NORTH_WALL                  ; Get R22 wall data
+    INC         L                               ; ($33fb)
+    INC         L                               ; ($33fc)
+    LD          (HL),A                          ; Save WALL_R22_STATE ($33fc)
+    LD          A,E                             ; Put E in A for math
+    SUB         $22                             ; Decrease A by 34
+    LD          E,A                             ; Save A to E (Move to S0)
+    CALL        GET_WEST_WALL                   ; Save WALL_B0_STATE ($33fd)
+    LD          D,0x1                           ; Set east-facing bytes
     LD          E,$10
-    LD          (DIR_FACING_HI),DE
-    LD          DE,EAST_TXT
+    LD          (DIR_FACING_HI),DE              ; Set east-facing bytes
+    LD          DE,EAST_TXT                     ; Stage east pointing compass text
     JP          CALC_REDRAW_COMPASS
 
 CALC_ITEMS:
