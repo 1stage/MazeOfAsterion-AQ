@@ -3092,7 +3092,7 @@ FACING_WEST:
     ADD         A,$21                           ; Increase A by 33
     LD          E,A                             ; Save A to E (Move to SL1)
     CALL        GET_NORTH_WALL                  ; Get L1 wall data
-    LD          (HL),A                          ; Save WALL_L1_STAE ($33ef)
+    LD          (HL),A                          ; Save WALL_L1_STATE ($33ef)
     LD          A,(DE)                          ; Get SL1 data
     AND         0x7                             ; Mask to west wall data (FL1)
     CALL        CALC_HALF_WALLS                 ; Save FL1 A and B half-states ($33f0 & $33f7 (+7))
@@ -3107,7 +3107,7 @@ FACING_WEST:
     LD          E,A                             ; Save A to E (Move to SR1)
     LD          A,(DE)                          ; Get SR1 data
     AND         0x7                             ; Mask to west wall data (FR1)
-    CALL        CALC_HALF_WALLS                 ; Save FR1 A and B half-states ($eef3 & $eefb (+8))
+    CALL        CALC_HALF_WALLS                 ; Save FR1 A and B half-states ($33f3 & $33fb (+8))
     LD          A,E                             ; Save E to A for math
     ADD         A,$21                           ; Increase A by 33
     LD          E,A                             ; Save A to E (Move to SL0)
@@ -3140,7 +3140,7 @@ FACING_WEST:
     LD          (HL),A                          ; Save WALL_R22_STATE ($33fc)
     LD          A,E                             ; Save E to A for math
     ADD         A,$13                           ; Increase A by 19
-    LD          E,A                             ; Save A to E (Move to)
+    LD          E,A                             ; Save A to E (Move to SB)
     CALL        GET_WEST_WALL                   ; Save WALL_B0_STATE ($33fd)
     LD          D,$ff
     LD          E,$f0
