@@ -3047,7 +3047,7 @@ MONSTER_KILLED:
     LD          HL,CHRRAM_MONSTER_POOF_IDX              ;= $20
     CALL        PLAY_POOF_ANIM
     LD          A,(PLAYER_MAP_POS)                      ;A  = Player position in map
-    LD          HL,(DIR_FACING_FW)                      ;HL = FW adjustment value
+    LD          HL,(DIR_FACING_HI)                      ;HL = FW adjustment value
     ADD         A,H                                     ;A  = Player position in map
                                                         ;one step forward
     CALL        ITEM_MAP_CHECK                          ;Upon return,
@@ -3668,7 +3668,7 @@ FW_WALLS_CLEAR_CHK_MONSTER:
     CP          $7a                                    ;Check for monster in F1
     JP          NC,NO_ACTION_TAKEN                      ;Monster in your way!
                                                         ;Do nothing.
-    LD          BC,(DIR_FACING_FW)                      ;Way is clear!
+    LD          BC,(DIR_FACING_HI)                      ;Way is clear!
                                                         ;Move forward.
     LD          (BYTE_ram_3a9e),BC
     LD          A,(DIR_FACING_SHORT)
@@ -3685,13 +3685,13 @@ DO_JUMP_BACK:
     JP          Z,LAB_ram_e201
     EX          AF,AF'
     LD          HL,(BYTE_ram_3a9e)
-    LD          A,(DIR_FACING_BW)
+    LD          A,(DIR_FACING_LO)
     NEG                                                 ;Negate A
     CP          H
     JP          Z,NO_ACTION_TAKEN
     EX          AF,AF'
     LD          (PLAYER_MAP_POS),A
-    LD          (DIR_FACING_FW),HL
+    LD          (DIR_FACING_HI),HL
     LD          A,(BYTE_ram_3aa0)
     LD          (DIR_FACING_SHORT),A
     LD          A,(LAST_ITEM_HELD)
@@ -5150,7 +5150,7 @@ LAB_ram_eb7b:
     JR          NC,LAB_ram_ebd6
     DEC         B
     JR          NZ,LAB_ram_eb9e
-    LD          A,(DAT_ram_33fd)                        ;= $20
+    LD          A,(WALL_B0_STATE)                        ;= $20
     BIT         0x2,A
     JR          NZ,LAB_ram_eb96
     AND         A
@@ -5162,7 +5162,7 @@ LAB_ram_eb96:
 LAB_ram_eb9e:
     DEC         B
     JR          NZ,LAB_ram_ebb0
-    LD          A,(DAT_ram_33f5)                        ;= $20
+    LD          A,(WALL_L0_STATE)                        ;= $20
     BIT         0x2,A
     JR          NZ,LAB_ram_ebab
     AND         A
@@ -5173,7 +5173,7 @@ LAB_ram_ebab:
 LAB_ram_ebb0:
     DEC         B
     JR          NZ,LAB_ram_ebcc
-    LD          A,(DAT_ram_33f9)                        ;= $20
+    LD          A,(WALL_R0_STATE)                        ;= $20
     BIT         0x2,A
     JR          NZ,LAB_ram_ebbd
     AND         A
@@ -6628,7 +6628,7 @@ REDRAW_START:
     LD          (HL),A                   ;= $20
     LD          A,(DE)
     AND         0x7
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     SUB         $10
     LD          E,A
@@ -6639,7 +6639,7 @@ REDRAW_START:
     LD          E,A
     LD          A,(DE)
     AND         0x7
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     ADD         A,$21
     LD          E,A
@@ -6647,7 +6647,7 @@ REDRAW_START:
     LD          (HL),A                   ;= $20
     LD          A,(DE)
     AND         0x7
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     SUB         $10
     LD          E,A
@@ -6659,7 +6659,7 @@ REDRAW_START:
     LD          E,A
     LD          A,(DE)
     AND         0x7
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     ADD         A,$21
     LD          E,A
@@ -6696,7 +6696,7 @@ REDRAW_START:
     CALL        GET_WEST_WALL
     LD          D,$ff
     LD          E,$f0
-    LD          (DIR_FACING_FW),DE                      ;DE = 0xFFF0 (WEST)
+    LD          (DIR_FACING_HI),DE                      ;DE = 0xFFF0 (WEST)
     LD          B,$10                                  ;RED on BLK
     LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
     LD          DE,WEST_TXT                             ;= "\a",$FF
@@ -6714,7 +6714,7 @@ GET_NORTH_WALL:
     RLCA
     RLCA
     RET
-REDRAW_NORTH:
+CALC_HALF_WALLS:
     INC         L
     LD          (HL),A
     LD          B,A
@@ -6746,14 +6746,14 @@ FACING_NORTH:
     CALL        GET_WEST_WALL
     DEC         E
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     INC         E
     INC         E
     LD          A,(DE)
     AND         0x7
     LD          (HL),A
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     ADD         A,0xf
     LD          E,A
@@ -6762,12 +6762,12 @@ FACING_NORTH:
     LD          (HL),A
     DEC         E
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     INC         E
     INC         E
     CALL        GET_WEST_WALL
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     ADD         A,0xf
     LD          E,A
@@ -6807,7 +6807,7 @@ FACING_NORTH:
     LD          (HL),A
     LD          D,$f0
     LD          E,0x1
-    LD          (DIR_FACING_FW),DE
+    LD          (DIR_FACING_HI),DE
     LD          B,$10                                  ;RED on BLK
     LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
     LD          DE,NORTH_TXT                            ;= "\b",$FF
@@ -6844,7 +6844,7 @@ FACING_SOUTH:
     ADD         A,$10
     LD          E,A
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     SUB         $11
     LD          E,A
@@ -6855,7 +6855,7 @@ FACING_SOUTH:
     ADD         A,0xf
     LD          E,A
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     SUB         $1e
     LD          E,A
@@ -6866,7 +6866,7 @@ FACING_SOUTH:
     ADD         A,$10
     LD          E,A
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     SUB         $11
     LD          E,A
@@ -6875,7 +6875,7 @@ FACING_SOUTH:
     ADD         A,0xf
     LD          E,A
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     SUB         $1e
     LD          E,A
@@ -6920,7 +6920,7 @@ FACING_SOUTH:
     LD          (HL),A                    ;= $20
     LD          D,$10
     LD          E,$ff
-    LD          (DIR_FACING_FW),DE
+    LD          (DIR_FACING_HI),DE
     LD          B,$10                                  ;RED on BLK
     LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
     LD          DE,SOUTH_TXT                            ;= "\t",$FF
@@ -6949,7 +6949,7 @@ FACING_EAST:
     LD          E,A
     LD          A,(DE)
     AND         0x7
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     ADD         A,$1f
     LD          E,A
@@ -6958,7 +6958,7 @@ FACING_EAST:
     INC         E
     LD          A,(DE)
     AND         0x7
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     SUB         $12
     LD          E,A
@@ -6969,7 +6969,7 @@ FACING_EAST:
     LD          E,A
     LD          A,(DE)
     AND         0x7
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     ADD         A,$1f
     LD          E,A
@@ -6979,7 +6979,7 @@ FACING_EAST:
     INC         E
     LD          A,(DE)
     AND         0x7
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     SUB         $12
     LD          E,A
@@ -7016,7 +7016,7 @@ FACING_EAST:
     CALL        GET_WEST_WALL
     LD          D,0x1
     LD          E,$10
-    LD          (DIR_FACING_FW),DE
+    LD          (DIR_FACING_HI),DE
     LD          B,$10                                  ;RED on BLK
     LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
     LD          DE,EAST_TXT                             ;= $06,$FF
@@ -7035,7 +7035,7 @@ GET_WEST_WALL:
     RET
 GET_WEST_WALL_2:
     LD          IX,ITEM_F2                              ;= $60
-    LD          DE,(DIR_FACING_FW)
+    LD          DE,(DIR_FACING_HI)
     LD          A,(PLAYER_MAP_POS)
     ADD         A,D
     ADD         A,D
@@ -7172,7 +7172,7 @@ LAB_ram_f88b:
     JP          C,LAB_ram_f885
     CALL        DRAW_WALL_L2_C_EMPTY
 LAB_ram_f892:
-    LD          DE,DAT_ram_33ed                         ;= $20
+    LD          DE,WALL_R2_STATE                         ;= $20
     LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f8a0
@@ -7198,7 +7198,7 @@ LAB_ram_f8b7:
     LD          BC,$48a
     CALL        CHK_ITEM
 F1_HD_NO_WALL:
-    LD          DE,DAT_ram_33ef                         ;= $20
+    LD          DE,WALL_L1_STATE                         ;= $20
     LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f8db
@@ -7254,7 +7254,7 @@ LAB_ram_f91c:
     JP          C,LAB_ram_f916
     CALL        DRAW_WALL_FL2_EMPTY
 LAB_ram_f923:
-    LD          DE,DAT_ram_33f2                         ;= $20
+    LD          DE,WALL_R1_STATE                         ;= $20
     LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f93e
@@ -7314,7 +7314,7 @@ LAB_ram_f986:
     LD          BC,$28a
     CALL        CHK_ITEM
 F0_HD_NO_WALL:
-    LD          DE,DAT_ram_33f5                         ;= $20
+    LD          DE,WALL_L0_STATE                         ;= $20
     LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_f9aa
@@ -7388,7 +7388,7 @@ LAB_ram_fa0f:
     CALL        DRAW_WALL_FL22_EMPTY
     CALL        SUB_ram_f9e7
 LAB_ram_fa19:
-    LD          DE,DAT_ram_33f9                         ;= $20
+    LD          DE,WALL_R0_STATE                         ;= $20
     LD          A,(DE)                    ;= $20
     RRCA
     JP          NC,LAB_ram_fa34

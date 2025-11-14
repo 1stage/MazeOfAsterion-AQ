@@ -56,8 +56,8 @@ UPDATE_VIEWPORT:
 - `WALL_F0_STATE` ($33e8) - Wall directly ahead
 - `WALL_F1_STATE` ($33e9) - Wall one step ahead
 - `WALL_F2_STATE` ($33ea) - Wall two steps ahead  
-- `WALL_FL2_STATE` ($33eb) - FL2 wall (left of F2)
-- `DAT_ram_33ec` through `DAT_ram_33fd` - All side wall states (L0/R0, L1/R1, L2/R2, FL0/FR0, FL1/FR1, FL22/FR22, etc.)
+- `WALL_F2_STATE` ($33eb) - FL2 wall (left of F2)
+- `DAT_ram_33ec` through `WALL_B0_STATE` - All side wall states (L0/R0, L1/R1, L2/R2, FL0/FR0, FL1/FR1, FL22/FR22, etc.)
 
 The function writes approximately 22 bytes of wall state data covering every wall segment that could be visible in the 3D viewport. This includes symmetric calculations for both left and right side walls at all distances.
 
@@ -91,18 +91,18 @@ The rendering follows a **painter's algorithm** - draw from back to front with s
 
 #### Wall State Bit Pattern Logic
 
-**Note**: The misleading variable name `WALL_F3_STATE` has been corrected to `WALL_FL2_STATE` to accurately reflect that it controls the FL2 wall segment (left side of F2), not a non-existent "F3" wall. See `docs/wall_diagram.txt` for the correct wall layout.
+**Note**: The misleading variable name `WALL_F3_STATE` has been corrected to `WALL_F2_STATE` to accurately reflect that it controls the FL2 wall segment (left side of F2), not a non-existent "F3" wall. See `docs/wall_diagram.txt` for the correct wall layout.
 
 **Corrected Wall State Mapping**:
 - `WALL_F0_STATE` ($33e8) → Controls **F0** wall (correct)
 - `WALL_F1_STATE` ($33e9) → Controls **F1** wall (correct)  
 - `WALL_F2_STATE` ($33ea) → Controls **F2** wall (correct)
-- `WALL_FL2_STATE` ($33eb) → Controls **FL2** wall (now correctly named)
-- `DAT_ram_33ed` → Controls **FR2** and **L2** walls
-- `DAT_ram_33ef+` → Controls **FL1**, **L1** walls  
-- `DAT_ram_33f2+` → Controls **FR1**, **R1** walls
-- `DAT_ram_33f5+` → Controls **FL0**, **L0** walls
-- `DAT_ram_33f9+` → Controls **FR0**, **R0** walls
+- `WALL_F2_STATE` ($33eb) → Controls **FL2** wall (now correctly named)
+- `WALL_R2_STATE` → Controls **FR2** and **L2** walls
+- `WALL_L1_STATE+` → Controls **FL1**, **L1** walls  
+- `WALL_R1_STATE+` → Controls **FR1**, **R1** walls
+- `WALL_L0_STATE+` → Controls **FL0**, **L0** walls
+- `WALL_R0_STATE+` → Controls **FR0**, **R0** walls
 
 Each wall state byte uses a 3-bit pattern checked via `RRCA` (rotate right carry):
 - **Bit 0** (LSB): Hidden door present flag  
@@ -143,22 +143,22 @@ The checking logic uses successive `RRCA` instructions:
 - Functions: `DRAW_WALL_F2`, `DRAW_DOOR_F2_OPEN`
 
 **4. FL2 Left Far Walls**
-- Address: `WALL_FL2_STATE` ($33eb) - **Correctly named FL2 wall control**
+- Address: `WALL_F2_STATE` ($33eb) - **Correctly named FL2 wall control**
 - Controls FL2 wall segment (left side of F2 wall)
 - Functions: `DRAW_WALL_FL2_EMPTY` (when no wall), `DRAW_WALL_FL2_NEW` (when wall present)
 
 **5. L2 Center-Left Walls** 
-- Address: `DAT_ram_33ed` ($33ed) and `DAT_ram_33ee` ($33ee)
+- Address: `WALL_R2_STATE` ($33ed) and `DAT_ram_33ee` ($33ee)
 - Controls middle-left wall segments
 - Functions: `DRAW_WALL_L2_C`, `DRAW_WALL_L2_C_EMPTY`
 
 **6. FR2 Right Far Walls**
-- Address: `DAT_ram_33ed` ($33ed)
+- Address: `WALL_R2_STATE` ($33ed)
 - Controls far right wall segments  
 - Functions: `DRAW_WALL_FR2`, `DRAW_WALL_FR2_EMPTY`
 
 **7. FL1 Left Near Walls**
-- Address: `DAT_ram_33ef` ($33ef) and `DAT_ram_33f0` ($33f0)
+- Address: `WALL_L1_STATE` ($33ef) and `DAT_ram_33f0` ($33f0)
 - Controls near-left wall segments
 - Functions: `DRAW_L1_WALL`, `DRAW_L1`, `DRAW_FL1_DOOR`
 
@@ -168,12 +168,12 @@ The checking logic uses successive `RRCA` instructions:
 - Functions: `DRAW_WALL_FL2_NEW`, `DRAW_WALL_FL2_EMPTY`
 
 **9. FR1 Right Near Walls**
-- Address: `DAT_ram_33f2` ($33f2), `DAT_ram_33f3` ($33f3), `DAT_ram_33f4` ($33f4)
+- Address: `WALL_R1_STATE` ($33f2), `DAT_ram_33f3` ($33f3), `DAT_ram_33f4` ($33f4)
 - Controls near-right wall segments in multiple passes
 - Functions: `DRAW_WALL_FR1`, various SUB_ram_cc functions for door frames
 
 **10. FL0 Left Immediate Walls**
-- Address: `DAT_ram_33f5` ($33f5) through `DAT_ram_33f8` ($33f8)
+- Address: `WALL_L0_STATE` ($33f5) through `DAT_ram_33f8` ($33f8)
 - Controls closest left wall segments with complex geometry
 - Functions: `DRAW_WALL_FL0`, `DRAW_DOOR_FLO`, `SUB_ram_c996`
 
@@ -182,7 +182,7 @@ The checking logic uses successive `RRCA` instructions:
 - Functions: `DRAW_WALL_FL22_EMPTY` - handles far left corner cases
 
 **12. FR0 Right Immediate Walls**  
-- Address: `DAT_ram_33f9` ($33f9) through `DAT_ram_33fc` ($33fc)
+- Address: `WALL_R0_STATE` ($33f9) through `DAT_ram_33fc` ($33fc)
 - Controls closest right wall segments
 - Functions: `DRAW_FR0_DOOR`, various SUB_ram_cb functions
 

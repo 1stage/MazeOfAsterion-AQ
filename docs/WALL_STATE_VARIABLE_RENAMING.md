@@ -11,27 +11,27 @@ This document tracks the systematic renaming of wall state variables from generi
 - `WALL_F2_STATE` ($33ea) - F2 wall (north wall two steps forward)
 
 ### Fixed Misnaming
-- `WALL_F3_STATE` → `WALL_FL2_STATE` ($33eb) - FL2 wall (north wall of left-of-F2)
+- `WALL_F3_STATE` → `WALL_F2_STATE` ($33eb) - FL2 wall (north wall of left-of-F2)
 
 ### Educated Renamings (Based on 3D Viewport Pattern)
 - `DAT_ram_33ec` → `WALL_L2_C_STATE` ($33ec) - L2_C wall (center-left wall at distance 2)
-- `DAT_ram_33ed` → `WALL_FR2_STATE` ($33ed) - FR2 wall (far-right wall at distance 2)
+- `WALL_R2_STATE` → `WALL_FR2_STATE` ($33ed) - FR2 wall (far-right wall at distance 2)
 - `DAT_ram_33ee` → `WALL_R1_STATE` ($33ee) - R1 wall (west wall between S1 and SR1)
-- `DAT_ram_33ef` → `WALL_L1_STATE` ($33ef) - L1 wall (west wall of S1)
+- `WALL_L1_STATE` → `WALL_L1_STATE` ($33ef) - L1 wall (west wall of S1)
 - `DAT_ram_33f0` → `WALL_FR1_STATE` ($33f0) - FR1 wall (north wall of SR1)
 - `DAT_ram_33f1` → `WALL_FL1_STATE` ($33f1) - FL1 wall (north wall of SL1)
-- `DAT_ram_33f2` → `WALL_L0_STATE` ($33f2) - L0 wall (west wall of player position)
-- `DAT_ram_33f5` → `WALL_R0_STATE` ($33f5) - R0 wall (west wall between player and right)
+- `WALL_R1_STATE` → `WALL_L0_STATE` ($33f2) - L0 wall (west wall of player position)
+- `WALL_L0_STATE` → `WALL_R0_STATE` ($33f5) - R0 wall (west wall between player and right)
 - `DAT_ram_33f6` → `WALL_FR0_STATE` ($33f6) - FR0 wall (north wall of SR0)
 - `DAT_ram_33f7` → `WALL_FL0_STATE` ($33f7) - FL0 wall (north wall of SL0)
 
 ### Unchanged (Require Further Analysis)
 - `DAT_ram_33f3` ($33f3) - Unknown/unused?
 - `DAT_ram_33f4` ($33f4) - Unknown/unused?
-- `DAT_ram_33f9` ($33f9) - Additional wall state data
+- `WALL_R0_STATE` ($33f9) - Additional wall state data
 - `DAT_ram_33fa` ($33fa) - Additional wall state data
 - `DAT_ram_33fb` ($33fb) - Additional wall state data
-- `DAT_ram_33fd` ($33fd) - Additional wall state data
+- `WALL_B0_STATE` ($33fd) - Additional wall state data
 
 ## Code Changes Made
 
@@ -40,16 +40,16 @@ This document tracks the systematic renaming of wall state variables from generi
 2. **src/asterion_high_rom.asm** - Updated variable references in GET_NORTH_WALLPORT
 
 ### References Updated:
-- Line 1535: `(DAT_ram_33f5)` → `(WALL_R0_STATE)`
-- Line 3561: `DAT_ram_33ed` → `WALL_FR2_STATE` 
-- Line 3587: `DAT_ram_33ef` → `WALL_L1_STATE`
-- Line 3643: `DAT_ram_33f2` → `WALL_L0_STATE`
-- Line 3703: `DAT_ram_33f5` → `WALL_R0_STATE`
+- Line 1535: `(WALL_L0_STATE)` → `(WALL_R0_STATE)`
+- Line 3561: `WALL_R2_STATE` → `WALL_FR2_STATE` 
+- Line 3587: `WALL_L1_STATE` → `WALL_L1_STATE`
+- Line 3643: `WALL_R1_STATE` → `WALL_L0_STATE`
+- Line 3703: `WALL_L0_STATE` → `WALL_R0_STATE`
 
 ### Bug Fix Applied:
 - **Corrected L2 rendering issue**: `DAT_ram_33ec` was incorrectly renamed to `WALL_FR2_STATE` but actually controls `DRAW_WALL_L2_C` functions
 - **Fixed**: `DAT_ram_33ec` → `WALL_L2_C_STATE` (controls L2_C walls)  
-- **Fixed**: `DAT_ram_33ed` → `WALL_FR2_STATE` (controls FR2 walls, not R2 walls)
+- **Fixed**: `WALL_R2_STATE` → `WALL_FR2_STATE` (controls FR2 walls, not R2 walls)
 
 ## Wall Diagram Reference
 
@@ -100,7 +100,7 @@ Based on `docs/wall_diagram.txt`, the 3D viewport contains:
 
 ### Future Analysis Needed:
 1. **Determine purpose of DAT_ram_33f3/33f4** - gaps in sequence suggest special purpose
-2. **Analyze DAT_ram_33f9/33fa/33fb/33fd** - additional wall state data for complex cases
+2. **Analyze WALL_R0_STATE/33fa/33fb/33fd** - additional wall state data for complex cases
 3. **Verify wall state calculations** - ensure renamed variables match actual calculated data
 4. **Consider door state variables** - some addresses might store door-specific states
 

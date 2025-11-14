@@ -137,7 +137,7 @@ FW_WALLS_CLEAR_CHK_MONSTER:
     CP          $7a								;  Check for monster in F1
     JP          NC,NO_ACTION_TAKEN								;  Monster in your way!
 								;  Do nothing.
-    LD          BC,(DIR_FACING_FW)								;  Way is clear!
+    LD          BC,(DIR_FACING_HI)								;  Way is clear!
 								;  Move forward.
     LD          (PREV_DIR_VECTOR),BC
     LD          A,(DIR_FACING_SHORT)
@@ -154,13 +154,13 @@ DO_JUMP_BACK:
     JP          Z,LAB_ram_e201
     EX          AF,AF'
     LD          HL,(PREV_DIR_VECTOR)
-    LD          A,(DIR_FACING_BW)
+    LD          A,(DIR_FACING_LO)
     NEG								;  Negate A
     CP          H
     JP          Z,NO_ACTION_TAKEN
     EX          AF,AF'
     LD          (PLAYER_MAP_POS),A
-    LD          (DIR_FACING_FW),HL
+    LD          (DIR_FACING_HI),HL
     LD          A,(PREV_DIR_FACING)
     LD          (DIR_FACING_SHORT),A
     LD          A,(COMBAT_BUSY_FLAG)
@@ -1520,7 +1520,7 @@ LAB_ram_eb7b:
     JP          NC,LAB_ram_ebd6
     DEC         B
     JP          NZ,LAB_ram_eb9e
-    LD          A,(DAT_ram_33fd)
+    LD          A,(WALL_B0_STATE)
     BIT         0x2,A
     JP          NZ,LAB_ram_eb96
     AND         A
@@ -1532,7 +1532,7 @@ LAB_ram_eb96:
 LAB_ram_eb9e:
     DEC         B
     JP          NZ,LAB_ram_ebb0
-    LD          A,(DAT_ram_33f5)
+    LD          A,(WALL_L0_STATE)
     BIT         0x2,A
     JP          NZ,LAB_ram_ebab
     AND         A
@@ -1543,7 +1543,7 @@ LAB_ram_ebab:
 LAB_ram_ebb0:
     DEC         B
     JP          NZ,LAB_ram_ebcc
-    LD          A,(DAT_ram_33f9)
+    LD          A,(WALL_R0_STATE)
     BIT         0x2,A
     JP          NZ,LAB_ram_ebbd
     AND         A
@@ -3044,109 +3044,110 @@ LAB_ram_f4e4:
     DEC         B
     RET
 REDRAW_START:
-    LD          HL,CALC_ITEMS					    ; Save CALC_ITEMS for RET after COMPASS redraw
-    PUSH        HL
-    LD          HL,PLAYER_MAP_POS
-    LD          E,(HL)
-    LD          D,$38								;  DE = Player map position in WALL MAP SPACE
+    LD          HL,CALC_ITEMS					; Save CALC_ITEMS function address
+    PUSH        HL                              ; PUSH it onto the stack for RET value after COMPASS redraw
+    LD          HL,PLAYER_MAP_POS               ; Get player map position variable address
+    LD          E,(HL)                          ; Put player's position into E
+    LD          D,$38							; DE = Player map position in WALL MAP SPACE (starts at $3800)
     LD          HL,WALL_F0_STATE                ; Start of WALL_xx_STATE bytes
-    LD          C,0x5                           ; ????
-    LD          A,(DIR_FACING_SHORT)
+    LD          C,0x5                           ; C is a step value to more easily jump to WALL_xx_STATE values
+    LD          A,(DIR_FACING_SHORT)            ; Load DIR_FACING_SHORT into A (1=N, 2=E, 3=S, 4=W)
     DEC         A
-    JP          Z,FACING_NORTH
+    JP          Z,FACING_NORTH                  ; Dir facing was 1, north
+    DEC         A                               
+    JP          Z,FACING_EAST                   ; Dir facing was 2, east
     DEC         A
-    JP          Z,FACING_EAST
-    DEC         A
-    JP          Z,FACING_SOUTH
+    JP          Z,FACING_SOUTH                  ; Dir facing was 3, south
+                                                ; Dir facing was 4, west
 
 FACING_WEST:    
     LD          A,(DE)                          ; Get S0 walls data
     AND         0x7								; Mask to west wall data (F0)
-    LD          (HL),A                          ; Save WALL_F0_STATE
+    LD          (HL),A                          ; Save WALL_F0_STATE ($33e8)
     DEC         E                               ; Move to S1
-    CALL        GET_WEST_WALL                   ; Save WALL_F1_STATE
+    CALL        GET_WEST_WALL                   ; Save WALL_F1_STATE ($33e9)
     DEC         E                               ; Move to S2
-    CALL        GET_WEST_WALL                   ; Save WALL_F2_STATE
+    CALL        GET_WEST_WALL                   ; Save WALL_F2_STATE ($33ea)
     LD          A,E                             ; Put E in A for math
     ADD         A,$10                           ; Increase A by 16
     LD          E,A                             ; Save A to E (Move to SL2)
     CALL        GET_NORTH_WALL                  ; Get L2 wall data
     INC         L                               ; Next wall state byte (L2)
-    LD          (HL),A                          ; Save WALL_L2_STATE
-    LD          A,(DE)                          ; Get SL2 data again
+    LD          (HL),A                          ; Save WALL_L2_STATE ($33eb)
+    LD          A,(DE)                          ; Get SL2 data 
     AND         0x7                             ; Mask to west wall data (FL2)
-    CALL        REDRAW_NORTH
-    LD          A,E
-    SUB         $10
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    LD          (HL),A
-    LD          A,E
-    SUB         $10
-    LD          E,A
-    LD          A,(DE)
-    AND         0x7
-    CALL        REDRAW_NORTH
-    LD          A,E
-    ADD         A,$21
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    LD          (HL),A
-    LD          A,(DE)
-    AND         0x7
-    CALL        REDRAW_NORTH
-    LD          A,E
-    SUB         $10
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    INC         L
-    LD          (HL),A
-    LD          A,E
-    SUB         $10
-    LD          E,A
-    LD          A,(DE)
-    AND         0x7
-    CALL        REDRAW_NORTH
-    LD          A,E
-    ADD         A,$21
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    INC         L
-    LD          (HL),A
-    CALL        GET_WEST_WALL
-    LD          A,E
-    ADD         A,0xe
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    INC         L
-    INC         L
-    LD          (HL),A
-    LD          A,E
-    SUB         $1e
-    LD          E,A
-    CALL        GET_NORTH_WALL
-    INC         L
-    LD          (HL),A
-    LD          A,E
-    SUB         $10
-    LD          E,A
-    CALL        GET_WEST_WALL
-    DEC         E
-    DEC         E
-    CALL        GET_NORTH_WALL
-    INC         L
-    INC         L
-    LD          (HL),A
-    LD          A,E
-    ADD         A,$13
-    LD          E,A
-    CALL        GET_WEST_WALL
+    CALL        CALC_HALF_WALLS                 ; Save FL2 A and B half-states ($33ec & $33f1 (+5))
+    LD          A,E                             ; Save E into A for math
+    SUB         $10                             ; Decrease A by 16
+    LD          E,A                             ; Save A to E (Move to S2)
+    CALL        GET_NORTH_WALL                  ; Get R2 wall data
+    LD          (HL),A                          ; Save WALL_R2_STATE ($33ed)
+    LD          A,E                             ; Save E into A for math
+    SUB         $10                             ; Decrease A by 16
+    LD          E,A                             ; Save A to E (Move to SR2)
+    LD          A,(DE)                          ; Get SR2 data
+    AND         0x7                             ; Mask to west wall data (FR2)
+    CALL        CALC_HALF_WALLS                 ; Save FR2 A and B half-states ($33ee & $33f4 (+6))
+    LD          A,E                             ; Copy E to A for math
+    ADD         A,$21                           ; Increase A by 33
+    LD          E,A                             ; Save A to E (Move to SL1)
+    CALL        GET_NORTH_WALL                  ; Get L1 wall data
+    LD          (HL),A                          ; Save WALL_L1_STAE ($33ef)
+    LD          A,(DE)                          ; Get SL1 data
+    AND         0x7                             ; Mask to west wall data (FL1)
+    CALL        CALC_HALF_WALLS                 ; Save FL1 A and B half-states ($33f0 & $33f7 (+7))
+    LD          A,E                             ; Save E to A for math
+    SUB         $10                             ; Decrease A by 16
+    LD          E,A                             ; Save A to E (Move to S1)
+    CALL        GET_NORTH_WALL                  ; Get R1 wall data
+    INC         L                               ; ($33f2)
+    LD          (HL),A                          ; Save WALL_R1_STATE ($33f2)
+    LD          A,E                             ; Save E to A for math
+    SUB         $10                             ; Decrease A by 16
+    LD          E,A                             ; Save A to E (Move to SR1)
+    LD          A,(DE)                          ; Get SR1 data
+    AND         0x7                             ; Mask to west wall data (FR1)
+    CALL        CALC_HALF_WALLS                 ; Save FR1 A and B half-states ($eef3 & $eefb (+8))
+    LD          A,E                             ; Save E to A for math
+    ADD         A,$21                           ; Increase A by 33
+    LD          E,A                             ; Save A to E (Move to SL0)
+    CALL        GET_NORTH_WALL                  ; Get L0 wall data
+    INC         L                               ; ($33f5)
+    LD          (HL),A                          ; Save WALL_L0_STATE ($33f5)
+    CALL        GET_WEST_WALL                   ; Save WALL_FL0_STATE ($33f6)
+    LD          A,E                             ; Save E to A for math
+    ADD         A,0xe                           ; Increase A by 14
+    LD          E,A                             ; Save A to E (Move to SL22)
+    CALL        GET_NORTH_WALL                  ; Get L22 wall data
+    INC         L                               ; ($33f7)
+    INC         L                               ; ($33f8)
+    LD          (HL),A                          ; Save WALL_L22_STATE ($33f8)
+    LD          A,E                             ; Save E to A for math
+    SUB         $1e                             ; Decrease A by 30
+    LD          E,A                             ; Save A to E (Move to S0)
+    CALL        GET_NORTH_WALL                  ; Get R0 wall data
+    INC         L                               ; ($33f9)
+    LD          (HL),A                          ; Save WALL_R0_STATE ($33f9)
+    LD          A,E                             ; Save E to A for math
+    SUB         $10                             ; Decrease A by 16
+    LD          E,A                             ; Save A to E (Move to SR0)
+    CALL        GET_WEST_WALL                   ; Save WALL_FR0_STATE ($33fa)
+    DEC         E                               ; Move to SR1
+    DEC         E                               ; Move to SR2
+    CALL        GET_NORTH_WALL                  ; Get R22 wall data
+    INC         L                               ; ($33fb)
+    INC         L                               ; ($33fc)
+    LD          (HL),A                          ; Save WALL_R22_STATE ($33fc)
+    LD          A,E                             ; Save E to A for math
+    ADD         A,$13                           ; Increase A by 19
+    LD          E,A                             ; Save A to E (Move to)
+    CALL        GET_WEST_WALL                   ; Save WALL_B0_STATE ($33fd)
     LD          D,$ff
     LD          E,$f0
-    LD          (DIR_FACING_FW),DE
-    LD          DE,WEST_TXT
-    JP          CALC_REDRAW_COMPASS         ; Included for code relocatability
-                                            ; even though it currently follows
+    LD          (DIR_FACING_HI),DE              ; Set west-facing bytes
+    LD          DE,WEST_TXT                     ; Stage west pointing compass text
+    JP          CALC_REDRAW_COMPASS             ; Included for code relocatability
+                                                ; even though it currently follows
 
 ; CALC_REDRAW_COMPASS - Calculate and redraw compass
 ;   - Takes current direction and renders it on the compass
@@ -3199,7 +3200,7 @@ GET_NORTH_WALL:
     RLCA                    ; ...nybble bits
     RET
 
-; REDRAW_NORTH - Get wall data and put into bottom 3 bits
+; CALC_HALF_WALLS - Get wall data and put into bottom 3 bits
 ;   - Data is saved into (HL+1)
 ;   - Data is saved into (HL+C)
 ; --- Start ---
@@ -3211,21 +3212,21 @@ GET_NORTH_WALL:
 ;   A  = Wall state for given north wall in bottom 3 bits
 ;   C  = C + 1
 ;   DE = Current wall map space in RAM (unchanged)
-;   HL = Next WALL_xx_STATE variable location
+;   HL = Two wall states ahead from original WALL_xx_STATE variable location
 ;
-REDRAW_NORTH:
+CALC_HALF_WALLS:
     INC         L           ; Move to next WALL_xx_STATE variable location   
     LD          (HL),A      ; Save wall state data
     LD          B,A         ; Save A into B
     LD          A,L         ; Save L into A
-    ADD         A,C         ; Add C (5?) to A
+    ADD         A,C         ; Add C (current half-wall WALL_xx_STATE shift offset) to A
     LD          L,A         ; Save A back into L
-    LD          (HL),B
-    LD          A,L
-    SUB         C
-    LD          L,A
-    INC         L
-    INC         C
+    LD          (HL),B      ; Save wall value into shifted WALL_xx_STATE slot
+    LD          A,L         ; Put L into A
+    SUB         C           ; Subtract C from A
+    LD          L,A         ; Load A into L (undo the shift)
+    INC         L           ; Move to next WALL_xx_STATE location (unshifted)
+    INC         C           ; Increment C
     RET
 
 FACING_NORTH:
@@ -3246,14 +3247,14 @@ FACING_NORTH:
     CALL        GET_WEST_WALL
     DEC         E
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     INC         E
     INC         E
     LD          A,(DE)
     AND         0x7
     LD          (HL),A
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     ADD         A,0xf
     LD          E,A
@@ -3262,12 +3263,12 @@ FACING_NORTH:
     LD          (HL),A
     DEC         E
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     INC         E
     INC         E
     CALL        GET_WEST_WALL
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     ADD         A,0xf
     LD          E,A
@@ -3307,7 +3308,7 @@ FACING_NORTH:
     LD          (HL),A
     LD          D,$f0
     LD          E,0x1
-    LD          (DIR_FACING_FW),DE
+    LD          (DIR_FACING_HI),DE
     LD          DE,NORTH_TXT
     JP          CALC_REDRAW_COMPASS
 
@@ -3337,7 +3338,7 @@ FACING_SOUTH:
     ADD         A,$10
     LD          E,A
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     SUB         $11
     LD          E,A
@@ -3348,7 +3349,7 @@ FACING_SOUTH:
     ADD         A,0xf
     LD          E,A
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     SUB         $1e
     LD          E,A
@@ -3359,7 +3360,7 @@ FACING_SOUTH:
     ADD         A,$10
     LD          E,A
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     SUB         $11
     LD          E,A
@@ -3368,7 +3369,7 @@ FACING_SOUTH:
     ADD         A,0xf
     LD          E,A
     CALL        GET_NORTH_WALL
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     SUB         $1e
     LD          E,A
@@ -3413,7 +3414,7 @@ FACING_SOUTH:
     LD          (HL),A
     LD          D,$10
     LD          E,$ff
-    LD          (DIR_FACING_FW),DE
+    LD          (DIR_FACING_HI),DE
     LD          DE,SOUTH_TXT
     JP          CALC_REDRAW_COMPASS
 
@@ -3435,7 +3436,7 @@ FACING_EAST:
     LD          E,A
     LD          A,(DE)
     AND         0x7
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     ADD         A,$1f
     LD          E,A
@@ -3444,7 +3445,7 @@ FACING_EAST:
     INC         E
     LD          A,(DE)
     AND         0x7
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     SUB         $12
     LD          E,A
@@ -3455,7 +3456,7 @@ FACING_EAST:
     LD          E,A
     LD          A,(DE)
     AND         0x7
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     ADD         A,$1f
     LD          E,A
@@ -3465,7 +3466,7 @@ FACING_EAST:
     INC         E
     LD          A,(DE)
     AND         0x7
-    CALL        REDRAW_NORTH
+    CALL        CALC_HALF_WALLS
     LD          A,E
     SUB         $12
     LD          E,A
@@ -3502,13 +3503,13 @@ FACING_EAST:
     CALL        GET_WEST_WALL
     LD          D,0x1
     LD          E,$10
-    LD          (DIR_FACING_FW),DE
+    LD          (DIR_FACING_HI),DE
     LD          DE,EAST_TXT
     JP          CALC_REDRAW_COMPASS
 
 CALC_ITEMS:
     LD          IX,ITEM_F2
-    LD          DE,(DIR_FACING_FW)
+    LD          DE,(DIR_FACING_HI)
     LD          A,(PLAYER_MAP_POS)
     ADD         A,D
     ADD         A,D
@@ -3623,7 +3624,7 @@ CHECK_WALL_F2:
     JP          C,F2_WALL
     CALL        DRAW_DOOR_F2_OPEN
 LAB_ram_f86d:
-    LD          DE,WALL_FL2_STATE
+    LD          DE,WALL_F2_STATE            ; **** Was this WALL_L2_STATE ? ****
     LD          A,(DE)
     RRCA
     JP          NC,LAB_ram_f87b
@@ -3645,7 +3646,7 @@ LAB_ram_f88b:
     JP          C,LAB_ram_f885
     CALL        DRAW_WALL_L2_LEFT_EMPTY
 LAB_ram_f892:
-    LD          DE,DAT_ram_33ed
+    LD          DE,WALL_R2_STATE
     LD          A,(DE)
     RRCA
     JP          NC,LAB_ram_f8a0
@@ -3671,7 +3672,7 @@ LAB_ram_f8b7:
     LD          BC,$48a
     CALL        CHK_ITEM
 F1_HD_NO_WALL:
-    LD          DE,DAT_ram_33ef
+    LD          DE,WALL_L1_STATE
     LD          A,(DE)
     RRCA
     JP          NC,LAB_ram_f8db
@@ -3727,7 +3728,7 @@ LAB_ram_f91c:
     JP          C,LAB_ram_f916
     CALL        DRAW_WALL_FL2_EMPTY
 LAB_ram_f923:
-    LD          DE,DAT_ram_33f2
+    LD          DE,WALL_R1_STATE
     LD          A,(DE)
     RRCA
     JP          NC,LAB_ram_f93e
@@ -3787,7 +3788,7 @@ LAB_ram_f986:
     LD          BC,$28a
     CALL        CHK_ITEM
 F0_HD_NO_WALL:
-    LD          DE,DAT_ram_33f5
+    LD          DE,WALL_L0_STATE
     LD          A,(DE)
     RRCA
     JP          NC,LAB_ram_f9aa
@@ -3861,7 +3862,7 @@ LAB_ram_fa0f:
     CALL        DRAW_WALL_FL22_EMPTY        ; FL22 bit clear, clear/empty FL22 area
     CALL        SUB_ram_f9e7                ; Common cleanup routine
 LAB_ram_fa19:
-    LD          DE,DAT_ram_33f9             ; Load pointer to next wall state data
+    LD          DE,WALL_R0_STATE             ; Load pointer to next wall state data
     LD          A,(DE)                      ; Load wall state byte into A
     RRCA                                    ; Test first bit (wall presence)
     JP          NC,LAB_ram_fa34             ; If first bit clear, jump ahead

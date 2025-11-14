@@ -1711,7 +1711,7 @@ MONSTER_KILLED:
     LD          HL,CHRRAM_MONSTER_POOF_IDX              ;= $20
     CALL        PLAY_POOF_ANIM
     LD          A,(PLAYER_MAP_POS)                      ;A  = Player position in map
-    LD          HL,(DIR_FACING_FW)                      ;HL = FW adjustment value
+    LD          HL,(DIR_FACING_HI)                      ;HL = FW adjustment value
     ADD         A,H                                     ;A  = Player position in map
                                                         ;one step forward
     CALL        ITEM_MAP_CHECK                          ;Upon return,
