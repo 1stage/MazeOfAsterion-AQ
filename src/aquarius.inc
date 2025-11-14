@@ -21,6 +21,11 @@ KEYBOARD EQU $FF
 
 ; Aquarius Graphics Macros
 
+; AQUASCII Character descriptions, shorthand 
+CHAR_RT_ANGLE   EQU $C0
+CHAR_LT_ANGLE   EQU $C1
+CHAR_BOTTOM_LINE    EQU $90
+
 ; Color values for Aquarius system
 ; Background and Foreground colors (4-bit each)
 BLK     EQU 0      ; Black

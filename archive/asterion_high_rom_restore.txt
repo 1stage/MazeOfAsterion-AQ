@@ -121,7 +121,7 @@ LAB_ram_e10c:
     CALL        SUB_ram_cdbf
     CALL        SUB_ram_f2c4
     CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
+    CALL        GET_NORTH_WALLPORT
     JP          DO_SWAP_HANDS
 
 DO_MOVE_FW_CHK_WALLS:
@@ -845,7 +845,7 @@ LAB_ram_e6aa:
     CALL        REDRAW_STATS
 LAB_ram_e6be:
     CALL        REDRAW_START
-    JP          REDRAW_VIEWPORT
+    JP          GET_NORTH_WALLPORT
 LAB_ram_e6c4:
     LD          HL,0x3
     CALL        SUB_ram_e401
@@ -1390,7 +1390,7 @@ DO_SWAP_PACK:
     JP          WAIT_A_TICK
 UPDATE_VIEWPORT:
     CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
+    CALL        GET_NORTH_WALLPORT
 INPUT_DEBOUNCE:
     CALL        WAIT_A_TICK
 WAIT_FOR_INPUT:
@@ -1552,7 +1552,7 @@ LAB_ram_ebbd:
     CALL        ROTATE_FACING_RIGHT
 LAB_ram_ebc0:
     CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
+    CALL        GET_NORTH_WALLPORT
 LAB_ram_ebc6:
     CALL        SUB_ram_cd5f
     JP          INIT_MONSTER_COMBAT
@@ -1921,7 +1921,7 @@ DO_GLANCE_RIGHT:
     JP          NZ,NO_ACTION_TAKEN
     CALL        ROTATE_FACING_RIGHT
     CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
+    CALL        GET_NORTH_WALLPORT
     CALL        SLEEP_ZERO                              ;byte SLEEP_ZERO(void)
     JP          DO_TURN_LEFT
 DO_GLANCE_LEFT:
@@ -1930,7 +1930,7 @@ DO_GLANCE_LEFT:
     JP          NZ,NO_ACTION_TAKEN
     CALL        ROTATE_FACING_LEFT
     CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
+    CALL        GET_NORTH_WALLPORT
     CALL        SLEEP_ZERO                              ;byte SLEEP_ZERO(void)
     JP          DO_TURN_RIGHT
 DO_USE_ATTACK:
@@ -2636,7 +2636,7 @@ LAB_ram_f2d0:
     LD          B,0x1
     CALL        RECALC_AND_REDRAW_BCD
     CALL        REDRAW_START
-    JP          REDRAW_VIEWPORT
+    JP          GET_NORTH_WALLPORT
 DRAW_99_LOOP_NOTICE:
     CALL        DRAW_BKGD
     LD          HL,DAT_ram_3051                         ;= $20
@@ -3009,7 +3009,7 @@ LAB_ram_f4e4:
     DEC         B
     RET
 REDRAW_START:
-    LD          HL,CALC_WEST_REDRAW_2                            ; CALC_WEST_REDRAW (0xF79B) + 7... UNDO? was 0xF7A1
+    LD          HL,GET_WEST_WALL_2                            ; GET_WEST_WALL (0xF79B) + 7... UNDO? was 0xF7A1
     PUSH        HL
     LD          HL,PLAYER_MAP_POS
     LD          E,(HL)
@@ -3027,13 +3027,13 @@ REDRAW_START:
     AND         0x7                                     ;Keep low 3 bits, reset top 5 bits
     LD          (HL),A                   ;= $20
     DEC         E
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     DEC         E
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          A,E
     ADD         A,$10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A                   ;= $20
     LD          A,(DE)
@@ -3042,7 +3042,7 @@ REDRAW_START:
     LD          A,E
     SUB         $10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     LD          (HL),A                   ;= $20
     LD          A,E
     SUB         $10
@@ -3053,7 +3053,7 @@ REDRAW_START:
     LD          A,E
     ADD         A,$21
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     LD          (HL),A                   ;= $20
     LD          A,(DE)
     AND         0x7
@@ -3061,7 +3061,7 @@ REDRAW_START:
     LD          A,E
     SUB         $10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A                   ;= $20
     LD          A,E
@@ -3073,37 +3073,37 @@ REDRAW_START:
     LD          A,E
     ADD         A,$21
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A                   ;= $20
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          A,E
     ADD         A,0xe
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     INC         L
     LD          (HL),A                    ;= $20
     LD          A,E
     SUB         $1e
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A                    ;= $20
     LD          A,E
     SUB         $10
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     DEC         E
     DEC         E
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     INC         L
     LD          (HL),A                    ;= $20
     LD          A,E
     ADD         A,$13
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          D,$ff
     LD          E,$f0
     LD          (DIR_FACING_FW),DE                      ;DE = 0xFFF0 (WEST)
@@ -3111,7 +3111,7 @@ REDRAW_START:
     LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
     LD          DE,WEST_TXT                             ;= "\a",$FF
     JP          GFX_DRAW
-REDRAW_VIEW:
+GET_NORTH_WALL:
     LD          A,(DE)
     AND         $e0
     RLCA
@@ -3133,30 +3133,30 @@ REDRAW_NORTH:
     INC         C
     RET
 FACING_NORTH:
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     LD          (HL),A
     LD          A,E
     SUB         $10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          A,E
     SUB         $10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     DEC         E
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     INC         E
     INC         E
     LD          A,(DE)
     AND         0x7
     LD          (HL),A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     LD          A,E
     ADD         A,0xf
@@ -3165,19 +3165,19 @@ FACING_NORTH:
     AND         0x7
     LD          (HL),A
     DEC         E
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     INC         E
     INC         E
-    CALL        CALC_WEST_REDRAW
-    CALL        REDRAW_VIEW
+    CALL        GET_WEST_WALL
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     LD          A,E
     ADD         A,0xf
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     DEC         E
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          A,E
@@ -3191,8 +3191,8 @@ FACING_NORTH:
     LD          A,E
     ADD         A,$22
     LD          E,A
-    CALL        CALC_WEST_REDRAW
-    CALL        REDRAW_VIEW
+    CALL        GET_WEST_WALL
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          A,E
@@ -3206,7 +3206,7 @@ FACING_NORTH:
     LD          A,E
     ADD         A,$2e
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          D,$f0
@@ -3220,28 +3220,28 @@ FACING_SOUTH:
     LD          A,E
     ADD         A,$10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     LD          (HL),A                   ;= $20
     LD          A,E
     ADD         A,$10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A                   ;= $20
     LD          A,E
     ADD         A,$10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A                   ;= $20
     LD          A,E
     SUB         0xf
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          A,E
     ADD         A,$10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     LD          A,E
     SUB         $11
@@ -3252,7 +3252,7 @@ FACING_SOUTH:
     LD          A,E
     ADD         A,0xf
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     LD          A,E
     SUB         $1e
@@ -3263,25 +3263,25 @@ FACING_SOUTH:
     LD          A,E
     ADD         A,$10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     LD          A,E
     SUB         $11
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          A,E
     ADD         A,0xf
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     LD          A,E
     SUB         $1e
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          A,E
     ADD         A,$10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A                   ;= $20
     LD          A,E
@@ -3295,11 +3295,11 @@ FACING_SOUTH:
     LD          A,E
     SUB         $22
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          A,E
     ADD         A,0xf
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A                    ;= $20
     LD          A,E
@@ -3313,7 +3313,7 @@ FACING_SOUTH:
     LD          A,E
     SUB         $1f
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A                    ;= $20
     LD          D,$10
@@ -3329,11 +3329,11 @@ FACING_EAST:
     AND         0x7
     LD          (HL),A                   ;= $20
     INC         E
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     INC         E
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     DEC         E
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A                   ;= $20
     LD          A,E
@@ -3345,7 +3345,7 @@ FACING_EAST:
     LD          A,E
     ADD         A,$1f
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     LD          (HL),A                   ;= $20
     INC         E
     LD          A,(DE)
@@ -3354,7 +3354,7 @@ FACING_EAST:
     LD          A,E
     SUB         $12
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     LD          (HL),A                   ;= $20
     LD          A,E
     SUB         0xf
@@ -3365,7 +3365,7 @@ FACING_EAST:
     LD          A,E
     ADD         A,$1f
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A                   ;= $20
     INC         E
@@ -3375,37 +3375,37 @@ FACING_EAST:
     LD          A,E
     SUB         $12
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A                   ;= $20
     LD          A,E
     SUB         0xf
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     INC         E
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     INC         L
     LD          (HL),A                    ;= $20
     LD          A,E
     ADD         A,$1e
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A                    ;= $20
     INC         E
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          A,E
     ADD         A,$11
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     INC         L
     LD          (HL),A                    ;= $20
     LD          A,E
     SUB         $22
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          D,0x1
     LD          E,$10
     LD          (DIR_FACING_FW),DE
@@ -3413,13 +3413,13 @@ FACING_EAST:
     LD          HL,CHRRAM_POINTER_IDX                   ;WAS $31d6
     LD          DE,EAST_TXT                             ;= $06,$FF
     JP          GFX_DRAW
-CALC_WEST_REDRAW:
+GET_WEST_WALL:
     LD          A,(DE)
     AND         0x7
     INC         L
     LD          (HL),A
     RET
-CALC_WEST_REDRAW_2:
+GET_WEST_WALL_2:
     LD          IX,ITEM_F2                              ;= $60
     LD          DE,(DIR_FACING_FW)
     LD          A,(PLAYER_MAP_POS)
@@ -3477,7 +3477,7 @@ LAB_ram_f7f7:
     DEC         C
     LD          A,(BC)
     RET
-REDRAW_VIEWPORT:
+GET_NORTH_WALLPORT:
     CALL        DRAW_BKGD
     LD          BC,ITEM_F2                              ;BC = ITEM_F2
     LD          DE,WALL_F0_STATE                        ;DE = wallAheadTemp

@@ -848,14 +848,14 @@ SUB_ram_cb1c:
     LD          (HL),A
     JP          (IX)
 DRAW_WALL_L2_C:
-    LD          HL,DAT_ram_35c0                         ;= $60    `
+    LD          HL,COLRAM_L2_LEFT                         ;= $60    `
     LD          BC,$204                                ;2 x 4 rectangle
     LD          A,0xf                                   ;BLK on DKGRY
                                                         ;WAS BLK on DKBLU
                                                         ;WAS LD A,0xb
     JP          FILL_CHRCOL_RECT
 DRAW_WALL_L2_C_EMPTY:
-    LD          HL,DAT_ram_35c0                         ;= $60    `
+    LD          HL,COLRAM_L2_LEFT                         ;= $60    `
     LD          BC,$204                                ;2 x 4 rectangle
     LD          A,0x0                                   ;BLK on BLK
     JP          FILL_CHRCOL_RECT

@@ -121,7 +121,7 @@ LAB_ram_e10c:
     CALL        SUB_ram_cdbf
     CALL        SUB_ram_f2c4
     CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
+    CALL        GET_NORTH_WALLPORT
     JP          DO_SWAP_HANDS
 
 DO_MOVE_FW_CHK_WALLS:
@@ -845,7 +845,7 @@ LAB_ram_e6aa:
     CALL        REDRAW_STATS
 LAB_ram_e6be:
     CALL        REDRAW_START
-    JP          REDRAW_VIEWPORT
+    JP          GET_NORTH_WALLPORT
 LAB_ram_e6c4:
     LD          HL,0x3
     CALL        SUB_ram_e401
@@ -1390,7 +1390,7 @@ DO_SWAP_PACK:
     JP          WAIT_A_TICK
 UPDATE_VIEWPORT:
     CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
+    CALL        GET_NORTH_WALLPORT
 INPUT_DEBOUNCE:
     CALL        WAIT_A_TICK
 WAIT_FOR_INPUT:
@@ -1552,7 +1552,7 @@ LAB_ram_ebbd:
     CALL        ROTATE_FACING_RIGHT
 LAB_ram_ebc0:
     CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
+    CALL        GET_NORTH_WALLPORT
 LAB_ram_ebc6:
     CALL        SUB_ram_cd5f
     JP          INIT_MONSTER_COMBAT
@@ -1921,7 +1921,7 @@ DO_GLANCE_RIGHT:
     JP          NZ,NO_ACTION_TAKEN
     CALL        ROTATE_FACING_RIGHT
     CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
+    CALL        GET_NORTH_WALLPORT
     CALL        SLEEP_ZERO								;  byte SLEEP_ZERO(void)
     JP          DO_TURN_LEFT
 DO_GLANCE_LEFT:
@@ -1930,7 +1930,7 @@ DO_GLANCE_LEFT:
     JP          NZ,NO_ACTION_TAKEN
     CALL        ROTATE_FACING_LEFT
     CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
+    CALL        GET_NORTH_WALLPORT
     CALL        SLEEP_ZERO								;  byte SLEEP_ZERO(void)
     JP          DO_TURN_RIGHT
 DO_USE_ATTACK:
@@ -2636,7 +2636,7 @@ LAB_ram_f2d0:
     LD          B,0x1
     CALL        RECALC_AND_REDRAW_BCD
     CALL        REDRAW_START
-    JP          REDRAW_VIEWPORT
+    JP          GET_NORTH_WALLPORT
 DRAW_99_LOOP_NOTICE:
     CALL        DRAW_BKGD
     LD          HL,DAT_ram_3051
@@ -2649,7 +2649,7 @@ LAB_ram_f2ec:
     CALL        SLEEP_ZERO								;  byte SLEEP_ZERO(void)
     EXX
     DJNZ        LAB_ram_f2ec
-    LD          A,$90
+    LD          A,CHAR_BOTTOM_LINE
     LD          HL,DUNGEON_LEVEL
     LD          DE,CHHRAM_LVL_IDX
     JP          LAB_ram_f2d0
@@ -3044,13 +3044,13 @@ LAB_ram_f4e4:
     DEC         B
     RET
 REDRAW_START:
-    LD          HL,CALC_WEST_REDRAW_2								;   CALC_WEST_REDRAW (0xF79B) + 7... UNDO? was 0xF7A1
+    LD          HL,CALC_ITEMS					    ; Save CALC_ITEMS for RET after COMPASS redraw
     PUSH        HL
     LD          HL,PLAYER_MAP_POS
     LD          E,(HL)
-    LD          D,$38								;  DE = Player map position in RAM
-    LD          HL,WALL_F0_STATE
-    LD          C,0x5
+    LD          D,$38								;  DE = Player map position in WALL MAP SPACE
+    LD          HL,WALL_F0_STATE                ; Start of WALL_xx_STATE bytes
+    LD          C,0x5                           ; ????
     LD          A,(DIR_FACING_SHORT)
     DEC         A
     JP          Z,FACING_NORTH
@@ -3058,46 +3058,28 @@ REDRAW_START:
     JP          Z,FACING_EAST
     DEC         A
     JP          Z,FACING_SOUTH
-    LD          A,(DE)
-    AND         0x7								;  Keep low 3 bits, reset top 5 bits
-    LD          (HL),A
-    DEC         E
-    CALL        CALC_WEST_REDRAW
-    DEC         E
-    CALL        CALC_WEST_REDRAW
-    LD          A,E
-    ADD         A,$10
-    LD          E,A
-    CALL        REDRAW_VIEW
-    INC         L
-    LD          (HL),A
-    LD          A,(DE)
-    AND         0x7
+
+FACING_WEST:    
+    LD          A,(DE)                          ; Get S0 walls data
+    AND         0x7								; Mask to west wall data (F0)
+    LD          (HL),A                          ; Save WALL_F0_STATE
+    DEC         E                               ; Move to S1
+    CALL        GET_WEST_WALL                   ; Save WALL_F1_STATE
+    DEC         E                               ; Move to S2
+    CALL        GET_WEST_WALL                   ; Save WALL_F2_STATE
+    LD          A,E                             ; Put E in A for math
+    ADD         A,$10                           ; Increase A by 16
+    LD          E,A                             ; Save A to E (Move to SL2)
+    CALL        GET_NORTH_WALL                  ; Get L2 wall data
+    INC         L                               ; Next wall state byte (L2)
+    LD          (HL),A                          ; Save WALL_L2_STATE
+    LD          A,(DE)                          ; Get SL2 data again
+    AND         0x7                             ; Mask to west wall data (FL2)
     CALL        REDRAW_NORTH
     LD          A,E
     SUB         $10
     LD          E,A
-    CALL        REDRAW_VIEW
-    LD          (HL),A
-    LD          A,E
-    SUB         $10
-    LD          E,A
-    LD          A,(DE)
-    AND         0x7
-    CALL        REDRAW_NORTH
-    LD          A,E
-    ADD         A,$21
-    LD          E,A
-    CALL        REDRAW_VIEW
-    LD          (HL),A
-    LD          A,(DE)
-    AND         0x7
-    CALL        REDRAW_NORTH
-    LD          A,E
-    SUB         $10
-    LD          E,A
-    CALL        REDRAW_VIEW
-    INC         L
+    CALL        GET_NORTH_WALL
     LD          (HL),A
     LD          A,E
     SUB         $10
@@ -3108,58 +3090,136 @@ REDRAW_START:
     LD          A,E
     ADD         A,$21
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
+    LD          (HL),A
+    LD          A,(DE)
+    AND         0x7
+    CALL        REDRAW_NORTH
+    LD          A,E
+    SUB         $10
+    LD          E,A
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
-    CALL        CALC_WEST_REDRAW
+    LD          A,E
+    SUB         $10
+    LD          E,A
+    LD          A,(DE)
+    AND         0x7
+    CALL        REDRAW_NORTH
+    LD          A,E
+    ADD         A,$21
+    LD          E,A
+    CALL        GET_NORTH_WALL
+    INC         L
+    LD          (HL),A
+    CALL        GET_WEST_WALL
     LD          A,E
     ADD         A,0xe
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     INC         L
     LD          (HL),A
     LD          A,E
     SUB         $1e
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          A,E
     SUB         $10
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     DEC         E
     DEC         E
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     INC         L
     LD          (HL),A
     LD          A,E
     ADD         A,$13
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          D,$ff
     LD          E,$f0
-    LD          (DIR_FACING_FW),DE								;  DE = 0xFFF0 (WEST)
-    LD          B,$10								;  RED on BLK
-    LD          HL,CHRRAM_POINTER_IDX								;  WAS $31d6
-    LD          DE,WEST_TXT								;  = "\a",$FF
+    LD          (DIR_FACING_FW),DE
+    LD          DE,WEST_TXT
+    JP          CALC_REDRAW_COMPASS         ; Included for code relocatability
+                                            ; even though it currently follows
+
+; CALC_REDRAW_COMPASS - Calculate and redraw compass
+;   - Takes current direction and renders it on the compass
+; Registers:
+; --- Start ---
+;   DE = Direction GFX pointer
+; ---  End  ---
+;   B  = Compass pointer color
+;   DE = Direction GFX pointer
+;   HL = Compass pointer screen index (CHRRAM)
+;
+CALC_REDRAW_COMPASS:
+    LD          B,COLOR(RED,BLK)			; RED on BLK
+    LD          HL,CHRRAM_POINTER_IDX
     JP          GFX_DRAW
-REDRAW_VIEW:
-    LD          A,(DE)
-    AND         $e0
-    RLCA
-    RLCA
-    RLCA
+
+; GET_WEST_WALL - Get data of west wall and put into bottom 3 bits
+;   - Data IS saved into (HL)
+; Registers:
+; --- Start ---
+;   DE = Current wall map space in RAM ($3800 - $8FF)
+;   HL = Current WALL_xx_STATE variable location
+; ---  End  ---
+;   A  = Wall state for given west wall in bottom 3 bits
+;   DE = Current wall map space in RAM (unchanged)
+;   HL = Next WALL_xx_STATE variable location
+;
+GET_WEST_WALL:
+    LD          A,(DE)      ; Get current map space walls data
+    AND         0x7         ; Mask to only lower nybble (West wall)
+    INC         L           ; Move ahead in WALL_xx_STATE memory
+    LD          (HL),A      ; Store west wall data
     RET
+
+; GET_NORTH_WALL - Get data of north wall and put into bottom 3 bits
+;   - Data is NOT saved into (HL)
+; --- Start ---
+;   DE = Current wall map space in RAM ($3800 - $8FF)
+;   HL = Current WALL_xx_STATE variable location
+; ---  End  ---
+;   A  = Wall state for given north wall in bottom 3 bits
+;   DE = Current wall map space in RAM (unchanged)
+;   HL = SAME WALL_xx_STATE variable location
+;
+GET_NORTH_WALL:
+    LD          A,(DE)      ; Get current wall map space byte
+    AND         $e0         ; Mask to upper nybble (north wall)
+    RLCA                    ; Rotate bits...
+    RLCA                    ; ...into bottom...
+    RLCA                    ; ...nybble bits
+    RET
+
+; REDRAW_NORTH - Get wall data and put into bottom 3 bits
+;   - Data is saved into (HL+1)
+;   - Data is saved into (HL+C)
+; --- Start ---
+;   A  = Masked wall data (west/lower)
+;   C  = Current half-wall WALL_xx_STATE offset
+;   DE = Current wall map space in RAM ($3800 - $8FF)
+;   HL = Current WALL_xx_STATE variable location
+; ---  End  ---
+;   A  = Wall state for given north wall in bottom 3 bits
+;   C  = C + 1
+;   DE = Current wall map space in RAM (unchanged)
+;   HL = Next WALL_xx_STATE variable location
+;
 REDRAW_NORTH:
-    INC         L
-    LD          (HL),A
-    LD          B,A
-    LD          A,L
-    ADD         A,C
-    LD          L,A
+    INC         L           ; Move to next WALL_xx_STATE variable location   
+    LD          (HL),A      ; Save wall state data
+    LD          B,A         ; Save A into B
+    LD          A,L         ; Save L into A
+    ADD         A,C         ; Add C (5?) to A
+    LD          L,A         ; Save A back into L
     LD          (HL),B
     LD          A,L
     SUB         C
@@ -3167,31 +3227,32 @@ REDRAW_NORTH:
     INC         L
     INC         C
     RET
+
 FACING_NORTH:
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     LD          (HL),A
     LD          A,E
     SUB         $10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          A,E
     SUB         $10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     DEC         E
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     INC         E
     INC         E
     LD          A,(DE)
     AND         0x7
     LD          (HL),A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     LD          A,E
     ADD         A,0xf
@@ -3200,19 +3261,19 @@ FACING_NORTH:
     AND         0x7
     LD          (HL),A
     DEC         E
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     INC         E
     INC         E
-    CALL        CALC_WEST_REDRAW
-    CALL        REDRAW_VIEW
+    CALL        GET_WEST_WALL
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     LD          A,E
     ADD         A,0xf
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     DEC         E
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          A,E
@@ -3226,8 +3287,8 @@ FACING_NORTH:
     LD          A,E
     ADD         A,$22
     LD          E,A
-    CALL        CALC_WEST_REDRAW
-    CALL        REDRAW_VIEW
+    CALL        GET_WEST_WALL
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          A,E
@@ -3241,42 +3302,41 @@ FACING_NORTH:
     LD          A,E
     ADD         A,$2e
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          D,$f0
     LD          E,0x1
     LD          (DIR_FACING_FW),DE
-    LD          B,$10								;  RED on BLK
-    LD          HL,CHRRAM_POINTER_IDX								;  WAS $31d6
-    LD          DE,NORTH_TXT								;  = "\b",$FF
-    JP          GFX_DRAW
+    LD          DE,NORTH_TXT
+    JP          CALC_REDRAW_COMPASS
+
 FACING_SOUTH:
     LD          A,E
     ADD         A,$10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     LD          (HL),A
     LD          A,E
     ADD         A,$10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          A,E
     ADD         A,$10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          A,E
     SUB         0xf
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          A,E
     ADD         A,$10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     LD          A,E
     SUB         $11
@@ -3287,7 +3347,7 @@ FACING_SOUTH:
     LD          A,E
     ADD         A,0xf
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     LD          A,E
     SUB         $1e
@@ -3298,25 +3358,25 @@ FACING_SOUTH:
     LD          A,E
     ADD         A,$10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     LD          A,E
     SUB         $11
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          A,E
     ADD         A,0xf
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     CALL        REDRAW_NORTH
     LD          A,E
     SUB         $1e
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          A,E
     ADD         A,$10
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          A,E
@@ -3330,11 +3390,11 @@ FACING_SOUTH:
     LD          A,E
     SUB         $22
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          A,E
     ADD         A,0xf
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          A,E
@@ -3348,27 +3408,26 @@ FACING_SOUTH:
     LD          A,E
     SUB         $1f
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          D,$10
     LD          E,$ff
     LD          (DIR_FACING_FW),DE
-    LD          B,$10								;  RED on BLK
-    LD          HL,CHRRAM_POINTER_IDX								;  WAS $31d6
-    LD          DE,SOUTH_TXT								;  = "\t",$FF
-    JP          GFX_DRAW
+    LD          DE,SOUTH_TXT
+    JP          CALC_REDRAW_COMPASS
+
 FACING_EAST:
     INC         E
     LD          A,(DE)
     AND         0x7
     LD          (HL),A
     INC         E
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     INC         E
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     DEC         E
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          A,E
@@ -3380,7 +3439,7 @@ FACING_EAST:
     LD          A,E
     ADD         A,$1f
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     LD          (HL),A
     INC         E
     LD          A,(DE)
@@ -3389,7 +3448,7 @@ FACING_EAST:
     LD          A,E
     SUB         $12
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     LD          (HL),A
     LD          A,E
     SUB         0xf
@@ -3400,7 +3459,7 @@ FACING_EAST:
     LD          A,E
     ADD         A,$1f
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     INC         E
@@ -3410,51 +3469,44 @@ FACING_EAST:
     LD          A,E
     SUB         $12
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     LD          A,E
     SUB         0xf
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     INC         E
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     INC         L
     LD          (HL),A
     LD          A,E
     ADD         A,$1e
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     LD          (HL),A
     INC         E
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          A,E
     ADD         A,$11
     LD          E,A
-    CALL        REDRAW_VIEW
+    CALL        GET_NORTH_WALL
     INC         L
     INC         L
     LD          (HL),A
     LD          A,E
     SUB         $22
     LD          E,A
-    CALL        CALC_WEST_REDRAW
+    CALL        GET_WEST_WALL
     LD          D,0x1
     LD          E,$10
     LD          (DIR_FACING_FW),DE
-    LD          B,$10								;  RED on BLK
-    LD          HL,CHRRAM_POINTER_IDX								;  WAS $31d6
     LD          DE,EAST_TXT
-    JP          GFX_DRAW
-CALC_WEST_REDRAW:
-    LD          A,(DE)
-    AND         0x7
-    INC         L
-    LD          (HL),A
-    RET
-CALC_WEST_REDRAW_2:
+    JP          CALC_REDRAW_COMPASS
+
+CALC_ITEMS:
     LD          IX,ITEM_F2
     LD          DE,(DIR_FACING_FW)
     LD          A,(PLAYER_MAP_POS)
@@ -3512,7 +3564,7 @@ LAB_ram_f7f7:
     DEC         C
     LD          A,(BC)
     RET
-REDRAW_VIEWPORT:
+GET_NORTH_WALLPORT:
     CALL        DRAW_BKGD
     LD          BC,ITEM_F2								;  BC = ITEM_F2
     LD          DE,WALL_F0_STATE								;  DE = wallAheadTemp
@@ -3586,12 +3638,12 @@ LAB_ram_f87b:
     RRCA
     JP          NC,LAB_ram_f88b
 LAB_ram_f885:
-    CALL        DRAW_WALL_L2_C
+    CALL        DRAW_WALL_L2_LEFT
     JP          LAB_ram_f892
 LAB_ram_f88b:
     RRCA
     JP          C,LAB_ram_f885
-    CALL        DRAW_WALL_L2_C_EMPTY
+    CALL        DRAW_WALL_L2_LEFT_EMPTY
 LAB_ram_f892:
     LD          DE,DAT_ram_33ed
     LD          A,(DE)
@@ -3668,7 +3720,7 @@ LAB_ram_f910:
     RRCA
     JP          NC,LAB_ram_f91c
 LAB_ram_f916:
-    CALL        DRAW_WALL_FL2_NEW
+    CALL        DRAW_WALL_FL2
     JP          LAB_ram_f923
 LAB_ram_f91c:
     RRCA
@@ -3765,61 +3817,61 @@ LAB_ram_f9be:
     CALL        SUB_ram_c9c5
     JP          LAB_ram_fa19
 LAB_ram_f9c4:
-    RRCA
-    JP          C,LAB_ram_f9be
-    INC         E
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_f9f0
-    EX          AF,AF'
-    CALL        SUB_ram_c9d0
-    CALL        SUB_ram_f9e7
-    EX          AF,AF'
-    RRCA
-    JP          NC,LAB_ram_fa19
-    RRCA
-    JP          NC,LAB_ram_fa19
+    RRCA                                    ; Test current bit in A register
+    JP          C,LAB_ram_f9be              ; If bit set, jump to wall draw routine
+    INC         E                           ; Move DE to next wall state byte
+    LD          A,(DE)                      ; *** LOAD WALL STATE BYTE INTO A *** 
+    RRCA                                    ; Test first bit of new wall state
+    JP          NC,LAB_ram_f9f0             ; If first bit clear, jump ahead
+    EX          AF,AF'                      ; Save A register (wall state bits)
+    CALL        SUB_ram_c9d0                ; Draw wall routine
+    CALL        SUB_ram_f9e7                ; Item check routine (changes A)
+    EX          AF,AF'                      ; Restore A register (wall state bits)
+    RRCA                                    ; Test next bit in wall state
+    JP          NC,LAB_ram_fa19             ; If bit clear, jump to next section
+    RRCA                                    ; Test third bit in wall state
+    JP          NC,LAB_ram_fa19             ; If bit clear, jump to next section
 LAB_ram_f9de:
-    CALL        SUB_ram_c9f3
-    CALL        SUB_ram_f9e7
-    JP          LAB_ram_fa19
+    CALL        SUB_ram_c9f3                ; Draw door/special feature
+    CALL        SUB_ram_f9e7                ; Item check routine
+    JP          LAB_ram_fa19                ; Jump to next wall section
 SUB_ram_f9e7:
-    LD          A,(ITEM_FL1)
-    LD          BC,$4d0
-    JP          CHK_ITEM
+    LD          A,(ITEM_FL1)                ; Load item state (overwrites A!)
+    LD          BC,$4d0                     ; Set item parameters
+    JP          CHK_ITEM                    ; Check item routine
 LAB_ram_f9f0:
-    RRCA
-    JP          NC,LAB_ram_fa01
-    RRCA
-    JP          C,LAB_ram_f9de
-    CALL        SUB_ram_c9e5
-    CALL        SUB_ram_f9e7
-    JP          LAB_ram_fa19
+    RRCA                                    ; Continue testing bits in wall state
+    JP          NC,LAB_ram_fa01             ; If bit clear, jump to next wall
+    RRCA                                    ; Test next bit
+    JP          C,LAB_ram_f9de              ; If bit set, draw door/feature
+    CALL        SUB_ram_c9e5                ; Draw wall variant
+    CALL        SUB_ram_f9e7                ; Item check routine
+    JP          LAB_ram_fa19                ; Jump to next wall section
 LAB_ram_fa01:
-    INC         E
-    RRCA
-    JP          NC,LAB_ram_fa0f
+    INC         E                           ; Move to next wall state byte
+    RRCA                                    ; Test next bit in A register
+    JP          NC,LAB_ram_fa0f             ; If bit clear, jump to FL22 handling
 LAB_ram_fa06:
-    CALL        SUB_ram_c9f9
-    CALL        SUB_ram_f9e7
-    JP          LAB_ram_fa19
+    CALL        SUB_ram_c9f9                ; Draw wall (bit was set)
+    CALL        SUB_ram_f9e7                ; Common cleanup routine
+    JP          LAB_ram_fa19                ; Jump to next wall section
 LAB_ram_fa0f:
-    RRCA
-    JP          C,LAB_ram_fa06
-    CALL        DRAW_WALL_FL22_EMPTY
-    CALL        SUB_ram_f9e7
+    RRCA                                    ; Test FL22 bit in A register
+    JP          C,LAB_ram_fa06              ; If FL22 bit set, jump to draw routine
+    CALL        DRAW_WALL_FL22_EMPTY        ; FL22 bit clear, clear/empty FL22 area
+    CALL        SUB_ram_f9e7                ; Common cleanup routine
 LAB_ram_fa19:
-    LD          DE,DAT_ram_33f9
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_fa34
-    EX          AF,AF'
-    CALL        SUB_ram_cb4f
-    EX          AF,AF'
-    RRCA
-    JP          NC,LAB_ram_faa3
-    RRCA
-    JP          NC,LAB_ram_faa3
+    LD          DE,DAT_ram_33f9             ; Load pointer to next wall state data
+    LD          A,(DE)                      ; Load wall state byte into A
+    RRCA                                    ; Test first bit (wall presence)
+    JP          NC,LAB_ram_fa34             ; If first bit clear, jump ahead
+    EX          AF,AF'                      ; Save A register state
+    CALL        SUB_ram_cb4f                ; Draw wall routine
+    EX          AF,AF'                      ; Restore A register state
+    RRCA                                    ; Test next bit (door presence?)
+    JP          NC,LAB_ram_faa3             ; If door bit clear, jump to end
+    RRCA                                    ; Test third bit (door type?)
+    JP          NC,LAB_ram_faa3             ; If door type bit clear, jump to end
 LAB_ram_fa2e:
     CALL        DRAW_FR0_DOOR
     JP          LAB_ram_faa3
@@ -3880,7 +3932,7 @@ LAB_ram_fa90:
 LAB_ram_fa99:
     RRCA
     JP          C,LAB_ram_fa90
-    CALL        DRAW_WALL_FR222_EMPTY
+    CALL        DRAW_WALL_FR22_EMPTY
     CALL        SUB_ram_fa4e
 LAB_ram_faa3:
     LD          A,(ITEM_F0)

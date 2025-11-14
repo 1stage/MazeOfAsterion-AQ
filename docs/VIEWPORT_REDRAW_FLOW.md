@@ -12,7 +12,7 @@ UPDATE_VIEWPORT (asterion_high_rom.asm:1391)
     ↓
 REDRAW_START (asterion_high_rom.asm:3011)
     ↓
-REDRAW_VIEWPORT (asterion_high_rom.asm:3479)
+GET_NORTH_WALLPORT (asterion_high_rom.asm:3479)
     ↓
 Individual Wall/Door Drawing Functions
     ↓
@@ -30,7 +30,7 @@ Updated Screen Display
 ```asm
 UPDATE_VIEWPORT:
     CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
+    CALL        GET_NORTH_WALLPORT
 ```
 
 **Triggers**: Called from various game events:
@@ -67,14 +67,14 @@ The function writes approximately 22 bytes of wall state data covering every wal
 - `FACING_SOUTH`: Player facing south (DIR_FACING_SHORT = 3)
 - `FACING_WEST`: Player facing west (DIR_FACING_SHORT = 4)
 
-### 3. Stage 2: REDRAW_VIEWPORT - Render the Scene
+### 3. Stage 2: GET_NORTH_WALLPORT - Render the Scene
 **Location**: `asterion_high_rom.asm:3479`
 
 **Purpose**: Clear the viewport and draw all visible walls/doors based on calculated states
 
 #### 3.1 Initialize Background
 ```asm
-REDRAW_VIEWPORT:
+GET_NORTH_WALLPORT:
     CALL        DRAW_BKGD
 ```
 
@@ -309,7 +309,7 @@ The 3D perspective is achieved through:
        JP          FILL_CHRCOL_RECT
    ```
 
-2. **Modify decision logic** in `REDRAW_VIEWPORT` to call your new functions based on wall type flags
+2. **Modify decision logic** in `GET_NORTH_WALLPORT` to call your new functions based on wall type flags
 
 3. **Update wall state calculation** in `REDRAW_START` if you need new wall type detection
 

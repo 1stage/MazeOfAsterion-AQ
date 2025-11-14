@@ -336,22 +336,25 @@ DRAW_WALL_F1:
     JP          DRAW_CHRCOLS                        ; Fill color area for wall
 DRAW_WALL_F1_AND_CLOSED_DOOR:
     CALL        DRAW_WALL_F1                        ; Draw the F1 wall background first
-    LD          A,COLOR(GRN,DKGRN)								; GRN on DKGRN (closed door at F1 distance)
+    LD          A,COLOR(GRN,DKGRN)					; GRN on DKGRN (closed door at F1 distance)
 DRAW_DOOR_F1_OPEN:
     LD          HL,COLRAM_F1_DOOR_IDX               ; Point to door area within F1 wall
-    LD          BC,RECT(4,6)								; 4 x 6 rectangle (smaller door at mid-distance)
+    LD          BC,RECT(4,6)						; 4 x 6 rectangle (smaller door at mid-distance)
     JP          FILL_CHRCOL_RECT                    ; Fill door area with specified color
 DRAW_WALL_F1_AND_OPEN_DOOR:
     CALL        DRAW_WALL_F1
     LD          A,COLOR(BLK,BLK)								; BLK on BLK
     JP          DRAW_DOOR_F1_OPEN
 DRAW_WALL_F2:
-    LD          BC,RECT(4,4)								; 4 x 4 rectangle
+    LD          BC,RECT(4,4)						; 4 x 4 rectangle
     LD          HL,COLRAM_F1_DOOR_IDX
-    LD          A,COLOR(DKGRY,DKGRY)								; DKGRY on DKGRY
-                                                    ; WAS BLK on DKBLU
-                                                    ; WAS LD A,0xb
+    LD          A,COLOR(BLK,DKGRY)				    ; BLK on DKGRY
+    CALL        FILL_CHRCOL_RECT                    ; Was JP FILL_CHRCOL_RECT
+    LD          HL,$323a						    ; Bottom-left CHARRAM IDX of F2
+    LD          BC,RECT(4,1)						; 4 x 1 rectangle
+    LD          A,$90								; Thin base line char
     JP          FILL_CHRCOL_RECT
+
 DRAW_DOOR_F2_OPEN:
     LD          HL,COLRAM_F1_DOOR_IDX
     LD          A,COLOR(BLK,BLK)								; BLK on BLK
@@ -379,11 +382,11 @@ DRAW_WALL_FL0:
                                                     ; WAS LD A,$94
     DEC         DE
     CALL        DRAW_SINGLE_CHAR_UP
-    LD          A,$c0
+    LD          A,CHAR_RT_ANGLE
     LD          HL,DAT_ram_33c0
     CALL        DRAW_SINGLE_CHAR_UP
     LD          HL,IDX_VIEWPORT_CHRRAM
-    LD          A,$c1
+    LD          A,CHAR_LT_ANGLE
     INC         DE
     INC         DE
     JP          DRAW_VERTICAL_LINE_4_DOWN
@@ -421,7 +424,7 @@ DRAW_FL0_DOOR_FRAME:
     DEC         DE
     CALL        DRAW_VERTICAL_LINE_3_UP
     LD          HL,DAT_ram_30c8
-    LD          A,$c1
+    LD          A,CHAR_LT_ANGLE
     INC         DE
     INC         DE
     JP          CONTINUE_VERTICAL_LINE_DOWN
@@ -455,48 +458,42 @@ SUB_ram_c9f3:
     JP          DRAW_L1_DOOR_PATTERN
 SUB_ram_c9f9:
     LD          HL,CHRRAM_L1_WALL_IDX
-    LD          A,$c1
+    LD          A,CHAR_LT_ANGLE                     ; Left angle char
     LD          (HL),A
     LD          DE,$28
     ADD         HL,DE
     INC         HL
     LD          (HL),A
     LD          HL,DAT_ram_3259
-    LD          A,$c0
+    LD          A,CHAR_RT_ANGLE                     ; Right angle char
     LD          (HL),A
     ADD         HL,DE
     DEC         HL
     LD          (HL),A
     LD          HL,COLRAM_L1_WALL_IDX
-    LD          A,$bf								; DKBLU on DKGRY
-                                                    ; WAS DKBLU on DKCYN
-                                                    ; WAS LD A,$b9
+    LD          A,COLOR(DKBLU,DKGRY)				; DKBLU on DKGRY
     LD          (HL),A
     ADD         HL,DE
     INC         HL
     LD          (HL),A
     DEC         HL
-    LD          A,0xf								; BLK on DKGRY
-                                                    ; WAS BLK on DKBLU
-                                                    ; WAS LD A,0xb
+    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
     LD          (HL),A
-    LD          BC,$204								; 2 x 4 rectangle
+    LD          BC,RECT(2,4)						; 2 x 4 rectangle
     ADD         HL,DE
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
     LD          (HL),A
     INC         HL
-    LD          A,0xf								; BLK on DKGRY
-                                                    ; WAS DKCYN on DKBLU
-                                                    ; WAS LD A,$9b
+    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
     LD          (HL),A
     ADD         HL,DE
     DEC         HL
     LD          (HL),A
     LD          HL,COLRAM_L1_DOOR_PATTERN_IDX
     LD          C,0x4
-    LD          A,0x0
-    JP          DRAW_CHRCOLS
+    LD          A,COLOR(BLK,BLK)
+    JP          DRAW_CHRCOLS                        ; *****
 DRAW_WALL_FL22:
     LD          HL,COLRAM_FL22_WALL_IDX
     LD          BC,RECT(4,4)								; 4 x 4 rectangle
@@ -504,7 +501,7 @@ DRAW_WALL_FL22:
     JP          FILL_CHRCOL_RECT
 DRAW_L1_WALL:
     LD          HL,CHRRAM_FL1_WALL_IDX
-    LD          A,$c1								; LEFT angle CHR
+    LD          A,CHAR_LT_ANGLE								; LEFT angle CHR
     CALL        DRAW_DOOR_BOTTOM_SETUP
     DEC         DE
     ADD         HL,DE
@@ -518,7 +515,7 @@ DRAW_L1_WALL:
     ADD         HL,DE
     CALL        DRAW_UR_3X3_CORNER
     ADD         HL,DE
-    LD          A,$c0								; RIGHT angle CHR
+    LD          A,CHAR_RT_ANGLE								; RIGHT angle CHR
     DEC         DE
     CALL        DRAW_SINGLE_CHAR_UP
     LD          HL,DAT_ram_3547
@@ -545,8 +542,6 @@ DRAW_L1_WALL:
 DRAW_FL1_DOOR:
     CALL        DRAW_L1_WALL
     LD          A,$f0								; DKGRY on BLK
-								; WAS DKCYN on BLK
-								; WAS LD A,$90
     PUSH        AF
     LD          A,$b0								; DKBLU on BLK
     PUSH        AF
@@ -568,7 +563,7 @@ DRAW_L1_DOOR:
     LD          BC,$207								; 2 x 7 rectangle
     CALL        SUB_ram_cb1c
     LD          HL,CHRRAM_L1_DOOR_IDX
-    LD          A,$c1								; LEFT ANGLE CHR
+    LD          A,CHAR_LT_ANGLE								; LEFT ANGLE CHR
     LD          (HL),A
     LD          DE,$29
     ADD         HL,DE
@@ -591,58 +586,39 @@ SUB_ram_cac5:
     JP          DRAW_L1_DOOR_2
 DRAW_L1_DOOR_CLOSED:
     CALL        SUB_ram_cab0
-    LD          A,$dd								; DKGRN on DKGRN
+    LD          A,COLOR(DKGRN,DKGRN)				; DKGRN on DKGRN
 DRAW_L1_DOOR_2:
     LD          HL,COLRAM_FL2_WALL_IDX
-    LD          BC,$206								; 2 x 6 rectangle
+    LD          BC,RECT(2,6)						; 2 x 6 rectangle
     JP          DRAW_CHRCOLS
-DRAW_WALL_FL2:
-    LD          HL,COLRAM_FL2_WALL_IDX
-    LD          BC,RECT(2,4)								; 2 x 4 rectangle
-    LD          A,COLOR(RED,RED)								; RED on RED
-    CALL        FILL_CHRCOL_RECT
-    LD          C,0x4
-    LD          HL,COLRAM_FL2_PLUS_WALL_IDX
-    LD          A,$22								; BLK on DKGRY
-								; WAS BLK on DKBLU
-								; WAS LD A,0xb
-    JP          DRAW_CHRCOLS
+
 DRAW_WALL_FL2_EMPTY:
     LD          HL,COLRAM_FL2_WALL_IDX
-    LD          BC,RECT(4,4)								; 4 x 4 rectangle
-    LD          A,COLOR(BLK,BLK)								; BLK on BLK
+    LD          BC,RECT(4,4)						; 4 x 4 rectangle
+    LD          A,COLOR(BLK,BLK)					; BLK on BLK
     JP          FILL_CHRCOL_RECT
 DRAW_WALL_L2:
     LD          A,$ca								; Right slash char
     PUSH        AF
-    LD          A,$20								; GRN on BLK
+    LD          A,$20								; SPACE char
     PUSH        AF
     LD          HL,CHRRAM_F1_WALL_IDX
-    LD          A,$c1								; Left angle char
-    LD          BC,$204								; 2 x 4 rectangle
+    LD          A,CHAR_LT_ANGLE						; Left angle char
+    LD          BC,RECT(2,4)						; 2 x 4 rectangle
     CALL        SUB_ram_cb1c
-    LD          A,0xf								; FL2 Bottom Color
-								; BLK on DKGRY
-								; WAS DKCYN on DKBLU
-								; WAS LD A,$9b
+    LD          A,COLOR(BLK,DKGRY)					; BLK on CKGRY
     PUSH        AF
-    LD          A,0xf								; FL2 Wall Color
-								; BLK on DKGRY
-								; WAS BLK on DKBLU
-								; WAS LD A,0xb
+    LD          A,COLOR(BLK,DKGRY)					; BLK on CKGRY
     PUSH        AF
     LD          HL,COLRAM_F0_DOOR_IDX
-    LD          A,$f0								; FL2 Top Color
-								; DKGRY on BLK
-								; WAS DKBLU on CYN
-								; WAS LD A,$b6
-    LD          BC,$204								; 2 x 4 rectangle
+    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
+    LD          BC,RECT(2,4)						; 2 x 4 rectangle
     CALL        SUB_ram_cb1c
     RET
 SUB_ram_cb1c:
     POP         IX
     LD          (HL),A
-    LD          DE,$29								; EDIT MEdb?
+    LD          DE,$29								; Diagonal DR step
     ADD         HL,DE
     LD          (HL),A
     DEC         HL
@@ -662,33 +638,31 @@ SUB_ram_cb1c:
     INC         HL
     LD          (HL),A
     JP          (IX)
-DRAW_WALL_L2_C:
-    LD          HL,DAT_ram_35c0
-    LD          BC,$204								; 2 x 4 rectangle
-    LD          A,0xf								; BLK on DKGRY
-								; WAS BLK on DKBLU
-								; WAS LD A,0xb
+DRAW_WALL_L2_LEFT:
+    LD          HL,COLRAM_L2_LEFT
+    LD          BC,RECT(2,4)						; 2 x 4 rectangle
+    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
+    CALL        FILL_CHRCOL_RECT
+    LD          HL,$3238
+    LD          BC,RECT(2,1)
+    LD          A,CHAR_BOTTOM_LINE
     JP          FILL_CHRCOL_RECT
-DRAW_WALL_L2_C_EMPTY:
-    LD          HL,DAT_ram_35c0
-    LD          BC,$204								; 2 x 4 rectangle
-    LD          A,0x0								; BLK on BLK
+DRAW_WALL_L2_LEFT_EMPTY:
+    LD          HL,COLRAM_L2_LEFT
+    LD          BC,RECT(2,4)    					; 2 x 4 rectangle
+    LD          A,COLOR(BLK,BLK)					; BLK on BLK
     JP          FILL_CHRCOL_RECT
 SUB_ram_cb4f:
-    LD          A,$f4								; DKGRY on BLU
-								; WAS DKCYN on BLU
-								; WAS LD A,$94
+    LD          A,COLOR(DKGRY,BLU)					; DKGRY on BLU
     PUSH        AF
-    LD          BC,$410
-    LD          A,0x4								; BLK on BLU
+    LD          BC,RECT(4,16)
+    LD          A,COLOR(BLK,BLU)					; BLK on BLU
     PUSH        AF
-    LD          A,$40								; BLU on BLK
-								; WAS BLU on CYN
-								; WAS LD A, $46
+    LD          A,COLOR(BLU,BLK)					; BLU on BLK
     LD          HL,DAT_ram_34b4
     CALL        SUB_ram_cc4d
     LD          HL,DAT_ram_303f
-    LD          A,$c0								; Right angle char
+    LD          A,CHAR_RT_ANGLE						; Right angle char
     LD          DE,$27
     CALL        DRAW_VERTICAL_LINE_4_DOWN
     LD          HL,DAT_ram_335c
@@ -731,7 +705,7 @@ LAB_ram_cb86:
     INC         DE
     CALL        DRAW_VERTICAL_LINE_3_UP
     LD          HL,DAT_ram_30df
-    LD          A,$c0								; Right angle char
+    LD          A,CHAR_RT_ANGLE								; Right angle char
     DEC         DE
     DEC         DE
     JP          CONTINUE_VERTICAL_LINE_DOWN
@@ -759,37 +733,33 @@ SUB_ram_cbd4:
     CALL        SUB_ram_cbb9
     LD          A,$dd								; DKGRN on DKGRNdb?
 LAB_ram_cbd9:
-    LD          HL,DAT_ram_35cc
+    LD          HL,COLRAM_FR22_WALL_IDX
     LD          BC,$206								; 2 x 6 rectangledb?
     JP          DRAW_CHRCOLS
 SUB_ram_cbe2:
     LD          HL,DAT_ram_317f
-    LD          A,$c0								; Right angle char
+    LD          A,CHAR_RT_ANGLE								; Right angle char
     LD          (HL),A
     LD          DE,$28
     ADD         HL,DE
     DEC         HL
     LD          (HL),A
     LD          HL,DAT_ram_326e
-    LD          A,$c1								; Left angle char
+    LD          A,CHAR_LT_ANGLE						; Left angle char
     LD          (HL),A
     ADD         HL,DE
     INC         HL
     LD          (HL),A
     LD          HL,DAT_ram_357f
-    LD          A,$bf								; DKBLU on DKGRY
-								; WAS DKBLU on DKCYN
-								; WAS LD A,$b9
+    LD          A,COLOR(DKBLU,DKGRY)			    ; DKBLU on DKGRY
     LD          (HL),A
     ADD         HL,DE
     DEC         HL
     LD          (HL),A
     INC         HL
-    LD          A,0xf								; BLK on DKGRY
-								; WAS BLK on DKBLU
-								; WAS LD A,0xb
+    LD          A,COLOR(BLK,DKGRY)			    	; BLK on DKGRY
     LD          (HL),A
-    LD          BC,$204								; 2 x 4 rectangle
+    LD          BC,RECT(2,4)					    ; 2 x 4 rectangle
     ADD         HL,DE
     DEC         HL
     CALL        DRAW_CHRCOLS
@@ -797,31 +767,29 @@ SUB_ram_cbe2:
     INC         HL
     LD          (HL),A
     DEC         HL
-    LD          A,0xf								; BLK on DKGRY
-								; WAS DKCYN on DKBLU
-								; WAS LD A,$9b
+    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
     LD          (HL),A
     ADD         HL,DE
     INC         HL
     LD          (HL),A
-    LD          HL,DAT_ram_35cc
+    LD          HL,COLRAM_FR22_WALL_IDX
     LD          C,0x4
-    LD          A,0x0
+    LD          A,COLOR(BLK,BLK)
     JP          DRAW_CHRCOLS
-DRAW_WALL_FR222_EMPTY:
-    LD          HL,DAT_ram_35cc
-    LD          BC,$404								; 4 x 4 rectangle
-    LD          A,0x0								; BLK on BLK
+DRAW_WALL_FR22_EMPTY:
+    LD          HL,COLRAM_FR22_WALL_IDX
+    LD          BC,RECT(4,4)						; 4 x 4 rectangle
+    LD          A,COLOR(BLK,BLK)					; BLK on BLK
     JP          FILL_CHRCOL_RECT
 DRAW_WALL_FR1:
-    LD          A,$c1
+    LD          A,CHAR_LT_ANGLE
     PUSH        AF
     LD          BC,$408								; 4 x 8 rectangle
     LD          A,$20								; Change to SPACE 32 / $20
 								; WAS d134 / $86 crosshatch char
 								; WAS LD A, $86
     PUSH        AF
-    LD          A,$c0								; Right angle char
+    LD          A,CHAR_RT_ANGLE								; Right angle char
     LD          HL,DAT_ram_3150
     CALL        SUB_ram_cc4d
     LD          A,$fb								; DKGRY on DKBLU
@@ -859,8 +827,6 @@ SUB_ram_cc4d:
 SUB_ram_cc6d:
     CALL        DRAW_WALL_FR1
     LD          A,$f0								; DKGRY on BLK
-								; WAS DKCYN on BLK
-								; WAS LD A,$90
     PUSH        AF
     LD          A,$b0								; DKBLU on BLK
     PUSH        AF
@@ -880,7 +846,7 @@ LAB_ram_cc85:
     LD          BC,$207								; 2 x 7 rectangle
     CALL        SUB_ram_cd07
     LD          HL,DAT_ram_317a
-    LD          A,$c0								; Right angle char
+    LD          A,CHAR_RT_ANGLE								; Right angle char
     LD          (HL),A
     LD          DE,$27
     ADD         HL,DE
@@ -906,41 +872,35 @@ SUB_ram_ccb5:
     LD          A,$dd								; DKGRN on DKGRN
 LAB_ram_ccba:
     LD          HL,DAT_ram_35ca
-    LD          BC,$206								; 2 x 6 rectangle
+    LD          BC,RECT(2,6)						; 2 x 6 rectangle
     JP          DRAW_CHRCOLS
 SUB_ram_ccc3:
-    LD          HL,DAT_ram_35ca
-    LD          BC,RECT(2,4)								; 2 x 4 rectangle
-    LD          A,COLOR(BLK,BLK)								; BLK on BLK
+    LD          HL,DAT_ram_35ca                     ; ???
+    LD          BC,RECT(2,4)						; 2 x 4 rectangle
+    LD          A,COLOR(BLK,BLK)					; BLK on BLK
     CALL        FILL_CHRCOL_RECT
     LD          C,0x4
-    LD          HL,DAT_ram_35c8
-    LD          A,0xf								; BLK on DKGRY
-								; WAS BLK on DKBLU
-								; WAS LD A, 0xb
-    JP          DRAW_CHRCOLS
+    LD          HL,COLRAM_FR2_RIGHT                 ; FR2 Right
+    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
+    CALL        DRAW_CHRCOLS                        ; Was JP
+    LD          HL,$31c8 + 120                      ; Bottom row of FR2 right, CHRRAM
+    LD          BC,RECT(4,1)                        ; 4 x 1 rectangle
+    LD          A,CHAR_BOTTOM_LINE
+    JP          DRAW_CHRCOLS                        ; *****
+
 DRAW_WALL_FR2_EMPTY:
-    LD          HL,DAT_ram_35c8
-    LD          BC,$404								; 4 x 4 rectangle
-    LD          A,0x0								; BLK on BLK
+    LD          HL,COLRAM_FR2_RIGHT
+    LD          BC,RECT(4,4)						; 4 x 4 rectangle
+    LD          A,COLOR(BLK,BLK)					; BLK on BLK
     JP          FILL_CHRCOL_RECT
 DRAW_WALL_FR2:
-    LD          A,0xf								; FR2 Bottom
-								; BLK on DKGRY
-								; WAS DKCYN on DKBLU
-								; WAS LD A,$9b
+    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
     PUSH        AF
-    LD          A,0xf								; FR2 Wall
-								; BLK on DKGRY
-								; WAS BLK on DKBLU
-								; WAS LD A,0xb
+    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
     PUSH        AF
-    LD          A,$f0								; FR2 Top
-								; DKGRY on BLK
-								; WAS DKBLU on CYN
-								; WAS LD A,$b6
+    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
     LD          HL,DAT_ram_3577
-    LD          BC,$204								; 2 x 4 rectangle
+    LD          BC,RECT(2,4)						; 2 x 4 rectangle
     CALL        SUB_ram_cd07
     LD          HL,DAT_ram_3266
     LD          A,$da								; Left slash char
@@ -948,7 +908,7 @@ DRAW_WALL_FR2:
     ADD         HL,DE
     LD          (HL),A
     LD          HL,DAT_ram_3177
-    LD          A,$c0								; Right angle char
+    LD          A,CHAR_RT_ANGLE						; Right angle char
     LD          (HL),A
     DEC         DE
     DEC         DE
@@ -977,17 +937,22 @@ SUB_ram_cd07:
     LD          (HL),A
     JP          (IX)
 SUB_ram_cd21:
-    LD          HL,DAT_ram_35c6
-    LD          BC,$204								; 2 x 4 rectangle
-    LD          A,0xf								; BLK on DKGRY
-								; WAS BLK on DKBLU
-								; WAS LD A,0xb
-    JP          FILL_CHRCOL_RECT
+    LD          HL,COLRAM_FR2_LEFT                  ; FR2_LEFT_SOLID
+    LD          BC,RECT(2,4)						; 2 x 4 rectangle
+    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
+    CALL        FILL_CHRCOL_RECT                    ; Was JP
+    LD          HL,$31c6 + 120                      ; Bottom row of FR2 left, CHRRAM
+    LD          BC,RECT(4,1)                        ; 4 x 1 rectangle
+    LD          A,CHAR_BOTTOM_LINE
+    JP          DRAW_CHRCOLS                        ; 
+
 SUB_ram_cd2c:
-    LD          HL,DAT_ram_35c6
-    LD          BC,$204								; 2 x 4 rectangle
-    LD          A,0x0								; BLK on BLK
-    JP          FILL_CHRCOL_RECT
+    LD          HL,COLRAM_FR2_LEFT                  ; FR2_LEFT_OPEN
+    LD          BC,RECT(2,4)						; 2 x 4 rectangle
+    LD          A,COLOR(BLK,BLK)					; BLK on BLK
+    JP          FILL_CHRCOL_RECT                    ; *****
+
+
     LD          A,0x8
     LD          (SOUND_REPEAT_COUNT),A
     LD          B,A
@@ -1333,11 +1298,11 @@ DO_HC_SHIFT_ACTIONS:
     JP          NO_ACTION_TAKEN
 DRAW_BKGD:
     LD          A,$20								;  Set VIEWPORT fill chars to SPACE
-    LD          HL,IDX_VIEWPORT_CHRRAM								;  Set CHRRAM starting point at the beginning of the VIEWPORT
-    LD          BC,RECT(24,24)								;  24 x 24 cells
+    LD          HL,IDX_VIEWPORT_CHRRAM				;  Set CHRRAM starting point at the beginning of the VIEWPORT
+    LD          BC,RECT(24,24)						;  24 x 24 cells
     CALL        FILL_CHRCOL_RECT
     LD          C,0x8								;  8 rows of ceiling
-    LD          HL,COLRAM_VIEWPORT_IDX								;  Set COLRAM starting point at the beginning of the VIEWPORT
+    LD          HL,COLRAM_VIEWPORT_IDX				;  Set COLRAM starting point at the beginning of the VIEWPORT
     LD          A,$f0								;  DKGRY on BLK
     CALL        DRAW_CHRCOLS
     LD          C,0x6								;  6 more rows of ceiling
@@ -1627,26 +1592,23 @@ WIPE_WALLS_LOOP:
     JP          INPUT_DEBOUNCE
 DRAW_WALL_FL22_EMPTY:
     LD          HL,COLRAM_FL22_WALL_IDX
-    LD          BC,RECT(4,4)								; 4 x 4 rectangle
-    LD          A,COLOR(BLK,BLK)								; BLK on BLK
-    CALL        FILL_CHRCOL_RECT
-    LD          HL,DAT_ram_3230
-    LD          BC,RECT(4,1)								; 4 x 1 rectangle
-    LD          A,$20								; SPACE char
-    JP          FILL_CHRCOL_RECT
-DRAW_WALL_FL2_NEW:
-    LD          HL,$3234								; Bottom CHARRAM IDX of FL2
-    LD          BC,RECT(4,1)								; 4 x 1 rectangle
-    LD          A,$90								; Thin base line char
+    LD          BC,RECT(4,4)						; 4 x 4 rectangle
+    LD          A,COLOR(BLK,BLK)					; BLK on BLK
+    JP          FILL_CHRCOL_RECT                    ; Was CALL, followed by the commented section
+
+DRAW_WALL_FL2:
+    LD          HL,$3234							; Bottom CHARRAM IDX of FL2
+    LD          BC,RECT(4,1)						; 4 x 1 rectangle
+    LD          A,CHAR_BOTTOM_LINE					; Thin base line char
     CALL        FILL_CHRCOL_RECT
     LD          HL,$35bc
-    LD          BC,RECT(2,4)								; 2 x 4 rectangle
-    LD          A,COLOR(BLK,DKGRY)								; BLK on DKGRY
+    LD          BC,RECT(2,4)						; 2 x 4 rectangle
+    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
     CALL        FILL_CHRCOL_RECT
     LD          C,0x4
     LD          HL,$35be
-    LD          A,0xf
-    JP          DRAW_CHRCOLS
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY
+    JP          DRAW_CHRCOLS                        ; *****
 FIX_ICON_COLORS:
     LD          HL,COLRAM_LEVEL_IDX_L
     LD          A,(INPUT_HOLDER)
