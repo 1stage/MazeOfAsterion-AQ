@@ -37,7 +37,7 @@ This document tracks the systematic renaming of wall state variables from generi
 
 ### Files Modified:
 1. **src/asterion.inc** - Updated EQU definitions
-2. **src/asterion_high_rom.asm** - Updated variable references in GET_NORTH_WALLPORT
+2. **src/asterion_high_rom.asm** - Updated variable references in REDRAW_VIEWPORT
 
 ### References Updated:
 - Line 1535: `(WALL_L0_STATE)` → `(WALL_R0_STATE)`

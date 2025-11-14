@@ -121,7 +121,7 @@ LAB_ram_e10c:
     CALL        SUB_ram_cdbf
     CALL        SUB_ram_f2c4
     CALL        REDRAW_START
-    CALL        GET_NORTH_WALLPORT
+    CALL        REDRAW_VIEWPORT
     JP          DO_SWAP_HANDS
 
 DO_MOVE_FW_CHK_WALLS:
@@ -845,7 +845,7 @@ LAB_ram_e6aa:
     CALL        REDRAW_STATS
 LAB_ram_e6be:
     CALL        REDRAW_START
-    JP          GET_NORTH_WALLPORT
+    JP          REDRAW_VIEWPORT
 LAB_ram_e6c4:
     LD          HL,0x3
     CALL        SUB_ram_e401
@@ -1390,7 +1390,7 @@ DO_SWAP_PACK:
     JP          WAIT_A_TICK
 UPDATE_VIEWPORT:
     CALL        REDRAW_START
-    CALL        GET_NORTH_WALLPORT
+    CALL        REDRAW_VIEWPORT
 INPUT_DEBOUNCE:
     CALL        WAIT_A_TICK
 WAIT_FOR_INPUT:
@@ -1552,7 +1552,7 @@ LAB_ram_ebbd:
     CALL        ROTATE_FACING_RIGHT
 LAB_ram_ebc0:
     CALL        REDRAW_START
-    CALL        GET_NORTH_WALLPORT
+    CALL        REDRAW_VIEWPORT
 LAB_ram_ebc6:
     CALL        SUB_ram_cd5f
     JP          INIT_MONSTER_COMBAT
@@ -1921,7 +1921,7 @@ DO_GLANCE_RIGHT:
     JP          NZ,NO_ACTION_TAKEN
     CALL        ROTATE_FACING_RIGHT
     CALL        REDRAW_START
-    CALL        GET_NORTH_WALLPORT
+    CALL        REDRAW_VIEWPORT
     CALL        SLEEP_ZERO                              ;byte SLEEP_ZERO(void)
     JP          DO_TURN_LEFT
 DO_GLANCE_LEFT:
@@ -1930,7 +1930,7 @@ DO_GLANCE_LEFT:
     JP          NZ,NO_ACTION_TAKEN
     CALL        ROTATE_FACING_LEFT
     CALL        REDRAW_START
-    CALL        GET_NORTH_WALLPORT
+    CALL        REDRAW_VIEWPORT
     CALL        SLEEP_ZERO                              ;byte SLEEP_ZERO(void)
     JP          DO_TURN_RIGHT
 DO_USE_ATTACK:
@@ -2636,7 +2636,7 @@ LAB_ram_f2d0:
     LD          B,0x1
     CALL        RECALC_AND_REDRAW_BCD
     CALL        REDRAW_START
-    JP          GET_NORTH_WALLPORT
+    JP          REDRAW_VIEWPORT
 DRAW_99_LOOP_NOTICE:
     CALL        DRAW_BKGD
     LD          HL,DAT_ram_3051                         ;= $20
@@ -3477,7 +3477,7 @@ LAB_ram_f7f7:
     DEC         C
     LD          A,(BC)
     RET
-GET_NORTH_WALLPORT:
+REDRAW_VIEWPORT:
     CALL        DRAW_BKGD
     LD          BC,ITEM_F2                              ;BC = ITEM_F2
     LD          DE,WALL_F0_STATE                        ;DE = wallAheadTemp

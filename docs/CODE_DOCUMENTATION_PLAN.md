@@ -14,7 +14,7 @@ Following the existing pattern of header comments that document:
 ## Priority 1: CRITICAL - Graphics Rendering System
 
 ### 1.1 Wall State Bit Manipulation Patterns
-**Location**: Throughout `src/asterion_high_rom.asm` GET_NORTH_WALLPORT function (lines ~3560-3900)
+**Location**: Throughout `src/asterion_high_rom.asm` REDRAW_VIEWPORT function (lines ~3560-3900)
 
 **Issue**: The 3-bit wall state checking using `RRCA` sequences appears dozens of times but is never explained.
 
@@ -23,7 +23,7 @@ Following the existing pattern of header comments that document:
 ; === 3-BIT WALL STATE DECODING PATTERN ===
 ; Based on research: 4-bit nibble per wall (Upper=North, Lower=West)
 ; Each 3-bit wall encoding: Bit 0=wall present, Bit 1=door present, Bit 2=door open/closed
-; Standard RRCA pattern used throughout GET_NORTH_WALLPORT:
+; Standard RRCA pattern used throughout REDRAW_VIEWPORT:
 LD          A,(DE)          ; Load wall state nibble from map position
 RRCA                        ; Rotate bit 0 into Carry: test wall present
 JP          NC,no_wall      ; If bit 0 clear, no wall at this position
@@ -37,19 +37,19 @@ JP          C,door_open     ; If bit 2 set, door is open
 ```
 
 **Functions to Document**:
-- All wall rendering sections in GET_NORTH_WALLPORT
+- All wall rendering sections in REDRAW_VIEWPORT
 - Pattern explanation at first occurrence
 - Reference comments for subsequent uses
 
 ### 1.2 Viewport Rendering Pipeline
-**Location**: `GET_NORTH_WALLPORT` function in `src/asterion_high_rom.asm`
+**Location**: `REDRAW_VIEWPORT` function in `src/asterion_high_rom.asm`
 
 **Issue**: Complex painter's algorithm implementation with no flow documentation.
 
 **Header Comment Needed**:
 ```asm
 ;==============================================================================
-; GET_NORTH_WALLPORT - Renders 3D maze view using painter's algorithm
+; REDRAW_VIEWPORT - Renders 3D maze view using painter's algorithm
 ;==============================================================================
 ; PURPOSE: Redraws entire 3D viewport by rendering walls from far to near
 ; INPUT:   Wall state memory block at $33e8-$33fd (22 bytes, 3-bit encoding)
@@ -233,8 +233,8 @@ JP          DRAW_CHRCOLS                        ; Continue with next row
 ## Implementation Strategy
 
 ### Phase 1: Critical Path (Week 1)
-1. Add wall state bit pattern explanation to first occurrence in GET_NORTH_WALLPORT
-2. Add header comment to GET_NORTH_WALLPORT function
+1. Add wall state bit pattern explanation to first occurrence in REDRAW_VIEWPORT
+2. Add header comment to REDRAW_VIEWPORT function
 3. Document 5-10 most commonly used graphics utility functions
 
 ### Phase 2: Core Systems (Week 2)  

@@ -121,7 +121,7 @@ LAB_ram_e10c:
     CALL        SUB_ram_cdbf
     CALL        SUB_ram_f2c4
     CALL        REDRAW_START
-    CALL        GET_NORTH_WALLPORT
+    CALL        REDRAW_VIEWPORT
     JP          DO_SWAP_HANDS
 
 DO_MOVE_FW_CHK_WALLS:
@@ -845,7 +845,7 @@ LAB_ram_e6aa:
     CALL        REDRAW_STATS
 LAB_ram_e6be:
     CALL        REDRAW_START
-    JP          GET_NORTH_WALLPORT
+    JP          REDRAW_VIEWPORT
 LAB_ram_e6c4:
     LD          HL,0x3
     CALL        SUB_ram_e401
@@ -1390,7 +1390,7 @@ DO_SWAP_PACK:
     JP          WAIT_A_TICK
 UPDATE_VIEWPORT:
     CALL        REDRAW_START
-    CALL        GET_NORTH_WALLPORT
+    CALL        REDRAW_VIEWPORT
 INPUT_DEBOUNCE:
     CALL        WAIT_A_TICK
 WAIT_FOR_INPUT:
@@ -1552,7 +1552,7 @@ LAB_ram_ebbd:
     CALL        ROTATE_FACING_RIGHT
 LAB_ram_ebc0:
     CALL        REDRAW_START
-    CALL        GET_NORTH_WALLPORT
+    CALL        REDRAW_VIEWPORT
 LAB_ram_ebc6:
     CALL        SUB_ram_cd5f
     JP          INIT_MONSTER_COMBAT
@@ -1921,7 +1921,7 @@ DO_GLANCE_RIGHT:
     JP          NZ,NO_ACTION_TAKEN
     CALL        ROTATE_FACING_RIGHT
     CALL        REDRAW_START
-    CALL        GET_NORTH_WALLPORT
+    CALL        REDRAW_VIEWPORT
     CALL        SLEEP_ZERO								;  byte SLEEP_ZERO(void)
     JP          DO_TURN_LEFT
 DO_GLANCE_LEFT:
@@ -1930,7 +1930,7 @@ DO_GLANCE_LEFT:
     JP          NZ,NO_ACTION_TAKEN
     CALL        ROTATE_FACING_LEFT
     CALL        REDRAW_START
-    CALL        GET_NORTH_WALLPORT
+    CALL        REDRAW_VIEWPORT
     CALL        SLEEP_ZERO								;  byte SLEEP_ZERO(void)
     JP          DO_TURN_RIGHT
 DO_USE_ATTACK:
@@ -2636,7 +2636,7 @@ LAB_ram_f2d0:
     LD          B,0x1
     CALL        RECALC_AND_REDRAW_BCD
     CALL        REDRAW_START
-    JP          GET_NORTH_WALLPORT
+    JP          REDRAW_VIEWPORT
 DRAW_99_LOOP_NOTICE:
     CALL        DRAW_BKGD
     LD          HL,DAT_ram_3051
@@ -2840,15 +2840,15 @@ GENERATE_MAPWALLS_LOOP:
     LD          A,(PLAYER_MAP_POS)
     LD          L,A
     LD          (HL),$42
-GEN_MAP_NW_WALL_LOOP:
+GENERATE_LADDER_POSITION:
     CALL        UPDATE_SCR_SAVER_TIMER
     INC         A
-    JP          Z,GEN_MAP_NW_WALL_LOOP
+    JP          Z,GENERATE_LADDER_POSITION
     DEC         A
     LD          (ITEM_HOLDER),A
     LD          L,A
     LD          (HL),$63
-    LD          HL,MAP_LADDER_OFFSET
+    LD          HL,ITEM_TABLE
     LD          (HL),A
     INC         L
     LD          (HL),$42								;  Put ladder object into map
@@ -2866,29 +2866,29 @@ LAB_ram_f3db:
     LD          C,A
     LD          A,(DUNGEON_LEVEL)
     CP          C
-    JP          C,LAB_ram_f3fd
-GEN_ITEM_MAP:
+    JP          C,SET_ITEM_LIMIT
+GENERATE_ITEM_TABLE:
     CALL        UPDATE_SCR_SAVER_TIMER
     INC         A
-    JP          Z,GEN_ITEM_MAP
+    JP          Z,GENERATE_ITEM_TABLE
     DEC         A
     LD          C,A
     LD          A,(ITEM_HOLDER)
     CP          C
-    JP          Z,GEN_ITEM_MAP
+    JP          Z,GENERATE_ITEM_TABLE
     LD          A,(PLAYER_MAP_POS)
     CP          C
-    JP          Z,GEN_ITEM_MAP
+    JP          Z,GENERATE_ITEM_TABLE
     LD          (HL),C
     INC         HL
     LD          (HL),$9f								;  Full ITEM_monster range $009f
     INC         HL
-LAB_ram_f3fd:
-    LD          B,$50								;  Max 50 items+monstersdb?
-GEN_RND_ITEM:
+SET_ITEM_LIMIT:
+    LD          B,$50								;  Max 128 items+monsters (80 hex = 128 decimal)
+GENERATE_RANDOM_ITEM:
     CALL        MAKE_RANDOM_BYTE
     INC         A
-    JP          Z,GEN_RND_ITEM
+    JP          Z,GENERATE_RANDOM_ITEM
     DEC         A
     EX          AF,AF'
     LD          A,(DUNGEON_LEVEL)
@@ -2896,19 +2896,19 @@ GEN_RND_ITEM:
     JP          NZ,LAB_ram_f417
     EX          AF,AF'
     CP          0x1
-    JP          Z,GEN_RND_ITEM
+    JP          Z,GENERATE_RANDOM_ITEM
     CP          $10
-    JP          Z,GEN_RND_ITEM
+    JP          Z,GENERATE_RANDOM_ITEM
     EX          AF,AF'
 LAB_ram_f417:
     EX          AF,AF'
     LD          E,A
     LD          A,(PLAYER_MAP_POS)
     CP          E
-    JP          Z,GEN_RND_ITEM
+    JP          Z,GENERATE_RANDOM_ITEM
     LD          A,(ITEM_HOLDER)
     CP          E
-    JP          Z,GEN_RND_ITEM
+    JP          Z,GENERATE_RANDOM_ITEM
     LD          (HL),E
     INC         L
     CALL        UPDATE_SCR_SAVER_TIMER
@@ -2977,7 +2977,7 @@ LAB_ram_f482:
     LD          (HL),C
     INC         L
     DEC         B
-    JP          NZ,GEN_RND_ITEM
+    JP          NZ,GENERATE_RANDOM_ITEM
     LD          (HL),$ff
     LD          DE,TEMP_MAP
     LD          HL,MAP_LADDER_OFFSET
@@ -3583,65 +3583,204 @@ FACING_EAST:
     LD          DE,EAST_TXT                     ; Stage east pointing compass text
     JP          CALC_REDRAW_COMPASS
 
+;==============================================================================
+; CALC_ITEMS - Calculate item/monster states for viewport and proximity detection
+;==============================================================================
+;   Populates item position slots with items/monsters in the player's vicinity.
+;   Items/monsters exist throughout the map but this function determines which
+;   ones are relevant for current viewport rendering and proximity triggers.
+;   
+;   Unlike wall calculation which reads from dense map grid ($3800), items are
+;   stored in a sparse table at $3900 and must be searched via ITEM_MAP_CHECK.
+;   
+;   Monsters >= $78 at forward position (F1) block player movement. Monsters
+;   in adjacent positions (SL0, SR0, SB) can trigger proximity effects even if
+;   not rendered, provided no wall/closed door blocks line of effect.
+;
+; Position Scope (exact mapping TBD):
+;   The function processes 8 positions using IX+offset indexing (IX+0 through IX+7)
+;   These likely correspond to viewport and adjacent positions but exact
+;   mapping to ITEM_xx variables and physical positions requires verification.
+;   
+;   Known rendered positions include: F2, F1, F0, FL1, FR1, L1, R1 (7 total)
+;   Additional positions may include proximity detection for SL0, SR0, SB
+;
+; Item vs Wall Differences:
+;   - Uses directional offset arithmetic (DIR_FACING_HI) vs complex map navigation
+;   - Searches sparse item table ($3900) vs direct map access ($3800)  
+;   - Returns $FE for empty vs 3-bit wall encoding
+;   - Handles both rendered and non-rendered proximity positions
+;   - Single pass calculation vs direction-specific algorithms
+;
+; Registers:
+; --- Start ---
+;   DE = Direction facing deltas loaded from (DIR_FACING_HI)
+;   A  = Current player map position loaded from (PLAYER_MAP_POS)
+; --- In Process ---
+;   IX = Item position array pointer (starting at ITEM_F2)
+;   DE = Direction facing deltas (D = vertical, E = horizontal)
+;   A  = Map position calculations using DIR_FACING_HI offsets
+;   H  = Working position register for ITEM_MAP_CHECK calls
+; ---  End  ---
+;   Item position array populated with item/monster codes or $FE (empty)
+;
+; Memory Input:
+;   DIR_FACING_HI ($3a9e-$3a9f) - Direction facing offset values
+;   PLAYER_MAP_POS ($3a9d) - Current player map position  
+;   Sparse item table at $3900 - [position,item_code] pairs, $FF terminated
+;
+; Memory Output:
+;   Item position array starting at ITEM_F2 ($37e8+) - item/monster state bytes
+;   NOTE: Exact variable names and memory layout require verification
+;
+;==============================================================================
 CALC_ITEMS:
-    LD          IX,ITEM_F2
-    LD          DE,(DIR_FACING_HI)
-    LD          A,(PLAYER_MAP_POS)
-    ADD         A,D
-    ADD         A,D
-    CALL        ITEM_MAP_CHECK
-    LD          (IX+0),A
-    LD          A,H
-    SUB         D
-    CALL        ITEM_MAP_CHECK
-    LD          (IX+1),A
-    LD          A,H
-    SUB         D
-    CALL        ITEM_MAP_CHECK
-    LD          (IX+2),A
-    LD          A,H
-    ADD         A,D
-    SUB         E
-    CALL        ITEM_MAP_CHECK
-    LD          (IX+3),A
-    LD          A,H
-    ADD         A,E
-    ADD         A,E
-    CALL        ITEM_MAP_CHECK
-    LD          (IX+4),A
-    LD          A,H
-    SUB         D
-    CALL        ITEM_MAP_CHECK
-    LD          (IX+5),A
-    LD          A,H
-    SUB         E
-    SUB         E
-    CALL        ITEM_MAP_CHECK
-    LD          (IX+6),A
-    LD          A,H
-    SUB         D
-    ADD         A,E
-    CALL        ITEM_MAP_CHECK
-    LD          (IX+7),A
+    LD          IX,ITEM_F2                      ; Point IX to start of item position array
+    LD          DE,(DIR_FACING_HI)              ; Load direction facing deltas (D=vertical, E=horizontal)
+    LD          A,(PLAYER_MAP_POS)              ; Get current player map position
+    ADD         A,D                             ; Move forward by D (direction dependent)
+    ADD         A,D                             ; Move forward again (2 spaces ahead)
+    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+0)
+    LD          (IX+0),A                        ; Store result in first item slot
+    LD          A,H                             ; Use H as working position (set by ITEM_MAP_CHECK)
+    SUB         D                               ; Move back by D (1 space ahead)
+    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+1)
+    LD          (IX+1),A                        ; Store result in second item slot
+    LD          A,H                             ; Continue with H as working position
+    SUB         D                               ; Move back by D (player position)
+    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+2)
+    LD          (IX+2),A                        ; Store result in third item slot
+    LD          A,H                             ; Continue with H as working position
+    ADD         A,D                             ; Move forward by D (back to 1 space ahead)
+    SUB         E                               ; Move left by E (diagonal left forward)
+    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+3)
+    LD          (IX+3),A                        ; Store result in fourth item slot
+    LD          A,H                             ; Continue with H as working position
+    ADD         A,E                             ; Move right by E (back to center forward)
+    ADD         A,E                             ; Move right again (diagonal right forward)
+    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+4)
+    LD          (IX+4),A                        ; Store result in fifth item slot
+    LD          A,H                             ; Continue with H as working position
+    SUB         D                               ; Move back by D (diagonal right at player level)
+    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+5)
+    LD          (IX+5),A                        ; Store result in sixth item slot
+    LD          A,H                             ; Continue with H as working position
+    SUB         E                               ; Move left by E (back to player position)
+    SUB         E                               ; Move left again (left side of player)
+    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+6)
+    LD          (IX+6),A                        ; Store result in seventh item slot
+    LD          A,H                             ; Continue with H as working position
+    SUB         D                               ; Move back by D (behind and left of player)
+    ADD         A,E                             ; Move right by E (directly behind player)
+    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+7)
+    LD          (IX+7),A                        ; Store result in eighth item slot
 LAB_ram_f7f0:
-    LD          A,$fe
+    LD          A,$fe                           ; Return $FE (empty space marker)
     RET
+
+;==============================================================================
+; ITEM_MAP_CHECK - Search sparse item table for item at specific map position
+;==============================================================================
+;   Searches the sparse item/monster table at MAP_LADDER_OFFSET ($3900) for
+;   an item or monster at the specified map position. The table contains
+;   [position,item_code] pairs terminated by $FF.
+;   
+;   Returns either the item/monster code found at the position, or $FE if
+;   the position is empty. Used by CALC_ITEMS to populate item position slots.
+;
+; Table Format:
+;   MAP_LADDER_OFFSET ($3900): [pos1,item1][pos2,item2]...[posN,itemN][$FF]
+;   - Each entry is 2 bytes: position followed by item/monster code
+;   - Table terminated by $FF marker
+;   - Ladder entry is always first: [ladder_pos,$42]
+;
+; Registers:
+; --- Start ---
+;   A  = Map position to search for
+; --- In Process ---
+;   H  = Target map position (saved from input A)
+;   BC = Pointer into sparse item table (MAP_LADDER_OFFSET + offset)
+;   A  = Current table entry (position or item code)
+; ---  End  ---
+;   A  = Item/monster code at position, or $FE if empty
+;   H  = Target map position (preserved for caller)
+;   BC = Points to item code byte in table (if found)
+;
+; Memory Input:
+;   MAP_LADDER_OFFSET ($3900) - Sparse item table with [position,code] pairs
+;
+;==============================================================================
 ITEM_MAP_CHECK:
-    LD          H,A
-    LD          BC,MAP_LADDER_OFFSET
-LAB_ram_f7f7:
-    LD          A,(BC)
-    INC         BC
-    INC         BC
-    INC         A
-    JP          Z,LAB_ram_f7f0
-    DEC         A
-    CP          H
-    JP          NZ,LAB_ram_f7f7
-    DEC         C
-    LD          A,(BC)
-    RET
-GET_NORTH_WALLPORT:
+    LD          H,A                             ; Save target position in H
+    LD          BC,MAP_LADDER_OFFSET            ; Point BC to start of sparse item table
+ITEM_SEARCH_LOOP:
+    LD          A,(BC)                          ; Load position from table entry
+    INC         BC                              ; Move to item code byte
+    INC         BC                              ; Move to next table entry position
+    INC         A                               ; Test for $FF terminator (becomes $00)
+    JP          Z,LAB_ram_f7f0                  ; Jump if end of table (return $FE)
+    DEC         A                               ; Restore original position value
+    CP          H                               ; Compare with target position
+    JP          NZ,ITEM_SEARCH_LOOP             ; Continue loop if no match
+    DEC         C                               ; Back up to item code byte
+    LD          A,(BC)                          ; Load item/monster code
+    RET                                         ; Return with item code in A
+
+;==============================================================================
+; REDRAW_VIEWPORT - Render 3D maze viewport using painter's algorithm
+;==============================================================================
+;   Renders the complete 3D maze view by processing wall states from far to near
+;   using the painter's algorithm. Each wall position uses 3-bit encoding to
+;   determine wall presence, door presence, and door state (open/closed).
+;   
+;   The function handles both main wall positions (F0, F1, F2) and half-wall
+;   positions (FL2, FR2, FL1, FR1, FL0, FR0) for perspective rendering.
+;
+; Wall State 3-Bit Encoding Pattern:
+;   Bit 0 = Wall present (1=wall exists, 0=empty space)
+;   Bit 1 = Door present (1=has door, 0=solid wall)  
+;   Bit 2 = Door state (1=open, 0=closed) - only valid if bit 1=1
+;
+;   Standard RRCA sequence used throughout:
+;     RRCA     ; Test bit 0 (wall present) - result in Carry flag
+;     RRCA     ; Test bit 1 (door present) - result in Carry flag  
+;     RRCA     ; Test bit 2 (door state) - result in Carry flag
+;
+; Rendering Order (Painter's Algorithm - Far to Near):
+;   1. Background (ceiling/floor)
+;   2. F0 walls (farthest from player)
+;   3. F1 walls 
+;   4. F2 walls
+;   5. Side walls FL2, FR2, L2, R2 (far sides)
+;   6. Half-walls FL1, FR1 (perspective depth)
+;   7. Side walls L1, R1 (near sides)
+;   8. Half-walls FL0, FR0 (closest perspective)
+;   9. Side walls L0, R0 (immediate sides)
+;   10. Items/monsters at various depths
+;
+; Registers:
+; --- Start ---
+;   None (uses wall state memory block $33e8-$33fd)
+; --- In Process ---
+;   A  = Wall state data and bit testing via RRCA sequences
+;   BC = Item position pointers (ITEM_F2, ITEM_F1, etc.)
+;   DE = Wall state memory pointer ($33e8 = WALL_F0_STATE onwards)
+;   HL = Graphics memory addresses for rendering
+;   AF'= Saved wall state during drawing operations
+; ---  End  ---
+;   Viewport fully rendered with all visible walls, doors, and items
+;
+; Memory Input:
+;   WALL_F0_STATE to WALL_B0_STATE ($33e8-$33fd) - 22 wall position states
+;   Half-wall states: WALL_FL2_A_STATE, WALL_FL2_B_STATE, etc. (calculated by CALC_HALF_WALLS)
+;   Item data: ITEM_F2, ITEM_F1, ITEM_F0, etc.
+;
+; Memory Output:
+;   CHRRAM $3000-$33e7 - Character data for viewport area
+;   COLRAM $3400-$37e7 - Color data for viewport area
+;
+;==============================================================================
+REDRAW_VIEWPORT:
     CALL        DRAW_BKGD
     LD          BC,ITEM_F2								;  BC = ITEM_F2
     LD          DE,WALL_F0_STATE								;  DE = wallAheadTemp
