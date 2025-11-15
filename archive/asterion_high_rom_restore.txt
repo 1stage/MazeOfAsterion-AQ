@@ -3705,14 +3705,14 @@ F0_HD_NO_WALL:
     RRCA
     JP          NC,LAB_ram_f9aa
     EX          AF,AF'
-    CALL        DRAW_WALL_FL0
+    CALL        DRAW_WALL_L0
     EX          AF,AF'
     RRCA
     JP          NC,LAB_ram_fa19
     RRCA
     JP          NC,LAB_ram_fa19
 LAB_ram_f9a4:
-    CALL        DRAW_DOOR_FLO
+    CALL        DRAW_DOOR_FL0_HIDDEN
     JP          LAB_ram_fa19
 LAB_ram_f9aa:
     RRCA

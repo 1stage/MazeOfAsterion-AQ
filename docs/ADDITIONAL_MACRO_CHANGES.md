@@ -48,27 +48,27 @@ Additional macro conversions found after the initial COLOR() and RECT() implemen
 #### Change 7: Line 166
 **Before:** `LD A,$40                                                          ; BLU on BLK`
 **After:** `LD A,COLOR(BLU,BLK)                                       ; BLU on BLK`
-**Context:** DRAW_WALL_FL0 function, COLRAM_FL00_WALL_IDX
+**Context:** DRAW_WALL_L0 function, COLRAM_FL00_WALL_IDX
 
 #### Change 8: Line 172
 **Before:** `LD A,0x4                                                          ; BLK on BLU`
 **After:** `LD A,COLOR(BLK,BLU)                               ; BLK on BLU`
-**Context:** DRAW_WALL_FL0 function
+**Context:** DRAW_WALL_L0 function
 
 #### Change 9: Line 180
 **Before:** `LD A,$f4                                                          ; DKGRY on BLU`
 **After:** `LD A,COLOR(DKGRY,BLU)                                     ; DKGRY on BLU`
-**Context:** DRAW_WALL_FL0 function
+**Context:** DRAW_WALL_L0 function
 
 #### Change 10: Line 196
 **Before:** `LD A,$f0                                                          ; DKGRY on BLK`
 **After:** `LD A,COLOR(DKGRY,BLK)                                     ; DKGRY on BLK`
-**Context:** DRAW_DOOR_FLO function
+**Context:** DRAW_DOOR_FL0_HIDDEN function
 
 #### Change 11: Line 200
 **Before:** `LD A,0x4                                                          ; BLK on BLU`
 **After:** `LD A,COLOR(BLK,BLU)                                       ; BLK on BLU`
-**Context:** DRAW_DOOR_FLO function
+**Context:** DRAW_DOOR_FL0_HIDDEN function
 
 #### Change 12: Line 206
 **Before:** `LD A,$f2                                                          ; DKGRY on GRN`
@@ -78,7 +78,7 @@ Additional macro conversions found after the initial COLOR() and RECT() implemen
 #### Change 13: Line 210
 **Before:** `LD A,$24                                                          ; GRN on BLU`
 **After:** `LD A,COLOR(GRN,BLU)                                       ; GRN on BLU`
-**Context:** SUB_ram_c996 function, used in DRAW_FL0_DOOR_FRAME
+**Context:** SUB_ram_c996 function, used in DRAW_DOOR_FL0
 
 #### Change 14: Line 234
 **Before:** `LD A,0x4                                                          ; BLK on BLU`

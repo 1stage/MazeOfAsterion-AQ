@@ -4068,21 +4068,21 @@ F0_HD_NO_WALL:
     RRCA
     JP          NC,LAB_ram_f9aa
     EX          AF,AF'
-    CALL        DRAW_WALL_FL0
+    CALL        DRAW_WALL_L0
     EX          AF,AF'
     RRCA
     JP          NC,LAB_ram_fa19
     RRCA
     JP          NC,LAB_ram_fa19
 LAB_ram_f9a4:
-    CALL        DRAW_DOOR_FLO
+    CALL        DRAW_DOOR_L0_HIDDEN
     JP          LAB_ram_fa19
 LAB_ram_f9aa:
     RRCA
     JP          NC,LAB_ram_f9b8
     RRCA
     JP          C,LAB_ram_f9a4
-    CALL        SUB_ram_c996
+    CALL        DRAW_DOOR_L0_NORMAL
     JP          LAB_ram_fa19
 LAB_ram_f9b8:
     INC         E
@@ -4090,7 +4090,7 @@ LAB_ram_f9b8:
     RRCA
     JP          NC,LAB_ram_f9c4
 LAB_ram_f9be:
-    CALL        SUB_ram_c9c5
+    CALL        DRAW_WALL_FL0
     JP          LAB_ram_fa19
 LAB_ram_f9c4:
     RRCA                                    ; Test current bit in A register
@@ -4137,7 +4137,7 @@ LAB_ram_fa0f:
     CALL        DRAW_WALL_FL22_EMPTY        ; FL22 bit clear, clear/empty FL22 area
     CALL        SUB_ram_f9e7                ; Common cleanup routine
 LAB_ram_fa19:
-    LD          DE,WALL_R0_STATE             ; Load pointer to next wall state data
+    LD          DE,WALL_R0_STATE            ; Load pointer to next wall state data
     LD          A,(DE)                      ; Load wall state byte into A
     RRCA                                    ; Test first bit (wall presence)
     JP          NC,LAB_ram_fa34             ; If first bit clear, jump ahead
@@ -4164,7 +4164,7 @@ LAB_ram_fa42:
     RRCA
     JP          NC,LAB_ram_fa57
 LAB_ram_fa48:
-    CALL        SUB_ram_cbae
+    CALL        DRAW_WALL_FR0
     JP          LAB_ram_faa3
 SUB_ram_fa4e:
     LD          A,(ITEM_FR1)

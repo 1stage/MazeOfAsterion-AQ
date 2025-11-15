@@ -372,7 +372,7 @@ UPDATE_F0_ITEM:
     LD          BC,RECT(4,4)						; 4 x 4 rectangle
     JP          FILL_CHRCOL_RECT
 
-DRAW_WALL_FL0:
+DRAW_WALL_L0:
     LD          HL,COLRAM_FL0_WALL_IDX
     LD          A,COLOR(BLU,BLK)					; BLU on BLK
     CALL        DRAW_DOOR_BOTTOM_SETUP
@@ -398,20 +398,20 @@ DRAW_WALL_FL0:
     INC         DE
     JP          DRAW_VERTICAL_LINE_4_DOWN
     RET
-DRAW_DOOR_FLO:
-    CALL        DRAW_WALL_FL0
+DRAW_DOOR_L0_HIDDEN:
+    CALL        DRAW_WALL_L0
     LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
     EX          AF,AF'
     LD          A,COLOR(BLK,BLU)					; BLK on BLU
-    JP          DRAW_FL0_DOOR_FRAME
-SUB_ram_c996:
-    CALL        DRAW_WALL_FL0
+    JP          DRAW_DOOR_L0
+DRAW_DOOR_L0_NORMAL:
+    CALL        DRAW_WALL_L0
     LD          A,COLOR(DKGRY,GRN)					; DKGRY on GRN
     EX          AF,AF'
     LD          A,COLOR(GRN,BLU)					; GRN on BLU
 
-DRAW_FL0_DOOR_FRAME:
-    LD          HL,COLRAM_FL0_DOOR_FRAME_IDX
+DRAW_DOOR_L0:
+    LD          HL,COLRAM_FL0_DOOR_IDX
     CALL        DRAW_VERTICAL_LINE_3_UP
     DEC         DE
     ADD         HL,DE
@@ -431,17 +431,15 @@ DRAW_FL0_DOOR_FRAME:
     INC         DE
     JP          CONTINUE_VERTICAL_LINE_DOWN
     RET
-SUB_ram_c9c5:
+DRAW_WALL_FL0:
     LD          HL,DAT_ram_34c8
-    LD          A,COLOR(BLK,BLU)							; BLK on BLU
-    LD          BC,RECT(4,16)								; 4 x 16 rectangle
+    LD          A,COLOR(BLK,BLU)					; BLK on BLU
+    LD          BC,RECT(4,15)						; 4 x 15 rectangle (was 16)
     JP          FILL_CHRCOL_RECT
 SUB_ram_c9d0:
     LD          HL,CHRRAM_L1_WALL_IDX
     LD          BC,$408								; 4 x 8 rectangle
     LD          A,$20								; Change to SPACE 32 / $20
-                                                    ; WAS d134 / $86 crosshatch char
-                                                    ; WAS LD A, $86
     CALL        FILL_CHRCOL_RECT
     LD          HL,COLRAM_L1_WALL_IDX
     LD          C,0x8
@@ -653,19 +651,19 @@ DRAW_WALL_L2_LEFT_EMPTY:
 DRAW_WALL_R0:
     LD          A,COLOR(DKGRY,BLU)					; DKGRY on BLU
     PUSH        AF
-    LD          BC,RECT(4,14)                       ; 4 x 14 rectangle (was 16)
+    LD          BC,RECT(4,15)                       ; 4 x 15 rectangle (was 16)
     LD          A,COLOR(BLK,BLU)					; BLK on BLU
     PUSH        AF
     LD          A,COLOR(BLU,BLK)					; BLU on BLK
     LD          HL,DAT_ram_34b4
-    CALL        SUB_ram_cc4d                        ; Do corner fills
+    CALL        DRAW_R0_CORNERS                     ; Do corner fills
     LD          HL,DAT_ram_303f                     ; Top right corner of R0
     LD          A,CHAR_RT_ANGLE						; Right angle char
     LD          DE,$27                              ; Pitch to 39 / $27
     CALL        DRAW_VERTICAL_LINE_4_DOWN           ; Draw top of RO wall
 
 ; Old bottom of wall stuff
-    LD          HL,DAT_ram_335c
+    ; LD          HL,DAT_ram_335c
     INC         A                                   ; Increment A to CHAR_LT_ANGLE ($c1)
     INC         DE                                  ; Increment pitch to 40 / $28
     INC         DE                                  ; Increment pitch to 41 / $29
@@ -683,35 +681,37 @@ DRAW_R0_DOOR_NORMAL:
     EX          AF,AF'
     LD          A,COLOR(GRN,BLU)					; GRN on BLU
 DRAW_R0_DOOR:
-    LD          HL,DAT_ram_352d
-    DEC         DE
-    DEC         DE
+    LD          HL,DAT_ram_352d                     ; RO door top left COLRAM IDX
+    DEC         DE                                  ; Decrement pitch to 40
+    DEC         DE                                  ; Decrement pitch to 39
     CALL        DRAW_VERTICAL_LINE_3_UP
-    INC         DE
-    ADD         HL,DE
-    EX          AF,AF'
-    CALL        DRAW_DR_3X3_CORNER
-    ADD         HL,DE
-    LD          BC,RECT(3,10)                       ; 3 x 10 rectangle (was 12)
+    INC         DE                                  ; Increment pitch to 40
+    ADD         HL,DE                               ; Move down a row
+    EX          AF,AF'                              ; Get correct door colors
+    CALL        DRAW_DR_3X3_CORNER                  ; Draw top door blocks
+    ADD         HL,DE                               ; Move down a row
+    LD          BC,RECT(3,11)                       ; 3 x 11 rectangle (was 12)
     CALL        DRAW_CHRCOLS
-    ADD         HL,DE
-    CALL        DRAW_UR_3X3_CORNER
-    ADD         HL,DE
-    INC         DE
-    CALL        DRAW_VERTICAL_LINE_3_UP
+
+    ; ADD         HL,DE                               ; Move down a row
+    ; CALL        DRAW_UR_3X3_CORNER                  ; Draw bottom door blocks
+    ; ADD         HL,DE                               ; Move down a row
+    ; INC         DE                                  ; Increment pitch to 41
+    ; CALL        DRAW_VERTICAL_LINE_3_UP
     LD          HL,DAT_ram_30df
     LD          A,CHAR_RT_ANGLE						; Right angle char
-    DEC         DE
-    DEC         DE
-    JP          CONTINUE_VERTICAL_LINE_DOWN
-SUB_ram_cbae:
+    ; DEC         DE                                  ; Decrement pitch to 40
+    DEC         DE                                  ; Decrement pitch to 39
+    JP          CONTINUE_VERTICAL_LINE_DOWN         ; Draw top of door angles
+
+DRAW_WALL_FR0:
     LD          HL,DAT_ram_34dc
     LD          A,0x4								; BLK on BLU
-    LD          BC,RECT(4,16)						; 4 x 16 rectangle
+    LD          BC,RECT(4,15)						; 4 x 15 rectangle (was 16)
     JP          FILL_CHRCOL_RECT
 SUB_ram_cbb9:
     LD          HL,DAT_ram_317c
-    LD          BC,$408
+    LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
     LD          A,$20								; Change to SPACE 32 / $20
     CALL        FILL_CHRCOL_RECT
     LD          HL,DAT_ram_357c
@@ -792,6 +792,26 @@ DRAW_WALL_FR1:
     LD          HL,DAT_ram_3550
     CALL        SUB_ram_cc4d
     RET
+DRAW_R0_CORNERS:
+    POP         IX                                  ; Save RET address to IX
+    LD          DE,$27                              ; Stride is 39 / $27
+    CALL        DRAW_SINGLE_CHAR_UP
+    INC         DE                                  ; Stride is 40
+    ADD         HL,DE
+    POP         AF
+    CALL        DRAW_DR_3X3_CORNER
+    ADD         HL,DE
+    DEC         HL
+    CALL        DRAW_CHRCOLS
+    ; ADD         HL,DE
+    ; INC         HL
+    ; CALL        DRAW_UR_3X3_CORNER
+    ; ADD         HL,DE
+    POP         AF
+    INC         DE                                  ; Stride is 41
+    ; CALL        DRAW_SINGLE_CHAR_UP
+    JP          (IX)
+
 SUB_ram_cc4d:
     POP         IX                                  ; Save RET address to IX
     LD          DE,$27                              ; Stride is 39 / $27

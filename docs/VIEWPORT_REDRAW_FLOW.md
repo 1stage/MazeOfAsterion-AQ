@@ -190,7 +190,7 @@ The checking logic uses successive `RRCA` instructions for state testing.
 **10. FL0 Left Immediate Walls**
 - Address: `WALL_L0_STATE` ($33f5) through `DAT_ram_33f8` ($33f8)
 - Controls closest left wall segments with complex geometry
-- Functions: `DRAW_WALL_FL0`, `DRAW_DOOR_FLO`, `SUB_ram_c996`
+- Functions: `DRAW_WALL_L0`, `DRAW_DOOR_FL0_HIDDEN`, `SUB_ram_c996`
 
 **11. FL22 Left Corner Walls**
 - Address: Multiple state bytes for corner geometry
@@ -211,7 +211,7 @@ The "half-walls" (FL1, FR1, FL2, FR2, FL22, FR22) create the 3D perspective effe
 
 **FL0/FR0 (Immediate Side Walls)**:
 - Use complex character-based drawing with multiple geometric primitives
-- `DRAW_WALL_FL0`: Uses `DRAW_DOOR_BOTTOM_SETUP`, `DRAW_DL_3X3_CORNER`, `DRAW_HORIZONTAL_LINE_3_RIGHT`
+- `DRAW_WALL_L0`: Uses `DRAW_DOOR_BOTTOM_SETUP`, `DRAW_DL_3X3_CORNER`, `DRAW_HORIZONTAL_LINE_3_RIGHT`
 - Creates perspective depth with layered color patterns (BLU on BLK base, BLK on BLU highlights, DKGRY on BLU shadows)
 
 **FL1/FR1 (Near Side Walls)**:
