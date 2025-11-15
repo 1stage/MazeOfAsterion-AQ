@@ -7,8 +7,8 @@
 ; COMPLETE CORNER FUNCTION SET:
 ; - DRAW_DL_3X3_CORNER: Bottom-left corner (start top-left, draw down-left)
 ; - DRAW_DR_3X3_CORNER: Bottom-right corner (start top-right, draw down-right)  
-; - DRAW_UL_3X3_CORNER: Upper-left corner (start top-left, draw down-right)
-; - DRAW_UR_3X3_CORNER: Upper-right corner (start top-left, draw down-left)
+; - DRAW_UR_3X3_CORNER: Upper-left corner (start top-left, draw down-right)
+; - DRAW_UL_3X3_CORNER: Upper-right corner (start top-left, draw down-left)
 ;
 ; DE REGISTER USAGE - VARIABLE STRIDE VALUES FOR PRECISION POSITIONING:
 ; - DE=$27 (40-1): Precision left-aligned positioning
@@ -161,7 +161,7 @@ DRAW_DR_3X3_CORNER:
     RET                                             ; Return with cursor positioned bottom-left
 
 ;------------------------------------------------------------------------------
-; DRAW_UR_3X3_CORNER - Draw upper-right corner fill pattern
+; DRAW_UL_3X3_CORNER - Draw upper-left corner fill pattern
 ;------------------------------------------------------------------------------
 ; INPUT:  HL = top-left starting position, A = character, DE = row stride (VARIABLE!)
 ; OUTPUT: HL = final position after drawing pattern
@@ -179,7 +179,7 @@ DRAW_DR_3X3_CORNER:
 ;
 ; REGISTERS MODIFIED: HL (moved to final drawn position)
 ;------------------------------------------------------------------------------
-DRAW_UR_3X3_CORNER:
+DRAW_UL_3X3_CORNER:
     LD          (HL),A                              ; 1: Draw top-left (0,0)
     INC         HL                                  ; Move right one position
     LD          (HL),A                              ; 2: Draw top-center (1,0)
@@ -195,7 +195,7 @@ DRAW_UR_3X3_CORNER:
     RET                                             ; Return with cursor at bottom-left
 
 ;------------------------------------------------------------------------------
-; DRAW_UL_3X3_CORNER - Draw upper-left corner fill pattern
+; DRAW_UR_3X3_CORNER - Draw upper-right corner fill pattern
 ;------------------------------------------------------------------------------
 ; INPUT:  HL = top-left starting position, A = character, DE = row stride (VARIABLE!)
 ; OUTPUT: HL = final position after drawing pattern  
@@ -213,7 +213,7 @@ DRAW_UR_3X3_CORNER:
 ;
 ; REGISTERS MODIFIED: HL (moved to final drawn position)
 ;------------------------------------------------------------------------------
-DRAW_UL_3X3_CORNER:
+DRAW_UR_3X3_CORNER:
     LD          (HL),A                              ; 1: Draw top-left (0,0)
     INC         HL                                  ; Move right one position
     LD          (HL),A                              ; 2: Draw top-center (1,0)
@@ -306,48 +306,57 @@ DRAW_CHRCOLS:
     JP          DRAW_CHRCOLS                        ; Continue with next row
 
 DRAW_F0_WALL:
-    LD          HL,COLRAM_F0_WALL_MAP_IDX           ; Point to far wall color area
-    LD          BC,RECT(16,16)							; 16 x 16 rectangle
-    LD          A,COLOR(BLU,BLU)								; BLU on BLU (solid blue wall)
-    JP          FILL_CHRCOL_RECT                    ; Fill wall area with blue color
+; OLD STUFF
+    LD          HL,COLRAM_F0_WALL_IDX               ; Point to far wall color area
+    LD          BC,RECT(16,15)						; 16 x 16 rectangle
+    LD          A,COLOR(BLU,BLU)					; BLU on BLU (solid blue wall)
+    CALL        FILL_CHRCOL_RECT                    ; Fill wall area with blue color (WAS JP)
+; NEW STUFF
+    LD          HL,COLRAM_F0_WALL_IDX + 2 + (40 * 15)
+    LD          B,12
+    JP          DRAW_ROW
+
 DRAW_F0_WALL_AND_CLOSED_DOOR:
     CALL        DRAW_F0_WALL                        ; Draw the wall background first
-    LD          A,COLOR(GRN,GRN)								; GRN on GRN (closed door color)
+    LD          A,COLOR(GRN,GRN)					; GRN on GRN (closed door color)
+
 DRAW_DOOR_F0:
     LD          HL,COLRAM_F0_DOOR_IDX               ; Point to door area within wall
-    LD          BC,RECT(8,12)								; 8 x 12 rectangle (door size)
+    LD          BC,RECT(8,12)						; 8 x 12 rectangle (door size)
     JP          FILL_CHRCOL_RECT                    ; Fill door area with specified color
+
 DRAW_WALL_F0_AND_OPEN_DOOR:
     CALL        DRAW_F0_WALL                        ; Draw the wall background first
-    LD          A,COLOR(DKGRY,BLK)								; DKGRY on BLK (open door/passage color)
-								                    ; WAS BLK on DKBLU
-								                    ; WAS LD A,0xb
+    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK (open door/passage color)
     JP          DRAW_DOOR_F0                        ; Fill door area showing passage through
+
 DRAW_WALL_F1:
     LD          HL,CHRRAM_F1_WALL_IDX               ; Point to F1 wall character area
-    LD          BC,RECT(8,8)								; 8 x 8 rectangle (mid-distance wall size)
+    LD          BC,RECT(8,8)						; 8 x 8 rectangle (mid-distance wall size)
     LD          A,$20								; SPACE character (clear wall area)
-                                                    ; WAS d134 / $86 crosshatch char
-                                                    ; WAS LD A, $86
     CALL        FILL_CHRCOL_RECT                    ; Clear wall character area with spaces
     LD          C,0x8                               ; Set height for color fill operation
     LD          HL,COLRAM_F0_DOOR_IDX               ; Point to corresponding color area
-    LD          A,COLOR(BLU,DKBLU)								; BLU on DKBLU (wall color scheme)
+    LD          A,COLOR(BLU,DKBLU)					; BLU on DKBLU (wall color scheme)
     JP          DRAW_CHRCOLS                        ; Fill color area for wall
+
 DRAW_WALL_F1_AND_CLOSED_DOOR:
     CALL        DRAW_WALL_F1                        ; Draw the F1 wall background first
     LD          A,COLOR(GRN,DKGRN)					; GRN on DKGRN (closed door at F1 distance)
-DRAW_DOOR_F1_OPEN:
+
+DRAW_DOOR_F1:
     LD          HL,COLRAM_F1_DOOR_IDX               ; Point to door area within F1 wall
     LD          BC,RECT(4,6)						; 4 x 6 rectangle (smaller door at mid-distance)
     JP          FILL_CHRCOL_RECT                    ; Fill door area with specified color
+
 DRAW_WALL_F1_AND_OPEN_DOOR:
     CALL        DRAW_WALL_F1
-    LD          A,COLOR(BLK,BLK)								; BLK on BLK
-    JP          DRAW_DOOR_F1_OPEN
+    LD          A,COLOR(BLK,BLK)					; BLK on BLK
+    JP          DRAW_DOOR_F1
+
 DRAW_WALL_F2:
     LD          BC,RECT(4,4)						; 4 x 4 rectangle
-    LD          HL,COLRAM_F1_DOOR_IDX
+    LD          HL,COLRAM_F2_WALL_IDX
     LD          A,COLOR(BLK,DKGRY)				    ; BLK on DKGRY
     CALL        FILL_CHRCOL_RECT                    ; Was JP FILL_CHRCOL_RECT
     LD          HL,$323a						    ; Bottom-left CHARRAM IDX of F2
@@ -355,17 +364,17 @@ DRAW_WALL_F2:
     LD          A,$90								; Thin base line char
     JP          FILL_CHRCOL_RECT
 
-DRAW_DOOR_F2_OPEN:
-    LD          HL,COLRAM_F1_DOOR_IDX
-    LD          A,COLOR(BLK,BLK)								; BLK on BLK
+DRAW_WALL_F2_EMPTY:
+    LD          HL,COLRAM_F2_WALL_IDX
+    LD          A,COLOR(BLK,BLK)					; BLK on BLK
+
 UPDATE_F0_ITEM:
-    LD          BC,RECT(4,4)								; 4 x 4 rectangle
+    LD          BC,RECT(4,4)						; 4 x 4 rectangle
     JP          FILL_CHRCOL_RECT
+
 DRAW_WALL_FL0:
-    LD          HL,COLRAM_FL00_WALL_IDX
+    LD          HL,COLRAM_FL0_WALL_IDX
     LD          A,COLOR(BLU,BLK)					; BLU on BLK
-                                                    ; WAS BLU on CYN
-                                                    ; WAS LD A,$46
     CALL        DRAW_DOOR_BOTTOM_SETUP
     DEC         DE
     ADD         HL,DE
@@ -375,11 +384,9 @@ DRAW_WALL_FL0:
     LD          BC,$410								; Jump into COLRAM and down one row
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        DRAW_UR_3X3_CORNER
+    CALL        DRAW_UL_3X3_CORNER
     ADD         HL,DE
     LD          A,COLOR(DKGRY,BLU)					; DKGRY on BLU
-                                                    ; WAS DKCYN on BLU
-                                                    ; WAS LD A,$94
     DEC         DE
     CALL        DRAW_SINGLE_CHAR_UP
     LD          A,CHAR_RT_ANGLE
@@ -394,20 +401,15 @@ DRAW_WALL_FL0:
 DRAW_DOOR_FLO:
     CALL        DRAW_WALL_FL0
     LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
-                                                    ; WAS DKCYN on DKBLU
-                                                    ; WAS LD A,$9b
     EX          AF,AF'
     LD          A,COLOR(BLK,BLU)					; BLK on BLU
-                                                    ; WAS DKBLU on BLU
-                                                    ; LD A,$b4
     JP          DRAW_FL0_DOOR_FRAME
 SUB_ram_c996:
     CALL        DRAW_WALL_FL0
     LD          A,COLOR(DKGRY,GRN)					; DKGRY on GRN
-                                                    ; WAS DKCYN on GRN
-                                                    ; WAS LD A,$92
     EX          AF,AF'
     LD          A,COLOR(GRN,BLU)					; GRN on BLU
+
 DRAW_FL0_DOOR_FRAME:
     LD          HL,COLRAM_FL0_DOOR_FRAME_IDX
     CALL        DRAW_VERTICAL_LINE_3_UP
@@ -419,7 +421,7 @@ DRAW_FL0_DOOR_FRAME:
     LD          BC,$30c
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        DRAW_UR_3X3_CORNER
+    CALL        DRAW_UL_3X3_CORNER
     ADD         HL,DE
     DEC         DE
     CALL        DRAW_VERTICAL_LINE_3_UP
@@ -506,32 +508,28 @@ DRAW_L1_WALL:
     DEC         DE
     ADD         HL,DE
     LD          A,$20								; Change to SPACE 32 / $20
-                                                    ; WAS d134 / $86 crosshatch char
-                                                    ; WAS LD A, $86
     CALL        DRAW_DL_3X3_CORNER
     ADD         HL,DE
-    LD          BC,$408								; 4 x 8 rectangle
+    LD          BC,RECT(4,8)						; 4 x 8 rectangle
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        DRAW_UR_3X3_CORNER
+    CALL        DRAW_UL_3X3_CORNER
     ADD         HL,DE
-    LD          A,CHAR_RT_ANGLE								; RIGHT angle CHR
+    LD          A,CHAR_RT_ANGLE						; RIGHT angle CHR
     DEC         DE
     CALL        DRAW_SINGLE_CHAR_UP
     LD          HL,DAT_ram_3547
-    LD          A,$b0								; DKBLU on BLK
-								; WAS DKBLU on CYN
-								; WAS LD A,$b6
+    LD          A,COLOR(DKBLU,BLK)					; DKBLU on BLK
     CALL        DRAW_DOOR_BOTTOM_SETUP
     DEC         DE
     ADD         HL,DE
-    LD          A,$4b								; BLU on DKBLU
+    LD          A,COLOR(BLU,DKBLU)					; BLU on DKBLU
     CALL        DRAW_DL_3X3_CORNER
     ADD         HL,DE
     LD          BC,$408								; Jump to COLRAM + 32 cells
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        DRAW_UR_3X3_CORNER
+    CALL        DRAW_UL_3X3_CORNER
     ADD         HL,DE
     LD          A,$fb								; DKGRY on DKBLU
 								; WAS DKCYN on DKBLU
@@ -652,42 +650,39 @@ DRAW_WALL_L2_LEFT_EMPTY:
     LD          BC,RECT(2,4)    					; 2 x 4 rectangle
     LD          A,COLOR(BLK,BLK)					; BLK on BLK
     JP          FILL_CHRCOL_RECT
-SUB_ram_cb4f:
+DRAW_WALL_R0:
     LD          A,COLOR(DKGRY,BLU)					; DKGRY on BLU
     PUSH        AF
-    LD          BC,RECT(4,16)
+    LD          BC,RECT(4,14)                       ; 4 x 14 rectangle (was 16)
     LD          A,COLOR(BLK,BLU)					; BLK on BLU
     PUSH        AF
     LD          A,COLOR(BLU,BLK)					; BLU on BLK
     LD          HL,DAT_ram_34b4
-    CALL        SUB_ram_cc4d
-    LD          HL,DAT_ram_303f
+    CALL        SUB_ram_cc4d                        ; Do corner fills
+    LD          HL,DAT_ram_303f                     ; Top right corner of R0
     LD          A,CHAR_RT_ANGLE						; Right angle char
-    LD          DE,$27
-    CALL        DRAW_VERTICAL_LINE_4_DOWN
+    LD          DE,$27                              ; Pitch to 39 / $27
+    CALL        DRAW_VERTICAL_LINE_4_DOWN           ; Draw top of RO wall
+
+; Old bottom of wall stuff
     LD          HL,DAT_ram_335c
-    INC         A
-    INC         DE
-    INC         DE
-    JP          DRAW_VERTICAL_LINE_4_DOWN
-DRAW_FR0_DOOR:
-    CALL        SUB_ram_cb4f
-    LD          A,$f0								; DKGRY on BLK
-								; WAS DKCYN on DKBLU
-								; WAS LD A,$9b
+    INC         A                                   ; Increment A to CHAR_LT_ANGLE ($c1)
+    INC         DE                                  ; Increment pitch to 40 / $28
+    INC         DE                                  ; Increment pitch to 41 / $29
+    ; JP          DRAW_VERTICAL_LINE_4_DOWN           ; Draw bottom of R0 wall
+    RET
+DRAW_R0_DOOR_HIDDEN:
+    CALL        DRAW_WALL_R0
+    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
     EX          AF,AF'
-    LD          A,0x4								; BLK on BLU
-								; WAS DKBLU on BLU
-								; WAS LDA A,$b4
-    JP          LAB_ram_cb86
-SUB_ram_cb7e:
-    CALL        SUB_ram_cb4f
-    LD          A,$f2								; DKGRY on GRN
-								; WAS DKCYN on GRN
-								; WAS LD A,$92
+    LD          A,COLOR(BLK,BLU)					; BLK on BLU
+    JP          DRAW_R0_DOOR
+DRAW_R0_DOOR_NORMAL:
+    CALL        DRAW_WALL_R0
+    LD          A,COLOR(DKGRY,GRN)					; DKGRY on GRN
     EX          AF,AF'
-    LD          A,$24								; GRN on BLU
-LAB_ram_cb86:
+    LD          A,COLOR(GRN,BLU)					; GRN on BLU
+DRAW_R0_DOOR:
     LD          HL,DAT_ram_352d
     DEC         DE
     DEC         DE
@@ -697,29 +692,27 @@ LAB_ram_cb86:
     EX          AF,AF'
     CALL        DRAW_DR_3X3_CORNER
     ADD         HL,DE
-    LD          BC,$30c
+    LD          BC,RECT(3,10)                       ; 3 x 10 rectangle (was 12)
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
-    CALL        DRAW_UL_3X3_CORNER
+    CALL        DRAW_UR_3X3_CORNER
     ADD         HL,DE
     INC         DE
     CALL        DRAW_VERTICAL_LINE_3_UP
     LD          HL,DAT_ram_30df
-    LD          A,CHAR_RT_ANGLE								; Right angle char
+    LD          A,CHAR_RT_ANGLE						; Right angle char
     DEC         DE
     DEC         DE
     JP          CONTINUE_VERTICAL_LINE_DOWN
 SUB_ram_cbae:
     LD          HL,DAT_ram_34dc
     LD          A,0x4								; BLK on BLU
-    LD          BC,RECT(4,16)								; 4 x 16 rectangle
+    LD          BC,RECT(4,16)						; 4 x 16 rectangle
     JP          FILL_CHRCOL_RECT
 SUB_ram_cbb9:
     LD          HL,DAT_ram_317c
     LD          BC,$408
     LD          A,$20								; Change to SPACE 32 / $20
-								; WAS d134 / $86 crosshatch char
-								; WAS LD A, $86
     CALL        FILL_CHRCOL_RECT
     LD          HL,DAT_ram_357c
     LD          C,0x8
@@ -784,32 +777,26 @@ DRAW_WALL_FR22_EMPTY:
 DRAW_WALL_FR1:
     LD          A,CHAR_LT_ANGLE
     PUSH        AF
-    LD          BC,$408								; 4 x 8 rectangle
+    LD          BC,RECT(4,8)						; 4 x 8 rectangle
     LD          A,$20								; Change to SPACE 32 / $20
-								; WAS d134 / $86 crosshatch char
-								; WAS LD A, $86
     PUSH        AF
-    LD          A,CHAR_RT_ANGLE								; Right angle char
+    LD          A,CHAR_RT_ANGLE						; Right angle char
     LD          HL,DAT_ram_3150
     CALL        SUB_ram_cc4d
-    LD          A,$fb								; DKGRY on DKBLU
-								; WAS DKCYN on DKBLU
-								; WAS LD $9b
+    LD          A,COLOR(DKGRY,DKBLU)		    	; DKGRY on DKBLU
     PUSH        AF
     LD          C,0x8
-    LD          A,$4b								; BLU on DKBLU
+    LD          A,COLOR(BLU,DKBLU)			    	; BLU on DKBLU
     PUSH        AF
-    LD          A,$b0								; DKBLU on BLK
-								; WAS DKBLU on CYN
-								; WAS LD A,$b6
+    LD          A,COLOR(DKBLU,BLK)			    	; DKBLU on BLK
     LD          HL,DAT_ram_3550
     CALL        SUB_ram_cc4d
     RET
 SUB_ram_cc4d:
-    POP         IX
-    LD          DE,$27
+    POP         IX                                  ; Save RET address to IX
+    LD          DE,$27                              ; Stride is 39 / $27
     CALL        DRAW_SINGLE_CHAR_UP
-    INC         DE
+    INC         DE                                  ; Stride is 40
     ADD         HL,DE
     POP         AF
     CALL        DRAW_DR_3X3_CORNER
@@ -818,50 +805,46 @@ SUB_ram_cc4d:
     CALL        DRAW_CHRCOLS
     ADD         HL,DE
     INC         HL
-    CALL        DRAW_UL_3X3_CORNER
+    CALL        DRAW_UR_3X3_CORNER
     ADD         HL,DE
     POP         AF
-    INC         DE
+    INC         DE                                  ; Stride is 41
     CALL        DRAW_SINGLE_CHAR_UP
     JP          (IX)
 SUB_ram_cc6d:
     CALL        DRAW_WALL_FR1
-    LD          A,$f0								; DKGRY on BLK
+    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
     PUSH        AF
-    LD          A,$b0								; DKBLU on BLK
+    LD          A,COLOR(DKBLU,BLK)  				; DKBLU on BLK
     PUSH        AF
-    LD          A,0xb								; BLK on DKBLU
+    LD          A,COLOR(BLK,DKBLU)					; BLK on DKBLU
     JP          LAB_ram_cc85
 SUB_ram_cc7a:
     CALL        DRAW_WALL_FR1
     LD          A,$fd								; DKGRY on DKGRN
-								; WAS DKCYN on DKGRN
-								; WAS LD A,$9d
     PUSH        AF
     LD          A,$2d								; GRN on DKGRN
     PUSH        AF
     LD          A,$db								; DKGRN on DKBLU
 LAB_ram_cc85:
     LD          HL,DAT_ram_357a
-    LD          BC,$207								; 2 x 7 rectangle
+    LD          BC,RECT(2,7)						; 2 x 7 rectangle
     CALL        SUB_ram_cd07
     LD          HL,DAT_ram_317a
-    LD          A,CHAR_RT_ANGLE								; Right angle char
+    LD          A,CHAR_RT_ANGLE						; Right angle char
     LD          (HL),A
-    LD          DE,$27
+    LD          DE,$27                              ; Stride is 39 / $27
     ADD         HL,DE
     LD          (HL),A
     RET
 SUB_ram_cc9a:
     LD          HL,DAT_ram_3578
-    LD          BC,RECT(4,8)								; 4 x 8 rectangle
-    LD          A,COLOR(BLU,DKBLU)								; BLU on DKBLU
+    LD          BC,RECT(4,8)						; 4 x 8 rectangle
+    LD          A,COLOR(BLU,DKBLU)					; BLU on DKBLU
     CALL        FILL_CHRCOL_RECT
     LD          HL,DAT_ram_3178
     LD          C,0x8
     LD          A,$20								; Change to SPACE 32 / $20
-								; WAS d134 / $86 crosshatch char
-								; WAS LD A, $86
     JP          DRAW_CHRCOLS
 SUB_ram_ccaf:
     CALL        SUB_ram_cc9a
@@ -1297,23 +1280,34 @@ DO_HC_SHIFT_ACTIONS:
     CP          H
     JP          Z,DO_TELEPORT
     JP          NO_ACTION_TAKEN
+
 DRAW_BKGD:
-    LD          A,$20								;  Set VIEWPORT fill chars to SPACE
-    LD          HL,IDX_VIEWPORT_CHRRAM				;  Set CHRRAM starting point at the beginning of the VIEWPORT
-    LD          BC,RECT(24,24)						;  24 x 24 cells
+    LD          A,$20								; Set VIEWPORT fill chars to SPACE
+    LD          HL,IDX_VIEWPORT_CHRRAM				; Set CHRRAM starting point at the beginning of the VIEWPORT
+    LD          BC,RECT(24,24)						; 24 x 24 rectangle
     CALL        FILL_CHRCOL_RECT
-    LD          C,0x8								;  8 rows of ceiling
-    LD          HL,COLRAM_VIEWPORT_IDX				;  Set COLRAM starting point at the beginning of the VIEWPORT
-    LD          A,$f0								;  DKGRY on BLK
+    LD          C,0x8								; 8 rows of ceiling
+    LD          HL,COLRAM_VIEWPORT_IDX				; Set COLRAM starting point at the beginning of the VIEWPORT
+    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
     CALL        DRAW_CHRCOLS
-    LD          C,0x6								;  6 more rows of ceiling
+    LD          C,0x6								; 6 more rows of ceiling
     ADD         HL,DE
-    LD          A,0x0								;  BLK on BLK
+    LD          A,COLOR(BLK,BLK)					; BLK on BLK
     CALL        DRAW_CHRCOLS
-    LD          C,0xa								;  10 rows of floor
+    LD          C,5 								; 5 rows of floor (was 10)
     ADD         HL,DE
-    LD          A,$df								;  DKGRN on DKGRY
+    LD          A,COLOR(DKGRN,DKGRY)				; DKGRN on DKGRY
     CALL        DRAW_CHRCOLS
+; NEW STUFF
+    ADD         HL,DE                               
+    LD          A,L
+    ADD         A,6
+    LD          L,A
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY
+    LD          BC,RECT(12,5)                       ; 12 x 5 rectangle
+    CALL        FILL_CHRCOL_RECT
+
+; Check if in-battle
     LD          A,(CURR_MONSTER_PHYS)
     CP          0x0
     JP          Z,NOT_IN_BATTLE

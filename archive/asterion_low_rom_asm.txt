@@ -859,7 +859,7 @@ DRAW_WALL_L2_C_EMPTY:
     LD          BC,$204                                ;2 x 4 rectangle
     LD          A,0x0                                   ;BLK on BLK
     JP          FILL_CHRCOL_RECT
-SUB_ram_cb4f:
+DRAW_WALL_R0:
     LD          A,$f4                                  ;DKGRY on BLU
                                                         ;WAS DKCYN on BLU
                                                         ;WAS LD A,$94
@@ -882,7 +882,7 @@ SUB_ram_cb4f:
     INC         DE
     JP          SUB_ram_c87e
 DRAW_FRO_DOOR:
-    CALL        SUB_ram_cb4f
+    CALL        DRAW_WALL_R0
     LD          A,$f0                                  ;DKGRY on BLK
                                                         ;WAS DKCYN on DKBLU
                                                         ;WAS LD A,$9b
@@ -892,7 +892,7 @@ DRAW_FRO_DOOR:
                                                         ;WAS LDA A,$b4
     JP          LAB_ram_cb86
 SUB_ram_cb7e:
-    CALL        SUB_ram_cb4f
+    CALL        DRAW_WALL_R0
     LD          A,$f2                                  ;DKGRY on GRN
                                                         ;WAS DKCYN on GRN
                                                         ;WAS LD A,$92

@@ -69,7 +69,7 @@ JP          C,door_open     ; If bit 2 set, door is open
 ### 1.3 Generic Wall/Door Functions
 **Location**: `src/asterion_func_low.asm` SUB_ram_* functions
 
-**Issue**: Functions like `SUB_ram_cc6d`, `SUB_ram_cb4f` have generic labels but specific purposes.
+**Issue**: Functions like `SUB_ram_cc6d`, `DRAW_WALL_R0` have generic labels but specific purposes.
 
 **Documentation Priority**:
 - Add header comments to all SUB_ram_* functions identified in previous analysis

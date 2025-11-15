@@ -3779,7 +3779,7 @@ LAB_ram_fa19:
     RRCA
     JP          NC,LAB_ram_fa34
     EX          AF,AF'
-    CALL        SUB_ram_cb4f
+    CALL        DRAW_WALL_R0
     EX          AF,AF'
     RRCA
     JP          NC,LAB_ram_faa3

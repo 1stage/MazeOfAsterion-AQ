@@ -359,7 +359,7 @@ FIND_NEXT_ITEM_MONSTER_LOOP:
 UPDATE_COLRAM_FROM_OFFSET:
     PUSH        AF
     AND         0xf
-    LD          HL,COLRAM_F0_WALL_MAP_IDX
+    LD          HL,COLRAM_F0_WALL_IDX
     LD          C,A
     LD          B,0x0
     ADD         HL,BC
@@ -3896,7 +3896,7 @@ F2_WALL:
 CHECK_WALL_F2:
     RRCA
     JP          C,F2_WALL
-    CALL        DRAW_DOOR_F2_OPEN
+    CALL        DRAW_WALL_F2_EMPTY
 LAB_ram_f86d:
     LD          DE,WALL_L2_STATE
     LD          A,(DE)
@@ -4142,21 +4142,21 @@ LAB_ram_fa19:
     RRCA                                    ; Test first bit (wall presence)
     JP          NC,LAB_ram_fa34             ; If first bit clear, jump ahead
     EX          AF,AF'                      ; Save A register state
-    CALL        SUB_ram_cb4f                ; Draw wall routine
+    CALL        DRAW_WALL_R0                ; Draw wall routine
     EX          AF,AF'                      ; Restore A register state
     RRCA                                    ; Test next bit (door presence?)
     JP          NC,LAB_ram_faa3             ; If door bit clear, jump to end
     RRCA                                    ; Test third bit (door type?)
     JP          NC,LAB_ram_faa3             ; If door type bit clear, jump to end
 LAB_ram_fa2e:
-    CALL        DRAW_FR0_DOOR
+    CALL        DRAW_R0_DOOR_HIDDEN
     JP          LAB_ram_faa3
 LAB_ram_fa34:
     RRCA
     JP          NC,LAB_ram_fa42
     RRCA
     JP          C,LAB_ram_fa2e
-    CALL        SUB_ram_cb7e
+    CALL        DRAW_R0_DOOR_NORMAL
     JP          LAB_ram_faa3
 LAB_ram_fa42:
     INC         E
