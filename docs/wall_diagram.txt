@@ -1,3 +1,25 @@
+Possible Wall Combinations:
+  - Low Bits (West Wall)
+    - $x0 : No wall
+    - $x1 : Wall, no door
+    - $x2 : Wall, visible door, closed
+    - $x4 : Wall, hidden door, closed
+    - $x6 : Wall, visible door, opened (only possible after player interaction)
+    - $x7 : Wall, hidden door, opened (only possible after player interaction)
+  - High Bits (North Wall)
+    - $0x : No wall
+    - $2x : Wall, no door
+    - $4x : Wall, visible door, closed
+    - $6x : Wall, hidden door, closed
+    - $Cx : Wall, visible door, opened (only possible after player interaction)
+    - $Ex : Wall, hidden door, opened (only possible after player interaction)
+   
+No other options are possible due to the way bit masks are applied.
+
+-----------------------
+
+Walls, as Used in Rendering the Viewport:
+
           ------   ------   ------          
   FL22+  | FL2/ | |  F2  | | FR2/ |   FR22+  
  ------ - ------ - ------ - ------ - ------

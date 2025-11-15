@@ -20,13 +20,14 @@ Following the existing pattern of header comments that document:
 
 **Documentation Needed**:
 ```asm
-; === 3-BIT WALL STATE DECODING PATTERN ===
-; Based on research: 4-bit nibble per wall (Upper=North, Lower=West)
-; Each 3-bit wall encoding: Bit 0=wall present, Bit 1=door present, Bit 2=door open/closed
+; === WALL STATE ENCODING PATTERN ===
+; Based on wall_diagram.txt: Low bits=West wall, High bits=North wall  
+; West: $x0=no wall, $x1=solid wall, $x2=visible closed door, $x4=hidden closed door
+; North: $0x=no wall, $2x=solid wall, $4x=visible closed door, $6x=hidden closed door
 ; Standard RRCA pattern used throughout REDRAW_VIEWPORT:
 LD          A,(DE)          ; Load wall state nibble from map position
-RRCA                        ; Rotate bit 0 into Carry: test wall present
-JP          NC,no_wall      ; If bit 0 clear, no wall at this position
+RRCA                        ; Rotate bits for wall state testing
+JP          NC,wall_check   ; Branch based on rotated bit state
 ; Wall exists, check if it has a door
 RRCA                        ; Rotate bit 1 into Carry: test door present  
 JP          NC,solid_wall   ; If bit 1 clear, solid wall (no door)
@@ -263,7 +264,7 @@ JP          DRAW_CHRCOLS                        ; Continue with next row
 
 Your PowerPoint research has provided the missing pieces for accurate documentation:
 
-- **Wall State Encoding**: Confirmed 3-bit pattern (wall present, door present, door state)
+- **Wall State Encoding**: Confirmed patterns per wall_diagram.txt (West=low bits, North=high bits)
 - **Map Layout**: 16x16 grid at $3800 with 4-bit nibbles (North/West walls per position)  
 - **Graphics Control Codes**: AQUASCII control characters explain cursor movement in graphics
 - **Item/Monster Levels**: Color encoding in bits 0-1 (RED/YELLOW/MAGENTA/WHITE)

@@ -104,15 +104,30 @@ The rendering follows a **painter's algorithm** - draw from back to front with s
 - `WALL_L0_STATE+` → Controls **FL0**, **L0** walls
 - `WALL_R0_STATE+` → Controls **FR0**, **R0** walls
 
-Each wall state byte uses a 3-bit pattern checked via `RRCA` (rotate right carry):
-- **Bit 0** (LSB): Hidden door present flag  
-- **Bit 1**: Wall/obstruction present flag
-- **Bit 2**: Door open/closed state flag
+Each wall state byte uses encoding defined in wall_diagram.txt:
 
-The checking logic uses successive `RRCA` instructions:
-1. First `RRCA`: Check bit 0 (hidden door)
-2. Second `RRCA`: Check bit 1 (wall present)  
-3. Third `RRCA`: Check bit 2 (door state)
+**West Wall (Low Bits)**:
+- `$x0`: No wall
+- `$x1`: Wall, no door (solid)
+- `$x2`: Wall, visible door, closed 
+- `$x4`: Wall, hidden door, closed
+- `$x6`: Wall, visible door, opened *(player interaction only)*
+- `$x7`: Wall, hidden door, opened *(player interaction only)*
+
+**North Wall (High Bits)**:
+- `$0x`: No wall  
+- `$2x`: Wall, no door (solid)
+- `$4x`: Wall, visible door, closed
+- `$6x`: Wall, hidden door, closed
+- `$Cx`: Wall, visible door, opened *(player interaction only)*
+- `$Ex`: Wall, hidden door, opened *(player interaction only)*
+
+**Note**: Map generation only creates closed door states ($x2, $x4, $4x, $6x). 
+Opened door states are created during gameplay when the player interacts with doors.
+
+Example: `$42` = North wall visible closed door + West wall visible closed door
+
+The checking logic uses successive `RRCA` instructions for state testing.
 
 #### Exact Rendering Order:
 

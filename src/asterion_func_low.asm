@@ -874,10 +874,10 @@ LAB_ram_ccba:
     LD          HL,DAT_ram_35ca
     LD          BC,RECT(2,6)						; 2 x 6 rectangle
     JP          DRAW_CHRCOLS
-SUB_ram_ccc3:
+DRAW_WALL_FR2:
     LD          HL,DAT_ram_35ca                     ; ???
     LD          BC,RECT(2,4)						; 2 x 4 rectangle
-    LD          A,COLOR(BLK,BLK)					; BLK on BLK
+    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
     CALL        FILL_CHRCOL_RECT
     LD          C,0x4
     LD          HL,COLRAM_FR2_RIGHT                 ; FR2 Right
@@ -893,7 +893,7 @@ DRAW_WALL_FR2_EMPTY:
     LD          BC,RECT(4,4)						; 4 x 4 rectangle
     LD          A,COLOR(BLK,BLK)					; BLK on BLK
     JP          FILL_CHRCOL_RECT
-DRAW_WALL_FR2:
+DRAW_WALL_R2:
     LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
     PUSH        AF
     LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
@@ -915,6 +915,7 @@ DRAW_WALL_FR2:
     ADD         HL,DE
     LD          (HL),A
     RET
+
 SUB_ram_cd07:
     POP         IX
     LD          (HL),A
@@ -1609,6 +1610,7 @@ DRAW_WALL_FL2:
     LD          HL,$35be
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY
     JP          DRAW_CHRCOLS                        ; *****
+
 FIX_ICON_COLORS:
     LD          HL,COLRAM_LEVEL_IDX_L
     LD          A,(INPUT_HOLDER)

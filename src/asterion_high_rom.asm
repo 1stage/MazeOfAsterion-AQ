@@ -2825,48 +2825,105 @@ GFX_SWAP_FG_BG:
     INC         HL					    			; Move to next character position
     JP          GFX_DRAW_MAIN_LOOP                  ; Continue with next character
 
+;==============================================================================
+; BUILD_MAP
+;==============================================================================
+; Generates a complete dungeon level including walls, items, monsters, and
+; special objects. Creates both wall layout and item table with duplicate
+; filtering through temporary shadow buffer.
+;
+; Map Generation Process:
+; 1. Generate random wall layout (256 positions) with 3-bit encoding
+; 2. Mark player starting area in wall map ($42 = N+W visible closed doors)
+; 3. Generate and place ladder position (first item in table, also $42)
+; 4. Generate random items/monsters up to 128 limit
+; 5. Filter duplicates through TEMP_MAP shadow buffer
+; 6. Copy filtered results to final item table
+;
+; Note: Only closed door states are generated. Open doors created by player interaction.
+;
+; Wall Encoding: Low bits=West wall, High bits=North wall
+; Map Generation: $x0/$0x=no wall, $x1/$2x=solid wall, $x2/$4x=visible closed door, $x4/$6x=hidden closed door
+; Runtime Only: $x6/$Cx=visible open door, $x7/$Ex=hidden open door (created by player interaction)
+; Item Types: Level-dependent distribution of treasures, weapons, monsters
+; 
+; Input:
+;   PLAYER_MAP_POS - Starting player position (0-255)
+;   DUNGEON_LEVEL - Current level for item distribution scaling
+;   INPUT_HOLDER - Used in ladder positioning calculation
+;
+; Output: 
+;   MAPSPACE_WALLS - 256-byte wall layout with 3-bit encoding
+;   ITEM_TABLE (MAP_LADDER_OFFSET) - Variable-length item list, $FF terminated
+;   TEMP_MAP - Shadow buffer for duplicate filtering (cleared after use)
+;
+; Registers:
+; --- Start ---
+;   HL = MAPSPACE_WALLS address ($3800)
+;   B  = 0 (256 wall generation loop counter)
+; --- In Process ---
+;   A  = Random bytes, player position, item codes, level calculations
+;   B  = Loop counters (walls: 256→0, items: 128→0), item count tracker  
+;   C  = Item positions, type calculations, level thresholds
+;   D  = Item type base offsets, level scaling factors
+;   E  = Random masking, position validation, temp values
+;   HL = Memory pointers (MAPSPACE_WALLS→ITEM_TABLE→TEMP_MAP)
+;   AF'= Random number preservation during duplicate checking
+; ---  End  ---
+;   HL = MAP_LADDER_OFFSET + final item count + 1 ($FF terminator)
+;   B  = 0 (exhausted from copy loop)
+;   
+; Memory Modified: MAPSPACE_WALLS, ITEM_TABLE, TEMP_MAP, ITEM_HOLDER
+; Calls: MAKE_RANDOM_BYTE, UPDATE_SCR_SAVER_TIMER, SUB_ram_f4d4
+;==============================================================================
 BUILD_MAP:
-    LD          HL,MAPSPACE_WALLS
-    LD          B,0x0
+    LD          HL,MAPSPACE_WALLS               ; Point to start of wall map ($3800)
+    LD          B,0x0                           ; B=0 for 256-byte loop (0→255)
 GENERATE_MAPWALLS_LOOP:
-    CALL        MAKE_RANDOM_BYTE
-    LD          E,A
-    CALL        MAKE_RANDOM_BYTE
-    AND         E
-    AND         $63
-    LD          (HL),A
-    INC         L
-    DJNZ        GENERATE_MAPWALLS_LOOP
-    LD          A,(PLAYER_MAP_POS)
-    LD          L,A
-    LD          (HL),$42
+    CALL        MAKE_RANDOM_BYTE                ; Get first random byte
+    LD          E,A                             ; Store in E for AND masking
+    CALL        MAKE_RANDOM_BYTE                ; Get second random byte  
+    AND         E                               ; AND with first random byte
+    AND         $63                             ; Mask to valid starting wall bits (0110 0011)
+    LD          (HL),A                          ; Store starting wall data at current position
+    INC         L                               ; Move to next wall position (wraps at 256)
+    DJNZ        GENERATE_MAPWALLS_LOOP          ; Loop for all 256 wall positions
+
+POSITION_PLAYER_IN_MAP:
+    LD          A,(PLAYER_MAP_POS)              ; Get player's map position from the last floor
+    LD          L,A                             ; Use as index into wall map
+    LD          (HL),$42                        ; Set player starting spot with N and W walls and closed doors
 GENERATE_LADDER_POSITION:
-    CALL        UPDATE_SCR_SAVER_TIMER
-    INC         A
-    JP          Z,GENERATE_LADDER_POSITION
-    DEC         A
-    LD          (ITEM_HOLDER),A
-    LD          L,A
-    LD          (HL),$63
-    LD          HL,ITEM_TABLE
-    LD          (HL),A
-    INC         L
-    LD          (HL),$42								;  Put ladder object into map
-								;  (always 1st item after offset)
-    INC         L
-    LD          A,(INPUT_HOLDER)
-    LD          B,A
-    LD          A,0x2
-    JP          LAB_ram_f3db
+    CALL        UPDATE_SCR_SAVER_TIMER          ; Get random value from timer
+    INC         A                               ; Test for $FF (invalid position)
+    JP          Z,GENERATE_LADDER_POSITION      ; Keep trying if $FF
+    DEC         A                               ; Restore original value
+    LD          (ITEM_HOLDER),A                 ; Save ladder position
+    LD          L,A                             ; Use as wall map index
+    LD          (HL),$63                        ; Mark ladder position in wall map     
+
+START_ITEM_TABLE:                   
+    LD          HL,ITEM_TABLE                   ; Point to start of item table
+    LD          (HL),A                          ; Store ladder position as first item
+    INC         L                               ; Move to item type field
+    LD          (HL),$42                        ; Store ladder item type ($42)
+								                ; (always 1st item after offset)
+
+    INC         L                               ; Move to first item slot (after ladder)
+    LD          A,(INPUT_HOLDER)                ; Get input value for calculation
+    LD          B,A                             ; Use as loop counter
+    LD          A,0x2                           ; Start with base value 2
+    JP          LAB_ram_f3db                    ; Jump into BCD multiplication loop
 LAB_ram_f3d9:
-    ADD         A,A
-    DAA
+    ADD         A,A                             ; Double the value (A = A * 2)
+    DAA                                         ; Decimal adjust for BCD arithmetic
 LAB_ram_f3db:
-    DJNZ        LAB_ram_f3d9
-    LD          C,A
-    LD          A,(DUNGEON_LEVEL)
-    CP          C
-    JP          C,SET_ITEM_LIMIT
+    DJNZ        LAB_ram_f3d9                    ; Loop B times (2^B in BCD)
+    LD          C,A                             ; Save calculated threshold in C
+    LD          A,(DUNGEON_LEVEL)               ; Get current dungeon level
+    CP          C                               ; Compare level to threshold
+    JP          C,SET_ITEM_LIMIT                ; Skip item generation if level < threshold
+
 GENERATE_ITEM_TABLE:
     CALL        UPDATE_SCR_SAVER_TIMER
     INC         A
@@ -2881,10 +2938,11 @@ GENERATE_ITEM_TABLE:
     JP          Z,GENERATE_ITEM_TABLE
     LD          (HL),C
     INC         HL
-    LD          (HL),$9f								;  Full ITEM_monster range $009f
+    LD          (HL),$9f						; Full ITEM_monster range $009f
     INC         HL
 SET_ITEM_LIMIT:
-    LD          B,$50								;  Max 128 items+monsters (80 hex = 128 decimal)
+    LD          B,$50							; Max 128 items+monsters (80 hex = 128 decimal)
+    
 GENERATE_RANDOM_ITEM:
     CALL        MAKE_RANDOM_BYTE
     INC         A
@@ -3736,15 +3794,16 @@ ITEM_SEARCH_LOOP:
 ;   The function handles both main wall positions (F0, F1, F2) and half-wall
 ;   positions (FL2, FR2, FL1, FR1, FL0, FR0) for perspective rendering.
 ;
-; Wall State 3-Bit Encoding Pattern:
-;   Bit 0 = Wall present (1=wall exists, 0=empty space)
-;   Bit 1 = Door present (1=has door, 0=solid wall)  
-;   Bit 2 = Door state (1=open, 0=closed) - only valid if bit 1=1
-;
+; Wall State Encoding (per wall_diagram.txt):
+;   Low bits (West): $x0=no wall, $x1=solid wall, $x2=visible closed door
+;                    $x4=hidden closed door, $x6=visible open door, $x7=hidden open door
+;   High bits (North): $0x=no wall, $2x=solid wall, $4x=visible closed door  
+;                      $6x=hidden closed door, $Cx=visible open door, $Ex=hidden open door
+;   
 ;   Standard RRCA sequence used throughout:
-;     RRCA     ; Test bit 0 (wall present) - result in Carry flag
-;     RRCA     ; Test bit 1 (door present) - result in Carry flag  
-;     RRCA     ; Test bit 2 (door state) - result in Carry flag
+;     RRCA     ; Test wall state bits
+;     RRCA     ; Continue testing
+;     RRCA     ; Final state check
 ;
 ; Rendering Order (Painter's Algorithm - Far to Near):
 ;   1. Background (ceiling/floor)
@@ -3839,12 +3898,13 @@ CHECK_WALL_F2:
     JP          C,F2_WALL
     CALL        DRAW_DOOR_F2_OPEN
 LAB_ram_f86d:
-    LD          DE,WALL_F2_STATE            ; **** Was this WALL_L2_STATE ? ****
+    LD          DE,WALL_L2_STATE
     LD          A,(DE)
     RRCA
     JP          NC,LAB_ram_f87b
 LAB_ram_f875:
-    CALL        DRAW_WALL_FL2_EMPTY
+    ; CALL        DRAW_WALL_FL2_EMPTY           ; Original?
+    CALL        DRAW_WALL_L2
     JP          LAB_ram_f892
 LAB_ram_f87b:
     RRCA
@@ -3866,7 +3926,7 @@ LAB_ram_f892:
     RRCA
     JP          NC,LAB_ram_f8a0
 LAB_ram_f89a:
-    CALL        DRAW_WALL_FR2
+    CALL        DRAW_WALL_R2
     JP          LAB_ram_f8b7
 LAB_ram_f8a0:
     RRCA
@@ -3992,7 +4052,7 @@ LAB_ram_f973:
     RRCA
     JP          NC,LAB_ram_f97f
 LAB_ram_f979:
-    CALL        SUB_ram_ccc3
+    CALL        DRAW_WALL_FR2
     JP          LAB_ram_f986
 LAB_ram_f97f:
     RRCA
