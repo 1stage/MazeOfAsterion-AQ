@@ -706,34 +706,35 @@ DRAW_R0_DOOR:
 
 DRAW_WALL_FR0:
     LD          HL,DAT_ram_34dc
-    LD          A,0x4								; BLK on BLU
+    LD          A,COLOR(BLK,BLU)					; BLK on BLU
     LD          BC,RECT(4,15)						; 4 x 15 rectangle (was 16)
     JP          FILL_CHRCOL_RECT
-SUB_ram_cbb9:
+DRAW_WALL_FR1_B:
     LD          HL,DAT_ram_317c
     LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
     LD          A,$20								; Change to SPACE 32 / $20
     CALL        FILL_CHRCOL_RECT
     LD          HL,DAT_ram_357c
     LD          C,0x8
-    LD          A,$4b								; BLU on DKBLU
+    LD          A,COLOR(BLU,DKBLU)					; BLU on DKBLU ****
     JP          DRAW_CHRCOLS
-SUB_ram_cbce:
-    CALL        SUB_ram_cbb9
+
+DRAW_DOOR_FR1_B_HIDDEN:
+    CALL        DRAW_WALL_FR1_B
     XOR         A
-    JP          LAB_ram_cbd9
-SUB_ram_cbd4:
-    CALL        SUB_ram_cbb9
-    LD          A,$dd								; DKGRN on DKGRNdb?
-LAB_ram_cbd9:
+    JP          DRAW_DOOR_FR1_B
+DRAW_DOOR_FR1_B_NORMAL:
+    CALL        DRAW_WALL_FR1_B
+    LD          A,COLOR(DKGRN,DKGRN)				; DKGRN on DKGRNd
+DRAW_DOOR_FR1_B:
     LD          HL,COLRAM_FR22_WALL_IDX
-    LD          BC,$206								; 2 x 6 rectangledb?
+    LD          BC,RECT(2,6)						; 2 x 6 rectangle
     JP          DRAW_CHRCOLS
 SUB_ram_cbe2:
     LD          HL,DAT_ram_317f
-    LD          A,CHAR_RT_ANGLE								; Right angle char
+    LD          A,CHAR_RT_ANGLE						; Right angle char
     LD          (HL),A
-    LD          DE,$28
+    LD          DE,$28                              ; Stride is 40
     ADD         HL,DE
     DEC         HL
     LD          (HL),A

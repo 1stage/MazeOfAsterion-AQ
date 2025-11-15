@@ -4178,7 +4178,7 @@ LAB_ram_fa57:
     RRCA
     JP          NC,LAB_ram_fa7a
     EX          AF,AF'
-    CALL        SUB_ram_cbb9
+    CALL        DRAW_WALL_FR1_B
     CALL        SUB_ram_fa4e
     EX          AF,AF'
     RRCA
@@ -4186,7 +4186,7 @@ LAB_ram_fa57:
     RRCA
     JP          NC,LAB_ram_faa3
 LAB_ram_fa71:
-    CALL        SUB_ram_cbce
+    CALL        DRAW_DOOR_FR1_B_HIDDEN
     CALL        SUB_ram_fa4e
     JP          LAB_ram_faa3
 LAB_ram_fa7a:
@@ -4194,7 +4194,7 @@ LAB_ram_fa7a:
     JP          NC,LAB_ram_fa8b
     RRCA
     JP          C,LAB_ram_fa71
-    CALL        SUB_ram_cbd4
+    CALL        DRAW_DOOR_FR1_B_NORMAL
     CALL        SUB_ram_fa4e
     JP          LAB_ram_faa3
 LAB_ram_fa8b:
