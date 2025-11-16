@@ -88,7 +88,7 @@ BLANK_SCRN:
     LD          A,$14
     LD          (FOOD_INV),A								;  Set starting FOOD_INV  = 14
     LD          (ARROW_INV),A								;  Set starting ARROW INV = 14
-    LD          B,$10								;  RED on BLK
+    LD          B,COLOR(RED,BLK)							;  RED on BLK
     LD          HL,CHRRAM_LEFT_HAND_ITEM_IDX
     LD          DE,BOW
     CALL        GFX_DRAW
@@ -433,10 +433,11 @@ LAB_ram_e3cd:
     DEC         HL
     LD          (ITEM_ANIM_CHRRAM_PTR),HL
 LAB_ram_e3d7:
-    LD          BC,$c8
+    LD          BC,$c8                          ; Player projectile stride
     XOR         A
     SBC         HL,BC
     PUSH        HL
+    LD          BC,$c8                          ; Monster projectile stride
     ADD         HL,BC
     LD          DE,ITEM_MOVE_CHR_BUFFER
     CALL        UPDATE_MELEE_OBJECTS
@@ -1226,7 +1227,7 @@ LAB_ram_e962:
     LDIR								;  = "OM"
     DEC         A
     JP          Z,LAB_ram_e972
-    LD          BC,$24
+    LD          BC,$24                  ; Was $24
     ADD         HL,BC
     JP          LAB_ram_e962
 LAB_ram_e972:
@@ -2283,8 +2284,8 @@ USE_BOW_XBOW:
     CALL        CHK_ITEM_BREAK
     POP         BC
     JP          NC,BOW_XBOW_NO_BREAK
-    LD          A,$fe								;  $fe = EMPTY ITEM
-    LD          (RIGHT_HAND_ITEM),A								;  Put EMPTY ITEM into Right Hand
+    LD          A,$fe							; $fe = EMPTY ITEM
+    LD          (RIGHT_HAND_ITEM),A				; Put EMPTY ITEM into Right Hand
 BOW_XBOW_NO_BREAK:
     LD          D,0x5
     JP          LAB_ram_f0e9
@@ -2299,29 +2300,31 @@ USE_SCROLL_STAFF:
     LD          A,$fe
     LD          (RIGHT_HAND_ITEM),A
 SCROLL_STAFF_NO_BREAK:
-    LD          D,0x9								;  Use FIREBALL ammo
+    LD          D,0x9							; Use FIREBALL ammo
     JP          LAB_ram_f0e9
 CHECK_OTHERS:
-    CP          0xb								;  Compare to STAFF
+    CP          0xb								; Compare to STAFF
     JP          Z,USE_SCROLL_STAFF
-    CP          0xc								;  Compare to XBOW
+    CP          0xc								; Compare to XBOW
     JP          Z,USE_BOW_XBOW
-    CP          0x6								;  Compare to BOW
+    CP          0x6								; Compare to BOW
     JP          C,NO_ACTION_TAKEN
-    CP          $10								;  Compare to LADDER
+    CP          $10								; Compare to LADDER
     JP          NC,LAB_ram_f113
     LD          D,A
     CALL        SWAP_TO_ALT_REGS
 LAB_ram_f0e9:
     CALL        SETUP_ITEM_ANIMATION
     JP          INIT_MONSTER_COMBAT
-CLEAR_RIGHT_ITEM_AND_SETUP_ANIM:								;   Clear right-hand item and set up animation.
-								;   Used when consumable weapons break (bow/crossbow/scroll/staff).
+CLEAR_RIGHT_ITEM_AND_SETUP_ANIM:				; Clear right-hand item and set up animation.
+								                ; Used when consumable weapons break (bow/crossbow/scroll/staff).
     CALL        SWAP_TO_ALT_REGS
-SETUP_ITEM_ANIMATION:								;   Configure item animation parameters.
-								;   Inputs: D = item type, B = item level
-								;   Effects: Sets ITEM_ANIM_STATE, ITEM_SPRITE_INDEX, ITEM_ANIM_LOOP_COUNT, ITEM_ANIM_CHRRAM_PTR
-								;   and initiates animation via LAB_ram_e3d7.
+
+SETUP_ITEM_ANIMATION:							; Configure item animation parameters.
+								                ; Inputs: D = item type, B = item level
+								                ; Effects: Sets ITEM_ANIM_STATE, ITEM_SPRITE_INDEX,
+                                                ; ITEM_ANIM_LOOP_COUNT, ITEM_ANIM_CHRRAM_PTR
+								                ; and initiates animation via LAB_ram_e3d7.
     LD          A,0x3
     LD          (ITEM_ANIM_STATE),A
     LD          A,D
@@ -3952,7 +3955,7 @@ F1_HD_NO_WALL:
     RRCA
     JP          NC,LAB_ram_f8db
     EX          AF,AF'
-    CALL        DRAW_L1_WALL
+    CALL        DRAW_WALL_L1
     EX          AF,AF'
     RRCA
     JP          NC,LAB_ram_f923
@@ -4008,21 +4011,21 @@ LAB_ram_f923:
     RRCA
     JP          NC,LAB_ram_f93e
     EX          AF,AF'
-    CALL        DRAW_WALL_FR1
+    CALL        DRAW_WALL_R1
     EX          AF,AF'
     RRCA
     JP          NC,LAB_ram_f986
     RRCA
     JP          NC,LAB_ram_f986
 LAB_ram_f938:
-    CALL        SUB_ram_cc6d
+    CALL        DRAW_DOOR_R1_HIDDEN
     JP          LAB_ram_f986
 LAB_ram_f93e:
     RRCA
     JP          NC,LAB_ram_f94c
     RRCA
     JP          C,LAB_ram_f938
-    CALL        SUB_ram_cc7a
+    CALL        DRAW_DOOR_R1_NORMAL
     JP          LAB_ram_f986
 LAB_ram_f94c:
     INC         E
@@ -4030,21 +4033,21 @@ LAB_ram_f94c:
     RRCA
     JP          NC,LAB_ram_f965
     EX          AF,AF'
-    CALL        SUB_ram_cc9a
+    CALL        DRAW_WALL_FR1_A
     EX          AF,AF'
     RRCA
     JP          NC,LAB_ram_f986
     RRCA
     JP          NC,LAB_ram_f986
 LAB_ram_f95f:
-    CALL        SUB_ram_ccaf
+    CALL        DRAW_DOOR_FR1_A_HIDDEN
     JP          LAB_ram_f986
 LAB_ram_f965:
     RRCA
     JP          NC,LAB_ram_f973
     RRCA
     JP          C,LAB_ram_f95f
-    CALL        SUB_ram_ccb5
+    CALL        DRAW_DOOR_FR1_A_NORMAL
     JP          LAB_ram_f986
 LAB_ram_f973:
     INC         E
