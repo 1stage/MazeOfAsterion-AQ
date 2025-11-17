@@ -4100,7 +4100,7 @@ LAB_ram_f9c4:
     RRCA                                    ; Test first bit of new wall state
     JP          NC,LAB_ram_f9f0             ; If first bit clear, jump ahead
     EX          AF,AF'                      ; Save A register (wall state bits)
-    CALL        SUB_ram_c9d0                ; Draw wall routine
+    CALL        DRAW_WALL_L1                ; Draw L1 wall routine
     CALL        SUB_ram_f9e7                ; Item check routine (changes A)
     EX          AF,AF'                      ; Restore A register (wall state bits)
     RRCA                                    ; Test next bit in wall state
@@ -4108,7 +4108,7 @@ LAB_ram_f9c4:
     RRCA                                    ; Test third bit in wall state
     JP          NC,LAB_ram_fa19             ; If bit clear, jump to next section
 LAB_ram_f9de:
-    CALL        SUB_ram_c9f3                ; Draw door/special feature
+    CALL        DRAW_DOOR_L1_HIDDEN         ; Draw door L1 hidden
     CALL        SUB_ram_f9e7                ; Item check routine
     JP          LAB_ram_fa19                ; Jump to next wall section
 SUB_ram_f9e7:
@@ -4120,7 +4120,7 @@ LAB_ram_f9f0:
     JP          NC,LAB_ram_fa01             ; If bit clear, jump to next wall
     RRCA                                    ; Test next bit
     JP          C,LAB_ram_f9de              ; If bit set, draw door/feature
-    CALL        SUB_ram_c9e5                ; Draw wall variant
+    CALL        DRAW_DOOR_L1_NORMAL         ; Draw wall variant
     CALL        SUB_ram_f9e7                ; Item check routine
     JP          LAB_ram_fa19                ; Jump to next wall section
 LAB_ram_fa01:
