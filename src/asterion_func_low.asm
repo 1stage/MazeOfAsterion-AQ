@@ -373,30 +373,30 @@ UPDATE_F0_ITEM:
     JP          FILL_CHRCOL_RECT
 
 DRAW_WALL_L0:
-    LD          HL,COLRAM_FL0_WALL_IDX
+    LD          HL,COLRAM_L0_WALL_IDX
     LD          A,COLOR(BLU,BLK)					; BLU on BLK
     CALL        DRAW_DOOR_BOTTOM_SETUP
-    DEC         DE
-    ADD         HL,DE
+    DEC         DE                                  ; Decrease stride to 40
+    ADD         HL,DE                               ; Go to next row
     LD          A,COLOR(BLK,BLU)    				; BLK on BLU
-    CALL        DRAW_DL_3X3_CORNER
-    ADD         HL,DE
-    LD          BC,$410								; Jump into COLRAM and down one row
+    CALL        DRAW_DL_3X3_CORNER                  ; Draw door top blocks
+    ADD         HL,DE                               ; Go to next row
+    LD          BC,RECT(4,15)						; 4 x 15 rectangle (was 16)
     CALL        DRAW_CHRCOLS
-    ADD         HL,DE
-    CALL        DRAW_UL_3X3_CORNER
-    ADD         HL,DE
-    LD          A,COLOR(DKGRY,BLU)					; DKGRY on BLU
-    DEC         DE
-    CALL        DRAW_SINGLE_CHAR_UP
-    LD          A,CHAR_RT_ANGLE
-    LD          HL,DAT_ram_33c0
-    CALL        DRAW_SINGLE_CHAR_UP
-    LD          HL,IDX_VIEWPORT_CHRRAM
+    ; ADD         HL,DE                               ; Go to next row
+    ; CALL        DRAW_UL_3X3_CORNER                  ; Draw door bottom blocks
+    ; ADD         HL,DE                               ; Go to next row
+    ; LD          A,COLOR(DKGRY,BLU)					; DKGRY on BLU
+    DEC         DE                                  ; Decrease stride to 39
+    ; CALL        DRAW_SINGLE_CHAR_UP                 ; Draw bottom of wall colors
+    ; LD          A,CHAR_RT_ANGLE                     ;
+    ; LD          HL,DAT_ram_33c0                     ; Move to CHRRAM LO wall bottom IDX
+    ; CALL        DRAW_SINGLE_CHAR_UP                 ; Draw bottom of wall chars
+    LD          HL,CHRRAM_L0_WALL_IDX
     LD          A,CHAR_LT_ANGLE
-    INC         DE
-    INC         DE
-    JP          DRAW_VERTICAL_LINE_4_DOWN
+    INC         DE                                  ; Increase stride to 40
+    INC         DE                                  ; Increase stride to 41
+    JP          DRAW_VERTICAL_LINE_4_DOWN           ; Draw door top chars
     RET
 DRAW_DOOR_L0_HIDDEN:
     CALL        DRAW_WALL_L0
@@ -411,25 +411,25 @@ DRAW_DOOR_L0_NORMAL:
     LD          A,COLOR(GRN,BLU)					; GRN on BLU
 
 DRAW_DOOR_L0:
-    LD          HL,COLRAM_FL0_DOOR_IDX
-    CALL        DRAW_VERTICAL_LINE_3_UP
-    DEC         DE
-    ADD         HL,DE
-    EX          AF,AF'
-    CALL        DRAW_DL_3X3_CORNER
-    ADD         HL,DE
-    LD          BC,$30c
+    LD          HL,COLRAM_L0_DOOR_IDX
+    CALL        DRAW_VERTICAL_LINE_3_UP             ; Stride is 41
+    DEC         DE                                  ; Decrease stride to 40
+    ADD         HL,DE                               ; Go to next row
+    EX          AF,AF'                              ; Get proper door color
+    CALL        DRAW_DL_3X3_CORNER                  ; Draw top of door color blocks
+    ADD         HL,DE                               ; Go to next row
+    LD          BC,RECT(3,11)                       ; 3 x 11 rectangle (was 12)
     CALL        DRAW_CHRCOLS
-    ADD         HL,DE
-    CALL        DRAW_UL_3X3_CORNER
-    ADD         HL,DE
-    DEC         DE
-    CALL        DRAW_VERTICAL_LINE_3_UP
-    LD          HL,DAT_ram_30c8
+    ; ADD         HL,DE                               ; Go to next row
+    ; CALL        DRAW_UL_3X3_CORNER                  ; Draw bottom of door color blocks
+    ; ADD         HL,DE                               ; Go to next row
+    DEC         DE                                  ; Decrease stride to 39
+    ; CALL        DRAW_VERTICAL_LINE_3_UP           ; Draw bottom of door colors
+    LD          HL,CHRRAM_L0_DOOR_IDX
     LD          A,CHAR_LT_ANGLE
-    INC         DE
-    INC         DE
-    JP          CONTINUE_VERTICAL_LINE_DOWN
+    INC         DE                                  ; Increase stride to 40
+    INC         DE                                  ; Increase stride to 41
+    JP          CONTINUE_VERTICAL_LINE_DOWN         ; Draw top of door characters
     RET
 DRAW_WALL_FL0:
     LD          HL,DAT_ram_34c8
@@ -438,7 +438,7 @@ DRAW_WALL_FL0:
     JP          FILL_CHRCOL_RECT
 SUB_ram_c9d0:
     LD          HL,CHRRAM_L1_WALL_IDX
-    LD          BC,$408								; 4 x 8 rectangle
+    LD          BC,RECT(4,8)						; 4 x 8 rectangle
     LD          A,$20								; Change to SPACE 32 / $20
     CALL        FILL_CHRCOL_RECT
     LD          HL,COLRAM_L1_WALL_IDX
@@ -1304,7 +1304,7 @@ DO_HC_SHIFT_ACTIONS:
 
 DRAW_BKGD:
     LD          A,$20								; Set VIEWPORT fill chars to SPACE
-    LD          HL,IDX_VIEWPORT_CHRRAM				; Set CHRRAM starting point at the beginning of the VIEWPORT
+    LD          HL,CHRRAM_VIEWPORT_IDX				; Set CHRRAM starting point at the beginning of the VIEWPORT
     LD          BC,RECT(24,24)						; 24 x 24 rectangle
     CALL        FILL_CHRCOL_RECT
     LD          C,0x8								; 8 rows of ceiling

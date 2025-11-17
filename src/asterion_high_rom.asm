@@ -73,7 +73,7 @@ BLANK_SCRN:
     LD          HL,CHRRAM_STATS_TOP								;  HL = CHRRAM_STATS_TOP
     LD          B,$d0								;  DKGRN on BLK
     CALL        GFX_DRAW
-    LD          HL,IDX_HEALTH_SPACER
+    LD          HL,CHRRRAM_HEALTH_SPACER_IDX
     CALL        GFX_DRAW
     LD          HL,$30								;  Set starting PHYS HEALTH = 30
     LD          E,$15								;  Set starting SPRT HEALTH = 15
@@ -224,7 +224,7 @@ USE_MAP:
     EXX								;  Swap BC  DE  HL
 								;  with BC' DE' HL'
     LD          BC,RECT(24,24)								;  24 x 24
-    LD          HL,IDX_VIEWPORT_CHRRAM
+    LD          HL,CHRRAM_VIEWPORT_IDX
     LD          A,$20								;  SPACE character fill
     CALL        FILL_CHRCOL_RECT								;  Fill map CHARs with SPACES
     CALL        SOUND_03
