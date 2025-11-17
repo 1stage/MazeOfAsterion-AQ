@@ -3974,21 +3974,21 @@ LAB_ram_f8e9:
     RRCA
     JP          NC,LAB_ram_f902
     EX          AF,AF'
-    CALL        SUB_ram_cab0
+    CALL        DRAW_WALL_FL1_B
     EX          AF,AF'
     RRCA
     JP          NC,LAB_ram_f923
     RRCA
     JP          NC,LAB_ram_f923
 LAB_ram_f8fc:
-    CALL        SUB_ram_cac5
+    CALL        DRAW_DOOR_FL1_B_HIDDEN
     JP          LAB_ram_f923
 LAB_ram_f902:
     RRCA
     JP          NC,LAB_ram_f910
     RRCA
     JP          C,LAB_ram_f8fc
-    CALL        DRAW_L1_DOOR_CLOSED
+    CALL        DRAW_DOOR_FL1_B_NORMAL
     JP          LAB_ram_f923
 LAB_ram_f910:
     INC         E
@@ -4008,21 +4008,21 @@ LAB_ram_f923:
     RRCA
     JP          NC,LAB_ram_f93e
     EX          AF,AF'
-    CALL        DRAW_WALL_FR1
+    CALL        DRAW_WALL_R1
     EX          AF,AF'
     RRCA
     JP          NC,LAB_ram_f986
     RRCA
     JP          NC,LAB_ram_f986
 LAB_ram_f938:
-    CALL        SUB_ram_cc6d
+    CALL        DRAW_DOOR_R1_HIDDEN
     JP          LAB_ram_f986
 LAB_ram_f93e:
     RRCA
     JP          NC,LAB_ram_f94c
     RRCA
     JP          C,LAB_ram_f938
-    CALL        SUB_ram_cc7a
+    CALL        DRAW_DOOR_R1_NORMAL
     JP          LAB_ram_f986
 LAB_ram_f94c:
     INC         E
@@ -4030,7 +4030,7 @@ LAB_ram_f94c:
     RRCA
     JP          NC,LAB_ram_f965
     EX          AF,AF'
-    CALL        SUB_ram_cc9a
+    CALL        DRAW_WALL_FR1_A
     EX          AF,AF'
     RRCA
     JP          NC,LAB_ram_f986

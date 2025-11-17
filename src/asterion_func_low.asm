@@ -439,11 +439,11 @@ DRAW_WALL_FL0:
     JP          FILL_CHRCOL_RECT
 
 DRAW_WALL_L1:
-    LD          HL,CHRRAM_L1_WALL_IDX
+    LD          HL,CHRRAM_WALL_FL1_A_IDX
     LD          BC,RECT(4,8)						; 4 x 8 rectangle
     LD          A,$20								; Change to SPACE 32 / $20
     CALL        FILL_CHRCOL_RECT
-    LD          HL,COLRAM_L1_WALL_IDX
+    LD          HL,COLRAM_WALL_FL1_A_IDX
     LD          C,0x8
     LD          A,COLOR(BLU,DKBLU)					; BLU on DKBLU
     JP          DRAW_CHRCOLS
@@ -472,7 +472,7 @@ SUB_ram_c9f9:
     ADD         HL,DE
     DEC         HL                                  ; Set stride to 39
     LD          (HL),A
-    LD          HL,COLRAM_L1_WALL_IDX
+    LD          HL,COLRAM_WALL_FL1_A_IDX
     LD          A,COLOR(DKBLU,DKGRY)				; DKBLU on DKGRY
     LD          (HL),A
     ADD         HL,DE                               ; Go to next row
@@ -503,7 +503,7 @@ DRAW_WALL_FL22:
     LD          A,COLOR(DKGRY,DKGRY)				; DKGRY on DKGRY
     JP          FILL_CHRCOL_RECT
 DRAW_L1_WALL:
-    LD          HL,CHRRAM_FL1_WALL_IDX
+    LD          HL,CHRRAM_L1_UR_WALL_IDX
     LD          A,CHAR_LT_ANGLE						; LEFT angle CHR
     CALL        DRAW_DOOR_BOTTOM_SETUP
     DEC         DE                                  ; Decrease stride to 40
@@ -522,7 +522,7 @@ DRAW_L1_WALL:
     ; CALL        DRAW_SINGLE_CHAR_UP
     CALL        DRAW_VERTICAL_LINE_3_UP             ; Draw bottom wall char block
 
-    LD          HL,DAT_ram_3547
+    LD          HL,COLRAM_L1_UR_WALL_IDX
     LD          A,COLOR(DKBLU,BLK)					; DKBLU on BLK
     CALL        DRAW_DOOR_BOTTOM_SETUP
     DEC         DE                                  ; Decrease stride to 40
@@ -567,23 +567,23 @@ DRAW_L1_DOOR:
     ADD         HL,DE                               ; Go to next row
     LD          (HL),A
     RET
-SUB_ram_cab0:
-    LD          HL,DAT_ram_356c
+DRAW_WALL_FL1_B:
+    LD          HL,COLRAM_WALL_FL1_B_IDX
     LD          BC,RECT(4,8)						; 4 x 8 rectangle
     LD          A,COLOR(BLU,DKBLU)					; BLU on DKBLU
     CALL        FILL_CHRCOL_RECT
-    LD          HL,DAT_ram_316c
+    LD          HL,CHRRAM_WALL_FL1_B_IDX
     LD          C,0x8
     LD          A,$20								; Change to SPACE 32 / $20
     JP          DRAW_CHRCOLS
-SUB_ram_cac5:
-    CALL        SUB_ram_cab0
+DRAW_DOOR_FL1_B_HIDDEN:
+    CALL        DRAW_WALL_FL1_B
     XOR         A
-    JP          DRAW_L1_DOOR_2
-DRAW_L1_DOOR_CLOSED:
-    CALL        SUB_ram_cab0
+    JP          DRAW_DOOR_FL1_B
+DRAW_DOOR_FL1_B_NORMAL:
+    CALL        DRAW_WALL_FL1_B
     LD          A,COLOR(DKGRN,DKGRN)				; DKGRN on DKGRN
-DRAW_L1_DOOR_2:
+DRAW_DOOR_FL1_B:
     LD          HL,COLRAM_FL2_WALL_IDX
     LD          BC,RECT(2,6)						; 2 x 6 rectangle
     JP          DRAW_CHRCOLS
@@ -775,79 +775,83 @@ DRAW_WALL_FR22_EMPTY:
     LD          BC,RECT(4,4)						; 4 x 4 rectangle
     LD          A,COLOR(BLK,BLK)					; BLK on BLK
     JP          FILL_CHRCOL_RECT
-DRAW_WALL_FR1:
+DRAW_WALL_R1:
     LD          A,CHAR_LT_ANGLE
     PUSH        AF
     LD          BC,RECT(4,8)						; 4 x 8 rectangle
     LD          A,$20								; Change to SPACE 32 / $20
     PUSH        AF
     LD          A,CHAR_RT_ANGLE						; Right angle char
-    LD          HL,DAT_ram_3150
-    CALL        SUB_ram_cc4d
+    LD          HL,CHRRAM_R1_WALL_IDX
+    CALL        DRAW_R1_CORNERS                     ; Draw characters
     LD          A,COLOR(DKGRY,DKBLU)		    	; DKGRY on DKBLU
     PUSH        AF
     LD          C,0x8
     LD          A,COLOR(BLU,DKBLU)			    	; BLU on DKBLU
     PUSH        AF
     LD          A,COLOR(DKBLU,BLK)			    	; DKBLU on BLK
-    LD          HL,DAT_ram_3550
-    CALL        SUB_ram_cc4d
+    LD          HL,COLRAM_R1_WALL_IDX
+    CALL        DRAW_R1_CORNERS                     ; Draw colors
     RET
 DRAW_R0_CORNERS:
     POP         IX                                  ; Save RET address to IX
     LD          DE,$27                              ; Stride is 39 / $27
     CALL        DRAW_SINGLE_CHAR_UP
     INC         DE                                  ; Stride is 40
-    ADD         HL,DE
+    ADD         HL,DE                               ; Go to next row
     POP         AF
     CALL        DRAW_DR_3X3_CORNER
-    ADD         HL,DE
-    DEC         HL
+    ADD         HL,DE                               ; Go to next row
+    DEC         HL                                  ; Decrease stride to 39
     CALL        DRAW_CHRCOLS
     ; ADD         HL,DE
     ; INC         HL
     ; CALL        DRAW_UR_3X3_CORNER
     ; ADD         HL,DE
     POP         AF
-    INC         DE                                  ; Stride is 41
+    INC         DE                                  ; Increase stride to 41
     ; CALL        DRAW_SINGLE_CHAR_UP
     JP          (IX)
 
-SUB_ram_cc4d:
+DRAW_R1_CORNERS:
     POP         IX                                  ; Save RET address to IX
     LD          DE,$27                              ; Stride is 39 / $27
     CALL        DRAW_SINGLE_CHAR_UP
-    INC         DE                                  ; Stride is 40
-    ADD         HL,DE
+    INC         DE                                  ; Increase stride to 40
+    ADD         HL,DE                               ; Go to next row
     POP         AF
-    CALL        DRAW_DR_3X3_CORNER
-    ADD         HL,DE
-    DEC         HL
+    CALL        DRAW_DR_3X3_CORNER                  ; Draw upper wall blocks
+    ADD         HL,DE                               ; Go to next row
+    DEC         HL                                  ; Go back one cell
+    ; INC         HL                                  ; NEW, forward one cell
     CALL        DRAW_CHRCOLS
-    ADD         HL,DE
-    INC         HL
+    ADD         HL,DE                               ; Go to next row
+    INC         HL                                  ; Go to next cell
     CALL        DRAW_UR_3X3_CORNER
-    ADD         HL,DE
-    POP         AF
+    ; ADD         HL,DE                               ; Go to next row
+    DEC         HL                                  ; NEW, back one cell
+    POP         AF                                  ; 
     INC         DE                                  ; Stride is 41
-    CALL        DRAW_SINGLE_CHAR_UP
+    ; CALL        DRAW_SINGLE_CHAR_UP                 
+    CALL        DRAW_VERTICAL_LINE_3_UP                 
     JP          (IX)
-SUB_ram_cc6d:
-    CALL        DRAW_WALL_FR1
+
+DRAW_DOOR_R1_HIDDEN:
+    CALL        DRAW_WALL_R1
     LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
     PUSH        AF
     LD          A,COLOR(DKBLU,BLK)  				; DKBLU on BLK
     PUSH        AF
     LD          A,COLOR(BLK,DKBLU)					; BLK on DKBLU
-    JP          LAB_ram_cc85
-SUB_ram_cc7a:
-    CALL        DRAW_WALL_FR1
-    LD          A,$fd								; DKGRY on DKGRN
+    JP          DRAW_DOOR_R1
+DRAW_DOOR_R1_NORMAL:
+    CALL        DRAW_WALL_R1
+    LD          A,COLOR(DKGRY,DKGRN)				; DKGRY on DKGRN
     PUSH        AF
-    LD          A,$2d								; GRN on DKGRN
+    LD          A,COLOR(GRN,DKGRN)					; GRN on DKGRN
     PUSH        AF
-    LD          A,$db								; DKGRN on DKBLU
-LAB_ram_cc85:
+    LD          A,COLOR(DKGRN,DKBLU)				; DKGRN on DKBLU
+DRAW_DOOR_R1:
     LD          HL,DAT_ram_357a
     LD          BC,RECT(2,7)						; 2 x 7 rectangle
     CALL        SUB_ram_cd07
@@ -858,22 +862,22 @@ LAB_ram_cc85:
     ADD         HL,DE
     LD          (HL),A
     RET
-SUB_ram_cc9a:
-    LD          HL,DAT_ram_3578
+DRAW_WALL_FR1_A:
+    LD          HL,COLRAM_WALL_FR1_A_IDX
     LD          BC,RECT(4,8)						; 4 x 8 rectangle
     LD          A,COLOR(BLU,DKBLU)					; BLU on DKBLU
     CALL        FILL_CHRCOL_RECT
-    LD          HL,DAT_ram_3178
+    LD          HL,CHRRAM_WALL_FR1_A_IDX
     LD          C,0x8
     LD          A,$20								; Change to SPACE 32 / $20
     JP          DRAW_CHRCOLS
 SUB_ram_ccaf:
-    CALL        SUB_ram_cc9a
+    CALL        DRAW_WALL_FR1_A
     XOR         A
     JP          LAB_ram_ccba
 SUB_ram_ccb5:
-    CALL        SUB_ram_cc9a
-    LD          A,$dd								; DKGRN on DKGRN
+    CALL        DRAW_WALL_FR1_A
+    LD          A,COLOR(DKGRN,DKGRN)				; DKGRN on DKGRN
 LAB_ram_ccba:
     LD          HL,DAT_ram_35ca
     LD          BC,RECT(2,6)						; 2 x 6 rectangle
