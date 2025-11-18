@@ -978,7 +978,7 @@ LAB_ram_e7aa:
     JP          RECALC_AND_REDRAW_BCD
 LAB_ram_e7c0:
     LD          HL,0x0								;  HL = 0
-    XOR         A								;  A  = 0
+    XOR         A								    ;  A  = 0
     LD          (WEAPON_PHYS),HL
     LD          (WEAPON_SPRT),A
     JP          LAB_ram_e7aa
@@ -986,26 +986,26 @@ DO_PICK_UP:
     LD          A,(ITEM_HOLDER)
     LD          B,A
     LD          A,(PLAYER_MAP_POS)
-    CP          B								;  Check difference between
-								;  item and item location
+    CP          B								    ;  Check difference between
+								                    ;  item and item location
     JP          Z,NO_ACTION_TAKEN
     INC         A
     JP          Z,NO_ACTION_TAKEN
     DEC         A
     CALL        ITEM_MAP_CHECK
     JP          Z,LAB_ram_e844
-    CP          0x4								;  Compare to RING (0x4)
-    JP          C,CHECK_FOOD_ARROWS								;  Jump if less than RING (C)
-    CP          $10								;  Compare to PAVISE ($10)
-    JP          NC,CHECK_FOOD_ARROWS								;  Jump if PAVISE or greater (NC)
+    CP          0x4								    ;  Compare to RING (0x4)
+    JP          C,CHECK_FOOD_ARROWS					;  Jump if less than RING (C)
+    CP          $10								    ;  Compare to PAVISE ($10)
+    JP          NC,CHECK_FOOD_ARROWS				;  Jump if PAVISE or greater (NC)
 PROCESS_RHA:
     CALL        PICK_UP_F0_ITEM
-    LD          HL,ARMOR_INV_SLOT								;  Start with ARMOR slot
-    DEC         A								;  Subtract 1 from A:
-								;  - Armor
-    JP          NZ,NOT_ARMOR								;  Treat as NOT ARMOR
-    INC         HL								;  HL = HELMET_INV_SLOT
-    INC         HL								;  HL = RING_INV_SLOT
+    LD          HL,ARMOR_INV_SLOT					;  Start with ARMOR slot
+    DEC         A								    ;  Subtract 1 from A:
+								                    ;  - Armor
+    JP          NZ,NOT_ARMOR						;  Treat as NOT ARMOR
+    INC         HL								    ;  HL = HELMET_INV_SLOT
+    INC         HL								    ;  HL = RING_INV_SLOT
 NOT_ARMOR:
     DEC         A
     JP          NZ,NOT_HELMET
@@ -1025,24 +1025,24 @@ NOT_HELMET:
     CALL        SUB_ram_e9c1
     LD          A,E
     SUB         C
-    DAA								;  BCD Correction
+    DAA								                ;  BCD Correction
     LD          C,A
     LD          A,D
     SUB         B
-    DAA								;  BCD Correction
+    DAA								                ;  BCD Correction
     LD          B,A
 LAB_ram_e812:
     LD          A,(SHIELD_SPRT)
     ADD         A,C
-    DAA								;  BCD Correction
+    DAA								                ;  BCD Correction
     LD          (SHIELD_SPRT),A
     LD          A,(SHIELD_PHYS)
     ADD         A,B
-    DAA								;  BCD Correction
+    DAA								                ;  BCD Correction
     LD          (SHIELD_PHYS),A
     LD          A,(SHIELD_PHYS+1)
     ADC         A,0x0
-    DAA								;  BCD Correction
+    DAA								                ;  BCD Correction
     LD          (SHIELD_PHYS+1),A
     LD          HL,SHIELD_PHYS
     LD          DE,CHRRAM_PHYS_SHIELD_IDX
@@ -1052,15 +1052,15 @@ LAB_ram_e812:
     LD          DE,CHRRAM_SPRT_SHIELD_IDX
     LD          B,0x1
     CALL        RECALC_AND_REDRAW_BCD
-    JP          RHA_REDRAW								;  Was JP AWAITING_INPUT
-								;  (c3 9c ea)
+    JP          RHA_REDRAW							;  Was JP AWAITING_INPUT
+								                    ;  (c3 9c ea)
 LAB_ram_e844:
     CALL        Z,SUB_ram_e9e1
 CHECK_FOOD_ARROWS:
     CP          $48
-    JP          C,CHECK_MAP_NECKLACE_CHARMS								;  CHEST or lower
+    JP          C,CHECK_MAP_NECKLACE_CHARMS			;  CHEST or lower
     CP          $50
-    JP          NC,CHECK_MAP_NECKLACE_CHARMS								;  LOCKED CHEST or higher
+    JP          NC,CHECK_MAP_NECKLACE_CHARMS		;  LOCKED CHEST or higher
     CALL        PICK_UP_F0_ITEM
     INC         D
     RL          D
@@ -1087,11 +1087,11 @@ LAB_ram_e872:
     LD          HL,(BYTE_ram_3aa9)
     LD          A,D
     ADD         A,L
-    DAA								;  BCD correct
+    DAA								                ;  BCD correct
     LD          L,A
     LD          A,H
     ADC         A,0x0
-    DAA								;  BCD correct
+    DAA								                ;  BCD correct
     LD          H,A
     LD          (BYTE_ram_3aa9),HL
     RET
@@ -1105,18 +1105,18 @@ ADD_ARROWS_TO_INV:
     LD          (ARROW_INV),A
     JP          INPUT_DEBOUNCE
 CHECK_MAP_NECKLACE_CHARMS:
-    CP          $6c								;  Red MAP
+    CP          $6c								    ;  Red MAP
     JP          Z,PROCESS_MAP
-    CP          $6d								;  Yellow MAP
+    CP          $6d								    ;  Yellow MAP
     JP          Z,PROCESS_MAP
-    CP          $de								;  Purple MAP
+    CP          $de								    ;  Purple MAP
     JP          Z,PROCESS_MAP
-    CP          $df								;  White MAP
+    CP          $df								    ;  White MAP
     JP          Z,PROCESS_MAP
-    CP          $5c								;  WHITE KEY or lower
+    CP          $5c								    ;  WHITE KEY or lower
     JP          C,PICK_UP_NON_TREASURE
     CP          $64
-    JP          NC,PICK_UP_NON_TREASURE								;  WARRIOR POTION or higher
+    JP          NC,PICK_UP_NON_TREASURE				;  WARRIOR POTION or higher
     CALL        PICK_UP_F0_ITEM
     JP          INPUT_DEBOUNCE
 PROCESS_MAP:
@@ -1133,97 +1133,257 @@ PROCESS_MAP:
     LD          (COLRAM_MAP_IDX),A
     POP         AF
     JP          INPUT_DEBOUNCE
+
+;==============================================================================
+; PICK_UP_NON_TREASURE
+;==============================================================================
+; Handles picking up non-treasure items (weapons, armor, etc.) from floor
+; position F0 (directly in front of player). Swaps the floor item with the
+; current right-hand item, updating both character and color RAM graphics,
+; and recalculates weapon stats if applicable.
+;
+; Flow:
+; 1. Swap floor item (F0) with right-hand item
+; 2. Copy right-hand graphics to temporary buffer
+; 3. Copy floor item graphics to right-hand position
+; 4. Copy temporary buffer to floor position
+; 5. Update color schemes for both positions
+; 6. Recalculate weapon stats if new item is a weapon
+;
+; Input:
+;   RIGHT_HAND_ITEM - Current right-hand item code
+;   Floor item present at F0 viewport position
+;   CHRRAM/COLRAM graphics at F0 and right-hand positions
+;
+; Output:
+;   RIGHT_HAND_ITEM - New item picked up from floor
+;   ITEM_F0 - Previous right-hand item (now on floor)
+;   Updated graphics and colors for both positions
+;   Recalculated weapon stats if applicable
+;
+; Registers:
+; --- Start ---
+;   HL = RIGHT_HAND_ITEM address for item swap
+;   A  = Current right-hand item code
+; --- In Process ---
+;   HL = Various CHRRAM/COLRAM pointer addresses
+;   DE = Target addresses for graphics copying operations
+;   BC = Source/destination for temporary buffer operations
+;   A  = Item codes and color values during updates
+;   C  = Color comparison and fill values for recoloring
+; ---  End  ---
+;   All registers modified by called functions
+;   Graphics and item inventories updated
+;
+; Memory Modified: RIGHT_HAND_ITEM, ITEM_F0, CHRRAM_*, COLRAM_*, ITEM_MOVE_CHR_BUFFER
+; Calls: SUB_ram_ea62, UPDATE_MELEE_OBJECTS, SUB_ram_e99e, SUB_ram_e97d, RECOLOR_ITEM, NEW_RIGHT_HAND_ITEM
+;==============================================================================
 PICK_UP_NON_TREASURE:
-    LD          HL,RIGHT_HAND_ITEM
-    LD          A,(HL)
-    LD          (ITEM_F0),A
-    CALL        SUB_ram_ea62
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
-    LD          DE,ITEM_MOVE_CHR_BUFFER
-    CALL        UPDATE_MELEE_OBJECTS
-    LD          HL,CHRRAM_F0_ITEM_IDX
-    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX
-    CALL        SUB_ram_e99e
-    LD          HL,ITEM_MOVE_CHR_BUFFER
-    LD          DE,CHRRAM_F0_ITEM_IDX
-    CALL        SUB_ram_e97d
-    LD          HL,COLRAM_F0_ITEM_IDX
-    LD          DE,$f00								;  BLK on DKGY /
-								;  BLK on BLK
-								;  WAS BLK on DKCYN /
-								;      BLK on BLK
-								;  WAS LD DE,$0900
-    LD          C,$f0								;  Floor color (for compare)
-								;  DKGRY on BLK
-								;  WAS DKCYN on BLK
-    CALL        RECOLOR_ITEM
-    LD          HL,COLRAM_RH_ITEM_IDX
-    LD          DE,$f0								;  Floor color (for fill)
-								;  DKGRY on BLK
-								;  WAS DKCYN on BLK
-    LD          C,0x0
-    CALL        RECOLOR_ITEM
-    CALL        NEW_RIGHT_HAND_ITEM
-    JP          INPUT_DEBOUNCE
+    LD          HL,RIGHT_HAND_ITEM              ; Point to current right-hand item
+    LD          A,(HL)                          ; Load current right-hand item code
+    LD          (ITEM_F0),A                     ; Store it as new floor item
+    CALL        SUB_ram_ea62                    ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
+    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX      ; Point to right-hand graphics in CHRRAM
+    LD          DE,ITEM_MOVE_CHR_BUFFER         ; Point to temporary graphics buffer
+    CALL        UPDATE_MELEE_OBJECTS            ; Copy right-hand graphics to temp buffer (4x4 chars)
+    LD          HL,CHRRAM_F0_ITEM_IDX           ; Point to F0 floor item graphics in CHRRAM
+    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX      ; Point to right-hand graphics position
+    CALL        SUB_ram_e99e                    ; Copy F0 item graphics to right-hand position
+    LD          HL,ITEM_MOVE_CHR_BUFFER         ; Point to temporary buffer (old right-hand graphics)
+    LD          DE,CHRRAM_F0_ITEM_IDX           ; Point to F0 floor item graphics position
+    CALL        SUB_ram_e97d                    ; Copy temp buffer to F0 position (complete swap)
+
+    LD          HL,COLRAM_F0_ITEM_IDX           ; Point to F0 item color attributes in COLRAM
+                                                ;   D  = Target background color
+                                                ;   E  = Comparison color for pattern matching
+    LD          DE,$0F0F                        ; 
+    LD          C,COLOR(DKGRY,BLK)              ; C = DKGRY on BLK (floor color for comparison)
+    CALL        RECOLOR_ITEM                    ; Recolor F0 item area (4x4 cells)
+
+; Problem area    
+    LD          HL,COLRAM_RH_ITEM_IDX           ; Point to right-hand item color attributes
+                                                ;   D  = Target background color
+                                                ;   E  = Comparison color for pattern matching
+    LD          DE,$00F0                        ;
+    LD          C,COLOR(BLK,BLK)                ; C = BLK on BLK comparison color (upper nybble only???)
+    CALL        RECOLOR_ITEM                    ; Clear right-hand item area to floor color
+; End of problem area
+
+    CALL        NEW_RIGHT_HAND_ITEM             ; Recalculate weapon stats for new right-hand item
+    JP          INPUT_DEBOUNCE                  ; Wait for input debounce then return to main loop
+
+;==============================================================================
+; RECOLOR_ITEM
+;==============================================================================
+; Recolors a 4x4 character cell area in COLRAM with selective color replacement.
+; Searches for cells matching a specific color pattern and either replaces
+; with a new color or applies conditional recoloring based on comparison values.
+;
+; Algorithm:
+; 1. Process 4 rows of 4 characters each (16 cells total)
+; 2. For each cell, mask with DKGRY on BLK to check existing color
+; 3. If cell matches E register, apply conditional recoloring from C register
+; 4. Otherwise, apply base recoloring from D register
+; 5. Skip 36 cells between rows to advance to next row (40-4=36)
+;
+; Input:
+;   HL = Starting COLRAM address (e.g., COLRAM_F0_ITEM_IDX)
+;   D  = Base color for pattern matching
+;   E  = Comparison color for pattern matching
+;   C  = Conditional replacement color for matching cells
+;
+; Output:
+;   HL = Points to memory location after processed 4x4 area
+;   16 COLRAM cells updated with new color attributes
+;
+; Registers:
+; --- Start ---
+;   HL = Starting COLRAM address for 4x4 area
+;   D  = Base color for pattern matching
+;   E  = Comparison color for pattern matching
+;   C  = Conditional color for cells that match E
+;   A  = 4 (outer loop counter for rows)
+; --- In Process ---
+;   AF'= Preserved row counter during inner loops
+;   B  = 4 (inner loop counter for columns per row)
+;   A  = Cell color values, masked values, final color results
+; ---  End  ---
+;   HL = Advanced past 4x4 area (varies with memory layout)
+;   A  = Last processed color value
+;   B  = 0 (exhausted from inner loop)
+;   AF'= Exhausted outer loop counter
+;
+; Memory Modified: 16 COLRAM cells in 4x4 area starting at HL
+; Calls: None (leaf function)
+;==============================================================================
 RECOLOR_ITEM:
-    LD          A,0x4
-LAB_ram_e91c:
-    EX          AF,AF'
-    LD          B,0x4
-LAB_ram_e91f:
-    LD          A,(HL)
-    AND         $f0
-    CP          E
-    JP          Z,LAB_ram_e935
-    OR          D
-LAB_ram_e926:
-    LD          (HL),A
-    INC         HL
-    DJNZ        LAB_ram_e91f
-    PUSH        DE
-    LD          DE,$24								;  Jump ahead 36 cells
-								;  (40 - 4)
-    ADD         HL,DE
-    POP         DE
-    EX          AF,AF'
-    DEC         A
-    JP          NZ,LAB_ram_e91c
-    RET
-LAB_ram_e935:
-    LD          A,(HL)
-    AND         0xf
-    OR          C
-    JP          LAB_ram_e926
+    LD          A,0x4                           ; A = 4 rows to process
+RECOLOR_OUTER_LOOP:
+    EX          AF,AF'                          ; Preserve row counter in alternate register
+    LD          B,0x4                           ; B = 4 cells per row
+CHECK_FG_COLOR:
+    LD          A,(HL)                          ; Load current cell color from COLRAM
+    AND         $f0                             ; Mask to retain FG color
+    CP          E                               ; Compare with target match color (E)
+    JP          Z,CHANGE_COLORS                 ; If matches, jump to conditional recolor
+    OR          D                               ; No match: apply base recolor (OR with D)
+STORE_COLORS_LOOP:
+    LD          (HL),A                          ; Store updated color back to COLRAM
+    INC         HL                              ; Advance to next character cell
+    DJNZ        CHECK_FG_COLOR                  ; Decrement B, loop for 4 columns
+    PUSH        DE                              ; Preserve DE registers
+    LD          DE,$24                          ; DE = 36 (skip to next row: 40 - 4)
+    ADD         HL,DE                           ; Advance HL to start of next row
+    POP         DE                              ; Restore DE registers
+    EX          AF,AF'                          ; Restore row counter from alternate register
+    DEC         A                               ; Decrement row counter
+    JP          NZ,RECOLOR_OUTER_LOOP           ; If more rows, continue outer loop
+    RET                                         ; Return when all 4 rows processed
+CHANGE_COLORS:
+    LD          A,(HL)                          ; Reload current cell color
+    AND         $0f                             ; Mask to retain BG color
+    OR          C                               ; Apply conditional color from C register
+    JP          STORE_COLORS_LOOP               ; Jump back to store result and continue
+    
+;==============================================================================
+; WAIT_A_TICK
+;==============================================================================
+; Brief pause function that creates a short delay by calling the SLEEP routine
+; with a predetermined cycle count. Used for timing control and input debouncing
+; throughout the game to prevent rapid-fire inputs and provide smooth pacing.
+;
+; Input:
+;   None (uses fixed cycle count)
+;
+; Output:
+;   Brief delay executed, program flow continues after pause
+;
+; Registers:
+; --- Start ---
+;   BC = Will be loaded with cycle count
+; --- End ---
+;   BC = $8600 (cycle count value)
+;   Other registers preserved by SLEEP function
+;
+; Memory Modified: None (SLEEP may modify internal timing variables)
+; Calls: SLEEP
+;==============================================================================
 WAIT_A_TICK:
-    LD          BC,$8600								;  Sleep for 134 "cycles"
-    JP          SLEEP								;  byte SLEEP(short cycleCount)
+    LD          BC,$8600                        ; Load BC with 134 sleep cycles (0x86 = 134)
+    JP          SLEEP                           ; Jump to sleep routine: void SLEEP(short cycleCount)
+;==============================================================================
+; PICK_UP_F0_ITEM
+;==============================================================================
+; Removes an item from floor position F0 (directly in front of player) and
+; extracts the item's level information through bit manipulation. Clears the
+; floor graphics with empty space character and default floor colors, then
+; performs bit rotation operations to decode the item level from the item code.
+;
+; Item Level Extraction Algorithm:
+; 1. Rotate item code right twice to isolate level bits
+; 2. Use carry flag to build level value in D register
+; 3. Final level = (item_code >> 2) & 0x03 (bits 2-3 become bits 0-1)
+;
+; Input:
+;   A  = Item code to be picked up (contains encoded level in bits 2-3)
+;   BC = Pointer to floor item storage location
+;   D  = Will receive extracted level information
+;   CHRRAM_F0_ITEM_IDX and COLRAM_F0_ITEM_IDX contain item graphics
+;
+; Output:
+;   Floor position F0 cleared (graphics set to empty space)
+;   Item removed from floor storage (set to $FE = empty)
+;   D = Extracted item level (0-3 based on original bits 2-3 of item code)
+;   A = Modified item code after bit rotations
+;
+; Registers:
+; --- Start ---
+;   A  = Item code with level encoded in bits 2-3
+;   AF'= Available for temporary storage during UPDATE_F0_ITEM calls
+;   BC = Pointer to floor item storage location
+;   D  = Will receive level information through bit manipulation
+;   HL = Will point to CHRRAM and COLRAM addresses for graphics updates
+; --- In Process ---
+;   A  = $FE (empty item marker), $20 (space char), color values, item code
+;   AF'= Item code preservation during graphics clearing operations
+;   HL = CHRRAM_F0_ITEM_IDX, then COLRAM_F0_ITEM_IDX for graphics clearing
+;   D  = Progressive level value built through bit rotations
+; ---  End  ---
+;   A  = Final rotated item code value
+;   AF'= Restored item code (for level extraction)
+;   D  = Item level (0-3) extracted from original bits 2-3
+;   HL = Points to COLRAM_F0_ITEM_IDX area after clearing
+;   BC = Unchanged (still points to floor item storage)
+;   Floor graphics cleared to empty space with floor colors
+;
+; Memory Modified: Floor item storage (BC), CHRRAM_F0_ITEM_IDX area, COLRAM_F0_ITEM_IDX area
+; Calls: UPDATE_F0_ITEM (twice - for character and color clearing)
+;==============================================================================
 PICK_UP_F0_ITEM:
-    AND         A								;  Reset flags
-    EX          AF,AF'								;  Save item
-    LD          A,$fe								;  Empty item
-    LD          (BC),A
-    LD          HL,CHRRAM_F0_ITEM_IDX
-    LD          A,$20								;  SPACE char
-    CALL        UPDATE_F0_ITEM
-    LD          HL,COLRAM_F0_ITEM_IDX
-    LD          A,$df								;  DKGRN on DKGRY
-    CALL        UPDATE_F0_ITEM
-    EX          AF,AF'								;  Restore item
-    RRA								;  Rotate A right, A:0 to carry
-    RR          D								;  Rotate D right
-								;  Carry (from A:0) to D:7
-    RRA								;  Rotate A right, A:0 (was A:1) to carry
-    RL          D								;  Rotate D left, carry to D:0
-								;  D:7 to carry
-    RL          D								;  Rotate D left, carry to D;0
-								;  D:7 to carry
-								;  D  = item level
-    RET
+    AND         A                               ; Clear carry flag and test A for zero
+    EX          AF,AF'                          ; Save item code in alternate AF register
+    LD          A,$fe                           ; A = $FE (empty item marker)
+    LD          (BC),A                          ; Clear floor item storage (mark as empty)
+    LD          HL,CHRRAM_F0_ITEM_IDX           ; Point to F0 item character graphics in CHRRAM
+    LD          A,$20                           ; A = $20 (SPACE character)
+    CALL        UPDATE_F0_ITEM                  ; Clear F0 character graphics with space (4x4 area)
+    LD          HL,COLRAM_F0_ITEM_IDX           ; Point to F0 item color attributes in COLRAM
+    LD          A,COLOR(DKGRN,DKGRY)            ; A = DKGRN on DKGRY (floor color scheme)
+    CALL        UPDATE_F0_ITEM                  ; Clear F0 color graphics with floor colors (4x4 area)
+    EX          AF,AF'                          ; Restore original item code to A register
+    RRA                                         ; Rotate A right: bit 0 → carry, bits 7-1 → bits 6-0
+    RR          D                               ; Rotate D right: carry → bit 7, bits 7-1 → bits 6-0
+    RRA                                         ; Rotate A right again: bit 0 → carry, bits 6-0 → bits 5-0
+    RL          D                               ; Rotate D left: carry → bit 0, bit 7 → carry
+    RL          D                               ; Rotate D left again: carry → bit 0, bit 7 → carry
+                                                ; Net effect: D = (original_item_code >> 2) & 0x03
+                                                ; D now contains item level (0-3) from bits 2-3
+    RET                                         ; Return with level in D, floor cleared
 UPDATE_MELEE_OBJECTS:
     LD          A,0x4
 LAB_ram_e962:
     LD          BC,0x4
-    LDIR								;  = "OM"
+    LDIR
     DEC         A
     JP          Z,LAB_ram_e972
     LD          BC,$24
@@ -1240,7 +1400,7 @@ SUB_ram_e97d:
     LD          A,0x4
 LAB_ram_e97f:
     LD          BC,0x4
-    LDIR								;  = "OM"
+    LDIR
     DEC         A
     JP          Z,LAB_ram_e991
     EX          DE,HL
