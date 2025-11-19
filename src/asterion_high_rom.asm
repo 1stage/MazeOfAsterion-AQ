@@ -439,7 +439,7 @@ LAB_ram_e3d7:
     PUSH        HL
     ADD         HL,BC
     LD          DE,ITEM_MOVE_CHR_BUFFER
-    CALL        UPDATE_MELEE_OBJECTS
+    CALL        COPY_ITEM_GFX
     POP         HL
     LD          C,L
     LD          A,(RAM_AC)
@@ -757,7 +757,7 @@ ANIMATE_MELEE_ROUND:
     PUSH        HL
     ADD         HL,BC
     LD          DE,BYTE_ram_3a20
-    CALL        UPDATE_MELEE_OBJECTS
+    CALL        COPY_ITEM_GFX
     POP         BC
     LD          B,0x0
     LD          A,(RAM_AF)
@@ -856,7 +856,7 @@ DO_SWAP_HANDS:
     CALL        SUB_ram_ea62
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
     LD          DE,ITEM_MOVE_CHR_BUFFER
-    CALL        UPDATE_MELEE_OBJECTS
+    CALL        COPY_ITEM_GFX
     LD          HL,CHRRAM_LEFT_HD_GFX_IDX
     LD          DE,CHRRAM_RIGHT_HD_GFX_IDX
     CALL        SUB_ram_e99e
@@ -1185,7 +1185,7 @@ PICK_UP_NON_TREASURE:
     CALL        SUB_ram_ea62                    ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX      ; Point to right-hand graphics in CHRRAM
     LD          DE,ITEM_MOVE_CHR_BUFFER         ; Point to temporary graphics buffer
-    CALL        UPDATE_MELEE_OBJECTS            ; Copy right-hand graphics to temp buffer (4x4 chars)
+    CALL        COPY_ITEM_GFX            ; Copy right-hand graphics to temp buffer (4x4 chars)
     LD          HL,CHRRAM_F0_ITEM_IDX           ; Point to F0 floor item graphics in CHRRAM
     LD          DE,CHRRAM_RIGHT_HD_GFX_IDX      ; Point to right-hand graphics position
     CALL        SUB_ram_e99e                    ; Copy F0 item graphics to right-hand position
@@ -1382,109 +1382,289 @@ PICK_UP_F0_ITEM:
                                                 ; D now contains item level (0-3) from bits 2-3
     RET                                         ; Return with level in D, floor cleared
 
-; This section needs annotation.
-UPDATE_MELEE_OBJECTS:
-    LD          A,0x4
+;==============================================================================
+; COPY_ITEM_GFX
+;==============================================================================
+; Copies a 4x4 character block from source to destination address.
+; Automatically handles both CHRRAM and COLRAM addressing by detecting the
+; memory page ($30xx for CHRRAM, $34xx+ for COLRAM) and adjusting the copy
+; stride appropriately for screen memory layout.
+;
+; Memory Layout:
+; - Screen is 40 characters wide, so next row = current + 40 ($28)
+; - After copying 4 characters in a row, skip 36 positions to next row
+; - If crossing from CHRRAM to COLRAM ($3400+), add $384 offset
+;
+; Registers:
+; --- Start ---
+;   HL = Source address for 4x4 block
+;   DE = Destination address for 4x4 block
+;   A  = Row counter (will be set to 4)
+; --- In Process ---
+;   A  = Row counter (4→3→2→1→0)
+;   BC = Copy length (4 chars) and row skip offset ($24 = 36)
+;   HL = Current source position advancing through 4x4 area
+;   DE = Current destination position advancing through 4x4 area
+;   H  = Used for memory page detection ($30-$33 vs $34+)
+; ---  End  ---
+;   A  = 0 (exhausted row counter) or memory page value for COLRAM handling
+;   BC = $384 (COLRAM offset) if memory page transition occurred
+;   HL = Final source position after all copying and potential page adjustment
+;   DE = Final destination position after all copying and potential page adjustment
+;
+; Memory Modified: 16 memory locations in 4x4 destination area
+; Calls: None (uses LDIR instruction for block copying)
+;==============================================================================
+COPY_ITEM_GFX:
+    LD          A,0x4                           ; Set row counter to 4 (copy 4 rows)
 LAB_ram_e962:
-    LD          BC,0x4
-    LDIR
-    DEC         A
-    JP          Z,LAB_ram_e972
-    LD          BC,$24
-    ADD         HL,BC
-    JP          LAB_ram_e962
+    LD          BC,0x4                          ; Set BC to 4 (copy 4 characters per row)
+    LDIR                                        ; Copy 4 bytes from (HL) to (DE), auto-increment both
+    DEC         A                               ; Decrement row counter
+    JP          Z,LAB_ram_e972                  ; If all 4 rows copied, jump to memory page check
+    LD          BC,$24                          ; BC = 36 (skip to next row: 40 - 4 = 36)
+    ADD         HL,BC                           ; Advance HL to start of next source row
+    JP          LAB_ram_e962                    ; Loop back to copy next row
 LAB_ram_e972:
-    LD          A,H
-    CP          $34
-    RET         NC
-    LD          BC,$384
-    ADD         HL,BC
-    JP          UPDATE_MELEE_OBJECTS
+    LD          A,H                             ; Load high byte of HL for memory page detection
+    CP          $34                             ; Compare with $34 (COLRAM start page)
+    RET         NC                              ; If HL >= $34xx (in COLRAM range), return
+    LD          BC,$384                         ; BC = $384 (offset from CHRRAM to corresponding COLRAM)
+    ADD         HL,BC                           ; Adjust HL from CHRRAM ($30xx) to COLRAM ($34xx)
+    JP          COPY_ITEM_GFX                   ; Recursive call to copy corresponding COLRAM area
+
+;==============================================================================
+; SUB_ram_e97d
+;==============================================================================
+; Copies a 4x4 character block from source to destination with both source and
+; destination advancing. Similar to COPY_ITEM_GFX but handles dual
+; pointer advancement where both HL and DE need row skipping. Also includes
+; COLRAM page transition detection for the destination pointer.
+;
+; Key Difference from COPY_ITEM_GFX:
+; - Both source (HL) and destination (DE) pointers advance by row stride
+; - COLRAM detection performed on destination (D register) rather than source
+; - Used for copying from temporary buffers back to display areas
+;
+; Registers:
+; --- Start ---
+;   HL = Source address for 4x4 block
+;   DE = Destination address for 4x4 block  
+;   A  = Row counter (will be set to 4)
+; --- In Process ---
+;   A  = Row counter (4→3→2→1→0)
+;   BC = Copy length (4 chars) and row skip offset ($24 = 36)
+;   HL = Current source position advancing through 4x4 area
+;   DE = Current destination position advancing through 4x4 area
+;   D  = Used for destination memory page detection ($30-$33 vs $34+)
+; ---  End  ---
+;   A  = Final row counter value or memory page value
+;   BC = $384 (COLRAM offset) if destination page transition occurred
+;   HL = Final source position after all copying
+;   DE = Final destination position after copying and potential page adjustment
+;
+; Memory Modified: 16 memory locations in 4x4 destination area
+; Calls: None (uses LDIR instruction for block copying)
+;==============================================================================
 SUB_ram_e97d:
-    LD          A,0x4
+    LD          A,0x4                           ; Set row counter to 4 (copy 4 rows)
 LAB_ram_e97f:
-    LD          BC,0x4
-    LDIR
-    DEC         A
-    JP          Z,LAB_ram_e991
-    EX          DE,HL
-    LD          BC,$24
-    ADD         HL,BC
-    EX          DE,HL
-    JP          LAB_ram_e97f
+    LD          BC,0x4                          ; Set BC to 4 (copy 4 characters per row)
+    LDIR                                        ; Copy 4 bytes from (HL) to (DE), auto-increment both
+    DEC         A                               ; Decrement row counter
+    JP          Z,LAB_ram_e991                  ; If all 4 rows copied, jump to memory page check
+    EX          DE,HL                           ; Swap HL and DE for destination pointer advancement
+    LD          BC,$24                          ; BC = 36 (skip to next row: 40 - 4 = 36)
+    ADD         HL,BC                           ; Advance destination pointer to next row
+    EX          DE,HL                           ; Restore HL as source, DE as destination
+    JP          LAB_ram_e97f                    ; Loop back to copy next row
 LAB_ram_e991:
-    LD          A,D
-    CP          $34
-    RET         NC
-    LD          BC,$384
-    EX          DE,HL
-    ADD         HL,BC
-    EX          DE,HL
-    JP          SUB_ram_e97d
+    LD          A,D                             ; Load high byte of DE for destination memory page detection
+    CP          $34                             ; Compare with $34 (COLRAM start page)
+    RET         NC                              ; If DE >= $34xx (in COLRAM range), return
+    LD          BC,$384                         ; BC = $384 (offset from CHRRAM to corresponding COLRAM)
+    EX          DE,HL                           ; Swap to adjust destination pointer
+    ADD         HL,BC                           ; Adjust DE from CHRRAM ($30xx) to COLRAM ($34xx)
+    EX          DE,HL                           ; Restore HL as source, DE as adjusted destination
+    JP          SUB_ram_e97d                    ; Recursive call to copy corresponding COLRAM area
+
+;==============================================================================
+; SUB_ram_e99e  
+;==============================================================================
+; Copies a 4x4 character block from source to destination with synchronized
+; row advancement for both pointers. Both source and destination advance by
+; the row stride, and both are checked for COLRAM page transitions. This
+; function handles cases where both source and destination areas need to
+; maintain proper screen memory alignment.
+;
+; Key Difference from other copy functions:
+; - Both HL and DE advance by row stride after each row copy
+; - Both source (HL) and destination (DE) checked for COLRAM transition
+; - Synchronized dual-pointer advancement for aligned memory operations
+;
+; Registers:
+; --- Start ---
+;   HL = Source address for 4x4 block
+;   DE = Destination address for 4x4 block
+;   A  = Row counter (will be set to 4)
+; --- In Process ---
+;   A  = Row counter (4→3→2→1→0)  
+;   BC = Copy length (4 chars) and row skip offset ($24 = 36)
+;   HL = Current source position advancing through 4x4 area
+;   DE = Current destination position advancing through 4x4 area
+;   H  = Used for source memory page detection ($30-$33 vs $34+)
+; ---  End  ---
+;   A  = Final row counter or memory page value
+;   BC = $384 (COLRAM offset) if page transitions occurred
+;   HL = Final source position after copying and potential page adjustment
+;   DE = Final destination position after copying and potential page adjustment
+;
+; Memory Modified: 16 memory locations in 4x4 destination area
+; Calls: None (uses LDIR instruction for block copying)
+;==============================================================================
 SUB_ram_e99e:
-    LD          A,0x4
+    LD          A,0x4                           ; Set row counter to 4 (copy 4 rows)
 LAB_ram_e9a0:
-    LD          BC,0x4
-    LDIR
-    DEC         A
-    JP          Z,LAB_ram_e9b3
-    LD          BC,$24
-    ADD         HL,BC
-    EX          DE,HL
-    ADD         HL,BC
-    EX          DE,HL
-    JP          LAB_ram_e9a0
+    LD          BC,0x4                          ; Set BC to 4 (copy 4 characters per row)
+    LDIR                                        ; Copy 4 bytes from (HL) to (DE), auto-increment both
+    DEC         A                               ; Decrement row counter  
+    JP          Z,LAB_ram_e9b3                  ; If all 4 rows copied, jump to memory page check
+    LD          BC,$24                          ; BC = 36 (skip to next row: 40 - 4 = 36)
+    ADD         HL,BC                           ; Advance source pointer to next row
+    EX          DE,HL                           ; Swap to advance destination pointer
+    ADD         HL,BC                           ; Advance destination pointer to next row
+    EX          DE,HL                           ; Restore HL as source, DE as destination
+    JP          LAB_ram_e9a0                    ; Loop back to copy next row
 LAB_ram_e9b3:
-    LD          A,H
-    CP          $34
-    RET         NC
-    LD          BC,$384
-    ADD         HL,BC
-    EX          DE,HL
-    ADD         HL,BC
-    EX          DE,HL
-    JP          SUB_ram_e99e
+    LD          A,H                             ; Load high byte of HL for source memory page detection
+    CP          $34                             ; Compare with $34 (COLRAM start page)
+    RET         NC                              ; If HL >= $34xx (in COLRAM range), return
+    LD          BC,$384                         ; BC = $384 (offset from CHRRAM to corresponding COLRAM)
+    ADD         HL,BC                           ; Adjust source from CHRRAM ($30xx) to COLRAM ($34xx)
+    EX          DE,HL                           ; Swap to adjust destination pointer
+    ADD         HL,BC                           ; Adjust destination from CHRRAM ($30xx) to COLRAM ($34xx)
+    EX          DE,HL                           ; Restore HL as source, DE as destination
+    JP          SUB_ram_e99e                    ; Recursive call to copy corresponding COLRAM areas
+
+;==============================================================================
+; SUB_ram_e9c1  
+;==============================================================================
+; Item attribute lookup table function that returns different attribute values
+; based on item type or level input. This function implements a switch-like
+; structure that maps input values to specific attribute combinations stored
+; in the BC register pair.
+;
+; Mapping Table (assumes A is pre-decremented before first call):
+; Input A=0: BC = $0501 (B=05, C=01) - Physical=5, Spirit=1
+; Input A=1: BC = $0804 (B=08, C=04) - Unknown attributes  
+; Input A=2: BC = LAB_ram_1208 ($1208) - Memory address reference
+; Input A=3: BC = BYTE_ram_2613 ($2613) - Memory address reference  
+; Input A=4+: BC = $0000 (B=00, C=00) - Default/null values
+;
+; Input:
+;   A = Item type or level index (0-4+, will be decremented in function)
+;
+; Output:
+;   BC = Attribute values or memory address based on input A
+;   Z flag set if A reached zero during decrementation
+;
+; Registers:
+; --- Start ---
+;   A = Item type/level index for lookup
+; --- In Process ---
+;   A = Decremented value being tested against zero
+; ---  End  ---
+;   A = Final decremented value (may be negative)
+;   BC = Result attribute values or memory address
+;   Flags = Z flag reflects final comparison state
+;
+; Memory Modified: None
+; Calls: None (simple lookup table implementation)
+;==============================================================================
 SUB_ram_e9c1:
-    DEC         A
-    JP          NZ,LAB_ram_e9c8
-    LD          BC,$501								;  PHYS = 5
-								;  SPRT = 1
-    RET
+    DEC         A                               ; Decrement A and test for specific values
+    JP          NZ,LAB_ram_e9c8                ; If A≠0, try next case
+    LD          BC,$501                         ; Case A=0: Load PHYS=5, SPRT=1 attributes
+    RET                                         ; Return with attribute values
 LAB_ram_e9c8:
-    DEC         A
-    JP          NZ,LAB_ram_e9cf
-    LD          BC,$804
-    RET
+    DEC         A                               ; Decrement A again (now A-1 → A-2)
+    JP          NZ,LAB_ram_e9cf                ; If A≠0, try next case  
+    LD          BC,$804                         ; Case A=1: Load attributes $08,$04
+    RET                                         ; Return with attribute values
 LAB_ram_e9cf:
-    DEC         A
-    JP          NZ,LAB_ram_e9d6
-    LD          BC,LAB_ram_1208
-    RET
+    DEC         A                               ; Decrement A again (now A-2 → A-3)
+    JP          NZ,LAB_ram_e9d6                ; If A≠0, try next case
+    LD          BC,LAB_ram_1208                 ; Case A=2: Load memory address reference
+    RET                                         ; Return with address
 LAB_ram_e9d6:
-    DEC         A
-    JP          NZ,LAB_ram_e9dd
-    LD          BC,BYTE_ram_2613								;  = $FF
-    RET
+    DEC         A                               ; Decrement A again (now A-3 → A-4)
+    JP          NZ,LAB_ram_e9dd                ; If A≠0, use default case
+    LD          BC,BYTE_ram_2613                ; Case A=3: Load memory address reference
+    RET                                         ; Return with address
 LAB_ram_e9dd:
-    LD          BC,0x0
-    RET
+    LD          BC,0x0                          ; Default case A=4+: Load null values
+    RET                                         ; Return with zero values
+
+;==============================================================================
+; SUB_ram_e9e1  
+;==============================================================================
+; Right-hand item validation and memory update function. Checks if the right
+; hand contains an item ($FE = empty), and either aborts the calling operation
+; if empty, or updates a memory buffer with item information if an item is
+; present. This function is typically called as part of item manipulation
+; operations to ensure valid item state.
+;
+; Key Operations:
+; - Validates right-hand item exists (not $FE empty marker)
+; - If empty: Pops return address and jumps to NO_ACTION_TAKEN
+; - If item present: Updates memory buffer pointed to by BC with item data
+; - Uses H register value as part of item data written to buffer
+;
+; Input:
+;   BC = Pointer to memory buffer for item data storage
+;   H  = Item data value to be stored in buffer
+;   RIGHT_HAND_ITEM = Current right-hand item ($FE if empty)
+;   Stack contains return address that may be discarded
+;
+; Output:
+;   If RIGHT_HAND_ITEM = $FE: Jumps to NO_ACTION_TAKEN (no return)
+;   If item present: Memory buffer updated with item data structure
+;   BC pointer advanced through memory locations during update
+;
+; Registers:
+; --- Start ---
+;   A  = Will be loaded with RIGHT_HAND_ITEM value
+;   BC = Pointer to memory buffer for data storage  
+;   H  = Item data value to store
+; --- In Process ---
+;   A  = RIGHT_HAND_ITEM value, then $FF, then H value, then $FE
+;   BC = Memory buffer pointer, decremented and incremented for access
+; ---  End  ---
+;   A  = $FE (if normal return) or undefined (if NO_ACTION_TAKEN)
+;   BC = Advanced pointer in memory buffer
+;   Stack = May be modified (POP HL) if item validation fails
+;
+; Memory Modified: 3 consecutive locations starting at BC pointer
+; Calls: NO_ACTION_TAKEN (conditional jump, not return)
+;==============================================================================
 SUB_ram_e9e1:
-    LD          A,(RIGHT_HAND_ITEM)
-    CP          $fe
-    JP          NZ,LAB_ram_e9ec
-    POP         HL
-    JP          NO_ACTION_TAKEN
+    LD          A,(RIGHT_HAND_ITEM)             ; Load current right-hand item
+    CP          $fe                             ; Compare with $FE (empty item marker)
+    JP          NZ,LAB_ram_e9ec                ; If item present, jump to memory update
+    POP         HL                              ; Discard return address from stack
+    JP          NO_ACTION_TAKEN                 ; Jump to no-action handler (abort operation)
+; --- Memory update section (item present in right hand) ---
 LAB_ram_e9ec:
-    LD          A,$ff
-    LD          (BC),A
-    DEC         C
-    DEC         C
-    LD          A,H
-    LD          (BC),A
-    INC         C
-    LD          A,$fe
-    LD          (BC),A
-    RET
+    LD          A,$ff                           ; Load $FF marker value
+    LD          (BC),A                          ; Store $FF at BC memory location
+    DEC         C                               ; Move to previous memory location (BC-1)
+    DEC         C                               ; Move to previous memory location (BC-2)
+    LD          A,H                             ; Load H register value (item data)
+    LD          (BC),A                          ; Store item data at BC-2 location
+    INC         C                               ; Move forward to BC-1 location
+    LD          A,$fe                           ; Load $FE marker value
+    LD          (BC),A                          ; Store $FE at BC-1 location
+    RET                                         ; Return to caller
 DO_ROTATE_PACK:
     LD          HL,INV_ITEM_SLOT_1
     LD          BC,ITEM_MOVE_COL_BUFFER
@@ -1506,7 +1686,7 @@ LAB_ram_ea0c:
     CALL        SUB_ram_ea62
     LD          HL,DAT_ram_31b4
     LD          DE,ITEM_MOVE_CHR_BUFFER
-    CALL        UPDATE_MELEE_OBJECTS
+    CALL        COPY_ITEM_GFX
     LD          HL,DAT_ram_3111
     LD          DE,DAT_ram_31b4
     CALL        SUB_ram_e99e
@@ -1541,7 +1721,7 @@ DO_SWAP_PACK:
     CALL        SUB_ram_ea62
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
     LD          DE,ITEM_MOVE_CHR_BUFFER
-    CALL        UPDATE_MELEE_OBJECTS
+    CALL        COPY_ITEM_GFX
     LD          HL,DAT_ram_31b4
     LD          DE,CHRRAM_RIGHT_HD_GFX_IDX
     CALL        SUB_ram_e99e
