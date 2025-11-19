@@ -45,6 +45,10 @@ DKGRN   EQU 13     ; Dark Green
 DKRED   EQU 14     ; Dark Red
 DKGRY   EQU 15     ; Dark Grey
 
+NOCLR   EQU 0      ; No color / NULL
+
 #define COLOR(fg,bg) (fg * 16) + bg
+
+#define TWOCOLOR(fga,bga,fgb,bgb) (((fga * 16) + bga) * 256) + (fgb * 16) + bgb
 
 #define RECT(width,height) (width * 256) + height

@@ -1194,20 +1194,24 @@ PICK_UP_NON_TREASURE:
     CALL        SUB_ram_e97d                    ; Copy temp buffer to F0 position (complete swap)
 
     LD          HL,COLRAM_F0_ITEM_IDX           ; Point to F0 item color attributes in COLRAM
-                                                ;   D  = Target background color
-                                                ;   E  = Comparison color for pattern matching
-    LD          DE,$0F0F                        ; 
-    LD          C,COLOR(DKGRY,BLK)              ; C = DKGRY on BLK (floor color for comparison)
+    LD          DE,TWOCOLOR(NOCLR,DKGRY,DKGRY,NOCLR)      ; NOCLR, DKGRY, BLK, NOCLR
+                                                        ;   D  = Target BG color: 
+                                                        ;       $0 in upper nybble, BG in lower nybble
+                                                        ;   E  = Comparison FG color: 
+                                                        ;       FG in upper nybble, $0 in lower nybble
+    LD          C,COLOR(BLK,NOCLR)            ;   C  = Target FG color for reversed colors that match E: 
+                                                ;       FG in upper nybble, $0 in lower nybble
     CALL        RECOLOR_ITEM                    ; Recolor F0 item area (4x4 cells)
 
-; Problem area    
     LD          HL,COLRAM_RH_ITEM_IDX           ; Point to right-hand item color attributes
-                                                ;   D  = Target background color
-                                                ;   E  = Comparison color for pattern matching
-    LD          DE,$00F0                        ;
-    LD          C,COLOR(BLK,BLK)                ; C = BLK on BLK comparison color (upper nybble only???)
+    LD          DE,TWOCOLOR(NOCLR,BLK,BLK,NOCLR)      ; NOCLR, BLK, DKGRY, NOCLR
+                                                        ;   D  = Target BG color: 
+                                                        ;       $0 in upper nybble, BG in lower nybble
+                                                        ;   E  = Comparison FG color: 
+                                                        ;       FG in upper nybble, $0 in lower nybble
+    LD          C,COLOR(DKGRY,NOCLR)               ;   C  = Target FG color for reversed colors that match E: 
+                                                ;       FG in upper nybble, $0 in lower nybble
     CALL        RECOLOR_ITEM                    ; Clear right-hand item area to floor color
-; End of problem area
 
     CALL        NEW_RIGHT_HAND_ITEM             ; Recalculate weapon stats for new right-hand item
     JP          INPUT_DEBOUNCE                  ; Wait for input debounce then return to main loop
@@ -1226,12 +1230,6 @@ PICK_UP_NON_TREASURE:
 ; 4. Otherwise, apply base recoloring from D register
 ; 5. Skip 36 cells between rows to advance to next row (40-4=36)
 ;
-; Input:
-;   HL = Starting COLRAM address (e.g., COLRAM_F0_ITEM_IDX)
-;   D  = Base color for pattern matching
-;   E  = Comparison color for pattern matching
-;   C  = Conditional replacement color for matching cells
-;
 ; Output:
 ;   HL = Points to memory location after processed 4x4 area
 ;   16 COLRAM cells updated with new color attributes
@@ -1239,9 +1237,12 @@ PICK_UP_NON_TREASURE:
 ; Registers:
 ; --- Start ---
 ;   HL = Starting COLRAM address for 4x4 area
-;   D  = Base color for pattern matching
-;   E  = Comparison color for pattern matching
-;   C  = Conditional color for cells that match E
+;   D  = Target BG color: 
+;       $0 in upper nybble, BG in lower nybble
+;   E  = Comparison FG color: 
+;       FG in upper nybble, $0 in lower nybble 
+;   C  = Target BG color for FG colors that match E: 
+;       $0 in upper nybble, BG in lower nybble
 ;   A  = 4 (outer loop counter for rows)
 ; --- In Process ---
 ;   AF'= Preserved row counter during inner loops
@@ -1264,8 +1265,8 @@ RECOLOR_OUTER_LOOP:
 CHECK_FG_COLOR:
     LD          A,(HL)                          ; Load current cell color from COLRAM
     AND         $f0                             ; Mask to retain FG color
-    CP          E                               ; Compare with target match color (E)
-    JP          Z,CHANGE_COLORS                 ; If matches, jump to conditional recolor
+    CP          E                               ; Compare with FG color in E
+    JP          Z,CHANGE_REVERSED_COLORS        ; If FG colors match, jump to conditional recolor
     OR          D                               ; No match: apply base recolor (OR with D)
 STORE_COLORS_LOOP:
     LD          (HL),A                          ; Store updated color back to COLRAM
@@ -1279,7 +1280,7 @@ STORE_COLORS_LOOP:
     DEC         A                               ; Decrement row counter
     JP          NZ,RECOLOR_OUTER_LOOP           ; If more rows, continue outer loop
     RET                                         ; Return when all 4 rows processed
-CHANGE_COLORS:
+CHANGE_REVERSED_COLORS:
     LD          A,(HL)                          ; Reload current cell color
     AND         $0f                             ; Mask to retain BG color
     OR          C                               ; Apply conditional color from C register
@@ -1369,6 +1370,7 @@ PICK_UP_F0_ITEM:
     CALL        UPDATE_F0_ITEM                  ; Clear F0 character graphics with space (4x4 area)
     LD          HL,COLRAM_F0_ITEM_IDX           ; Point to F0 item color attributes in COLRAM
     LD          A,COLOR(DKGRN,DKGRY)            ; A = DKGRN on DKGRY (floor color scheme)
+    ; LD          A,COLOR(BLK,DKGRY)              ; A = BLK on DKGRY (floor color scheme)
     CALL        UPDATE_F0_ITEM                  ; Clear F0 color graphics with floor colors (4x4 area)
     EX          AF,AF'                          ; Restore original item code to A register
     RRA                                         ; Rotate A right: bit 0 → carry, bits 7-1 → bits 6-0
@@ -1379,6 +1381,8 @@ PICK_UP_F0_ITEM:
                                                 ; Net effect: D = (original_item_code >> 2) & 0x03
                                                 ; D now contains item level (0-3) from bits 2-3
     RET                                         ; Return with level in D, floor cleared
+
+; This section needs annotation.
 UPDATE_MELEE_OBJECTS:
     LD          A,0x4
 LAB_ram_e962:
@@ -1421,7 +1425,7 @@ SUB_ram_e99e:
     LD          A,0x4
 LAB_ram_e9a0:
     LD          BC,0x4
-    LDIR								;  = "OM"
+    LDIR
     DEC         A
     JP          Z,LAB_ram_e9b3
     LD          BC,$24
