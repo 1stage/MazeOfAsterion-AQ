@@ -1,0 +1,31 @@
+; BACKUP OF PICK_UP_NON_TREASURE PARAMETERS - Attempt with two-pass approach
+; =============================================================================
+; Lines ~1195-1220 in asterion_high_rom.asm
+; Created: Session 2025-11-26
+
+    LD          HL,COLRAM_F0_ITEM_IDX           ; Point to F0 item color attributes in COLRAM
+    LD          DE,TWOCOLOR(NOCLR,DKGRY,DKGRN,NOCLR)      ; NOCLR, DKGRY, DKGRN, NOCLR (D=$0F to restore floor BG)
+                                                        ;   D  = Target BG color: 
+                                                        ;       $0 in upper nybble, BG in lower nybble
+                                                        ;   E  = Comparison FG color: 
+                                                        ;       FG in upper nybble, $0 in lower nybble
+    LD          C,COLOR(BLK,DKGRY)              ;   C  = Use DKGRY BG in FG-change path for matches
+    CALL        RECOLOR_ITEM                    ; Recolor F0 item area (4x4 cells)
+
+    LD          HL,COLRAM_RH_ITEM_IDX           ; Point to right-hand item color attributes
+    LD          DE,TWOCOLOR(NOCLR,DKGRY,DKGRN,NOCLR)    ; For pickup: detect reversed FG (DKGRY) via BG nibble
+                                                        ;   D  = Target BG color: 
+                                                        ;       $0 in upper nybble, BG in lower nybble
+                                                        ;   E  = Comparison FG color: 
+                                                        ;       FG in upper nybble, $0 in lower nybble
+    LD          C,COLOR(BLK,NOCLR)              ;   C  = Set FG to BLK for reversed cells
+    CALL        RECOLOR_ITEM                    ; Clear right-hand item area to floor color
+
+    ; After recolor, ensure RH BG is BLK for all 4x4 cells
+    LD          HL,COLRAM_RH_ITEM_IDX           ; Start of RH color block
+    CALL        CLEAR_BG_TO_BLK                 ; AND $F0 across 4x4 to zero BG nibble
+
+    CALL        NEW_RIGHT_HAND_ITEM             ; Recalculate weapon stats for new right-hand item
+    JP          INPUT_DEBOUNCE                  ; Wait for input debounce then return to main loop
+
+; END OF BACKUP

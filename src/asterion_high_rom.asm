@@ -67,8 +67,14 @@ BLANK_SCRN:
     LD          B,$20								; SPACE char
     CALL        FILL_FULL_1024
     LD          HL,COLRAM
-    LD          B,COLOR(DKGRN,BLK)					; DKGRN on BLK
+    LD          B,COLOR(DKGRY,BLK)					; DKGRY on BLK
     CALL        FILL_FULL_1024
+
+    LD          A,COLOR(DKGRN,BLK)                  ; DKGRN on BLK
+    LD          HL,COLRAM_PHYS_STATS_1000           
+    LD          BC,RECT(9,3)                        ; 9 x 3 rectangle
+    CALL        FILL_CHRCOL_RECT
+
     LD          DE,STATS_TXT						; DE = STATS_TXT
     LD          HL,CHRRAM_STATS_TOP					; HL = CHRRAM_STATS_TOP
     LD          B,COLOR(DKGRN,BLK)					; DKGRN on BLK
@@ -85,6 +91,7 @@ BLANK_SCRN:
     CALL        REDRAW_STATS
     LD          HL,$20
     LD          (BYTE_ram_3aa9),HL
+
     LD          A,$14
     LD          (FOOD_INV),A						; Set starting FOOD_INV  = 14
     LD          (ARROW_INV),A						; Set starting ARROW INV = 14
@@ -1194,7 +1201,7 @@ PICK_UP_NON_TREASURE:
     CALL        COPY_GFX_FROM_BUFFER            ; Copy temp buffer to F0 position (complete swap)
 
     LD          HL,COLRAM_F0_ITEM_IDX           ; Point to F0 item color attributes in COLRAM
-    LD          DE,TWOCOLOR(NOCLR,DKGRY,DKGRN,NOCLR)      ; NOCLR, DKGRY, DKGRN, NOCLR
+    LD          DE,TWOCOLOR(NOCLR,DKGRY,DKGRY,NOCLR)      ; NOCLR, DKGRY, DKGRY, NOCLR
                                                         ;   D  = Target BG color: 
                                                         ;       $0 in upper nybble, BG in lower nybble
                                                         ;   E  = Comparison FG color: 
@@ -1204,7 +1211,7 @@ PICK_UP_NON_TREASURE:
     CALL        RECOLOR_ITEM                    ; Recolor F0 item area (4x4 cells)
 
     LD          HL,COLRAM_RH_ITEM_IDX           ; Point to right-hand item color attributes
-    LD          DE,TWOCOLOR(NOCLR,BLK,DKGRN,NOCLR)      ; NOCLR, BLK, DKGRN, NOCLR
+    LD          DE,TWOCOLOR(NOCLR,BLK,DKGRY,NOCLR)      ; NOCLR, BLK, DKGRY, NOCLR
                                                         ;   D  = Target BG color: 
                                                         ;       $0 in upper nybble, BG in lower nybble
                                                         ;   E  = Comparison FG color: 
@@ -1266,7 +1273,7 @@ CHECK_FG_COLOR:
     LD          A,(HL)                          ; Load current cell color from COLRAM
     AND         $f0                             ; Mask to retain FG color
     CP          E                               ; Compare with FG color in E
-    JP          Z,CHANGE_REVERSED_COLORS        ; If FG colors match, jump to conditional recolor
+    JP          Z,CHANGE_FG_COLOR               ; If FG colors match, jump to conditional recolor
     OR          D                               ; No match: apply base recolor (OR with D)
 STORE_COLORS_LOOP:
     LD          (HL),A                          ; Store updated color back to COLRAM
@@ -1280,7 +1287,7 @@ STORE_COLORS_LOOP:
     DEC         A                               ; Decrement row counter
     JP          NZ,RECOLOR_OUTER_LOOP           ; If more rows, continue outer loop
     RET                                         ; Return when all 4 rows processed
-CHANGE_REVERSED_COLORS:
+CHANGE_FG_COLOR:
     LD          A,(HL)                          ; Reload current cell color
     AND         $0f                             ; Mask to retain BG color
     OR          C                               ; Apply conditional color from C register
@@ -1370,8 +1377,7 @@ PICK_UP_F0_ITEM:
     LD          A,$20                           ; A = $20 (SPACE character)
     CALL        UPDATE_F0_ITEM                  ; Clear F0 character graphics with space (4x4 area)
     LD          HL,COLRAM_F0_ITEM_IDX           ; Point to F0 item color attributes in COLRAM
-    LD          A,COLOR(DKGRN,DKGRY)            ; A = DKGRN on DKGRY (floor color scheme)
-    ; LD          A,COLOR(BLK,DKGRY)              ; A = BLK on DKGRY (floor color scheme)
+    LD          A,COLOR(BLK,DKGRY)              ; A = BLK on DKGRY (floor color scheme)
     CALL        UPDATE_F0_ITEM                  ; Clear F0 color graphics with floor colors (4x4 area)
     EX          AF,AF'                          ; Restore original item code to A register
     RRA                                         ; Rotate A right: bit 0 → carry, bits 7-1 → bits 6-0
