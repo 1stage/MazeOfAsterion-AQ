@@ -64,19 +64,19 @@ DRAW_TITLE:
     RET
 BLANK_SCRN:
     LD          HL,CHRRAM
-    LD          B,$20								;  SPACE char
-    CALL        FILL_FULL_1024								;  byte FILL_FULL_1024(word chrColValue...
+    LD          B,$20								; SPACE char
+    CALL        FILL_FULL_1024
     LD          HL,COLRAM
-    LD          B,$d0								;  DKGRN on BLK
-    CALL        FILL_FULL_1024								;  byte FILL_FULL_1024(word chrColValue...
-    LD          DE,STATS_TXT								;  DE = STATS_TXT
-    LD          HL,CHRRAM_STATS_TOP								;  HL = CHRRAM_STATS_TOP
-    LD          B,$d0								;  DKGRN on BLK
+    LD          B,COLOR(DKGRN,BLK)					; DKGRN on BLK
+    CALL        FILL_FULL_1024
+    LD          DE,STATS_TXT						; DE = STATS_TXT
+    LD          HL,CHRRAM_STATS_TOP					; HL = CHRRAM_STATS_TOP
+    LD          B,COLOR(DKGRN,BLK)					; DKGRN on BLK
     CALL        GFX_DRAW
     LD          HL,CHRRRAM_HEALTH_SPACER_IDX
     CALL        GFX_DRAW
-    LD          HL,$30								;  Set starting PHYS HEALTH = 30
-    LD          E,$15								;  Set starting SPRT HEALTH = 15
+    LD          HL,$30								; Set starting PHYS HEALTH = 30
+    LD          E,$15								; Set starting SPRT HEALTH = 15
     LD          (PLAYER_PHYS_HEALTH),HL
     LD          (PLAYER_PHYS_HEALTH_MAX),HL
     LD          A,E
@@ -86,9 +86,9 @@ BLANK_SCRN:
     LD          HL,$20
     LD          (BYTE_ram_3aa9),HL
     LD          A,$14
-    LD          (FOOD_INV),A								;  Set starting FOOD_INV  = 14
-    LD          (ARROW_INV),A								;  Set starting ARROW INV = 14
-    LD          B,$10								;  RED on BLK
+    LD          (FOOD_INV),A						; Set starting FOOD_INV  = 14
+    LD          (ARROW_INV),A						; Set starting ARROW INV = 14
+    LD          B,COLOR(RED,BLK)					; RED on BLK
     LD          HL,CHRRAM_LEFT_HAND_ITEM_IDX
     LD          DE,BOW
     CALL        GFX_DRAW
@@ -1194,17 +1194,17 @@ PICK_UP_NON_TREASURE:
     CALL        COPY_GFX_FROM_BUFFER            ; Copy temp buffer to F0 position (complete swap)
 
     LD          HL,COLRAM_F0_ITEM_IDX           ; Point to F0 item color attributes in COLRAM
-    LD          DE,TWOCOLOR(NOCLR,DKGRY,DKGRY,NOCLR)      ; NOCLR, DKGRY, BLK, NOCLR
+    LD          DE,TWOCOLOR(NOCLR,DKGRY,DKGRN,NOCLR)      ; NOCLR, DKGRY, DKGRN, NOCLR
                                                         ;   D  = Target BG color: 
                                                         ;       $0 in upper nybble, BG in lower nybble
                                                         ;   E  = Comparison FG color: 
                                                         ;       FG in upper nybble, $0 in lower nybble
-    LD          C,COLOR(BLK,NOCLR)            ;   C  = Target FG color for reversed colors that match E: 
+    LD          C,COLOR(BLK,DKGRY)            ;   C  = Target FG color for reversed colors that match E: 
                                                 ;       FG in upper nybble, $0 in lower nybble
     CALL        RECOLOR_ITEM                    ; Recolor F0 item area (4x4 cells)
 
     LD          HL,COLRAM_RH_ITEM_IDX           ; Point to right-hand item color attributes
-    LD          DE,TWOCOLOR(NOCLR,BLK,BLK,NOCLR)      ; NOCLR, BLK, DKGRY, NOCLR
+    LD          DE,TWOCOLOR(NOCLR,BLK,DKGRN,NOCLR)      ; NOCLR, BLK, DKGRN, NOCLR
                                                         ;   D  = Target BG color: 
                                                         ;       $0 in upper nybble, BG in lower nybble
                                                         ;   E  = Comparison FG color: 
