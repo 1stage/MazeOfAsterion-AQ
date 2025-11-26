@@ -439,7 +439,7 @@ LAB_ram_e3d7:
     PUSH        HL
     ADD         HL,BC
     LD          DE,ITEM_MOVE_CHR_BUFFER
-    CALL        COPY_ITEM_GFX
+    CALL        COPY_GFX_2_BUFFER
     POP         HL
     LD          C,L
     LD          A,(RAM_AC)
@@ -524,7 +524,7 @@ LAB_ram_e448:
 SUB_ram_e450:
     LD          DE,(ITEM_ANIM_CHRRAM_PTR)
     LD          HL,ITEM_MOVE_CHR_BUFFER
-    JP          SUB_ram_e97d
+    JP          COPY_GFX_FROM_BUFFER
 LAB_ram_e45a:
     CALL        SUB_ram_e450
     LD          A,$32
@@ -757,7 +757,7 @@ ANIMATE_MELEE_ROUND:
     PUSH        HL
     ADD         HL,BC
     LD          DE,BYTE_ram_3a20
-    CALL        COPY_ITEM_GFX
+    CALL        COPY_GFX_2_BUFFER
     POP         BC
     LD          B,0x0
     LD          A,(RAM_AF)
@@ -773,7 +773,7 @@ ANIMATE_MELEE_ROUND:
 SUB_ram_e635:
     LD          DE,(MONSTER_ATT_POS_OFFSET)
     LD          HL,BYTE_ram_3a20
-    JP          SUB_ram_e97d
+    JP          COPY_GFX_FROM_BUFFER
 LAB_ram_e63f:
     CALL        SUB_ram_e635
     LD          A,$31
@@ -856,13 +856,13 @@ DO_SWAP_HANDS:
     CALL        SUB_ram_ea62
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
     LD          DE,ITEM_MOVE_CHR_BUFFER
-    CALL        COPY_ITEM_GFX
+    CALL        COPY_GFX_2_BUFFER
     LD          HL,CHRRAM_LEFT_HD_GFX_IDX
     LD          DE,CHRRAM_RIGHT_HD_GFX_IDX
-    CALL        SUB_ram_e99e
+    CALL        COPY_GFX_SCRN_2_SCRN
     LD          HL,ITEM_MOVE_CHR_BUFFER
     LD          DE,CHRRAM_LEFT_HD_GFX_IDX
-    CALL        SUB_ram_e97d
+    CALL        COPY_GFX_FROM_BUFFER
     CALL        NEW_RIGHT_HAND_ITEM
     LD          BC,0x0
     LD          HL,RIGHT_HAND_ITEM
@@ -1176,7 +1176,7 @@ PROCESS_MAP:
 ;   Graphics and item inventories updated
 ;
 ; Memory Modified: RIGHT_HAND_ITEM, ITEM_F0, CHRRAM_*, COLRAM_*, ITEM_MOVE_CHR_BUFFER
-; Calls: SUB_ram_ea62, UPDATE_MELEE_OBJECTS, SUB_ram_e99e, SUB_ram_e97d, RECOLOR_ITEM, NEW_RIGHT_HAND_ITEM
+; Calls: SUB_ram_ea62, UPDATE_MELEE_OBJECTS, COPY_GFX_SCRN_2_SCRN, COPY_GFX_FROM_BUFFER, RECOLOR_ITEM, NEW_RIGHT_HAND_ITEM
 ;==============================================================================
 PICK_UP_NON_TREASURE:
     LD          HL,RIGHT_HAND_ITEM              ; Point to current right-hand item
@@ -1185,13 +1185,13 @@ PICK_UP_NON_TREASURE:
     CALL        SUB_ram_ea62                    ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX      ; Point to right-hand graphics in CHRRAM
     LD          DE,ITEM_MOVE_CHR_BUFFER         ; Point to temporary graphics buffer
-    CALL        COPY_ITEM_GFX            ; Copy right-hand graphics to temp buffer (4x4 chars)
+    CALL        COPY_GFX_2_BUFFER               ; Copy right-hand graphics to temp buffer (4x4 chars)
     LD          HL,CHRRAM_F0_ITEM_IDX           ; Point to F0 floor item graphics in CHRRAM
     LD          DE,CHRRAM_RIGHT_HD_GFX_IDX      ; Point to right-hand graphics position
-    CALL        SUB_ram_e99e                    ; Copy F0 item graphics to right-hand position
+    CALL        COPY_GFX_SCRN_2_SCRN            ; Copy F0 item graphics to right-hand position
     LD          HL,ITEM_MOVE_CHR_BUFFER         ; Point to temporary buffer (old right-hand graphics)
     LD          DE,CHRRAM_F0_ITEM_IDX           ; Point to F0 floor item graphics position
-    CALL        SUB_ram_e97d                    ; Copy temp buffer to F0 position (complete swap)
+    CALL        COPY_GFX_FROM_BUFFER            ; Copy temp buffer to F0 position (complete swap)
 
     LD          HL,COLRAM_F0_ITEM_IDX           ; Point to F0 item color attributes in COLRAM
     LD          DE,TWOCOLOR(NOCLR,DKGRY,DKGRY,NOCLR)      ; NOCLR, DKGRY, BLK, NOCLR
@@ -1312,6 +1312,7 @@ CHANGE_REVERSED_COLORS:
 WAIT_A_TICK:
     LD          BC,$8600                        ; Load BC with 134 sleep cycles (0x86 = 134)
     JP          SLEEP                           ; Jump to sleep routine: void SLEEP(short cycleCount)
+
 ;==============================================================================
 ; PICK_UP_F0_ITEM
 ;==============================================================================
@@ -1383,12 +1384,12 @@ PICK_UP_F0_ITEM:
     RET                                         ; Return with level in D, floor cleared
 
 ;==============================================================================
-; COPY_ITEM_GFX
+; COPY_GFX_2_BUFFER
 ;==============================================================================
-; Copies a 4x4 character block from source to destination address.
-; Automatically handles both CHRRAM and COLRAM addressing by detecting the
-; memory page ($30xx for CHRRAM, $34xx+ for COLRAM) and adjusting the copy
-; stride appropriately for screen memory layout.
+; Copies a 4x4 character block from source to destination address. Source
+; pointer (HL) advances through screen rows while destination (DE) remains
+; a contiguous buffer. Automatically handles both CHRRAM and COLRAM addressing
+; by detecting the memory page and recursively copying color data.
 ;
 ; Memory Layout:
 ; - Screen is 40 characters wide, so next row = current + 40 ($28)
@@ -1397,88 +1398,83 @@ PICK_UP_F0_ITEM:
 ;
 ; Registers:
 ; --- Start ---
-;   HL = Source address for 4x4 block
-;   DE = Destination address for 4x4 block
+;   HL = Source address for 4x4 block (screen memory)
+;   DE = Destination address for 4x4 block (buffer)
 ;   A  = Row counter (will be set to 4)
 ; --- In Process ---
 ;   A  = Row counter (4→3→2→1→0)
 ;   BC = Copy length (4 chars) and row skip offset ($24 = 36)
-;   HL = Current source position advancing through 4x4 area
-;   DE = Current destination position advancing through 4x4 area
-;   H  = Used for memory page detection ($30-$33 vs $34+)
+;   HL = Current source position advancing through screen rows
+;   DE = Current destination position (auto-increments contiguously via LDIR)
+;   H  = Used for source memory page detection ($30-$33 vs $34+)
 ; ---  End  ---
 ;   A  = 0 (exhausted row counter) or memory page value for COLRAM handling
 ;   BC = $384 (COLRAM offset) if memory page transition occurred
 ;   HL = Final source position after all copying and potential page adjustment
-;   DE = Final destination position after all copying and potential page adjustment
+;   DE = Final destination position (16 bytes past start)
 ;
 ; Memory Modified: 16 memory locations in 4x4 destination area
 ; Calls: None (uses LDIR instruction for block copying)
 ;==============================================================================
-COPY_ITEM_GFX:
+COPY_GFX_2_BUFFER:
     LD          A,0x4                           ; Set row counter to 4 (copy 4 rows)
-LAB_ram_e962:
+COPY_GFX_2_BUFF_LOOP:
     LD          BC,0x4                          ; Set BC to 4 (copy 4 characters per row)
     LDIR                                        ; Copy 4 bytes from (HL) to (DE), auto-increment both
     DEC         A                               ; Decrement row counter
-    JP          Z,LAB_ram_e972                  ; If all 4 rows copied, jump to memory page check
+    JP          Z,COPY_GFX_2_BUF_MEMCHK         ; If all 4 rows copied, jump to memory page check
     LD          BC,$24                          ; BC = 36 (skip to next row: 40 - 4 = 36)
     ADD         HL,BC                           ; Advance HL to start of next source row
-    JP          LAB_ram_e962                    ; Loop back to copy next row
-LAB_ram_e972:
+    JP          COPY_GFX_2_BUFF_LOOP             ; Loop back to copy next row
+COPY_GFX_2_BUF_MEMCHK:
     LD          A,H                             ; Load high byte of HL for memory page detection
     CP          $34                             ; Compare with $34 (COLRAM start page)
     RET         NC                              ; If HL >= $34xx (in COLRAM range), return
     LD          BC,$384                         ; BC = $384 (offset from CHRRAM to corresponding COLRAM)
     ADD         HL,BC                           ; Adjust HL from CHRRAM ($30xx) to COLRAM ($34xx)
-    JP          COPY_ITEM_GFX                   ; Recursive call to copy corresponding COLRAM area
+    JP          COPY_GFX_2_BUFFER               ; Recursive call to copy corresponding COLRAM area
 
 ;==============================================================================
-; SUB_ram_e97d
+; COPY_GFX_FROM_BUFFER
 ;==============================================================================
-; Copies a 4x4 character block from source to destination with both source and
-; destination advancing. Similar to COPY_ITEM_GFX but handles dual
-; pointer advancement where both HL and DE need row skipping. Also includes
-; COLRAM page transition detection for the destination pointer.
-;
-; Key Difference from COPY_ITEM_GFX:
-; - Both source (HL) and destination (DE) pointers advance by row stride
-; - COLRAM detection performed on destination (D register) rather than source
-; - Used for copying from temporary buffers back to display areas
+; Copies a 4x4 character block from source buffer to destination screen memory.
+; Source pointer (HL) remains contiguous while destination (DE) advances through
+; screen rows. Inverse of COPY_GFX_2_BUFFER. Includes COLRAM page transition
+; detection for the destination pointer.
 ;
 ; Registers:
 ; --- Start ---
-;   HL = Source address for 4x4 block
-;   DE = Destination address for 4x4 block  
+;   HL = Source address for 4x4 block (buffer)
+;   DE = Destination address for 4x4 block (screen memory)
 ;   A  = Row counter (will be set to 4)
 ; --- In Process ---
 ;   A  = Row counter (4→3→2→1→0)
 ;   BC = Copy length (4 chars) and row skip offset ($24 = 36)
-;   HL = Current source position advancing through 4x4 area
-;   DE = Current destination position advancing through 4x4 area
+;   HL = Current source position (auto-increments contiguously via LDIR)
+;   DE = Current destination position advancing through screen rows
 ;   D  = Used for destination memory page detection ($30-$33 vs $34+)
 ; ---  End  ---
 ;   A  = Final row counter value or memory page value
 ;   BC = $384 (COLRAM offset) if destination page transition occurred
-;   HL = Final source position after all copying
+;   HL = Final source position (16 bytes past start)
 ;   DE = Final destination position after copying and potential page adjustment
 ;
 ; Memory Modified: 16 memory locations in 4x4 destination area
 ; Calls: None (uses LDIR instruction for block copying)
 ;==============================================================================
-SUB_ram_e97d:
+COPY_GFX_FROM_BUFFER:
     LD          A,0x4                           ; Set row counter to 4 (copy 4 rows)
-LAB_ram_e97f:
+COPY_GFX_FROM_BUFF_LOOP:
     LD          BC,0x4                          ; Set BC to 4 (copy 4 characters per row)
     LDIR                                        ; Copy 4 bytes from (HL) to (DE), auto-increment both
     DEC         A                               ; Decrement row counter
-    JP          Z,LAB_ram_e991                  ; If all 4 rows copied, jump to memory page check
+    JP          Z,COPY_GFX_FROM_BUFF_MEMCHK     ; If all 4 rows copied, jump to memory page check
     EX          DE,HL                           ; Swap HL and DE for destination pointer advancement
     LD          BC,$24                          ; BC = 36 (skip to next row: 40 - 4 = 36)
     ADD         HL,BC                           ; Advance destination pointer to next row
     EX          DE,HL                           ; Restore HL as source, DE as destination
-    JP          LAB_ram_e97f                    ; Loop back to copy next row
-LAB_ram_e991:
+    JP          COPY_GFX_FROM_BUFF_LOOP         ; Loop back to copy next row
+COPY_GFX_FROM_BUFF_MEMCHK:
     LD          A,D                             ; Load high byte of DE for destination memory page detection
     CP          $34                             ; Compare with $34 (COLRAM start page)
     RET         NC                              ; If DE >= $34xx (in COLRAM range), return
@@ -1486,21 +1482,16 @@ LAB_ram_e991:
     EX          DE,HL                           ; Swap to adjust destination pointer
     ADD         HL,BC                           ; Adjust DE from CHRRAM ($30xx) to COLRAM ($34xx)
     EX          DE,HL                           ; Restore HL as source, DE as adjusted destination
-    JP          SUB_ram_e97d                    ; Recursive call to copy corresponding COLRAM area
+    JP          COPY_GFX_FROM_BUFFER            ; Recursive call to copy corresponding COLRAM area
 
 ;==============================================================================
-; SUB_ram_e99e  
+; COPY_GFX_SCRN_2_SCRN  
 ;==============================================================================
 ; Copies a 4x4 character block from source to destination with synchronized
 ; row advancement for both pointers. Both source and destination advance by
 ; the row stride, and both are checked for COLRAM page transitions. This
 ; function handles cases where both source and destination areas need to
 ; maintain proper screen memory alignment.
-;
-; Key Difference from other copy functions:
-; - Both HL and DE advance by row stride after each row copy
-; - Both source (HL) and destination (DE) checked for COLRAM transition
-; - Synchronized dual-pointer advancement for aligned memory operations
 ;
 ; Registers:
 ; --- Start ---
@@ -1522,20 +1513,20 @@ LAB_ram_e991:
 ; Memory Modified: 16 memory locations in 4x4 destination area
 ; Calls: None (uses LDIR instruction for block copying)
 ;==============================================================================
-SUB_ram_e99e:
+COPY_GFX_SCRN_2_SCRN:
     LD          A,0x4                           ; Set row counter to 4 (copy 4 rows)
-LAB_ram_e9a0:
+COPY_GFX_SCRN_2_SCRN_LOOP:
     LD          BC,0x4                          ; Set BC to 4 (copy 4 characters per row)
     LDIR                                        ; Copy 4 bytes from (HL) to (DE), auto-increment both
     DEC         A                               ; Decrement row counter  
-    JP          Z,LAB_ram_e9b3                  ; If all 4 rows copied, jump to memory page check
+    JP          Z,COPY_GFX_SCRN_2_SCRN_MEMCHK   ; If all 4 rows copied, jump to memory page check
     LD          BC,$24                          ; BC = 36 (skip to next row: 40 - 4 = 36)
     ADD         HL,BC                           ; Advance source pointer to next row
     EX          DE,HL                           ; Swap to advance destination pointer
     ADD         HL,BC                           ; Advance destination pointer to next row
     EX          DE,HL                           ; Restore HL as source, DE as destination
-    JP          LAB_ram_e9a0                    ; Loop back to copy next row
-LAB_ram_e9b3:
+    JP          COPY_GFX_SCRN_2_SCRN_LOOP       ; Loop back to copy next row
+COPY_GFX_SCRN_2_SCRN_MEMCHK:
     LD          A,H                             ; Load high byte of HL for source memory page detection
     CP          $34                             ; Compare with $34 (COLRAM start page)
     RET         NC                              ; If HL >= $34xx (in COLRAM range), return
@@ -1544,7 +1535,7 @@ LAB_ram_e9b3:
     EX          DE,HL                           ; Swap to adjust destination pointer
     ADD         HL,BC                           ; Adjust destination from CHRRAM ($30xx) to COLRAM ($34xx)
     EX          DE,HL                           ; Restore HL as source, DE as destination
-    JP          SUB_ram_e99e                    ; Recursive call to copy corresponding COLRAM areas
+    JP          COPY_GFX_SCRN_2_SCRN            ; Recursive call to copy corresponding COLRAM areas
 
 ;==============================================================================
 ; SUB_ram_e9c1  
@@ -1686,27 +1677,27 @@ LAB_ram_ea0c:
     CALL        SUB_ram_ea62
     LD          HL,DAT_ram_31b4
     LD          DE,ITEM_MOVE_CHR_BUFFER
-    CALL        COPY_ITEM_GFX
+    CALL        COPY_GFX_2_BUFFER
     LD          HL,DAT_ram_3111
     LD          DE,DAT_ram_31b4
-    CALL        SUB_ram_e99e
+    CALL        COPY_GFX_SCRN_2_SCRN
     LD          HL,DAT_ram_310c
     LD          DE,DAT_ram_3111
-    CALL        SUB_ram_e99e
+    CALL        COPY_GFX_SCRN_2_SCRN
     LD          HL,CHHRAM_INV_4_IDX
     LD          DE,DAT_ram_310c
-    CALL        SUB_ram_e99e
+    CALL        COPY_GFX_SCRN_2_SCRN
     LD          HL,DAT_ram_324c
     LD          DE,CHHRAM_INV_4_IDX
-    CALL        SUB_ram_e99e
+    CALL        COPY_GFX_SCRN_2_SCRN
     LD          HL,CHHRAM_INV_6_IDX
     LD          DE,DAT_ram_324c
-    CALL        SUB_ram_e99e
+    CALL        COPY_GFX_SCRN_2_SCRN
     LD          HL,WAIT_FOR_INPUT								;   WAIT FOR INPUT label --- UNDO???
     PUSH        HL
     LD          HL,ITEM_MOVE_CHR_BUFFER
     LD          DE,CHHRAM_INV_6_IDX
-    CALL        SUB_ram_e97d
+    CALL        COPY_GFX_FROM_BUFFER
     JP          WAIT_A_TICK
 SUB_ram_ea62:
     LD          D,(HL)
@@ -1721,15 +1712,15 @@ DO_SWAP_PACK:
     CALL        SUB_ram_ea62
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
     LD          DE,ITEM_MOVE_CHR_BUFFER
-    CALL        COPY_ITEM_GFX
+    CALL        COPY_GFX_2_BUFFER
     LD          HL,DAT_ram_31b4
     LD          DE,CHRRAM_RIGHT_HD_GFX_IDX
-    CALL        SUB_ram_e99e
+    CALL        COPY_GFX_SCRN_2_SCRN
     LD          HL,WAIT_FOR_INPUT								;   WAIT FOR INPUT label --- UNDO???
     PUSH        HL
     LD          HL,ITEM_MOVE_CHR_BUFFER
     LD          DE,DAT_ram_31b4
-    CALL        SUB_ram_e97d
+    CALL        COPY_GFX_FROM_BUFFER
     CALL        NEW_RIGHT_HAND_ITEM
     JP          WAIT_A_TICK
 UPDATE_VIEWPORT:
