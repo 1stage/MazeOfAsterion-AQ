@@ -568,7 +568,7 @@ LAB_ram_e487:
     LD          DE,(NEW_DAMAGE)
     CALL        RECALC_PHYS_HEALTH
     JP          C,LAB_ram_e4bb
-LAB_ram_e4a9:
+MONSTER_TAKES_PHYS_DAMAGE:
     EX          DE,HL
     LD          HL,(CURR_MONSTER_PHYS)
     CALL        RECALC_PHYS_HEALTH
@@ -580,7 +580,7 @@ LAB_ram_e4a9:
 LAB_ram_e4bb:
     LD          HL,0x6
     CALL        SUB_ram_e401
-    JP          LAB_ram_e4a9
+    JP          MONSTER_TAKES_PHYS_DAMAGE
 LAB_ram_e4c3:
     EXX
     LD          HL,0x0
@@ -730,133 +730,281 @@ SUB_ram_e5ba:
     DAA
     LD          B,A
     RET
+
+;==============================================================================
+; MELEE_ANIM_LOOP
+;==============================================================================
+; Main loop for melee combat weapon animation. Animates flying weapons moving
+; across the screen during player/monster attacks. Updates animation state,
+; position counters, and triggers weapon sprite drawing at each frame.
+;
+; Flow:
+; 1. Play attack sound effect
+; 2. Check animation state to determine weapon direction/phase
+; 3. Update position counters and advance weapon sprite position
+; 4. Draw weapon at current position (save/restore background)
+; 5. Return to caller for next frame
+;
+; Animation States (MELEE_ANIM_STATE):
+;   1 = Monster attacking (weapon flying from center to down-right)
+;   3 = Player attacking (weapon flying from down-right to center)
+;
+; Input:
+;   MELEE_ANIM_STATE - Current animation phase (1 or 3)
+;   MONSTER_ATT_POS_COUNT - Frame counter for weapon movement
+;   MONSTER_ATT_POS_OFFSET - Current screen position of weapon sprite
+;
+; Output:
+;   Updated animation state and position
+;   Weapon sprite drawn on screen
+;   Background saved/restored via buffer
+;
+; Registers:
+; --- Start ---
+;   (Reads from memory: MELEE_ANIM_STATE, MONSTER_ATT_POS_COUNT, MONSTER_ATT_POS_OFFSET)
+; --- In Process ---
+;   A  = Animation state values, flags, and temporary calculations
+;   HL = Position frame counters and screen position offsets
+;   BC = Position delta for weapon movement ($29 = 41 bytes)
+;   DE = Buffer address (BYTE_ram_3a20) for background save
+; ---  End  ---
+;   All registers modified by called functions
+;   Animation state, position, and timer updated in memory
+;
+; Memory Modified: MELEE_ANIM_STATE, MONSTER_ATT_POS_COUNT, MONSTER_ATT_POS_OFFSET,
+;                  MON_FS, MONSTER_ANIM_TIMER_COPY, BYTE_ram_3a20 (buffer)
+; Calls: SOUND_05, MELEE_DRAW_WEAPON_FRAME, COPY_GFX_2_BUFFER, CHK_ITEM
+;==============================================================================
 MELEE_ANIM_LOOP:
-    CALL        SOUND_05
-    LD          A,(MELEE_ANIM_STATE)
-    LD          HL,(MONSTER_ATT_POS_COUNT)
-    DEC         A
-    JP          NZ,LAB_ram_e600
-    DEC         L
-    JP          NZ,LAB_ram_e5eb
-    DEC         H
-    JP          Z,LAB_ram_e63f
-    LD          A,$32
-    LD          (RAM_AF),A
-    LD          L,0x2
-LAB_ram_e5eb:
-    LD          A,0x3
-    LD          (MELEE_ANIM_STATE),A
-    LD          (MONSTER_ATT_POS_COUNT),HL
-    LD          HL,(MONSTER_ATT_POS_OFFSET)
-    LD          BC,$29
-    ADD         HL,BC
-    LD          (MONSTER_ATT_POS_OFFSET),HL
-    JP          ANIMATE_MELEE_ROUND
-LAB_ram_e600:
-    LD          (MELEE_ANIM_STATE),A
-    LD          HL,(MONSTER_ATT_POS_OFFSET)
-    INC         HL
-    LD          (MONSTER_ATT_POS_OFFSET),HL
-ANIMATE_MELEE_ROUND:
-    LD          BC,$c8
-    XOR         A
-    SBC         HL,BC
-    PUSH        HL
-    ADD         HL,BC
-    LD          DE,BYTE_ram_3a20
-    CALL        COPY_GFX_2_BUFFER
-    POP         BC
-    LD          B,0x0
-    LD          A,(RAM_AF)
-    LD          (MON_FS),A
-    LD          A,(MONSTER_SPRITE_FRAME)
-    CALL        CHK_ITEM
-    LD          A,$32
-    LD          (MON_FS),A
-    LD          A,(TIMER_A)
-    ADD         A,$ff
-    LD          (MONSTER_ANIM_TIMER_COPY),A
-    RET
-SUB_ram_e635:
-    LD          DE,(MONSTER_ATT_POS_OFFSET)
-    LD          HL,BYTE_ram_3a20
-    JP          COPY_GFX_FROM_BUFFER
-LAB_ram_e63f:
-    CALL        SUB_ram_e635
-    LD          A,$31
-    LD          (RAM_AF),A
-    LD          (RAM_AE),A
-    LD          A,(INPUT_HOLDER)
-    LD          B,A
-    LD          H,0x0
-    LD          A,(WEAPON_VALUE_HOLDER)
-    LD          L,A
-    JP          LAB_ram_e658
+    CALL        SOUND_05                        ; Play attack sound blip
+    LD          A,(MELEE_ANIM_STATE)            ; Load current animation state (1 or 3)
+    LD          HL,(MONSTER_ATT_POS_COUNT)      ; Load position frame counter
+    DEC         A                               ; Decrement state: 1→0 or 3→2
+    JP          NZ,MELEE_MOVE_MONSTER_TO_PLAYER ; If state≠1, jump to increment position
+    DEC         L                               ; State=1: decrement low byte of counter
+    JP          NZ,MELEE_MOVE_PLAYER_TO_MONSTER ; If L≠0, continue animation
+    DEC         H                               ; L reached 0: decrement high byte
+    JP          Z,MELEE_ANIM_FINISH_AND_APPLY_DAMAGE ; If both bytes=0, animation done, apply damage
+    LD          A,$32                           ; Reset some animation flag
+    LD          (RAM_AF),A                      ; Store flag value
+    LD          L,0x2                           ; Reset low counter to 2
+MELEE_MOVE_PLAYER_TO_MONSTER:
+    LD          A,0x3                           ; Set animation state to 3 (player attacking)
+    LD          (MELEE_ANIM_STATE),A            ; Store new state
+    LD          (MONSTER_ATT_POS_COUNT),HL      ; Save updated frame counter
+    LD          HL,(MONSTER_ATT_POS_OFFSET)     ; Load current weapon screen position
+    LD          BC,$29                          ; BC = 41 (one row + 1 cell advance)
+    ADD         HL,BC                           ; Advance weapon position by 41 bytes
+    LD          (MONSTER_ATT_POS_OFFSET),HL     ; Store new weapon position
+    JP          MELEE_DRAW_WEAPON_FRAME         ; Draw weapon at new position
+MELEE_MOVE_MONSTER_TO_PLAYER:
+    LD          (MELEE_ANIM_STATE),A            ; Store current state (decremented)
+    LD          HL,(MONSTER_ATT_POS_OFFSET)     ; Load current weapon screen position
+    INC         HL                              ; Move weapon forward by 1 byte
+    LD          (MONSTER_ATT_POS_OFFSET),HL     ; Store new position
+
+;==============================================================================
+; MELEE_DRAW_WEAPON_FRAME
+;==============================================================================
+; Draws the weapon sprite at the current animation position. Saves the screen
+; background to a buffer before drawing, allowing the weapon to be erased later
+; by restoring the saved background.
+;
+; Process:
+; 1. Calculate screen address for weapon sprite (HL - $C8)
+; 2. Save background graphics to buffer (BYTE_ram_3a20)
+; 3. Draw weapon sprite at current position via CHK_ITEM
+; 4. Update animation timer
+;
+; Input:
+;   HL = Current screen position offset for weapon sprite
+;
+; Output:
+;   Weapon sprite drawn on screen
+;   Background saved to BYTE_ram_3a20 buffer
+;   Animation timer updated
+;
+; Registers:
+; --- Start ---
+;   HL = Screen position offset
+; --- In Process ---
+;   BC = $C8 (offset adjustment) then 0
+;   A  = Various temp values and flags
+;   DE = Buffer address (BYTE_ram_3a20)
+; ---  End  ---
+;   All registers modified
+;
+; Memory Modified: BYTE_ram_3a20, MON_FS, MONSTER_ANIM_TIMER_COPY
+; Calls: COPY_GFX_2_BUFFER, CHK_ITEM
+;==============================================================================
+MELEE_DRAW_WEAPON_FRAME:
+    LD          BC,$c8                          ; BC = 200 (screen offset adjustment)
+    XOR         A                               ; A = 0 (clear for subtraction)
+    SBC         HL,BC                           ; HL = screen position - 200 (calculate actual CHRRAM address)
+    PUSH        HL                              ; Save adjusted screen address
+    ADD         HL,BC                           ; Restore original position offset
+    LD          DE,BYTE_ram_3a20                ; DE = background buffer address
+    CALL        COPY_GFX_2_BUFFER               ; Save 4x4 screen area to buffer
+    POP         BC                              ; BC = adjusted screen address (from stack)
+    LD          B,0x0                           ; B = 0 (clear high byte for CHK_ITEM parameter)
+    LD          A,(RAM_AF)                      ; Load animation frame/flag
+    LD          (MON_FS),A                      ; Store as monster/weapon sprite frame selector
+    LD          A,(MONSTER_SPRITE_FRAME)        ; Load weapon sprite ID
+    CALL        CHK_ITEM                        ; Draw weapon sprite at position BC
+    LD          A,$32                           ; Reset sprite frame flag
+    LD          (MON_FS),A                      ; Store reset value
+    LD          A,(TIMER_A)                     ; Load system timer
+    ADD         A,$ff                           ; Decrement timer (add -1)
+    LD          (MONSTER_ANIM_TIMER_COPY),A     ; Store updated animation timer
+    RET                                         ; Return to animation loop
+
+;==============================================================================
+; MELEE_RESTORE_BG_FROM_BUFFER
+;==============================================================================
+; Restores the screen background from buffer, erasing the weapon sprite.
+; Called to clear the weapon from its previous position before drawing at
+; the next position, or after animation completes.
+;
+; Input:
+;   MONSTER_ATT_POS_OFFSET = Screen position where weapon was drawn
+;
+; Output:
+;   Background restored from buffer to screen
+;
+; Registers:
+; --- Start ---
+;   (None)
+; --- In Process ---
+;   HL = Buffer address (BYTE_ram_3a20)
+;   DE = Screen position from MONSTER_ATT_POS_OFFSET
+; ---  End  ---
+;   Modified by COPY_GFX_FROM_BUFFER
+;
+; Calls: COPY_GFX_FROM_BUFFER
+;==============================================================================
+MELEE_RESTORE_BG_FROM_BUFFER:
+    LD          DE,(MONSTER_ATT_POS_OFFSET)     ; DE = screen position where weapon is drawn
+    LD          HL,BYTE_ram_3a20                ; HL = buffer with saved background
+    JP          COPY_GFX_FROM_BUFFER            ; Restore background, erasing weapon sprite
+
+;==============================================================================
+; MELEE_ANIM_FINISH_AND_APPLY_DAMAGE
+;==============================================================================
+; Animation complete handler. Restores final background, then calculates and
+; applies damage from the completed attack. Determines if monster or player
+; took damage based on MONSTER_SPRITE_FRAME, then updates health and redraws.
+;
+; Flow:
+; 1. Restore background (erase final weapon sprite position)
+; 2. Calculate base damage multiplied by weapon value
+; 3. Branch to monster damage ($24-$27 range) or player damage path
+; 4. Apply damage to target's health (spirit or physical)
+; 5. Check for death condition
+; 6. Redraw stats and viewport
+;
+; Input:
+;   MONSTER_SPRITE_FRAME - Identifies target ($24-$27 = player takes damage)
+;   WEAPON_VALUE_HOLDER - Damage multiplier
+;   INPUT_HOLDER - Number of damage iterations
+;
+; Output:
+;   Health updated, stats redrawn, death handled if applicable
+;
+; Registers:
+; --- Start ---
+;   (Reads from memory: MONSTER_SPRITE_FRAME, WEAPON_VALUE_HOLDER, INPUT_HOLDER)
+; --- In Process ---
+;   A  = Flags, damage values, health calculations (BCD arithmetic)
+;   B  = Loop counter for damage multiplication
+;   HL = Damage accumulator (BCD), health values
+;   DE = Shield/defense values, damage amounts
+; ---  End  ---
+;   All registers modified through multiple function calls
+;   Health values updated, viewport redrawn
+;
+; Calls: MELEE_RESTORE_BG_FROM_BUFFER, SUB_ram_e439, SUB_ram_e401, RECALC_PHYS_HEALTH,
+;        REDRAW_STATS, PLAYER_DIES, REDRAW_START, REDRAW_VIEWPORT
+;==============================================================================
+MELEE_ANIM_FINISH_AND_APPLY_DAMAGE:
+    CALL        MELEE_RESTORE_BG_FROM_BUFFER    ; Restore background, erase weapon sprite
+    LD          A,$31                           ; Set damage calculation flag
+    LD          (RAM_AF),A                      ; Store flag
+    LD          (RAM_AE),A                      ; Store flag copy
+    LD          A,(INPUT_HOLDER)                ; Load number of damage iterations
+    LD          B,A                             ; B = iteration counter
+    LD          H,0x0                           ; H = 0 (high byte of damage accumulator)
+    LD          A,(WEAPON_VALUE_HOLDER)         ; Load base weapon damage value
+    LD          L,A                             ; L = base damage (low byte)
+    JP          LAB_ram_e658                    ; Jump into damage calculation loop
 LAB_ram_e656:
-    ADD         A,L
-    DAA
+    ADD         A,L                             ; A = A + L (accumulate damage)
+    DAA                                         ; Decimal adjust (BCD arithmetic)
 LAB_ram_e658:
-    DJNZ        LAB_ram_e656
-    LD          L,A
-    LD          A,(MONSTER_SPRITE_FRAME)
-    AND         $fc
-    CP          $24
-    JP          NZ,LAB_ram_e693
-    LD          A,(SHIELD_SPRT)
-    LD          E,A
-    CALL        SUB_ram_e439
-    LD          D,L
-    CALL        SUB_ram_e401
-    LD          A,L
-    ADD         A,D
-    DAA
-    SUB         E
-    DAA
-    JP          C,LAB_ram_e68a
-    LD          E,A
-LAB_ram_e677:
-    LD          A,(PLAYER_SPRT_HEALTH)
-    SUB         E
-    DAA
-    JP          C,PLAYER_DIES
-    JP          Z,PLAYER_DIES
-    LD          (PLAYER_SPRT_HEALTH),A
-    CALL        REDRAW_STATS
-    JP          LAB_ram_e6be
+    DJNZ        LAB_ram_e656                    ; Loop B times to multiply damage
+    LD          L,A                             ; L = total calculated damage
+    LD          A,(MONSTER_SPRITE_FRAME)        ; Load target identifier
+    AND         $fc                             ; Mask to sprite family ($24-$27 → $24)
+    CP          $24                             ; Check if player is target ($24-$27 range)
+    JP          NZ,LAB_ram_e693                 ; If not player target, jump to monster damage
+    
+    ; Player takes damage - calculate shield defense
+    LD          A,(SHIELD_SPRT)                 ; Load player's shield value
+    LD          E,A                             ; E = shield defense value
+    CALL        SUB_ram_e439                    ; Calculate random shield effectiveness
+    LD          D,L                             ; D = shield roll result
+    CALL        SUB_ram_e401                    ; Generate random damage variance
+    LD          A,L                             ; A = random variance
+    ADD         A,D                             ; A = shield roll + variance
+    DAA                                         ; Decimal adjust
+    SUB         E                               ; A = (shield roll + variance) - shield value
+    DAA                                         ; Decimal adjust
+    JP          C,LAB_ram_e68a                  ; If negative (shield blocked), reduce damage
+    LD          E,A                             ; E = final damage to apply
+PLAYER_TAKES_SPRT_DAMAGE:
+    LD          A,(PLAYER_SPRT_HEALTH)          ; Load player's spirit health
+    SUB         E                               ; A = health - damage
+    DAA                                         ; Decimal adjust
+    JP          C,PLAYER_DIES                   ; If negative, player dies
+    JP          Z,PLAYER_DIES                   ; If zero, player dies
+    LD          (PLAYER_SPRT_HEALTH),A          ; Store new health
+    CALL        REDRAW_STATS                    ; Update stats display
+    JP          LAB_ram_e6be                    ; Jump to finish animation
 LAB_ram_e68a:
-    LD          HL,0x2
-    CALL        SUB_ram_e401
-    LD          E,L
-    JP          LAB_ram_e677
+    LD          HL,0x2                          ; Shield blocked - reduce damage to 2
+    CALL        SUB_ram_e401                    ; Add random variance
+    LD          E,L                             ; E = reduced damage
+    JP          PLAYER_TAKES_SPRT_DAMAGE        ; Apply reduced damage to player
+
+    ; Monster takes damage - calculate physical damage with shield
 LAB_ram_e693:
-    CALL        SUB_ram_e401
-    LD          A,(WEAPON_VALUE_HOLDER)
-    ADD         A,L
-    DAA
-    LD          L,A
-    LD          A,H
-    ADC         A,0x0
-    DAA
-    LD          H,A
-    LD          DE,(SHIELD_PHYS)
-    CALL        RECALC_PHYS_HEALTH
-    JP          C,LAB_ram_e6c4
-LAB_ram_e6aa:
-    EX          DE,HL
-    LD          HL,(PLAYER_PHYS_HEALTH)
-    CALL        RECALC_PHYS_HEALTH
-    JP          C,PLAYER_DIES
-    OR          L
-    JP          Z,PLAYER_DIES
-    LD          (PLAYER_PHYS_HEALTH),HL
-    CALL        REDRAW_STATS
+    CALL        SUB_ram_e401                    ; Generate random damage variance
+    LD          A,(WEAPON_VALUE_HOLDER)         ; Load base weapon damage
+    ADD         A,L                             ; A = base damage + variance
+    DAA                                         ; Decimal adjust
+    LD          L,A                             ; L = damage low byte
+    LD          A,H                             ; A = damage high byte
+    ADC         A,0x0                           ; Add carry to high byte
+    DAA                                         ; Decimal adjust
+    LD          H,A                             ; H = damage high byte
+    LD          DE,(SHIELD_PHYS)                ; DE = monster's physical defense/shield
+    CALL        RECALC_PHYS_HEALTH              ; Calculate damage vs defense
+    JP          C,LAB_ram_e6c4                  ; If defense too low, boost damage
+MONSTER_CALC_PHYS_DAMAGE:
+    EX          DE,HL                           ; Swap: DE = damage, HL = trash
+    LD          HL,(PLAYER_PHYS_HEALTH)         ; Load monster's physical health (stored in player field)
+    CALL        RECALC_PHYS_HEALTH              ; Apply damage to monster health
+    JP          C,PLAYER_DIES                   ; If underflow, monster dies
+    OR          L                               ; Check if health is zero
+    JP          Z,PLAYER_DIES                   ; If zero, monster dies
+    LD          (PLAYER_PHYS_HEALTH),HL         ; Store monster's new health
+    CALL        REDRAW_STATS                    ; Update stats display
 LAB_ram_e6be:
-    CALL        REDRAW_START
-    JP          REDRAW_VIEWPORT
+    CALL        REDRAW_START                    ; Prepare for viewport redraw
+    JP          REDRAW_VIEWPORT                 ; Redraw viewport and return
 LAB_ram_e6c4:
-    LD          HL,0x3
-    CALL        SUB_ram_e401
-    JP          LAB_ram_e6aa
+    LD          HL,0x3                          ; Defense too low - boost damage to 3
+    CALL        SUB_ram_e401                    ; Add random variance
+    JP          MONSTER_CALC_PHYS_DAMAGE        ; Apply boosted damage to monster
 DO_SWAP_HANDS:
     LD          HL,RIGHT_HAND_ITEM
     LD          BC,LEFT_HAND_ITEM
@@ -1816,7 +1964,7 @@ LAB_ram_eb27:
     LD          A,(MONSTER_ANIM_TIMER_COPY)
     CP          (HL)
     JP          NZ,WAIT_FOR_INPUT
-    CALL        SUB_ram_e635
+    CALL        MELEE_RESTORE_BG_FROM_BUFFER
     CALL        SUB_ram_e450
     CALL        SUB_ram_e39a
     CALL        MELEE_ANIM_LOOP
@@ -1826,7 +1974,7 @@ LAB_ram_eb40:
     LD          A,(MONSTER_ANIM_TIMER_COPY)
     CP          (HL)
     JP          NZ,WAIT_FOR_INPUT
-    CALL        SUB_ram_e635
+    CALL        MELEE_RESTORE_BG_FROM_BUFFER
     CALL        MELEE_ANIM_LOOP
     JP          WAIT_FOR_INPUT
 LAB_ram_eb53:
@@ -2893,7 +3041,7 @@ INIT_MELEE_ANIM:
     LD          (MONSTER_ATT_POS_OFFSET),HL
     LD          A,L
     LD          (RAM_AE),A
-    CALL        ANIMATE_MELEE_ROUND
+    CALL        MELEE_DRAW_WEAPON_FRAME
     JP          WAIT_FOR_INPUT
 REDRAW_MONSTER_HEALTH:
     LD          DE,CHRRAM_MONSTER_PHYS								;  WAS LD DE,$333d
