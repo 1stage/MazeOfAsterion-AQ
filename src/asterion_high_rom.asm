@@ -784,7 +784,7 @@ MELEE_ANIM_LOOP:
     DEC         L                               ; State=1: decrement low byte of counter
     JP          NZ,MELEE_MOVE_PLAYER_TO_MONSTER ; If L≠0, continue animation
     DEC         H                               ; L reached 0: decrement high byte
-    JP          Z,MELEE_ANIM_FINISH_AND_APPLY_DAMAGE ; If both bytes=0, animation done, apply damage
+    JP          Z,FINISH_AND_APPLY_DAMAGE       ; If both bytes=0, animation done, apply damage
     LD          A,$32                           ; Reset some animation flag
     LD          (RAM_AF),A                      ; Store flag value
     LD          L,0x2                           ; Reset low counter to 2
@@ -888,7 +888,7 @@ MELEE_RESTORE_BG_FROM_BUFFER:
     JP          COPY_GFX_FROM_BUFFER            ; Restore background, erasing weapon sprite
 
 ;==============================================================================
-; MELEE_ANIM_FINISH_AND_APPLY_DAMAGE
+; FINISH_AND_APPLY_DAMAGE
 ;==============================================================================
 ; Animation complete handler. Restores final background, then calculates and
 ; applies damage from the completed attack. Determines if monster or player
@@ -925,8 +925,11 @@ MELEE_RESTORE_BG_FROM_BUFFER:
 ; Calls: MELEE_RESTORE_BG_FROM_BUFFER, SUB_ram_e439, SUB_ram_e401, RECALC_PHYS_HEALTH,
 ;        REDRAW_STATS, PLAYER_DIES, REDRAW_START, REDRAW_VIEWPORT
 ;==============================================================================
-MELEE_ANIM_FINISH_AND_APPLY_DAMAGE:
+FINISH_AND_APPLY_DAMAGE:
     CALL        MELEE_RESTORE_BG_FROM_BUFFER    ; Restore background, erase weapon sprite
+                                                ; Note: This call restores the saved 4x4 background
+                                                ; block into the viewport, effectively erasing the
+                                                ; weapon sprite drawn during the previous frame.
     LD          A,$31                           ; Set damage calculation flag
     LD          (RAM_AF),A                      ; Store flag
     LD          (RAM_AE),A                      ; Store flag copy
@@ -935,17 +938,17 @@ MELEE_ANIM_FINISH_AND_APPLY_DAMAGE:
     LD          H,0x0                           ; H = 0 (high byte of damage accumulator)
     LD          A,(WEAPON_VALUE_HOLDER)         ; Load base weapon damage value
     LD          L,A                             ; L = base damage (low byte)
-    JP          LAB_ram_e658                    ; Jump into damage calculation loop
-LAB_ram_e656:
+    JP          ACCUM_DAMAGE_LOOP               ; Jump into damage calculation loop
+ACCUM_DAMAGE_STEP:
     ADD         A,L                             ; A = A + L (accumulate damage)
     DAA                                         ; Decimal adjust (BCD arithmetic)
-LAB_ram_e658:
-    DJNZ        LAB_ram_e656                    ; Loop B times to multiply damage
+ACCUM_DAMAGE_LOOP:
+    DJNZ        ACCUM_DAMAGE_STEP               ; Loop B times to multiply damage
     LD          L,A                             ; L = total calculated damage
     LD          A,(MONSTER_SPRITE_FRAME)        ; Load target identifier
     AND         $fc                             ; Mask to sprite family ($24-$27 → $24)
     CP          $24                             ; Check if player is target ($24-$27 range)
-    JP          NZ,LAB_ram_e693                 ; If not player target, jump to monster damage
+    JP          NZ,MONSTER_PHYS_BRANCH          ; If not player target, jump to monster damage
     
     ; Player takes damage - calculate shield defense
     LD          A,(SHIELD_SPRT)                 ; Load player's shield value
@@ -968,7 +971,7 @@ PLAYER_TAKES_SPRT_DAMAGE:
     JP          Z,PLAYER_DIES                   ; If zero, player dies
     LD          (PLAYER_SPRT_HEALTH),A          ; Store new health
     CALL        REDRAW_STATS                    ; Update stats display
-    JP          LAB_ram_e6be                    ; Jump to finish animation
+    JP          REDRAW_SCREEN_AFTER_DAMAGE      ; Jump to finish animation
 LAB_ram_e68a:
     LD          HL,0x2                          ; Shield blocked - reduce damage to 2
     CALL        SUB_ram_e401                    ; Add random variance
@@ -976,7 +979,7 @@ LAB_ram_e68a:
     JP          PLAYER_TAKES_SPRT_DAMAGE        ; Apply reduced damage to player
 
     ; Monster takes damage - calculate physical damage with shield
-LAB_ram_e693:
+MONSTER_PHYS_BRANCH:
     CALL        SUB_ram_e401                    ; Generate random damage variance
     LD          A,(WEAPON_VALUE_HOLDER)         ; Load base weapon damage
     ADD         A,L                             ; A = base damage + variance
@@ -990,16 +993,23 @@ LAB_ram_e693:
     CALL        RECALC_PHYS_HEALTH              ; Calculate damage vs defense
     JP          C,LAB_ram_e6c4                  ; If defense too low, boost damage
 MONSTER_CALC_PHYS_DAMAGE:
+    ; Context note:
+    ; During melee resolution, this routine applies PHYS damage to the monster.
+    ; The code path temporarily uses `PLAYER_PHYS_HEALTH` as a storage field for
+    ; the monster’s physical health value. This reuse is a space-saving approach
+    ; and differs from general combat where `CURR_MONSTER_PHYS` is used.
     EX          DE,HL                           ; Swap: DE = damage, HL = trash
-    LD          HL,(PLAYER_PHYS_HEALTH)         ; Load monster's physical health (stored in player field)
+    LD          HL,(PLAYER_PHYS_HEALTH)         ; Load monster's PHYS (stored in player field during melee)
     CALL        RECALC_PHYS_HEALTH              ; Apply damage to monster health
     JP          C,PLAYER_DIES                   ; If underflow, monster dies
     OR          L                               ; Check if health is zero
     JP          Z,PLAYER_DIES                   ; If zero, monster dies
     LD          (PLAYER_PHYS_HEALTH),HL         ; Store monster's new health
     CALL        REDRAW_STATS                    ; Update stats display
-LAB_ram_e6be:
+REDRAW_SCREEN_AFTER_DAMAGE:
     CALL        REDRAW_START                    ; Prepare for viewport redraw
+                                                ; Viewport redraw occurs after damage is applied
+                                                ; to reflect any visual changes from the combat round.
     JP          REDRAW_VIEWPORT                 ; Redraw viewport and return
 LAB_ram_e6c4:
     LD          HL,0x3                          ; Defense too low - boost damage to 3
