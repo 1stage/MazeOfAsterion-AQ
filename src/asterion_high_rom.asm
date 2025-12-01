@@ -23,58 +23,57 @@
 ;   All game variables initialized
 ;
 GAMEINIT:
-    LD          SP,$3fff						;  Set SP to top of BANK0 RAM
-    CALL        WIPE_VARIABLE_SPACE				;  Wipe variable space first...
-    LD          (HL),0x2						;  ($3a62) = 0x2
-    INC         L							    ;  HL = $3a63
-    LD          A,$32							;  A = $32
-    LD          (HL),A							;  ($3a63) = $32
-    INC         L								;  HL = $3a64
-    LD          (HL),A							;  ($3a64) = $32
-    INC         L								;  HL = $3a65
-    LD          (HL),A							;  ($3a65) = $32
-    INC         L								;  HL = $3a66
-    DEC         A								;  A = $31
-    LD          (HL),A							;  ($3a66) = $31
-    INC         L								;  HL = $3a67
-    LD          (HL),A							;  ($3a67) = $31
-    INC         L								;  HL = $3a68
-    LD          B,$12							;  B = $12
-    XOR         A							;  A = 0x0, F = $44 (Z and P set)
+    LD          SP,$3fff						; Reset stack pointer (top of BANK0 RAM)
+    CALL        WIPE_VARIABLE_SPACE				; Clear variable region; HL now at start of init block ($3A62)
+    LD          (HL),0x2						; Store constant 02 at $3A62 (game/state flag)
+    INC         L			       		        ; Advance to $3A63
+    LD          A,$32					    	; A = 32 (ASCII '2' or preset timer/item value)
+    LD          (HL),A					    	; Store 32 at $3A63
+    INC         L					    		; Advance to $3A64
+    LD          (HL),A		    				; Store 32 at $3A64
+    INC         L				    			; Advance to $3A65
+    LD          (HL),A				    		; Store 32 at $3A65
+    INC         L						    	; Advance to $3A66
+    DEC         A							    ; A = 31 (adjust constant for next slots)
+    LD          (HL),A  						; Store 31 at $3A66
+    INC         L		    					; Advance to $3A67
+    LD          (HL),A		    				; Store 31 at $3A67
+    INC         L				    			; Advance to $3A68 (start of zero block)
+    LD          B,$12				    		; Loop counter: 18 bytes to zero ($12)
+    XOR         A						    	; A = 00 (zero fill value)
 INIT_ZERO_VAR_BLOCK_LOOP:
-    LD          (HL),A							;  ($3a68) = $00
-    INC         L								;  HL = $3a69 to $3a7a,
-												;  A = 0x0, F = $28
-    DJNZ        INIT_ZERO_VAR_BLOCK_LOOP		;  Loop if Not Z (B is decremented)
-    LD          A,$18								;  A = $18 (HL = $3a7a, B = 0x0)
-    LD          (HL),A								;  ($3a7a) = $18
-    INC         HL								;  HL = $3a7b
-    LD          A,$fe							;  A = $fe
-    LD          B,$10							;  B = $10
+    LD          (HL),A					    	; Zero current byte
+    INC         L						    	; Advance to next byte in zero region
+    DJNZ        INIT_ZERO_VAR_BLOCK_LOOP		; Continue until B exhausted
+    LD          A,$18							; A = 18 (preset value for next slot)
+    LD          (HL),A							; Store 18 at current address ($3A7A)
+    INC         HL						    	; Move to $3A7B (start of $FE fill block)
+    LD          A,$fe							; A = FE (empty/sentinel marker value)
+    LD          B,$10							; Loop counter: 16 bytes to fill with FE
 RESET_ITEM_ANIM_VARS_LOOP:
-    LD          (HL),A
-    INC         HL
-    DJNZ        RESET_ITEM_ANIM_VARS_LOOP			;  Loop if Not Z (B is decremented)
-    LD          B,$20								;  Set fill CHR to SPACE 32/$20
-    LD          HL,CHRRAM								;  HL = $3000 (Start of CHRRAM)
-    CALL        FILL_FULL_1024								;  byte FILL_FULL_1024(word chrColValue...
-    LD          HL,$5e								;  HL = $005e
-    LD          (TIMER_E),HL								;  ($3a9c) = $0053
-    LD          A,R								;  Semi-random number into A
-    LD          H,A
-    LD          (RNDHOLD_AA),HL
-    LD          BC,$7f
-    LD          A,0x7
-    OUT         (C),A
-    DEC         C
-    LD          A,$3f
-    OUT         (C),A
-    LD          B,0x6								;  BLK on CYN
-    LD          HL,COLRAM
-    CALL        FILL_FULL_1024								;  byte FILL_FULL_1024(word chrColValue...
-    CALL        CHK_ITEM
-    CALL        DRAW_TITLE
-    JP          INPUT_DEBOUNCE
+    LD          (HL),A						    ; Store FE in current slot
+    INC         HL							    ; Advance to next slot
+    DJNZ        RESET_ITEM_ANIM_VARS_LOOP		; Repeat until 16 bytes filled with FE
+    LD          B,$20							; B = 20 (SPACE char for screen clear)
+    LD          HL,CHRRAM						; HL = start of character RAM ($3000)
+    CALL        FILL_FULL_1024					; Clear CHRRAM with SPACE
+    LD          HL,$5e							; HL = initial timer seed value ($005E)
+    LD          (TIMER_E),HL					; Store timer seed
+    LD          A,R							    ; Read R register (pseudo-random)
+    LD          H,A						    	; Copy random byte to H
+    LD          (RNDHOLD_AA),HL					; Seed random hold variable
+    LD          BC,$7f							; BC = PSG port base ($7F)
+    LD          A,0x7							; A = PSG register select value
+    OUT         (C),A							; Write select
+    DEC         C							    ; C = $7E (data port)
+    LD          A,$3f							; A = PSG data (enable / volume mask)
+    OUT         (C),A							; Write PSG configuration
+    LD          B,0x6							; B = color fill value for COLRAM (palette constant)
+    LD          HL,COLRAM						; HL = start of color RAM ($3400)
+    CALL        FILL_FULL_1024					; Clear COLRAM with uniform color
+    CALL        CHK_ITEM						; Prepare item graphics state (side-effects only)
+    CALL        DRAW_TITLE						; Draw title screen (CHR + COLRAM)
+    JP          INPUT_DEBOUNCE					; Transfer to input debounce handler (no return)
 
 ; DRAW_TITLE - Copy title screen graphics to display memory
 ;   - Copies 1000 bytes of character data from TITLE_SCREEN to CHRRAM
@@ -93,16 +92,15 @@ RESET_ITEM_ANIM_VARS_LOOP:
 ;   HL = End of source data (TITLE_SCREEN + 1000, TITLE_SCREEN_COL + 1000)
 ;
 DRAW_TITLE:
-    LD          DE,CHRRAM
-    LD          HL,TITLE_SCREEN
-    LD          BC,$3e8
-    LDIR
-    LD          DE,COLRAM
-    LD          HL,TITLE_SCREEN_COL
-    LD          BC,$3e8
-    LDIR
-
-    RET
+    LD          DE,CHRRAM						; DE = destination (CHR screen base)
+    LD          HL,TITLE_SCREEN					; HL = source character data
+    LD          BC,$3e8						    ; Copy length = 1000 bytes
+    LDIR								        ; Bulk copy characters
+    LD          DE,COLRAM						; DE = destination (color RAM base)
+    LD          HL,TITLE_SCREEN_COL				; HL = source color data
+    LD          BC,$3e8						    ; Copy length = 1000 bytes
+    LDIR								        ; Bulk copy colors
+    RET								            ; Return to caller
 
 ; BLANK_SCRN - Clear screen and initialize game UI elements
 ;   - Clears CHRRAM with SPACE characters and COLRAM with DKGRY on BLK
@@ -130,53 +128,53 @@ DRAW_TITLE:
 ;   Control transfers to DO_SWAP_HANDS
 ;
 BLANK_SCRN:
-    LD          HL,CHRRAM
-    LD          B,$20								; SPACE char
-    CALL        FILL_FULL_1024
-    LD          HL,COLRAM
-    LD          B,COLOR(DKGRY,BLK)					; DKGRY on BLK
-    CALL        FILL_FULL_1024
+    LD          HL,CHRRAM						; HL = CHR screen start
+    LD          B,$20							; B = SPACE character value
+    CALL        FILL_FULL_1024					; Clear character RAM
+    LD          HL,COLRAM						; HL = color RAM start
+    LD          B,COLOR(DKGRY,BLK)				; B = dark grey on black
+    CALL        FILL_FULL_1024					; Clear color RAM
 
-    LD          A,COLOR(DKGRN,BLK)                  ; DKGRN on BLK
-    LD          HL,COLRAM_PHYS_STATS_1000           
-    LD          BC,RECT(9,3)                        ; 9 x 3 rectangle
-    CALL        FILL_CHRCOL_RECT
+    LD          A,COLOR(DKGRN,BLK)				; A = dark green on black (panel color)
+    LD          HL,COLRAM_PHYS_STATS_1000		; HL = top-left of stats panel color area
+    LD          BC,RECT(9,3)					; 9 x 3 rectangle
+    CALL        FILL_CHRCOL_RECT				; Paint stats panel background
 
-    LD          DE,STATS_TXT						; DE = STATS_TXT
-    LD          HL,CHRRAM_STATS_TOP					; HL = CHRRAM_STATS_TOP
-    LD          B,COLOR(DKGRN,BLK)					; DKGRN on BLK
-    CALL        GFX_DRAW
-    LD          HL,CHRRRAM_HEALTH_SPACER_IDX
-    CALL        GFX_DRAW
-    LD          HL,$30								; Set starting PHYS HEALTH = 30
-    LD          E,$15								; Set starting SPRT HEALTH = 15
-    LD          (PLAYER_PHYS_HEALTH),HL
-    LD          (PLAYER_PHYS_HEALTH_MAX),HL
-    LD          A,E
-    LD          (PLAYER_SPRT_HEALTH),A
-    LD          (PLAYER_SPRT_HEALTH_MAX),A
-    CALL        REDRAW_STATS
-    LD          HL,$20
-    LD          (BYTE_ram_3aa9),HL
+    LD          DE,STATS_TXT					; DE = stats label graphics
+    LD          HL,CHRRAM_STATS_TOP				; HL = position to draw stats label
+    LD          B,COLOR(DKGRN,BLK)				; B = panel text color
+    CALL        GFX_DRAW						; Draw stats text
+    LD          HL,CHRRRAM_HEALTH_SPACER_IDX	; HL = spacer graphics location
+    CALL        GFX_DRAW						; Draw spacer
+    LD          HL,$30							; HL = 0030 (initial PHYS health BCD)
+    LD          E,$15							; E = 15 (initial SPRT health BCD)
+    LD          (PLAYER_PHYS_HEALTH),HL			; Set current physical health
+    LD          (PLAYER_PHYS_HEALTH_MAX),HL		; Set max physical health
+    LD          A,E							    ; A = spirit health BCD
+    LD          (PLAYER_SPRT_HEALTH),A			; Set current spirit health
+    LD          (PLAYER_SPRT_HEALTH_MAX),A		; Set max spirit health
+    CALL        REDRAW_STATS					; Render initial stats values
+    LD          HL,$20							; HL = 0020 (misc counter / timer init)
+    LD          (BYTE_ram_3aa9),HL				; Store counter value
 
-    LD          A,$14
-    LD          (FOOD_INV),A						; Set starting FOOD_INV  = 14
-    LD          (ARROW_INV),A						; Set starting ARROW INV = 14
-    LD          B,COLOR(RED,BLK)					; RED on BLK
-    LD          HL,CHRRAM_LEFT_HAND_ITEM_IDX
-    LD          DE,BOW
-    CALL        GFX_DRAW
-    CALL        FIX_ICON_COLORS
-    CALL        DRAW_COMPASS
-    DEC         A
-    LD          B,A
-    LD          A,0x3
-    SUB         B
-    LD          (RIGHT_HAND_ITEM),A
-    RRCA
-    JP          C,SET_ALT_SHIELD_BASE
-    LD          B,$10								;  Right hand RED SHIELD_L
-    JP          ADJUST_SHIELD_LEVEL
+    LD          A,$14							; A = 14 (starting food/arrows)
+    LD          (FOOD_INV),A					; Initialize food inventory
+    LD          (ARROW_INV),A					; Initialize arrow inventory
+    LD          B,COLOR(RED,BLK)				; B = red on black (left hand item color)
+    LD          HL,CHRRAM_LEFT_HAND_ITEM_IDX	; HL = left hand item position
+    LD          DE,BOW							; DE = BOW graphics pointer
+    CALL        GFX_DRAW						; Draw BOW in left hand slot
+    CALL        FIX_ICON_COLORS					; Normalize icon colors post-draw
+    CALL        DRAW_COMPASS					; Draw initial compass
+    DEC         A		    					; A = 13 (used in shield calc temp)
+    LD          B,A			    				; B = 13 (temp store)
+    LD          A,0x3							; A = 3 (base for shield computation)
+    SUB         B				    			; A = 3 - 13 = wrap/underflow (used to derive right-hand item code)
+    LD          (RIGHT_HAND_ITEM),A				; Store computed right-hand item code
+    RRCA							        	; Rotate for flag-based shield path decision
+    JP          C,SET_ALT_SHIELD_BASE			; If carry set, use alternate shield base
+    LD          B,$10							; B = $10 (standard shield base level)
+    JP          ADJUST_SHIELD_LEVEL				; Continue shield setup
 
 ; SET_ALT_SHIELD_BASE - Set base shield level for alternative path
 ;   - Entry point for shield initialization when carry flag is set
@@ -191,7 +189,7 @@ BLANK_SCRN:
 ;   Falls through to ADJUST_SHIELD_LEVEL
 ;
 SET_ALT_SHIELD_BASE:
-    LD          B,$30
+    LD          B,$30							; B = $30 (alternate shield base level)
 
 ; ADJUST_SHIELD_LEVEL - Calculate final shield level based on flags
 ;   - Tests carry flag from RRCA to determine shield upgrade level
@@ -211,11 +209,11 @@ SET_ALT_SHIELD_BASE:
 ;   Falls through to LAB_ram_e10c
 ;
 ADJUST_SHIELD_LEVEL:
-    RRCA
-    JP          NC,FINALIZE_STARTUP_STATE
-    LD          A,$40
-    ADD         A,B
-    LD          B,A
+    RRCA								        ; Rotate again; carry indicates upgrade path
+    JP          NC,FINALIZE_STARTUP_STATE		; If no carry, skip upgrade addition
+    LD          A,$40							; A = $40 (upgrade increment)
+    ADD         A,B		    					; A = base + $40
+    LD          B,A			    				; B = final shield level
 
 ; FINALIZE_STARTUP_STATE - Finalize starting equipment and initialize game world
 ;   - Sets left hand item to BOW ($18)
@@ -240,21 +238,21 @@ ADJUST_SHIELD_LEVEL:
 ;   Control transfers to DO_SWAP_HANDS (does not return)
 ;
 FINALIZE_STARTUP_STATE:
-    LD          A,$18								;  Left hand RED BOW
-    LD          (LEFT_HAND_ITEM),A
-    LD          HL,CHRRAM_RIGHT_HAND_ITEM_IDX
-    LD          DE,BUCKLER
-    CALL        GFX_DRAW
-    CALL        BUILD_MAP
-    CALL        SUB_ram_cdbf
-    CALL        SUB_ram_f2c4
-    CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
-    JP          DO_SWAP_HANDS
+    LD          A,$18					    		; A = $18 (BOW item code)
+    LD          (LEFT_HAND_ITEM),A			    	; Set left hand item to BOW
+    LD          HL,CHRRAM_RIGHT_HAND_ITEM_IDX		; HL = right hand item screen pos
+    LD          DE,BUCKLER						    ; DE = BUCKLER graphics pointer
+    CALL        GFX_DRAW							; Draw BUCKLER in right hand slot
+    CALL        BUILD_MAP							; Generate dungeon walls/items
+    CALL        SUB_ram_cdbf						; Init sound / system routine
+    CALL        SUB_ram_f2c4						; Additional startup (timer/UI) routine
+    CALL        REDRAW_START						; Draw initial non-viewport UI elements
+    CALL        REDRAW_VIEWPORT						; Render initial 3D maze view
+    JP          DO_SWAP_HANDS						; Enter main input loop (no return)
 
 DO_MOVE_FW_CHK_WALLS:
     LD          A,(WALL_F0_STATE)
-    CP          0x0								;  Check for no wall in F0
+    CP          0x0							    	;  Check for no wall in F0
     JP          Z,FW_WALLS_CLEAR_CHK_MONSTER
     BIT         0x2,A								;  Check for closed door
     JP          Z,NO_ACTION_TAKEN
@@ -262,11 +260,9 @@ FW_WALLS_CLEAR_CHK_MONSTER:
     LD          A,(ITEM_F1)
     INC         A
     INC         A
-    CP          $7a								;  Check for monster in F1
-    JP          NC,NO_ACTION_TAKEN								;  Monster in your way!
-								;  Do nothing.
-    LD          BC,(DIR_FACING_HI)								;  Way is clear!
-								;  Move forward.
+    CP          $7a								    ;  Check for monster in F1
+    JP          NC,NO_ACTION_TAKEN					;  Monster in your way! Do nothing.
+    LD          BC,(DIR_FACING_HI)					;  Way is clear! Move forward.
     LD          (PREV_DIR_VECTOR),BC
     LD          A,(DIR_FACING_SHORT)
     LD          (PREV_DIR_FACING),A
