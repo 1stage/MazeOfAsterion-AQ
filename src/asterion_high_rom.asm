@@ -62,13 +62,29 @@ RESET_ITEM_ANIM_VARS_LOOP:
     LD          A,R							    ; Read R register (pseudo-random)
     LD          H,A						    	; Copy random byte to H
     LD          (RNDHOLD_AA),HL					; Seed random hold variable
-    LD          BC,$7f							; BC = PSG port base ($7F)
+    
+; PSG_MIXER_RESET - Initialize PSG mixer and silence all channels
+;   - Selects AY/PSG register 7 (mixer control)
+;   - Writes mask $3F disabling tone + noise on A/B/C
+; Registers:
+; --- Start ---
+;   BC = $007F (port latch), A = $07 (register select)
+; --- In Process ---
+;   C transitions $7F -> $7E (data port), A = $3F (mixer mask)
+; --- End ---
+;   All mixer outputs disabled (silenced)
+;   Falls through to COLRAM clear and title setup
+PSG_MIXER_RESET:
+    LD          BC,$7f						; Select PSG mixer register (B holds high port, C=$7F latch)
     LD          A,0x7							; A = PSG register select value
     OUT         (C),A							; Write select
     DEC         C							    ; C = $7E (data port)
     LD          A,$3f							; A = PSG data (enable / volume mask)
     OUT         (C),A							; Write PSG configuration
     LD          B,0x6							; B = color fill value for COLRAM (palette constant)
+
+CLEAR_COLRAM_DEFAULT:
+    LD          B,COLOR(BLK,CYN)				; B = BLK on CYN (0x06) uniform background color
     LD          HL,COLRAM						; HL = start of color RAM ($3400)
     CALL        FILL_FULL_1024					; Clear COLRAM with uniform color
     CALL        CHK_ITEM						; Prepare item graphics state (side-effects only)
@@ -94,11 +110,11 @@ RESET_ITEM_ANIM_VARS_LOOP:
 DRAW_TITLE:
     LD          DE,CHRRAM						; DE = destination (CHR screen base)
     LD          HL,TITLE_SCREEN					; HL = source character data
-    LD          BC,$3e8						    ; Copy length = 1000 bytes
+    LD          BC,1000						    ; Copy length = 1000 bytes
     LDIR								        ; Bulk copy characters
     LD          DE,COLRAM						; DE = destination (color RAM base)
     LD          HL,TITLE_SCREEN_COL				; HL = source color data
-    LD          BC,$3e8						    ; Copy length = 1000 bytes
+    LD          BC,1000						    ; Copy length = 1000 bytes
     LDIR								        ; Bulk copy colors
     RET								            ; Return to caller
 
@@ -157,7 +173,7 @@ BLANK_SCRN:
     LD          HL,$20							; HL = 0020 (misc counter / timer init)
     LD          (BYTE_ram_3aa9),HL				; Store counter value
 
-    LD          A,$14							; A = 14 (starting food/arrows)
+    LD          A,$14							; A = 14 (starting food/arrows BCD)
     LD          (FOOD_INV),A					; Initialize food inventory
     LD          (ARROW_INV),A					; Initialize arrow inventory
     LD          B,COLOR(RED,BLK)				; B = red on black (left hand item color)
