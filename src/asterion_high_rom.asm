@@ -1,3 +1,27 @@
+;==============================================================================
+; GAMEINIT - Initialize game state and display title screen
+;==============================================================================
+;   - Resets stack pointer and clears all game variables
+;   - Initializes game state values in memory ($3A62-$3A8B)
+;   - Clears screen memory (CHRRAM and COLRAM)
+;   - Configures PSG (Programmable Sound Generator)
+;   - Displays title screen and transfers to input handling
+; Registers:
+; --- Start ---
+;   None (system entry point)
+; --- In Process ---
+;   SP = $3FFF (stack pointer reset)
+;   A  = Variable initialization values, I/O operations, R register read
+;   BC = PSG port addressing ($7E/$7F), fill values for FILL_FULL_1024
+;   DE = Variable space clearing (via WIPE_VARIABLE_SPACE)
+;   HL = Memory addressing for variable init, CHRRAM/COLRAM fills, timer/RNG setup
+; ---  End  ---
+;   Does not return - jumps to INPUT_DEBOUNCE
+;   CHRRAM filled with SPACE characters
+;   COLRAM filled with BLK on CYN
+;   Title screen displayed
+;   All game variables initialized
+;
 GAMEINIT:
     LD          SP,$3fff						;  Set SP to top of BANK0 RAM
     CALL        WIPE_VARIABLE_SPACE				;  Wipe variable space first...
@@ -16,21 +40,21 @@ GAMEINIT:
     LD          (HL),A							;  ($3a67) = $31
     INC         L								;  HL = $3a68
     LD          B,$12							;  B = $12
-    XOR         A								;  A = 0x0, F = $44 (Z and P set)
-LAB_ram_e029:
+    XOR         A							;  A = 0x0, F = $44 (Z and P set)
+INIT_ZERO_VAR_BLOCK_LOOP:
     LD          (HL),A							;  ($3a68) = $00
     INC         L								;  HL = $3a69 to $3a7a,
-								                ;  A = 0x0, F = $28
-    DJNZ        LAB_ram_e029					;  Loop if Not Z (B is decremented)
+												;  A = 0x0, F = $28
+    DJNZ        INIT_ZERO_VAR_BLOCK_LOOP		;  Loop if Not Z (B is decremented)
     LD          A,$18								;  A = $18 (HL = $3a7a, B = 0x0)
     LD          (HL),A								;  ($3a7a) = $18
     INC         HL								;  HL = $3a7b
-    LD          A,$fe								;  A = $fe
-    LD          B,$10								;  B = $10
-LAB_ram_e035:
+    LD          A,$fe							;  A = $fe
+    LD          B,$10							;  B = $10
+RESET_ITEM_ANIM_VARS_LOOP:
     LD          (HL),A
     INC         HL
-    DJNZ        LAB_ram_e035								;  Loop if Not Z (B is decremented)
+    DJNZ        RESET_ITEM_ANIM_VARS_LOOP			;  Loop if Not Z (B is decremented)
     LD          B,$20								;  Set fill CHR to SPACE 32/$20
     LD          HL,CHRRAM								;  HL = $3000 (Start of CHRRAM)
     CALL        FILL_FULL_1024								;  byte FILL_FULL_1024(word chrColValue...
@@ -51,17 +75,60 @@ LAB_ram_e035:
     CALL        CHK_ITEM
     CALL        DRAW_TITLE
     JP          INPUT_DEBOUNCE
+
+; DRAW_TITLE - Copy title screen graphics to display memory
+;   - Copies 1000 bytes of character data from TITLE_SCREEN to CHRRAM
+;   - Copies 1000 bytes of color data from TITLE_SCREEN_COL to COLRAM
+;   - Uses Z80 LDIR instruction for fast block memory transfer
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   BC = $03E8 (1000 bytes transfer count for LDIR)
+;   DE = Destination pointer (CHRRAM $3000, then COLRAM $3400)
+;   HL = Source pointer (TITLE_SCREEN, then TITLE_SCREEN_COL)
+; ---  End  ---
+;   BC = $0000 (decremented to zero by LDIR)
+;   DE = $33E8 (CHRRAM end), then $37E8 (COLRAM end)
+;   HL = End of source data (TITLE_SCREEN + 1000, TITLE_SCREEN_COL + 1000)
+;
 DRAW_TITLE:
     LD          DE,CHRRAM
-    LD          HL,TITLE_SCREEN								;   Pinned to TITLE_SCREEN								;   WAS 0xD800
+    LD          HL,TITLE_SCREEN
     LD          BC,$3e8
     LDIR
     LD          DE,COLRAM
-    LD          HL,TITLE_SCREEN_COL								;   Pinned to TITLE_SCREEN								;   WAS 0xD800 + 1024
+    LD          HL,TITLE_SCREEN_COL
     LD          BC,$3e8
     LDIR
 
     RET
+
+; BLANK_SCRN - Clear screen and initialize game UI elements
+;   - Clears CHRRAM with SPACE characters and COLRAM with DKGRY on BLK
+;   - Draws stats panel with DKGRN on BLK color scheme
+;   - Initializes player health (PHYS=48/$30, SPRT=21/$15)
+;   - Sets starting inventory (FOOD=20, ARROWS=20)
+;   - Draws starting equipment (BOW left hand, BUCKLER right hand)
+;   - Generates dungeon map and renders initial viewport
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = Color values, health values, inventory counts
+;   BC = Rectangle dimensions for FILL_CHRCOL_RECT, calculation temps
+;   DE = Graphics data pointers (STATS_TXT, BOW, BUCKLER)
+;   HL = Memory addresses for screen positioning and health storage
+;   B  = Color parameter for GFX_DRAW calls
+;   E  = SPRT health temporary storage
+; ---  End  ---
+;   Screen cleared and game UI rendered
+;   Player stats initialized and displayed
+;   Starting equipment drawn
+;   Dungeon map generated
+;   Initial viewport rendered
+;   Control transfers to DO_SWAP_HANDS
+;
 BLANK_SCRN:
     LD          HL,CHRRAM
     LD          B,$20								; SPACE char
@@ -107,18 +174,72 @@ BLANK_SCRN:
     SUB         B
     LD          (RIGHT_HAND_ITEM),A
     RRCA
-    JP          C,LAB_ram_e103
+    JP          C,SET_ALT_SHIELD_BASE
     LD          B,$10								;  Right hand RED SHIELD_L
     JP          ADJUST_SHIELD_LEVEL
-LAB_ram_e103:
+
+; SET_ALT_SHIELD_BASE - Set base shield level for alternative path
+;   - Entry point for shield initialization when carry flag is set
+;   - Sets B register to $30 as base shield level
+;   - Falls through to ADJUST_SHIELD_LEVEL for final configuration
+; Registers:
+; --- Start ---
+;   A = Carry flag set from previous RRCA
+; --- In Process ---
+;   B = $30 (base shield level)
+; ---  End  ---
+;   Falls through to ADJUST_SHIELD_LEVEL
+;
+SET_ALT_SHIELD_BASE:
     LD          B,$30
+
+; ADJUST_SHIELD_LEVEL - Calculate final shield level based on flags
+;   - Tests carry flag from RRCA to determine shield upgrade level
+;   - If carry set: adds $40 to base shield value in B
+;   - If carry clear: uses base shield value unchanged
+;   - Falls through to FINALIZE_STARTUP_STATE for equipment finalization
+; Registers:
+; --- Start ---
+;   A = Value from RIGHT_HAND_ITEM calculation (rotated)
+;   B = Base shield level ($10 or $30)
+; --- In Process ---
+;   A = Rotated right again (RRCA), then $40 if carry set
+;   B = Final shield level (base or base + $40)
+; ---  End  ---
+;   A = Modified ($40 + base if carry, otherwise rotated value)
+;   B = Final shield level for equipment setup
+;   Falls through to LAB_ram_e10c
+;
 ADJUST_SHIELD_LEVEL:
     RRCA
-    JP          NC,LAB_ram_e10c
+    JP          NC,FINALIZE_STARTUP_STATE
     LD          A,$40
     ADD         A,B
     LD          B,A
-LAB_ram_e10c:
+
+; FINALIZE_STARTUP_STATE - Finalize starting equipment and initialize game world
+;   - Sets left hand item to BOW ($18)
+;   - Draws BUCKLER graphic to right hand equipment slot
+;   - Builds initial dungeon map layout
+;   - Initializes sound/viewport systems
+;   - Renders starting game screen
+;   - Transfers control to DO_SWAP_HANDS
+; Registers:
+; --- Start ---
+;   B = Final shield level from ADJUST_SHIELD_LEVEL
+; --- In Process ---
+;   A  = $18 (BOW item code)
+;   BC = Used by called subroutines (BUILD_MAP, etc.)
+;   DE = BUCKLER graphics pointer
+;   HL = CHRRAM_RIGHT_HAND_ITEM_IDX screen position
+; ---  End  ---
+;   LEFT_HAND_ITEM = $18 (BOW)
+;   Right hand equipment drawn
+;   Dungeon map generated
+;   Viewport rendered
+;   Control transfers to DO_SWAP_HANDS (does not return)
+;
+FINALIZE_STARTUP_STATE:
     LD          A,$18								;  Left hand RED BOW
     LD          (LEFT_HAND_ITEM),A
     LD          HL,CHRRAM_RIGHT_HAND_ITEM_IDX
