@@ -2174,14 +2174,14 @@ CHECK_INPUT_DURING_SCREEN_SAVER:
     LD          BC,$ff								; BC = keyboard port
     IN          A,(C)								; Read keyboard row
     INC         A									; Test for $FF (no key pressed)
-    JP          NZ,LAB_ram_eaf5						; If key pressed, exit screensaver
+    JP          NZ,EXIT_SCREENSAVER						; If key pressed, exit screensaver
     LD          C,$f7								; C = handcontroller port 1
     LD          A,0xf								; A = port enable mask
     OUT         (C),A								; Enable handcontroller port
     DEC         C									; C = $F6 (data port)
     IN          A,(C)								; Read handcontroller state
     INC         A									; Test for $FF (no input)
-    JP          NZ,LAB_ram_eaf5						; If input detected, exit screensaver
+    JP          NZ,EXIT_SCREENSAVER						; If input detected, exit screensaver
     INC         C									; C = $F7 (control port)
     LD          A,0xe								; A = disable mask
     OUT         (C),A								; Disable handcontroller port
@@ -2190,20 +2190,21 @@ CHECK_INPUT_DURING_SCREEN_SAVER:
     INC         A									; Test for input
     JP          Z,CHECK_INPUT_DURING_SCREEN_SAVER	; If no input, continue screensaver
 
-LAB_ram_eaf5:
+EXIT_SCREENSAVER:
     LD          DE,COLRAM							; DE = start of COLRAM (restore colors)
-LAB_ram_eaf8:
+RESTORE_COLOR_BYTE:
     LD          B,H									; B = rotation counter (reverse rotations)
     LD          A,(DE)								; Load rotated color byte
-LAB_ram_eafa:
+REVERSE_ROTATE_LOOP:
     RRCA										    ; Rotate right to undo screensaver rotation
-    DJNZ        LAB_ram_eafa						; Repeat H times to restore original
+    DJNZ        REVERSE_ROTATE_LOOP					; Repeat H times to restore original
     LD          (DE),A								; Store restored color
     INC         DE									; Advance to next color cell
     LD          A,$38								; A = COLRAM end check
     CP          D									; Past end of COLRAM?
-    JP          NZ,LAB_ram_eaf8						; Continue restoring all colors
+    JP          NZ,RESTORE_COLOR_BYTE				; Continue restoring all colors
     JP          INPUT_DEBOUNCE						; Return to input loop
+    
 TIMER_UPDATED_CHECK_INPUT:
     LD          A,(RAM_AD)
     CP          $32
