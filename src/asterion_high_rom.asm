@@ -2230,12 +2230,12 @@ TIMER_UPDATED_CHECK_INPUT:
     CP          $31								; Compare with $31
     JP          NZ,LAB_ram_eb27					; If not $31 → check monster/melee tick
     LD          HL,TIMER_A						; HL points to master tick counter
-    LD          A,(ITEM_ANIM_TIMER_COPY)			; A = last processed item-anim tick
-    CP          (HL)								; Has TIMER_A advanced since last item tick?
-    JP          NZ,WAIT_FOR_INPUT					; No → nothing to animate this frame
-    CALL        SUB_ram_e450						; Update item blink/phase bookkeeping
-    CALL        SUB_ram_e39a						; Redraw/update UI/icons for item state
-    JP          WAIT_FOR_INPUT						; Return to main input loop
+    LD          A,(ITEM_ANIM_TIMER_COPY)		; A = last processed item-anim tick
+    CP          (HL)							; Has TIMER_A advanced since last item tick?
+    JP          NZ,WAIT_FOR_INPUT				; No → nothing to animate this frame
+    CALL        SUB_ram_e450					; Update item blink/phase bookkeeping
+    CALL        SUB_ram_e39a					; Redraw/update UI/icons for item state
+    JP          WAIT_FOR_INPUT					; Return to main input loop
 
 ;-------------------------------------------------------------------------------
 ; Monster/melee animation tick gate (when AE != $31)
@@ -2243,13 +2243,13 @@ TIMER_UPDATED_CHECK_INPUT:
 LAB_ram_eb27:
     LD          HL,TIMER_A						; HL points to master tick counter
     LD          A,(MONSTER_ANIM_TIMER_COPY)		; A = last processed monster-anim tick
-    CP          (HL)								; Has TIMER_A advanced for monster anim?
-    JP          NZ,WAIT_FOR_INPUT					; No → skip animation this frame
-    CALL        MELEE_RESTORE_BG_FROM_BUFFER		; Restore background under melee sprites
-    CALL        SUB_ram_e450						; Update blink/phase shared bookkeeping
-    CALL        SUB_ram_e39a						; Redraw any UI impacted by anim state
+    CP          (HL)							; Has TIMER_A advanced for monster anim?
+    JP          NZ,WAIT_FOR_INPUT				; No → skip animation this frame
+    CALL        MELEE_RESTORE_BG_FROM_BUFFER	; Restore background under melee sprites
+    CALL        SUB_ram_e450					; Update blink/phase shared bookkeeping
+    CALL        SUB_ram_e39a					; Redraw any UI impacted by anim state
     CALL        MELEE_ANIM_LOOP					; Advance melee/monster animation frame(s)
-    JP          WAIT_FOR_INPUT						; Back to main loop
+    JP          WAIT_FOR_INPUT					; Back to main loop
 
 ;-------------------------------------------------------------------------------
 ; Monster/melee animation (UI already up-to-date or not needed)
@@ -2305,7 +2305,7 @@ LAB_ram_eb7b:
     LD          A,(TIMER_D)						; A = sub-tick timer (short interval)
     CP          0x5								; Require TIMER_D < 5 to allow action
     JP          NC,LAB_ram_ebd6					; Too soon → skip
-    CALL        MAKE_RANDOM_BYTE					; A = random 0..255
+    CALL        MAKE_RANDOM_BYTE				; A = random 0..255
     ADD         A,0x8							; 8/256 chance sets carry
     JP          NC,LAB_ram_ebd6					; If no carry → abort action
     DEC         B								; First case: B==1? (back)
@@ -2352,27 +2352,46 @@ LAB_ram_ebcc:
     JP          NZ,LAB_ram_ebc6
     AND         A
     JP          Z,LAB_ram_ebc6
+
+;==============================================================================
+; LAB_ram_ebd6 - Input polling and title screen difficulty selection
+;==============================================================================
+;   - Polls keyboard; if any key active, branch to keyboard handling
+;   - Polls handcontroller; if active, capture state and branch to HC handling
+;   - If no input, returns to WAIT_FOR_INPUT main loop
+;   - On HC activity, plays a short descending tone to acknowledge input
+; Registers:
+; --- Start ---
+;   BC = $00FF (keyboard port), then $F7/$F6 (HC control/data)
+;   HL = Handcontroller input holder pointer during capture
+; --- In Process ---
+;   A  = Port reads, comparisons
+;   C  = Port selector ($FF, $F7, $F6)
+; ---  End  ---
+;   Jumps to keyboard (`LAB_ram_ec52`) or HC handling (`LAB_ram_ebf7`),
+;   else falls back to `WAIT_FOR_INPUT`
+;
 LAB_ram_ebd6:
-    LD          BC,$ff
-    IN          A,(C)
-    INC         A
-    JP          NZ,LAB_ram_ec52
-    LD          C,$f7
-    LD          A,0xf
-    OUT         (C),A
-    DEC         C
-    IN          A,(C)
-    INC         A
-    JP          NZ,LAB_ram_ebf7
-    INC         C
-    LD          A,0xe
-    OUT         (C),A
-    DEC         C
-    IN          A,(C)
-    INC         A
-    JP          Z,WAIT_FOR_INPUT
+    LD          BC,$ff								; BC = keyboard port
+    IN          A,(C)								; Read keyboard row
+    INC         A									; Test for $FF (no key pressed)
+    JP          NZ,LAB_ram_ec52					; Key pressed → handle keyboard input
+    LD          C,$f7								; C = HC control port
+    LD          A,0xf								; A = enable mask
+    OUT         (C),A								; Enable HC read
+    DEC         C									; C = $F6 (HC data)
+    IN          A,(C)								; Read HC state
+    INC         A									; Test for $FF (no input)
+    JP          NZ,LAB_ram_ebf7					; If input present, go HC handling
+    INC         C									; C = $F7
+    LD          A,0xe								; A = disable mask
+    OUT         (C),A								; Disable HC port
+    DEC         C									; C = $F6
+    IN          A,(C)								; Read again (stabilize)
+    INC         A									; $FF means no input
+    JP          Z,WAIT_FOR_INPUT					; No input anywhere → continue loop
 LAB_ram_ebf7:
-    CALL        PLAY_DESCENDING_SOUND
+    CALL        PLAY_DESCENDING_SOUND				; Acknowledge HC input with tone
     LD          HL,HC_INPUT_HOLDER
 DISABLE_JOY_04:
     LD          C,$f7
@@ -2411,32 +2430,55 @@ TITLE_CHK_FOR_HC_INPUT:
     LD          A,(HL)
     INC         A
     JP          HC_LEVEL_SELECT_LOOP
+;==============================================================================
+; PLAY_DESCENDING_SOUND - Short two-step speaker chirp
+;==============================================================================
+;   - Outputs 0 then 1 to `SPEAKER` with timed delays to create a simple
+;     descending/acknowledgement tone; also resets timers A/B/C
+; Registers:
+;   A  = Output value to speaker
+;   BC = Sleep delay parameter
+;
 PLAY_DESCENDING_SOUND:
-    XOR         A
-    LD          (TIMER_A),A
+    XOR         A									; A = 0
+    LD          (TIMER_A),A						; Reset timers
     LD          (TIMER_B),A
     LD          (TIMER_C),A
-    OUT         (SPEAKER),A
-    LD          BC,$f0
-    CALL        SLEEP								;  byte SLEEP(short cycleCount)
-    INC         A
-    OUT         (SPEAKER),A
-    LD          BC,$4c0
-    CALL        SLEEP								;  byte SLEEP(short cycleCount)
-    RET
-LAB_ram_ec52:
-    CALL        PLAY_DESCENDING_SOUND
-    LD          HL,KEY_INPUT_COL0
-    LD          BC,0xfeff								;   Was LD, BC, GFX_POINTERS
-    LD          D,0x8
-SELECT_DIFFICULTY_LOOP:
-    IN          A,(C)
-    LD          (HL),A
+    OUT         (SPEAKER),A						; Speaker low
+    LD          BC,$f0								; Short delay
+    CALL        SLEEP								; Wait
+    INC         A									; A = 1
+    OUT         (SPEAKER),A						; Speaker high
+    LD          BC,$4c0								; Longer delay
+    CALL        SLEEP								; Wait
+    RET											; Done
 
-    INC         L
-    RLC         B
-    DEC         D
-    JP          NZ,SELECT_DIFFICULTY_LOOP
+;==============================================================================
+; LAB_ram_ec52 - Keyboard title-screen scanning and difficulty selection
+;==============================================================================
+;   - Scans keyboard columns into `KEY_INPUT_COL0..` buffer
+;   - If `INPUT_HOLDER` already has a key, branch to `KEY_COMPARE`
+;   - If `DUNGEON_LEVEL` is nonzero, start game (`GAMEINIT`)
+;   - Otherwise, check specific keys for difficulty selection or author display
+; Registers:
+;   HL = Destination buffer pointer (`KEY_INPUT_COL0`) advanced by L
+;   BC = Port and column bitmask ($FEFF, rotated)
+;   D  = Loop counter (8 columns)
+;   A  = Input value and comparisons
+;
+LAB_ram_ec52:
+    CALL        PLAY_DESCENDING_SOUND				; Acknowledge key press
+    LD          HL,KEY_INPUT_COL0					; HL = start of key input buffer
+    LD          BC,0xfeff							; C=$FF port, B=$FE initial column mask
+    LD          D,0x8								; Scan 8 columns
+SELECT_DIFFICULTY_LOOP:
+    IN          A,(C)								; Read current column
+    LD          (HL),A								; Store into buffer
+
+    INC         L									; Advance buffer index
+    RLC         B									; Rotate mask to next column
+    DEC         D									; Decrement remaining columns
+    JP          NZ,SELECT_DIFFICULTY_LOOP			; Continue scan if not done
     LD          A,(INPUT_HOLDER)
     AND         A
     JP          NZ,KEY_COMPARE								;  OLD = e12c								;   NEW = fbe0
