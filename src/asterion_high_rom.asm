@@ -2060,74 +2060,150 @@ DO_SWAP_PACK:
     CALL        COPY_GFX_FROM_BUFFER
     CALL        NEW_RIGHT_HAND_ITEM
     JP          WAIT_A_TICK
+
+;==============================================================================
+; UPDATE_VIEWPORT - Redraw viewport and UI after position/state change
+;==============================================================================
+;   - Calls REDRAW_START to refresh non-viewport UI elements
+;   - Calls REDRAW_VIEWPORT to render 3D maze view
+;   - Falls through to INPUT_DEBOUNCE for input delay
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   Modified by REDRAW_START and REDRAW_VIEWPORT
+; ---  End  ---
+;   Viewport and UI fully updated
+;   Falls through to INPUT_DEBOUNCE
+;
 UPDATE_VIEWPORT:
-    CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
+    CALL        REDRAW_START						; Refresh non-viewport UI (stats, compass, etc.)
+    CALL        REDRAW_VIEWPORT						; Render 3D maze view
+
+;==============================================================================
+; INPUT_DEBOUNCE - Brief delay before accepting next input
+;==============================================================================
+;   - Provides input debounce delay via WAIT_A_TICK
+;   - Falls through to WAIT_FOR_INPUT main loop
+; Registers:
+; --- Start ---
+;   None
+; ---  End  ---
+;   Falls through to WAIT_FOR_INPUT
+;
 INPUT_DEBOUNCE:
-    CALL        WAIT_A_TICK
+    CALL        WAIT_A_TICK							; Brief delay for input debounce
+
+;==============================================================================
+; WAIT_FOR_INPUT - Main input loop with timer, animation, and screensaver
+;==============================================================================
+;   - Updates timers (TIMER_A, TIMER_C) each iteration
+;   - Handles blink/animation states for items and combat
+;   - Triggers screensaver after inactivity timeout
+;   - Checks for keyboard/handcontroller input
+;   - Branches to animation routines or continues loop
+; Registers:
+; --- Start ---
+;   None (entry to main loop)
+; --- In Process ---
+;   A  = Timer values, comparisons, input reads
+;   BC = Sleep parameters, port addressing
+;   DE = COLRAM addressing for screensaver
+;   HL = Timer addresses, COLRAM pointers
+;   H  = Screensaver outer loop counter
+;   L  = Screensaver inner loop counter
+; ---  End  ---
+;   Loops indefinitely until input or animation trigger
+;
 WAIT_FOR_INPUT:
-    CALL        TIMER_UPDATE
-    CALL        BLINK_ROUTINE
-    JP          NC,TIMER_UPDATED_CHECK_INPUT
-    LD          HL,TIMER_C
-    INC         (HL)
-    LD          A,(HL)
-    CP          $15
-    JP          C,TIMER_UPDATED_CHECK_INPUT
-    XOR         A
-    LD          (HL),A
+    CALL        TIMER_UPDATE						; Increment TIMER_A, update game timers
+    CALL        BLINK_ROUTINE						; Handle item/animation blink state
+    JP          NC,TIMER_UPDATED_CHECK_INPUT		; If no blink update needed, check input
+    LD          HL,TIMER_C							; HL = inactivity timer address
+    INC         (HL)								; Increment inactivity counter
+    LD          A,(HL)								; A = current inactivity count
+    CP          $15									; Compare with screensaver threshold (21)
+    JP          C,TIMER_UPDATED_CHECK_INPUT			; If below threshold, skip screensaver
+    XOR         A									; A = 0 (reset counter)
+    LD          (HL),A								; Reset inactivity timer
+
+;==============================================================================
+; SCREEN_SAVER_FULL_SCREEN - Animated color-cycling screensaver
+;==============================================================================
+;   - Rotates all COLRAM color bytes to create cycling effect
+;   - Runs in loop until keyboard/handcontroller input detected
+;   - Restores original colors before returning to INPUT_DEBOUNCE
+; Flow:
+;   1. Rotate all COLRAM bits right (shift colors)
+;   2. Delay briefly (SLEEP)
+;   3. Check for keyboard/handcontroller input
+;   4. Repeat until input detected
+;   5. Rotate colors back to original state
+; Registers:
+; --- Start ---
+;   HL = Outer/inner loop counters ($0800 initial)
+; --- In Process ---
+;   A  = Color byte values, port reads, comparisons
+;   BC = SLEEP parameter, port addressing ($FF, $F7/$F6)
+;   DE = COLRAM pointer ($3400-$37FF)
+;   H  = Outer loop counter (8 rotations per check)
+;   L  = Inner loop counter (controls check frequency)
+; ---  End  ---
+;   Colors restored, returns to INPUT_DEBOUNCE
+;
 SCREEN_SAVER_FULL_SCREEN:
-    LD          HL,$800
+    LD          HL,$800								; H=8 rotations, L=0 (loop counter init)
 SCREEN_SAVER_REDRAW_LOOP:
-    LD          DE,COLRAM
+    LD          DE,COLRAM							; DE = start of color RAM
 RECALC_SCREEN_SAVER_COLORS:
-    LD          A,(DE)
-    RRCA
-    LD          (DE),A
-    INC         DE
-    LD          A,$38
-    CP          D
-    JP          NZ,RECALC_SCREEN_SAVER_COLORS
-    DEC         H
-    JP          NZ,CHECK_INPUT_DURING_SCREEN_SAVER
-    LD          H,0x8
+    LD          A,(DE)								; Load current color byte
+    RRCA										    ; Rotate right (shift color bits)
+    LD          (DE),A								; Store rotated color
+    INC         DE									; Advance to next color cell
+    LD          A,$38								; A = $38 (COLRAM end page + 1)
+    CP          D									; Check if past end of COLRAM
+    JP          NZ,RECALC_SCREEN_SAVER_COLORS		; Continue rotating all colors
+    DEC         H									; Decrement rotation pass counter
+    JP          NZ,CHECK_INPUT_DURING_SCREEN_SAVER	; If more passes remain, check input
+    LD          H,0x8								; Reset rotation counter to 8
 CHECK_INPUT_DURING_SCREEN_SAVER:
-    DEC         L
-    JP          Z,SCREEN_SAVER_REDRAW_LOOP
-    LD          BC,$140
-    CALL        SLEEP								;  byte SLEEP(short cycleCount)
-    LD          BC,$ff
-    IN          A,(C)
-    INC         A
-    JP          NZ,LAB_ram_eaf5
-    LD          C,$f7
-    LD          A,0xf
-    OUT         (C),A
-    DEC         C
-    IN          A,(C)
-    INC         A
-    JP          NZ,LAB_ram_eaf5
-    INC         C
-    LD          A,0xe
-    OUT         (C),A
-    DEC         C
-    IN          A,(C)
-    INC         A
-    JP          Z,CHECK_INPUT_DURING_SCREEN_SAVER
+    DEC         L									; Decrement check frequency counter
+    JP          Z,SCREEN_SAVER_REDRAW_LOOP			; If zero, restart rotation cycle
+    LD          BC,$140								; BC = sleep duration parameter
+    CALL        SLEEP								; Delay between animation frames
+    LD          BC,$ff								; BC = keyboard port
+    IN          A,(C)								; Read keyboard row
+    INC         A									; Test for $FF (no key pressed)
+    JP          NZ,LAB_ram_eaf5						; If key pressed, exit screensaver
+    LD          C,$f7								; C = handcontroller port 1
+    LD          A,0xf								; A = port enable mask
+    OUT         (C),A								; Enable handcontroller port
+    DEC         C									; C = $F6 (data port)
+    IN          A,(C)								; Read handcontroller state
+    INC         A									; Test for $FF (no input)
+    JP          NZ,LAB_ram_eaf5						; If input detected, exit screensaver
+    INC         C									; C = $F7 (control port)
+    LD          A,0xe								; A = disable mask
+    OUT         (C),A								; Disable handcontroller port
+    DEC         C									; C = $F6 (data port)
+    IN          A,(C)								; Read again
+    INC         A									; Test for input
+    JP          Z,CHECK_INPUT_DURING_SCREEN_SAVER	; If no input, continue screensaver
+
 LAB_ram_eaf5:
-    LD          DE,COLRAM
+    LD          DE,COLRAM							; DE = start of COLRAM (restore colors)
 LAB_ram_eaf8:
-    LD          B,H
-    LD          A,(DE)
+    LD          B,H									; B = rotation counter (reverse rotations)
+    LD          A,(DE)								; Load rotated color byte
 LAB_ram_eafa:
-    RRCA
-    DJNZ        LAB_ram_eafa
-    LD          (DE),A
-    INC         DE
-    LD          A,$38
-    CP          D
-    JP          NZ,LAB_ram_eaf8
-    JP          INPUT_DEBOUNCE
+    RRCA										    ; Rotate right to undo screensaver rotation
+    DJNZ        LAB_ram_eafa						; Repeat H times to restore original
+    LD          (DE),A								; Store restored color
+    INC         DE									; Advance to next color cell
+    LD          A,$38								; A = COLRAM end check
+    CP          D									; Past end of COLRAM?
+    JP          NZ,LAB_ram_eaf8						; Continue restoring all colors
+    JP          INPUT_DEBOUNCE						; Return to input loop
 TIMER_UPDATED_CHECK_INPUT:
     LD          A,(RAM_AD)
     CP          $32
