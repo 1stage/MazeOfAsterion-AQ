@@ -2205,69 +2205,110 @@ REVERSE_ROTATE_LOOP:
     JP          NZ,RESTORE_COLOR_BYTE				; Continue restoring all colors
     JP          INPUT_DEBOUNCE						; Return to input loop
     
+;==============================================================================
+; TIMER_UPDATED_CHECK_INPUT - Timer-driven item/combat animation + AI checks
+;==============================================================================
+;   - Routes control to item animation or melee/monster animation based on
+;     timer snapshots and state bytes (RAM_AD/RAM_AE)
+;   - Updates screensaver timer and may trigger simple AI when idle
+;   - Falls back to WAIT_FOR_INPUT when no animation tick is due
+; Registers:
+; --- Start ---
+;   None (uses memory-mapped flags and timers)
+; --- In Process ---
+;   A  = State/flag bytes, comparisons, randomness
+;   B  = Loop/selector for direction cases (4 -> back/left/right/forward)
+;   HL = Points to TIMER_A or item lists (ITEM_F1/ITEM_FR1)
+; ---  End  ---
+;   Jumps to WAIT_FOR_INPUT or into AI branch (LAB_ram_eb7b)
+;
 TIMER_UPDATED_CHECK_INPUT:
-    LD          A,(RAM_AD)
-    CP          $32
-    JP          Z,LAB_ram_eb53
-    LD          A,(RAM_AE)
-    CP          $31
-    JP          NZ,LAB_ram_eb27
-    LD          HL,TIMER_A
-    LD          A,(ITEM_ANIM_TIMER_COPY)
-    CP          (HL)
-    JP          NZ,WAIT_FOR_INPUT
-    CALL        SUB_ram_e450
-    CALL        SUB_ram_e39a
-    JP          WAIT_FOR_INPUT
+    LD          A,(RAM_AD)						; Load animation state byte AD
+    CP          $32								; Is state equal to $32? (branch set)
+    JP          Z,LAB_ram_eb53					; Yes → handle screensaver/idle branch
+    LD          A,(RAM_AE)						; Load animation state byte AE
+    CP          $31								; Compare with $31
+    JP          NZ,LAB_ram_eb27					; If not $31 → check monster/melee tick
+    LD          HL,TIMER_A						; HL points to master tick counter
+    LD          A,(ITEM_ANIM_TIMER_COPY)			; A = last processed item-anim tick
+    CP          (HL)								; Has TIMER_A advanced since last item tick?
+    JP          NZ,WAIT_FOR_INPUT					; No → nothing to animate this frame
+    CALL        SUB_ram_e450						; Update item blink/phase bookkeeping
+    CALL        SUB_ram_e39a						; Redraw/update UI/icons for item state
+    JP          WAIT_FOR_INPUT						; Return to main input loop
+
+;-------------------------------------------------------------------------------
+; Monster/melee animation tick gate (when AE != $31)
+;-------------------------------------------------------------------------------
 LAB_ram_eb27:
-    LD          HL,TIMER_A
-    LD          A,(MONSTER_ANIM_TIMER_COPY)
-    CP          (HL)
-    JP          NZ,WAIT_FOR_INPUT
-    CALL        MELEE_RESTORE_BG_FROM_BUFFER
-    CALL        SUB_ram_e450
-    CALL        SUB_ram_e39a
-    CALL        MELEE_ANIM_LOOP
-    JP          WAIT_FOR_INPUT
+    LD          HL,TIMER_A						; HL points to master tick counter
+    LD          A,(MONSTER_ANIM_TIMER_COPY)		; A = last processed monster-anim tick
+    CP          (HL)								; Has TIMER_A advanced for monster anim?
+    JP          NZ,WAIT_FOR_INPUT					; No → skip animation this frame
+    CALL        MELEE_RESTORE_BG_FROM_BUFFER		; Restore background under melee sprites
+    CALL        SUB_ram_e450						; Update blink/phase shared bookkeeping
+    CALL        SUB_ram_e39a						; Redraw any UI impacted by anim state
+    CALL        MELEE_ANIM_LOOP					; Advance melee/monster animation frame(s)
+    JP          WAIT_FOR_INPUT						; Back to main loop
+
+;-------------------------------------------------------------------------------
+; Monster/melee animation (UI already up-to-date or not needed)
+;-------------------------------------------------------------------------------
 LAB_ram_eb40:
-    LD          HL,TIMER_A
-    LD          A,(MONSTER_ANIM_TIMER_COPY)
-    CP          (HL)
-    JP          NZ,WAIT_FOR_INPUT
-    CALL        MELEE_RESTORE_BG_FROM_BUFFER
-    CALL        MELEE_ANIM_LOOP
-    JP          WAIT_FOR_INPUT
+    LD          HL,TIMER_A						; HL points to master tick counter
+    LD          A,(MONSTER_ANIM_TIMER_COPY)		; A = last processed monster-anim tick
+    CP          (HL)								; Has TIMER_A advanced for monster anim?
+    JP          NZ,WAIT_FOR_INPUT					; No → skip animation this frame
+    CALL        MELEE_RESTORE_BG_FROM_BUFFER		; Restore background under melee sprites
+    CALL        MELEE_ANIM_LOOP					; Advance melee/monster animation frame(s)
+    JP          WAIT_FOR_INPUT						; Back to main loop
+
+;-------------------------------------------------------------------------------
+; Idle branch when RAM_AD == $32 (screensaver timer + conditional AI)
+;-------------------------------------------------------------------------------
 LAB_ram_eb53:
-    LD          A,(RAM_AE)
-    CP          $31
-    JP          NZ,LAB_ram_eb40
-    CALL        UPDATE_SCR_SAVER_TIMER
-    LD          A,(COMBAT_BUSY_FLAG)
-    AND         A
-    JP          NZ,LAB_ram_ebd6
-    LD          B,0x4
-    LD          HL,ITEM_F1
-    LD          A,(HL)
-    INC         A
-    INC         A
-    LD          HL,ITEM_FR1
+    LD          A,(RAM_AE)						; Read secondary state AE
+    CP          $31								; If not $31, use simpler melee branch
+    JP          NZ,LAB_ram_eb40					; → Skip UI updates, just animate melee
+    CALL        UPDATE_SCR_SAVER_TIMER				; Bump inactivity/screensaver counters
+    LD          A,(COMBAT_BUSY_FLAG)				; Is combat currently running?
+    AND         A								; Set flags from A
+    JP          NZ,LAB_ram_ebd6					; If busy, bypass AI/random actions
+    LD          B,0x4								; B = direction selector (4 probes)
+    LD          HL,ITEM_F1						; HL = pointer to F1 cell (front row 1)
+    LD          A,(HL)							; A = item/monster id at F1
+    INC         A								; Normalize/flag for threshold compare
+    INC         A								; (two INCs used consistently in this code)
+    LD          HL,ITEM_FR1						; HL = pointer to FR1 (probing sequence)
 LAB_ram_eb6f:
-    CP          $7a
-    JP          NC,LAB_ram_eb7b
-    INC         HL
-    LD          A,(HL)
+    CP          $7a								; >= $7A ⇒ monster/eligible target present
+    JP          NC,LAB_ram_eb7b					; If present, run AI/random action
+    INC         HL								; Else move to next probe cell
+    LD          A,(HL)							; A = next item/monster id
+    INC         A								; Normalize/flag as above
     INC         A
-    INC         A
-    DJNZ        LAB_ram_eb6f
-    JP          LAB_ram_ebd6
+    DJNZ        LAB_ram_eb6f						; Probe up to 4 positions
+    JP          LAB_ram_ebd6						; Nothing eligible → continue main loop
+
+;-------------------------------------------------------------------------------
+; LAB_ram_eb7b - Random AI nudge: occasional turn/advance + redraw/engage
+;-------------------------------------------------------------------------------
+;   - Low-probability trigger based on TIMER_D and a random carry test
+;   - Chooses an action based on B (probe index):
+;       B==1 → consider back cell; turn 180° if passable
+;       B==2 → consider left cell; turn left if passable
+;       B==3 → consider right cell; turn right if passable
+;       B==4 → consider forward cell; if blocked, try engage
+;   - On successful facing change, redraw viewport and possibly enter combat
+;
 LAB_ram_eb7b:
-    LD          A,(TIMER_D)
-    CP          0x5
-    JP          NC,LAB_ram_ebd6
-    CALL        MAKE_RANDOM_BYTE
-    ADD         A,0x8
-    JP          NC,LAB_ram_ebd6
-    DEC         B
+    LD          A,(TIMER_D)						; A = sub-tick timer (short interval)
+    CP          0x5								; Require TIMER_D < 5 to allow action
+    JP          NC,LAB_ram_ebd6					; Too soon → skip
+    CALL        MAKE_RANDOM_BYTE					; A = random 0..255
+    ADD         A,0x8							; 8/256 chance sets carry
+    JP          NC,LAB_ram_ebd6					; If no carry → abort action
+    DEC         B								; First case: B==1? (back)
     JP          NZ,LAB_ram_eb9e
     LD          A,(WALL_B0_STATE)
     BIT         0x2,A
