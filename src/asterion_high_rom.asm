@@ -394,121 +394,312 @@ LAB_ram_e244:
     OR          H
     JP          NZ,LAB_ram_e244
     JP          PLAY_SOUND_LOOP
+
+;==============================================================================
+; USE_MAP
+;==============================================================================
+; Displays the dungeon mini-map overlay when the player uses the map item.
+; Checks if the map is owned and available, then draws a 24x24 character area
+; showing walls, player position, and optionally ladders/monsters/items based
+; on the map's quality level (red=basic, yellow=+ladder, purple=+monsters,
+; white=+items).
+;
+; Flow:
+; 1. Check GAME_BOOLEANS bit 2 (map owned)
+; 2. Check MAP_INV_SLOT (map quality level 0-4)
+; 3. Clear viewport with spaces and dark blue background
+; 4. Draw appropriate map elements based on quality level
+; 5. Wait for keypress to close map
+; 6. Return to viewport redraw
+;
+; Input:
+;   GAME_BOOLEANS - Bit 2 indicates map ownership
+;   MAP_INV_SLOT - Map quality level (0=none, 1=red, 2=yellow, 3=purple, 4=white)
+;   Current dungeon layout in HC_LAST_INPUT region
+;
+; Output:
+;   24x24 map displayed in viewport area
+;   CHRRAM_VIEWPORT_IDX - Updated with map graphics
+;   COLRAM_VIEWPORT_IDX - Updated with map colors
+;   Returns to normal viewport after keypress
+;
+; Registers:
+; --- Start ---
+;   A  = GAME_BOOLEANS value for map check
+; --- In Process ---
+;   BC = Rectangle dimensions and iteration counters
+;   HL = CHRRAM/COLRAM pointers for map drawing
+;   DE = Map data pointers
+;   A  = Map characters, colors, and item/monster codes
+;   B  = Map quality level counter
+;   D  = Color values for map elements
+; ---  End  ---
+;   All registers modified by map drawing routines
+;   Viewport restored after map closed
+;
+; Memory Modified: CHRRAM_VIEWPORT_IDX, COLRAM_VIEWPORT_IDX
+; Calls: FILL_CHRCOL_RECT, SOUND_03, DRAW_RED/YELLOW/PURPLE/WHITE_MAP, UPDATE_VIEWPORT
+;==============================================================================
 USE_MAP:
-    LD          A,(GAME_BOOLEANS)
-    BIT         0x2,A								; See if HAVE MAP bit is set
-    JP          Z,NO_ACTION_TAKEN
-    LD          A,(MAP_INV_SLOT)
-    AND         A
-    JP          Z,INIT_MELEE_ANIM
-    EXX								                ; Swap BC DE HL with BC' DE' HL'
+    LD          A,(GAME_BOOLEANS)               ; Load game state flags
+    BIT         0x2,A								; Check bit 2 (map owned flag)
+    JP          Z,NO_ACTION_TAKEN                ; If not owned, exit without action
+    LD          A,(MAP_INV_SLOT)                ; Load map quality level (0-4)
+    AND         A                               ; Test if zero (no map)
+    JP          Z,INIT_MELEE_ANIM                ; If no map slot, exit to melee animation
+    EXX								                ; Swap to alternate register set
 
-    LD          BC,RECT(24,24)						; 24 x 24 rectangle
-    LD          HL,CHRRAM_VIEWPORT_IDX
-    LD          A,$20								; SPACE character fill
-    CALL        FILL_CHRCOL_RECT					; Fill map CHARs with SPACES
-    CALL        SOUND_03
-    LD          BC,RECT(24,24)						; 24 x 24 rectangle
-    LD          HL,COLRAM_VIEWPORT_IDX
-    LD          A,COLOR(DKBLU,BLK)					; DKBLU on BLK
-    CALL        FILL_CHRCOL_RECT					; Fill map colors
+    LD          BC,RECT(24,24)						; Set dimensions: 24 wide x 24 high
+    LD          HL,CHRRAM_VIEWPORT_IDX           ; Point to viewport character RAM
+    LD          A,$20								; Load SPACE character ($20)
+    CALL        FILL_CHRCOL_RECT					; Clear viewport with spaces
+    CALL        SOUND_03                         ; Play map open sound
+    LD          BC,RECT(24,24)						; Set dimensions: 24 wide x 24 high
+    LD          HL,COLRAM_VIEWPORT_IDX           ; Point to viewport color RAM
+    LD          A,COLOR(DKBLU,BLK)					; Set color: dark blue on black
+    CALL        FILL_CHRCOL_RECT					; Fill viewport with map background color
 
-    EXX								                ; Swap BC DE HL with BC' DE' HL'
-    PUSH        AF
-    LD          A,(MAP_INV_SLOT)
-    LD          B,A
-    POP         AF
-    DEC         B
-    JP          Z,DRAW_RED_MAP						; Walls and player
-    DEC         B
-    JP          Z,DRAW_YELLOW_MAP					; Walls, player, and ladder
-    DEC         B
-    JP          Z,DRAW_PURPLE_MAP					; Walls, player, ladder, and monsters
-    JP          DRAW_WHITE_MAP						; Walls, player, ladder, monsters, and items
+    EXX								                ; Swap back to main register set
+    PUSH        AF                              ; Preserve A register
+    LD          A,(MAP_INV_SLOT)                ; Load map quality level
+    LD          B,A                             ; Copy to B for decrement testing
+    POP         AF                              ; Restore A register
+    DEC         B                               ; Test for level 1 (red map)
+    JP          Z,DRAW_RED_MAP						; Draw basic walls and player only
+    DEC         B                               ; Test for level 2 (yellow map)
+    JP          Z,DRAW_YELLOW_MAP					; Draw walls, player, and ladder
+    DEC         B                               ; Test for level 3 (purple map)
+    JP          Z,DRAW_PURPLE_MAP					; Draw walls, player, ladder, and monsters
+    JP          DRAW_WHITE_MAP						; Draw all: walls, player, ladder, monsters, items
+
+;==============================================================================
+; DRAW_PURPLE_MAP
+;==============================================================================
+; Draws a level-3 quality map showing walls, player position, ladder, and
+; monster locations. Iterates through the monster list and marks each monster
+; position with red color on the mini-map.
+;
+; Flow:
+; 1. Set item range for monsters ($78a8)
+; 2. Find next monster in map data
+; 3. Mark monster position with red color
+; 4. Repeat until all monsters processed
+; 5. Continue to DRAW_YELLOW_MAP for ladder
+;
+; Input:
+;   HL = $78a8 (monster item range bounds)
+;   BC = MAP_LADDER_OFFSET pointer (map item list)
+;
+; Output:
+;   Monster positions colored red in COLRAM
+;   Continues to yellow map for ladder drawing
+;
+; Registers:
+; --- Start ---
+;   HL = $78a8 (item range filter)
+; --- In Process ---
+;   BC = Map data pointer (incremented through list)
+;   A  = Current item position offset
+;   D  = COLOR(DKBLU,RED) for monster cells
+; ---  End  ---
+;   BC = Advanced past all monster entries
+;   Monsters marked on map, control passes to DRAW_YELLOW_MAP
+;
+; Memory Modified: COLRAM_VIEWPORT_IDX (monster positions)
+; Calls: MAP_ITEM_MONSTER, UPDATE_COLRAM_FROM_OFFSET, FIND_NEXT_ITEM_MONSTER_LOOP
+;==============================================================================
 DRAW_PURPLE_MAP:
-    LD          HL,$78a8							; Item range for monsters
-    CALL        MAP_ITEM_MONSTER
+    LD          HL,$78a8							; Set item range for monsters ($78 to $a8)
+    CALL        MAP_ITEM_MONSTER                ; Initialize monster search (BC = MAP_LADDER_OFFSET)
 UPDATE_MONSTER_CELLS_LOOP:
-    JP          Z,DRAW_YELLOW_MAP
-    LD          A,(BC)
-    INC         C
-    INC         C
-    EXX								                ; Swap BC DE HL with BC' DE' HL'
-    LD          D,COLOR(DKBLU,RED)					; Set current map position color to DKBLU on RED
-    CALL        UPDATE_COLRAM_FROM_OFFSET
-    EXX								                ; Swap BC DE HL with BC' DE' HL'
-    CALL        FIND_NEXT_ITEM_MONSTER_LOOP
-    JP          UPDATE_MONSTER_CELLS_LOOP
+    JP          Z,DRAW_YELLOW_MAP                ; If no more monsters, continue to yellow map
+    LD          A,(BC)                          ; Load monster position offset
+    INC         C                               ; Advance pointer past position
+    INC         C                               ; Advance pointer past monster code
+    EXX								                ; Swap to alternate register set (viewport pointers)
+    LD          D,COLOR(DKBLU,RED)					; Set monster cell color: dark blue on red
+    CALL        UPDATE_COLRAM_FROM_OFFSET        ; Update color at monster position
+    EXX								                ; Swap back to main register set
+    CALL        FIND_NEXT_ITEM_MONSTER_LOOP      ; Find next monster in list
+    JP          UPDATE_MONSTER_CELLS_LOOP        ; Repeat for all monsters
 
+;==============================================================================
+; DRAW_YELLOW_MAP
+;==============================================================================
+; Draws a level-2 quality map showing walls, player position, and ladder.
+; Marks the ladder position with magenta color, then continues to red map
+; to draw walls and player.
+;
+; Flow:
+; 1. Set ladder color (dark blue on magenta)
+; 2. Update ladder position color in COLRAM
+; 3. Continue to DRAW_RED_MAP for walls and player
+;
+; Input:
+;   ITEM_HOLDER - Contains ladder position offset
+;
+; Output:
+;   Ladder position colored magenta in COLRAM
+;   Continues to red map for wall/player drawing
+;
+; Registers:
+; --- Start ---
+;   D  = COLOR(DKBLU,MAG) set before DRAW_RED_MAP
+; --- In Process ---
+;   A  = ITEM_HOLDER value (ladder position)
+;   D  = Ladder cell color value
+; ---  End  ---
+;   Ladder marked, control passes to DRAW_RED_MAP
+;
+; Memory Modified: COLRAM_VIEWPORT_IDX (ladder position)
+; Calls: UPDATE_COLRAM_FROM_OFFSET, DRAW_RED_MAP
+;==============================================================================
 DRAW_YELLOW_MAP:
-    LD          D,COLOR(DKBLU,MAG)					; Set current map position color to DKBLU on MAG
-    LD          A,(ITEM_HOLDER)
-    CALL        UPDATE_COLRAM_FROM_OFFSET
+    LD          D,COLOR(DKBLU,MAG)					; Set ladder cell color: dark blue on magenta
+    LD          A,(ITEM_HOLDER)                  ; Load ladder position offset
+    CALL        UPDATE_COLRAM_FROM_OFFSET        ; Update color at ladder position
+
+;==============================================================================
+; DRAW_RED_MAP
+;==============================================================================
+; Draws a level-1 (basic) quality map showing only walls and player position.
+; Iterates through the dungeon data in HC_LAST_INPUT, drawing wall characters
+; in the mini-map viewport based on north/west wall flags in each cell.
+;
+; Flow:
+; 1. Set up 16x24 iteration (16 cells wide, 24 rows)
+; 2. For each cell, read wall flags from HC_LAST_INPUT
+; 3. Draw appropriate wall character ($a0=none, $a3=N, $b5=W, $b7=NW)
+; 4. Continue to SET_MINIMAP_PLAYER_LOC to mark player
+;
+; Input:
+;   HC_LAST_INPUT - Dungeon map data (wall flags per cell)
+;   BC = RECT(16,24) (16 cells wide, 24 rows tall)
+;
+; Output:
+;   CHRRAM_MINI_MAP_IDX filled with wall characters
+;   Continues to player position marking
+;
+; Registers:
+; --- Start ---
+;   BC = RECT(16,24) (width in B, height stored)
+;   DE = HC_LAST_INPUT pointer (dungeon data)
+;   HL = CHRRAM_MINI_MAP_IDX (mini-map character area)
+; --- In Process ---
+;   A  = Wall flags and wall characters
+;   B  = Column counter (decrements to 0, then resets to $10)
+;   D  = Current dungeon data row pointer (high byte)
+; ---  End  ---
+;   HL = Advanced past all mini-map cells
+;   DE = Advanced past all dungeon data
+;   Walls drawn, control passes to SET_MINIMAP_PLAYER_LOC
+;
+; Memory Modified: CHRRAM_MINI_MAP_IDX (wall graphics)
+; Calls: SET_MINIMAP_PLAYER_LOC
+;==============================================================================
 DRAW_RED_MAP:
-    LD          BC,RECT(16,24)                      ; 16 x 24 rectangle
-    LD          DE,HC_LAST_INPUT
-    LD          HL,CHRRAM_MINI_MAP_IDX
+    LD          BC,RECT(16,24)                   ; Set dimensions: 16 wide, 24 high (B=16, C=24)
+    LD          DE,HC_LAST_INPUT                 ; Point to dungeon map data
+    LD          HL,CHRRAM_MINI_MAP_IDX           ; Point to mini-map character area
 CALC_MINIMAP_WALL:
-    INC         DE
-    LD          A,D
-    CP          $39
-    JP          Z,SET_MINIMAP_PLAYER_LOC
-    LD          A,(DE)
-    OR          A
-    JP          Z,SET_MINIMAP_NO_WALLS
-    AND         0xf
-    JP          NZ,LAB_ram_e2d6
+    INC         DE                              ; Advance to next dungeon cell
+    LD          A,D                             ; Check high byte of dungeon pointer
+    CP          $39                             ; Compare to end of dungeon data ($39xx)
+    JP          Z,SET_MINIMAP_PLAYER_LOC         ; If at end, mark player position
+    LD          A,(DE)                          ; Load wall flags from current cell
+    OR          A                               ; Test if any walls present
+    JP          Z,SET_MINIMAP_NO_WALLS           ; If no walls, draw empty cell
+    AND         0xf                             ; Mask lower nibble (north wall flag)
+    JP          NZ,LAB_ram_e2d6                  ; If north wall set, check west wall
 SET_MINIMAP_N_WALL:
-    LD          A,$a3								;  A = $a3, map CHAR N wall
-    JP          DRAW_MINIMAP_WALL
+    LD          A,$a3								; Load character $a3 (north wall only)
+    JP          DRAW_MINIMAP_WALL                ; Draw wall character
 SET_MINIMAP_NO_WALLS:
-    LD          A,$a0								;  A = $a0, map CHAR no walls
-    JP          DRAW_MINIMAP_WALL
+    LD          A,$a0								; Load character $a0 (no walls)
+    JP          DRAW_MINIMAP_WALL                ; Draw empty cell character
 SET_MINIMAP_NW_WALLS:
-    LD          A,$b7								;  A = $b7, map CHAR N and W walls
-    JP          DRAW_MINIMAP_WALL
+    LD          A,$b7								; Load character $b7 (north and west walls)
+    JP          DRAW_MINIMAP_WALL                ; Draw corner wall character
 LAB_ram_e2d6:
-    LD          A,(DE)
-    AND         $f0
-    JP          NZ,SET_MINIMAP_NW_WALLS
+    LD          A,(DE)                          ; Reload wall flags
+    AND         $f0                             ; Mask upper nibble (west wall flag)
+    JP          NZ,SET_MINIMAP_NW_WALLS          ; If west wall set, draw north+west
 SET_MINIMAP_W_WALL:
-    LD          A,$b5								;  A = $b5, map CHAR W wall
+    LD          A,$b5								; Load character $b5 (west wall only)
 DRAW_MINIMAP_WALL:
-    LD          (HL),A
-    INC         HL
-    DJNZ        CALC_MINIMAP_WALL
-    ADD         HL,BC
-    LD          B,$10
-    JP          CALC_MINIMAP_WALL
+    LD          (HL),A                          ; Write wall character to mini-map
+    INC         HL                              ; Advance to next mini-map cell
+    DJNZ        CALC_MINIMAP_WALL                ; Decrement B (column counter), repeat if not zero
+    ADD         HL,BC                           ; Advance HL to next row (skip remainder of 40-char line)
+    LD          B,$10                           ; Reset column counter to 16
+    JP          CALC_MINIMAP_WALL                ; Continue to next row
+
+;==============================================================================
+; SET_MINIMAP_PLAYER_LOC
+;==============================================================================
+; Marks the player's current position on the mini-map with white color, then
+; waits for a keypress or hand controller input before closing the map and
+; returning to the normal viewport.
+;
+; Flow:
+; 1. Load player position offset from PLAYER_MAP_POS
+; 2. Set player cell color to white (DKBLU on WHT)
+; 3. Wait one tick for display stability
+; 4. Poll keyboard and hand controller for input
+; 5. Close map and update viewport
+;
+; Input:
+;   PLAYER_MAP_POS - Player's current position offset on map
+;
+; Output:
+;   Player position marked white in COLRAM
+;   Map displayed until keypress
+;   Returns to UPDATE_VIEWPORT after input
+;
+; Registers:
+; --- Start ---
+;   A  = PLAYER_MAP_POS value
+;   D  = COLOR(DKBLU,WHT)
+; --- In Process ---
+;   BC = $ff (keyboard port), then $f7/$f6 (hand controller ports)
+;   A  = Input values from ports (incremented for testing)
+;   C  = Port selector ($ff, $f7, $f6)
+; ---  End  ---
+;   All registers modified by input polling
+;   Control passes to UPDATE_VIEWPORT
+;
+; Memory Modified: COLRAM_VIEWPORT_IDX (player position)
+; Calls: UPDATE_COLRAM_FROM_OFFSET, WAIT_A_TICK, UPDATE_VIEWPORT
+;==============================================================================
 SET_MINIMAP_PLAYER_LOC:
-    LD          A,(PLAYER_MAP_POS)
-    LD          D,COLOR(DKBLU,WHT)					; Set player position color to DKBLU on WHT
-    CALL        UPDATE_COLRAM_FROM_OFFSET
-    CALL        WAIT_A_TICK
+    LD          A,(PLAYER_MAP_POS)               ; Load player position offset
+    LD          D,COLOR(DKBLU,WHT)					; Set player cell color: dark blue on white
+    CALL        UPDATE_COLRAM_FROM_OFFSET        ; Mark player position on map
+    CALL        WAIT_A_TICK                      ; Wait for display stability
 
 READ_KEY:
-    LD          BC,$ff
-    IN          A,(C)
-    INC         A
-    JP          NZ,READ_KEY
+    LD          BC,$ff                          ; Set BC to keyboard port ($ff)
+    IN          A,(C)                           ; Read keyboard input
+    INC         A                               ; Test for $FF (no key pressed)
+    JP          NZ,READ_KEY                      ; If key pressed, wait for release
 ENABLE_HC:
-    LD          C,$f7
-    LD          A,0xf
-    OUT         (C),A
-    DEC         C
+    LD          C,$f7                           ; Set port to hand controller 1 ($f7)
+    LD          A,0xf                           ; Load hand controller enable value
+    OUT         (C),A                           ; Enable hand controller
+    DEC         C                               ; Set port to hand controller 2 ($f6)
 READ_HC:
-    IN          A,(C)
-    INC         A
-    JP          NZ,READ_KEY
-    INC         C
-    LD          A,0xe
+    IN          A,(C)                           ; Read hand controller input
+    INC         A                               ; Test for $FF (no input)
+    JP          NZ,READ_KEY                      ; If input detected, wait for release
+    INC         C                               ; Switch back to port $f7
+    LD          A,0xe                           ; Load hand controller disable value
 DISABLE_HC:
-    OUT         (C),A
-    DEC         C
-    IN          A,(C)
-    INC         A
-    JP          NZ,READ_KEY
-    JP          UPDATE_VIEWPORT
+    OUT         (C),A                           ; Disable hand controller
+    DEC         C                               ; Set port back to $f6
+    IN          A,(C)                           ; Read hand controller input again
+    INC         A                               ; Test for $FF (no input)
+    JP          NZ,READ_KEY                      ; If input detected, keep waiting
+    JP          UPDATE_VIEWPORT                  ; Close map and return to normal viewport
 MAP_ITEM_MONSTER:
     LD          BC,MAP_LADDER_OFFSET
 FIND_NEXT_ITEM_MONSTER_LOOP:
