@@ -266,75 +266,115 @@ FINALIZE_STARTUP_STATE:
     CALL        REDRAW_VIEWPORT						; Render initial 3D maze view
     JP          DO_SWAP_HANDS						; Enter main input loop (no return)
 
+;==============================================================================
+; DO_MOVE_FW_CHK_WALLS - Attempt forward movement with wall and monster checks
+;==============================================================================
+;   - Checks F0 position for walls or closed doors
+;   - Checks F1 position for blocking monsters
+;   - If clear, updates player position and saves previous state
+;   - Falls through to viewport redraw if movement succeeds
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = Wall state bits, item/monster codes, position calculations
+;   BC = Direction vector from DIR_FACING_HI
+; ---  End  ---
+;   Position updated if movement valid, else NO_ACTION_TAKEN
+;
 DO_MOVE_FW_CHK_WALLS:
-    LD          A,(WALL_F0_STATE)
-    CP          0x0							    	;  Check for no wall in F0
-    JP          Z,FW_WALLS_CLEAR_CHK_MONSTER
-    BIT         0x2,A								;  Check for closed door
-    JP          Z,NO_ACTION_TAKEN
+    LD          A,(WALL_F0_STATE)					; Load F0 wall state
+    CP          0x0							    	; Check if no wall present
+    JP          Z,FW_WALLS_CLEAR_CHK_MONSTER		; If clear, check for monster
+    BIT         0x2,A								; Test bit 2 (closed door flag)
+    JP          Z,NO_ACTION_TAKEN					; If wall/closed door, block movement
 FW_WALLS_CLEAR_CHK_MONSTER:
-    LD          A,(ITEM_F1)
-    INC         A
-    INC         A
-    CP          $7a								    ;  Check for monster in F1
-    JP          NC,NO_ACTION_TAKEN					;  Monster in your way! Do nothing.
-    LD          BC,(DIR_FACING_HI)					;  Way is clear! Move forward.
-    LD          (PREV_DIR_VECTOR),BC
-    LD          A,(DIR_FACING_SHORT)
-    LD          (PREV_DIR_FACING),A
-    LD          A,(PLAYER_MAP_POS)
-    LD          (PLAYER_PREV_MAP_LOC),A
-    ADD         A,B
-    LD          (PLAYER_MAP_POS),A
-    JP          UPDATE_VIEWPORT
+    LD          A,(ITEM_F1)							; Load F1 item/monster code
+    INC         A									; Adjust for offset
+    INC         A									; (FE -> 00, monster codes shift)
+    CP          $7a							        ; Compare against monster threshold
+    JP          NC,NO_ACTION_TAKEN					; If monster blocking, abort movement
+    LD          BC,(DIR_FACING_HI)					; Load direction vector (BC = offset)
+    LD          (PREV_DIR_VECTOR),BC				; Save previous direction for backtrack
+    LD          A,(DIR_FACING_SHORT)				; Load facing byte (1-4)
+    LD          (PREV_DIR_FACING),A					; Save previous facing
+    LD          A,(PLAYER_MAP_POS)					; Load current map position
+    LD          (PLAYER_PREV_MAP_LOC),A				; Save previous position for backtrack
+    ADD         A,B									; Add direction offset to position
+    LD          (PLAYER_MAP_POS),A					; Store new player position
+    JP          UPDATE_VIEWPORT						; Redraw viewport at new position
+
+;==============================================================================
+; DO_JUMP_BACK - Jump back to previous position (backtrack)
+;==============================================================================
+;   - Restores previous player position and facing direction
+;   - Validates backtrack is possible (not already at previous pos)
+;   - Validates direction reversal is valid
+;   - Clears combat if in melee and re-enters combat animation
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = Position comparisons, direction validation
+;   AF'= Preserved previous position during direction checks
+;   HL = PLAYER_MAP_POS pointer, then PREV_DIR_VECTOR
+; ---  End  ---
+;   Position restored, viewport updated, or combat re-initialized
+;
 DO_JUMP_BACK:
-    LD          HL,PLAYER_MAP_POS
-    LD          A,(PLAYER_PREV_MAP_LOC)
-    CP          (HL)
-    JP          Z,LAB_ram_e201
-    EX          AF,AF'
-    LD          HL,(PREV_DIR_VECTOR)
-    LD          A,(DIR_FACING_LO)
-    NEG								;  Negate A
-    CP          H
-    JP          Z,NO_ACTION_TAKEN
-    EX          AF,AF'
-    LD          (PLAYER_MAP_POS),A
-    LD          (DIR_FACING_HI),HL
-    LD          A,(PREV_DIR_FACING)
-    LD          (DIR_FACING_SHORT),A
-    LD          A,(COMBAT_BUSY_FLAG)
-    AND         A
-    JP          Z,UPDATE_VIEWPORT
-    CALL        CLEAR_MONSTER_STATS
-    JP          INIT_MELEE_ANIM
-LAB_ram_e201:
-    LD          BC,$500
-    LD          DE,$20
-    CALL        PLAY_SOUND_LOOP
-    LD          A,(COMBAT_BUSY_FLAG)
-    AND         A
-    JP          Z,WAIT_FOR_INPUT
-    JP          INIT_MELEE_ANIM
-DO_COUNT_FOOD:
-    LD          A,(FOOD_INV)
-COUNT_INV:
-    LD          D,A
-    INC         D
-    XOR         A
-PLAY_INV_COUNT_BLIPS:
-    DEC         D
-    JP          Z,INPUT_DEBOUNCE
-    EX          AF,AF'
-    LD          BC,BYTE_ram_2400								;  = $FF
-    CALL        SLEEP								;  byte SLEEP(short cycleCount)
-    EX          AF,AF'
-    OUT         (SPEAKER),A
-    DEC         A
-    JP          PLAY_INV_COUNT_BLIPS
-DO_COUNT_ARROWS:
-    LD          A,(ARROW_INV)
-    JP          COUNT_INV
+    LD          HL,PLAYER_MAP_POS					; HL = current position address
+    LD          A,(PLAYER_PREV_MAP_LOC)				; A = saved previous position
+    CP          (HL)								; Compare: already at previous location?
+    JP          Z,CANNOT_JUMP_BACK					; If same position, play error sound
+    EX          AF,AF'								; Save position in AF' for later restore
+    LD          HL,(PREV_DIR_VECTOR)				; HL = previous direction vector
+    LD          A,(DIR_FACING_LO)					; A = current low direction byte
+    NEG											    ; Negate to get reverse direction
+    CP          H									; Compare with previous direction high byte
+    JP          Z,NO_ACTION_TAKEN					; If directions don't allow backtrack, block
+    EX          AF,AF'								; Restore saved position to A
+    LD          (PLAYER_MAP_POS),A					; Write previous position as new position
+    LD          (DIR_FACING_HI),HL					; Restore previous direction vector
+    LD          A,(PREV_DIR_FACING)					; A = previous facing byte (1-4)
+    LD          (DIR_FACING_SHORT),A				; Restore facing direction
+    LD          A,(COMBAT_BUSY_FLAG)				; Check if in combat
+    AND         A									; Test zero
+    JP          Z,UPDATE_VIEWPORT					; If not in combat, just redraw
+    CALL        CLEAR_MONSTER_STATS					; Clear combat UI/state
+    JP          INIT_MELEE_ANIM						; Re-enter combat animation
+
+; CANNOT_JUMP_BACK - Play error sound when backtrack invalid
+;   - Called when player at same position as previous (can't backtrack)
+;   - Plays error tone then checks combat state
+CANNOT_JUMP_BACK:
+    LD          BC,$500								; BC = sound frequency parameter
+    LD          DE,$20								; DE = sound duration parameter
+    CALL        PLAY_SOUND_LOOP						; Play error beep
+    LD          A,(COMBAT_BUSY_FLAG)				; Check combat state
+    AND         A									; Test if in combat
+    JP          Z,WAIT_FOR_INPUT					; If not in combat, wait for next input
+    JP          INIT_MELEE_ANIM						; If in combat, re-enter melee
+
+; DO_COUNT_FOOD:
+;     LD          A,(FOOD_INV)
+; COUNT_INV:
+;     LD          D,A
+;     INC         D
+;     XOR         A
+; PLAY_INV_COUNT_BLIPS:
+;     DEC         D
+;     JP          Z,INPUT_DEBOUNCE
+;     EX          AF,AF'
+;     LD          BC,BYTE_ram_2400
+;     CALL        SLEEP								;  byte SLEEP
+;     EX          AF,AF'
+;     OUT         (SPEAKER),A
+;     DEC         A
+;     JP          PLAY_INV_COUNT_BLIPS
+; DO_COUNT_ARROWS:
+;     LD          A,(ARROW_INV)
+;     JP          COUNT_INV
+
 NO_ACTION_TAKEN:
     LD          BC,$500
     LD          DE,$20
@@ -5051,7 +5091,8 @@ KEY_COL_4:
     CP          $f7								;  If Key Row = 3 "V"
     JP          Z,NO_ACTION_TAKEN
     CP          $ef								;  If Key Row = 4 "C"
-    JP          Z,DO_COUNT_ARROWS
+    ; JP          Z,DO_COUNT_ARROWS
+    JP          Z,NO_ACTION_TAKEN
     CP          $df								;  If Key Row = 5 "F"
     JP          Z,DO_REST
 KEY_COL_5:
@@ -5068,7 +5109,9 @@ KEY_COL_5:
     CP          $ef								;  If Key Row = 4 "D"
     JP          Z,DO_USE_LADDER
     CP          $df								;  If Key Row = 5 "X"
-    JP          Z,DO_COUNT_FOOD
+    ; JP          Z,DO_COUNT_FOOD
+    JP          Z,NO_ACTION_TAKEN
+
 KEY_COL_6:
     INC         L
     LD          A,(HL)								;  A = Key Column 6
