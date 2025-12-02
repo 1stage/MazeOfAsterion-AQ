@@ -1276,14 +1276,18 @@ DO_HC_SHIFT_ACTIONS:
     JP          Z,DO_USE_LADDER
     LD          A,$7b								; Compare to JOY K2
     CP          L
-    JP          Z,DO_COUNT_FOOD
+    ; JP          Z,DO_COUNT_FOOD
+    JP          Z,NO_ACTION_TAKEN
     CP          H
-    JP          Z,DO_COUNT_FOOD
+    ; JP          Z,DO_COUNT_FOOD
+    JP          Z,NO_ACTION_TAKEN
     LD          A,$5f								; Compare to JOY K3
     CP          L
-    JP          Z,DO_COUNT_ARROWS
+    ; JP          Z,DO_COUNT_ARROWS
+    JP          Z,NO_ACTION_TAKEN
     CP          H
-    JP          Z,DO_COUNT_ARROWS
+    ; JP          Z,DO_COUNT_ARROWS
+    JP          Z,NO_ACTION_TAKEN
     LD          A,$7d								; Compare to JOY K5
     CP          L
     JP          Z,DO_SWAP_HANDS
