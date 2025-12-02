@@ -396,68 +396,58 @@ LAB_ram_e244:
     JP          PLAY_SOUND_LOOP
 USE_MAP:
     LD          A,(GAME_BOOLEANS)
-    BIT         0x2,A								;  See if HAVE MAP bit is set
+    BIT         0x2,A								; See if HAVE MAP bit is set
     JP          Z,NO_ACTION_TAKEN
     LD          A,(MAP_INV_SLOT)
     AND         A
     JP          Z,INIT_MELEE_ANIM
-    EXX								;  Swap BC  DE  HL
-								;  with BC' DE' HL'
-    LD          BC,RECT(24,24)								;  24 x 24
+    EXX								                ; Swap BC DE HL with BC' DE' HL'
+
+    LD          BC,RECT(24,24)						; 24 x 24 rectangle
     LD          HL,CHRRAM_VIEWPORT_IDX
-    LD          A,$20								;  SPACE character fill
-    CALL        FILL_CHRCOL_RECT								;  Fill map CHARs with SPACES
+    LD          A,$20								; SPACE character fill
+    CALL        FILL_CHRCOL_RECT					; Fill map CHARs with SPACES
     CALL        SOUND_03
-    LD          BC,RECT(24,24)								;  24 x 24
+    LD          BC,RECT(24,24)						; 24 x 24 rectangle
     LD          HL,COLRAM_VIEWPORT_IDX
-    LD          A,COLOR(DKBLU,BLK)								;  DKBLU on BLK
-								;  Was DKGN on BLK
-    CALL        FILL_CHRCOL_RECT								;  Fill map colors
-    EXX								;  Swap BC  DE  HL
-								;  with BC' DE' HL'
+    LD          A,COLOR(DKBLU,BLK)					; DKBLU on BLK
+    CALL        FILL_CHRCOL_RECT					; Fill map colors
+
+    EXX								                ; Swap BC DE HL with BC' DE' HL'
     PUSH        AF
     LD          A,(MAP_INV_SLOT)
     LD          B,A
     POP         AF
     DEC         B
-    JP          Z,DRAW_RED_MAP								;  Walls and player
+    JP          Z,DRAW_RED_MAP						; Walls and player
     DEC         B
-    JP          Z,DRAW_YELLOW_MAP								;  Walls, player, and ladder
+    JP          Z,DRAW_YELLOW_MAP					; Walls, player, and ladder
     DEC         B
-    JP          Z,DRAW_PURPLE_MAP								;  Walls, player, ladder,
-								;  and monsters
-    JP          DRAW_WHITE_MAP								;  Walls, player, ladder,
-								;  monsters, and items
+    JP          Z,DRAW_PURPLE_MAP					; Walls, player, ladder, and monsters
+    JP          DRAW_WHITE_MAP						; Walls, player, ladder, monsters, and items
 DRAW_PURPLE_MAP:
-    LD          HL,$78a8								;  Item range for monsters:
-								;  78 - skeleton
-								;  a8 - db?
+    LD          HL,$78a8							; Item range for monsters
     CALL        MAP_ITEM_MONSTER
-UPDATE_MONSTER_CELLS:
+UPDATE_MONSTER_CELLS_LOOP:
     JP          Z,DRAW_YELLOW_MAP
     LD          A,(BC)
     INC         C
     INC         C
-    EXX								;  Swap BC  DE  HL
-								;  with BC' DE' HL'
-    LD          D,$b1								;  Set current map position color
-								;  to $b1 DKBLU on RED
-								;  was DKGRN on YEL
+    EXX								                ; Swap BC DE HL with BC' DE' HL'
+    LD          D,COLOR(DKBLU,RED)					; Set current map position color to DKBLU on RED
     CALL        UPDATE_COLRAM_FROM_OFFSET
-    EXX								;  Swap BC  DE  HL
-								;  with BC' DE' HL'
+    EXX								                ; Swap BC DE HL with BC' DE' HL'
     CALL        FIND_NEXT_ITEM_MONSTER_LOOP
-    JP          UPDATE_MONSTER_CELLS
+    JP          UPDATE_MONSTER_CELLS_LOOP
+
 DRAW_YELLOW_MAP:
-    LD          D,$b5								;  Set current map position color
-								;  to $b5, DKBLU on PUR
-								;  was DKGRN on PUR
+    LD          D,COLOR(DKBLU,MAG)					; Set current map position color to DKBLU on MAG
     LD          A,(ITEM_HOLDER)
     CALL        UPDATE_COLRAM_FROM_OFFSET
 DRAW_RED_MAP:
-    LD          BC,$1018								;  16 x 20
+    LD          BC,RECT(16,24)                      ; 16 x 24 rectangle
     LD          DE,HC_LAST_INPUT
-    LD          HL,CHRRAM_WALL_F0_IDX
+    LD          HL,CHRRAM_MINI_MAP_IDX
 CALC_MINIMAP_WALL:
     INC         DE
     LD          A,D
@@ -492,11 +482,10 @@ DRAW_MINIMAP_WALL:
     JP          CALC_MINIMAP_WALL
 SET_MINIMAP_PLAYER_LOC:
     LD          A,(PLAYER_MAP_POS)
-    LD          D,$b7								;  Set player position color
-								;  to $b7 DKBLU on WHT
-								;  was DKGRN on WHT
+    LD          D,COLOR(DKBLU,WHT)					; Set player position color to DKBLU on WHT
     CALL        UPDATE_COLRAM_FROM_OFFSET
     CALL        WAIT_A_TICK
+
 READ_KEY:
     LD          BC,$ff
     IN          A,(C)
@@ -528,14 +517,15 @@ FIND_NEXT_ITEM_MONSTER_LOOP:
     INC         A
     RET         Z
     LD          A,(BC)
-    CP          H								;  CP A to H (low end of itemRange)
+    CP          H								; CP A to H (low end of itemRange)
     INC         BC
     JP          C,FIND_NEXT_ITEM_MONSTER_LOOP
-    CP          L								;  CP A to L (high end of itemRange)
+    CP          L								; CP A to L (high end of itemRange)
     JP          NC,FIND_NEXT_ITEM_MONSTER_LOOP
     DEC         C
     DEC         BC
     RET
+
 UPDATE_COLRAM_FROM_OFFSET:
     PUSH        AF
     AND         0xf
