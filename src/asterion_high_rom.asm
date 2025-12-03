@@ -6923,101 +6923,436 @@ KEY_COL_7:
     CP          $df                                 ; Test row 5 "CTRL"
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     JP          NO_ACTION_TAKEN                     ; No valid key, ignore
+
+;==============================================================================
+; MAX_HEALTH_ARROWS_FOOD - Debug cheat to maximize player stats
+;==============================================================================
+; Sets all player health values (PHYS current/max, SPRT current/max) and
+; inventory (FOOD, ARROWS) to maximum value (99 BCD). Plays power-up sound,
+; redraws stats display, and returns to input loop. Developer debug feature.
+;
+; Flow:
+; 1. Set HL to PLAYER_PHYS_HEALTH base address
+; 2. Store $99 in six consecutive bytes (PHYS/SPRT health current + max)
+; 3. Store $99 in FOOD_INV and ARROW_INV
+; 4. Play power-up sound effect
+; 5. Redraw stats panel
+; 6. Return to input debounce
+;
+; Input:
+;   None (triggered by key combo)
+;
+; Output:
+;   All player health and inventory maxed to 99
+;   Stats panel updated on screen
+;   Power-up sound played
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = $99 (max value in BCD)
+;   HL = PLAYER_PHYS_HEALTH, incremented through stats block, then FOOD_INV
+; ---  End  ---
+;   A  = $99
+;   HL = ARROW_INV + 1
+;   Other registers modified by PLAY_POWER_UP_SOUND and REDRAW_STATS
+;
+; Memory Modified: PLAYER_PHYS_HEALTH (6 bytes), FOOD_INV, ARROW_INV
+; Calls: PLAY_POWER_UP_SOUND, REDRAW_STATS, INPUT_DEBOUNCE
+;==============================================================================
 MAX_HEALTH_ARROWS_FOOD:
-    LD          HL,PLAYER_PHYS_HEALTH
-    LD          A,$99
-    LD          (HL),A
-    INC         HL
-    LD          (HL),A
-    INC         HL
-    LD          (HL),A
-    INC         HL
-    LD          (HL),A
-    INC         HL
-    LD          (HL),A
-    INC         HL
-    LD          (HL),A
-    LD          HL,FOOD_INV
-    LD          (HL),A
-    INC         HL
-    LD          (HL),A
-    CALL        PLAY_POWER_UP_SOUND
-    CALL        REDRAW_STATS
-    JP          INPUT_DEBOUNCE
+    LD          HL,PLAYER_PHYS_HEALTH               ; HL = start of health stats block
+    LD          A,$99                               ; A = 99 (max BCD value for stats)
+    LD          (HL),A                              ; Store 99 in PLAYER_PHYS_HEALTH (current)
+    INC         HL                                  ; Advance to PLAYER_PHYS_HEALTH+1 (current high)
+    LD          (HL),A                              ; Store 99 in PLAYER_PHYS_HEALTH high byte
+    INC         HL                                  ; Advance to PLAYER_PHYS_HEALTH_MAX
+    LD          (HL),A                              ; Store 99 in PLAYER_PHYS_HEALTH_MAX (low)
+    INC         HL                                  ; Advance to PLAYER_PHYS_HEALTH_MAX+1
+    LD          (HL),A                              ; Store 99 in PLAYER_PHYS_HEALTH_MAX (high)
+    INC         HL                                  ; Advance to PLAYER_SPRT_HEALTH
+    LD          (HL),A                              ; Store 99 in PLAYER_SPRT_HEALTH (current)
+    INC         HL                                  ; Advance to PLAYER_SPRT_HEALTH_MAX
+    LD          (HL),A                              ; Store 99 in PLAYER_SPRT_HEALTH_MAX
+    LD          HL,FOOD_INV                         ; HL = food inventory address
+    LD          (HL),A                              ; Store 99 in FOOD_INV
+    INC         HL                                  ; Advance to ARROW_INV
+    LD          (HL),A                              ; Store 99 in ARROW_INV
+    CALL        PLAY_POWER_UP_SOUND                 ; Play ascending tone sequence
+    CALL        REDRAW_STATS                        ; Update stats panel display
+    JP          INPUT_DEBOUNCE                      ; Return to input loop
+
+;==============================================================================
+; DO_TELEPORT - Teleport player to ladder location
+;==============================================================================
+; Debug feature that instantly teleports the player to the ladder position
+; stored in MAP_LADDER_OFFSET. Plays teleport sound effect and updates the
+; viewport to show the new location.
+;
+; Flow:
+; 1. Load ladder position from MAP_LADDER_OFFSET
+; 2. Store as current PLAYER_MAP_POS
+; 3. Play descending teleport sound effect
+; 4. Update viewport to show new location
+;
+; Input:
+;   MAP_LADDER_OFFSET - Contains ladder map position
+;
+; Output:
+;   Player teleported to ladder location
+;   Viewport updated to new position
+;   Teleport sound played
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A = MAP_LADDER_OFFSET value (ladder position)
+; ---  End  ---
+;   A = Ladder position
+;   Other registers modified by PLAY_TELEPORT_SOUND and UPDATE_VIEWPORT
+;
+; Memory Modified: PLAYER_MAP_POS
+; Calls: PLAY_TELEPORT_SOUND, UPDATE_VIEWPORT
+;==============================================================================
 DO_TELEPORT:
-    LD          A,(MAP_LADDER_OFFSET)
-    LD          (PLAYER_MAP_POS),A
-    CALL        PLAY_TELEPORT_SOUND
-    JP          UPDATE_VIEWPORT
+    LD          A,(MAP_LADDER_OFFSET)               ; A = ladder position on map
+    LD          (PLAYER_MAP_POS),A                  ; Set player position to ladder
+    CALL        PLAY_TELEPORT_SOUND                 ; Play descending tone sequence
+    JP          UPDATE_VIEWPORT                     ; Redraw view at new location
+
+;==============================================================================
+; REDRAW_STATS - Update player stats display panel
+;==============================================================================
+; Redraws the stats panel by updating icon colors and redrawing both physical
+; and spiritual health values in BCD format to their screen positions. Called
+; after any change to player stats (healing, damage, max stat changes, etc.).
+;
+; Flow:
+; 1. Draw icon bar (updates Ring/Helmet/Armor colors)
+; 2. Redraw physical health (2-byte BCD value)
+; 3. Redraw spiritual health (1-byte BCD value)
+;
+; Input:
+;   PLAYER_PHYS_HEALTH - Current/max physical health (2 bytes)
+;   PLAYER_SPRT_HEALTH - Current/max spiritual health (1 byte)
+;
+; Output:
+;   Stats panel updated on screen
+;   Health values rendered in CHRRAM
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   HL = PLAYER_PHYS_HEALTH, then PLAYER_SPRT_HEALTH
+;   DE = CHRRAM_PHYS_HEALTH_1000, then CHRRAM_SPRT_HEALTH_10
+;   B  = Byte count (2 for PHYS, 1 for SPRT)
+; ---  End  ---
+;   All registers modified by RECALC_AND_REDRAW_BCD
+;
+; Memory Modified: CHRRAM stats panel area
+; Calls: DRAW_ICON_BAR, RECALC_AND_REDRAW_BCD
+;==============================================================================
 REDRAW_STATS:
-    CALL        DRAW_ICON_BAR
-    LD          HL,PLAYER_PHYS_HEALTH
-    LD          DE,CHRRAM_PHYS_HEALTH_1000
-    LD          B,0x2
-    CALL        RECALC_AND_REDRAW_BCD
-    LD          HL,PLAYER_SPRT_HEALTH
-    LD          DE,CHRRAM_SPRT_HEALTH_10
-    LD          B,0x1
-    JP          RECALC_AND_REDRAW_BCD
+    CALL        DRAW_ICON_BAR                       ; Update icon colors (Ring/Helmet/Armor)
+    LD          HL,PLAYER_PHYS_HEALTH               ; HL = physical health address
+    LD          DE,CHRRAM_PHYS_HEALTH_1000          ; DE = screen position for PHYS display
+    LD          B,0x2                               ; B = 2 bytes (16-bit BCD)
+    CALL        RECALC_AND_REDRAW_BCD               ; Draw physical health value
+    LD          HL,PLAYER_SPRT_HEALTH               ; HL = spiritual health address
+    LD          DE,CHRRAM_SPRT_HEALTH_10            ; DE = screen position for SPRT display
+    LD          B,0x1                               ; B = 1 byte (8-bit BCD)
+    JP          RECALC_AND_REDRAW_BCD               ; Draw spiritual health value and return
+
+;==============================================================================
+; CHECK_RING - Update ring icon color based on inventory level
+;==============================================================================
+; Reads the ring inventory slot level, converts it to a color value using
+; LEVEL_TO_COLRAM_FIX, and updates the ring icon color in COLRAM. Preserves
+; the A register across the operation.
+;
+; Flow:
+; 1. Preserve A register
+; 2. Load ring level from RING_INV_SLOT
+; 3. Convert level to color value
+; 4. Update COLRAM_RING_IDX with color
+; 5. Restore A register
+;
+; Input:
+;   RING_INV_SLOT - Ring level (0-3)
+;
+; Output:
+;   Ring icon color updated in COLRAM
+;   A register preserved
+;
+; Registers:
+; --- Start ---
+;   A = Preserved (pushed/popped)
+; --- In Process ---
+;   A = RING_INV_SLOT value, then color value from LEVEL_TO_COLRAM_FIX
+; ---  End  ---
+;   A = Original value (restored)
+;
+; Memory Modified: COLRAM_RING_IDX
+; Calls: LEVEL_TO_COLRAM_FIX
+;==============================================================================
 CHECK_RING:
-    PUSH        AF
-    LD          A,(RING_INV_SLOT)
-    CALL        LEVEL_TO_COLRAM_FIX
-    LD          (COLRAM_RING_IDX),A
-    POP         AF
-    RET
+    PUSH        AF                                  ; Preserve A register
+    LD          A,(RING_INV_SLOT)                   ; A = ring level (0-3)
+    CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color value
+    LD          (COLRAM_RING_IDX),A                 ; Update ring icon color
+    POP         AF                                  ; Restore A register
+    RET                                             ; Return to caller
+
+;==============================================================================
+; CHECK_HELMET - Update helmet icon color based on inventory level
+;==============================================================================
+; Reads the helmet inventory slot level, converts it to a color value using
+; LEVEL_TO_COLRAM_FIX, and updates the helmet icon color in COLRAM. Preserves
+; the A register across the operation.
+;
+; Flow:
+; 1. Preserve A register
+; 2. Load helmet level from HELMET_INV_SLOT
+; 3. Convert level to color value
+; 4. Update COLRAM_HELMET_IDX with color
+; 5. Restore A register
+;
+; Input:
+;   HELMET_INV_SLOT - Helmet level (0-3)
+;
+; Output:
+;   Helmet icon color updated in COLRAM
+;   A register preserved
+;
+; Registers:
+; --- Start ---
+;   A = Preserved (pushed/popped)
+; --- In Process ---
+;   A = HELMET_INV_SLOT value, then color value from LEVEL_TO_COLRAM_FIX
+; ---  End  ---
+;   A = Original value (restored)
+;
+; Memory Modified: COLRAM_HELMET_IDX
+; Calls: LEVEL_TO_COLRAM_FIX
+;==============================================================================
 CHECK_HELMET:
-    PUSH        AF
-    LD          A,(HELMET_INV_SLOT)
-    CALL        LEVEL_TO_COLRAM_FIX
-    LD          (COLRAM_HELMET_IDX),A
-    POP         AF
-    RET
+    PUSH        AF                                  ; Preserve A register
+    LD          A,(HELMET_INV_SLOT)                 ; A = helmet level (0-3)
+    CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color value
+    LD          (COLRAM_HELMET_IDX),A               ; Update helmet icon color
+    POP         AF                                  ; Restore A register
+    RET                                             ; Return to caller
+
+;==============================================================================
+; CHECK_ARMOR - Update armor icon color based on inventory level
+;==============================================================================
+; Reads the armor inventory slot level, converts it to a color value using
+; LEVEL_TO_COLRAM_FIX, and updates the armor icon color in COLRAM. Preserves
+; the A register across the operation.
+;
+; Flow:
+; 1. Preserve A register
+; 2. Load armor level from ARMOR_INV_SLOT
+; 3. Convert level to color value
+; 4. Update COLRAM_ARMOR_IDX with color
+; 5. Restore A register
+;
+; Input:
+;   ARMOR_INV_SLOT - Armor level (0-3)
+;
+; Output:
+;   Armor icon color updated in COLRAM
+;   A register preserved
+;
+; Registers:
+; --- Start ---
+;   A = Preserved (pushed/popped)
+; --- In Process ---
+;   A = ARMOR_INV_SLOT value, then color value from LEVEL_TO_COLRAM_FIX
+; ---  End  ---
+;   A = Original value (restored)
+;
+; Memory Modified: COLRAM_ARMOR_IDX
+; Calls: LEVEL_TO_COLRAM_FIX
+;==============================================================================
 CHECK_ARMOR:
-    PUSH        AF
-    LD          A,(ARMOR_INV_SLOT)
-    CALL        LEVEL_TO_COLRAM_FIX
-    LD          (COLRAM_ARMOR_IDX),A
-    POP         AF
-    RET
+    PUSH        AF                                  ; Preserve A register
+    LD          A,(ARMOR_INV_SLOT)                  ; A = armor level (0-3)
+    CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color value
+    LD          (COLRAM_ARMOR_IDX),A                ; Update armor icon color
+    POP         AF                                  ; Restore A register
+    RET                                             ; Return to caller
+
+;==============================================================================
+; LEVEL_TO_COLRAM_FIX - Convert equipment level to color attribute value
+;==============================================================================
+; Converts an equipment level (0-3) to a COLRAM color attribute value using
+; the formula: ((level * 2) - 1) * 16. This maps levels to color palette
+; indices: 0→-16 (wraps), 1→16, 2→48, 3→80.
+;
+; Flow:
+; 1. Multiply level by 2 (ADD A,A)
+; 2. Subtract 1
+; 3. Shift left 4 times (multiply by 16)
+;
+; Input:
+;   A = Equipment level (0-3)
+;
+; Output:
+;   A = Color attribute value for COLRAM
+;
+; Registers:
+; --- Start ---
+;   A = Level (0-3)
+; --- In Process ---
+;   A = Intermediate calculations
+; ---  End  ---
+;   A = Color value (palette index * 16)
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 LEVEL_TO_COLRAM_FIX:
-    ADD         A,A
-    SUB         0x1
-    SLA         A
-    SLA         A
-    SLA         A
-    SLA         A
-    RET
+    ADD         A,A                                 ; A = level * 2
+    SUB         0x1                                 ; A = (level * 2) - 1
+    SLA         A                                   ; A = ((level * 2) - 1) * 2
+    SLA         A                                   ; A = ((level * 2) - 1) * 4
+    SLA         A                                   ; A = ((level * 2) - 1) * 8
+    SLA         A                                   ; A = ((level * 2) - 1) * 16
+    RET                                             ; Return color value in A
+
+;==============================================================================
+; RHA_REDRAW - Redraw Ring/Helmet/Armor icons and return to input
+;==============================================================================
+; Updates the color attributes for all three equipment icons (Ring, Helmet,
+; Armor) based on their current inventory levels, then returns to the input
+; debounce loop. Typically called after equipment changes.
+;
+; Flow:
+; 1. Update ring icon color
+; 2. Update helmet icon color
+; 3. Update armor icon color
+; 4. Return to input debounce
+;
+; Input:
+;   RING_INV_SLOT, HELMET_INV_SLOT, ARMOR_INV_SLOT
+;
+; Output:
+;   All three equipment icon colors updated
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A = Modified by CHECK_* routines
+; ---  End  ---
+;   Control transfers to INPUT_DEBOUNCE (no return)
+;
+; Memory Modified: COLRAM_RING_IDX, COLRAM_HELMET_IDX, COLRAM_ARMOR_IDX
+; Calls: CHECK_RING, CHECK_HELMET, CHECK_ARMOR, INPUT_DEBOUNCE
+;==============================================================================
 RHA_REDRAW:
-    CALL        CHECK_RING
-    CALL        CHECK_HELMET
-    CALL        CHECK_ARMOR
-    JP          INPUT_DEBOUNCE
+    CALL        CHECK_RING                          ; Update ring icon color
+    CALL        CHECK_HELMET                        ; Update helmet icon color
+    CALL        CHECK_ARMOR                         ; Update armor icon color
+    JP          INPUT_DEBOUNCE                      ; Return to input loop
+
+;==============================================================================
+; PLAY_TELEPORT_SOUND - Play descending teleport sound effect
+;==============================================================================
+; Plays a four-tone descending sound sequence to indicate teleportation.
+; Each tone is played at progressively lower frequency (higher BC value)
+; for a short duration (DE=$18).
+;
+; Flow:
+; 1. Play tone at $220 frequency
+; 2. Play tone at $110 frequency
+; 3. Play tone at $88 frequency
+; 4. Play tone at $44 frequency
+; 5. Return
+;
+; Input:
+;   None (uses fixed sound parameters)
+;
+; Output:
+;   Four descending tones played through speaker
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   BC = Duration values ($220, $110, $88, $44)
+;   DE = Pitch value ($18 for all tones)
+;   All registers modified by PLAY_SOUND_LOOP
+; ---  End  ---
+;   All registers modified
+;
+; Memory Modified: None
+; Calls: PLAY_SOUND_LOOP (4 times)
+;==============================================================================
 PLAY_TELEPORT_SOUND:
-    LD          BC,$220
-    LD          DE,$18
-    CALL        PLAY_SOUND_LOOP
-    LD          BC,$110
-    LD          DE,$18
-    CALL        PLAY_SOUND_LOOP
-    LD          BC,$88
-    LD          DE,$18
-    CALL        PLAY_SOUND_LOOP
-    LD          BC,$44
-    LD          DE,$18
-    CALL        PLAY_SOUND_LOOP
-    RET
+    LD          BC,$220                             ; BC = duration for first tone
+    LD          DE,$18                              ; DE = pitch/frequency
+    CALL        PLAY_SOUND_LOOP                     ; Play first (highest) tone
+    LD          BC,$110                             ; BC = duration for second tone
+    LD          DE,$18                              ; DE = pitch/frequency
+    CALL        PLAY_SOUND_LOOP                     ; Play second tone
+    LD          BC,$88                              ; BC = duration for third tone
+    LD          DE,$18                              ; DE = pitch/frequency
+    CALL        PLAY_SOUND_LOOP                     ; Play third tone
+    LD          BC,$44                              ; BC = duration for fourth tone
+    LD          DE,$18                              ; DE = pitch/frequency
+    CALL        PLAY_SOUND_LOOP                     ; Play fourth (lowest) tone
+    RET                                             ; Return to caller
+
+;==============================================================================
+; PLAY_POWER_UP_SOUND - Play ascending power-up sound effect
+;==============================================================================
+; Plays a four-tone ascending sound sequence to indicate power-up or stat
+; maximization. Each tone is played at progressively higher frequency (lower
+; BC value). The final tone has extended duration (DE=$60).
+;
+; Flow:
+; 1. Play tone at $220 frequency (short)
+; 2. Play tone at $200 frequency (short)
+; 3. Play tone at $1e0 frequency (short)
+; 4. Play tone at $1c0 frequency (long)
+; 5. Return
+;
+; Input:
+;   None (uses fixed sound parameters)
+;
+; Output:
+;   Four ascending tones played through speaker
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   BC = Duration values ($220, $200, $1e0, $1c0)
+;   DE = Pitch values ($18 for first 3, $60 for last)
+;   All registers modified by PLAY_SOUND_LOOP
+; ---  End  ---
+;   All registers modified
+;
+; Memory Modified: None
+; Calls: PLAY_SOUND_LOOP (4 times)
+;==============================================================================
 PLAY_POWER_UP_SOUND:
-    LD          BC,$220
-    LD          DE,$18
-    CALL        PLAY_SOUND_LOOP
-    LD          BC,$200
-    LD          DE,$18
-    CALL        PLAY_SOUND_LOOP
-    LD          BC,$1e0
-    LD          DE,$18
-    CALL        PLAY_SOUND_LOOP
-    LD          BC,$1c0
-    LD          DE,$60
-    CALL        PLAY_SOUND_LOOP
-    RET
+    LD          BC,$220                             ; BC = duration for first tone
+    LD          DE,$18                              ; DE = pitch/frequency (short)
+    CALL        PLAY_SOUND_LOOP                     ; Play first tone
+    LD          BC,$200                             ; BC = duration for second tone
+    LD          DE,$18                              ; DE = pitch/frequency (short)
+    CALL        PLAY_SOUND_LOOP                     ; Play second tone
+    LD          BC,$1e0                             ; BC = duration for third tone
+    LD          DE,$18                              ; DE = pitch/frequency (short)
+    CALL        PLAY_SOUND_LOOP                     ; Play third tone
+    LD          BC,$1c0                             ; BC = duration for fourth tone
+    LD          DE,$60                              ; DE = pitch/frequency (long final tone)
+    CALL        PLAY_SOUND_LOOP                     ; Play fourth tone (extended)
+    RET                                             ; Return to caller
+
