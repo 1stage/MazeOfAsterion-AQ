@@ -306,12 +306,10 @@ DRAW_CHRCOLS:
     JP          DRAW_CHRCOLS                        ; Continue with next row
 
 DRAW_F0_WALL:
-; OLD STUFF
     LD          HL,COLRAM_F0_WALL_IDX               ; Point to far wall color area
     LD          BC,RECT(16,15)						; 16 x 16 rectangle
     LD          A,COLOR(BLU,BLU)					; BLU on BLU (solid blue wall)
     CALL        FILL_CHRCOL_RECT                    ; Fill wall area with blue color (WAS JP)
-; NEW STUFF
     LD          HL,COLRAM_F0_WALL_IDX + 2 + (40 * 15)
     LD          B,12
     JP          DRAW_ROW
@@ -383,15 +381,7 @@ DRAW_WALL_L0:
     ADD         HL,DE                               ; Go to next row
     LD          BC,RECT(4,15)						; 4 x 15 rectangle (was 16)
     CALL        DRAW_CHRCOLS
-    ; ADD         HL,DE                               ; Go to next row
-    ; CALL        DRAW_UL_3X3_CORNER                  ; Draw door bottom blocks
-    ; ADD         HL,DE                               ; Go to next row
-    ; LD          A,COLOR(DKGRY,BLU)					; DKGRY on BLU
     DEC         DE                                  ; Decrease stride to 39
-    ; CALL        DRAW_SINGLE_CHAR_UP                 ; Draw bottom of wall colors
-    ; LD          A,CHAR_RT_ANGLE                     ;
-    ; LD          HL,DAT_ram_33c0                     ; Move to CHRRAM LO wall bottom IDX
-    ; CALL        DRAW_SINGLE_CHAR_UP                 ; Draw bottom of wall chars
     LD          HL,CHRRAM_L0_WALL_IDX
     LD          A,CHAR_LT_ANGLE
     INC         DE                                  ; Increase stride to 40
@@ -420,11 +410,7 @@ DRAW_DOOR_L0:
     ADD         HL,DE                               ; Go to next row
     LD          BC,RECT(3,11)                       ; 3 x 11 rectangle (was 12)
     CALL        DRAW_CHRCOLS
-    ; ADD         HL,DE                               ; Go to next row
-    ; CALL        DRAW_UL_3X3_CORNER                  ; Draw bottom of door color blocks
-    ; ADD         HL,DE                               ; Go to next row
     DEC         DE                                  ; Decrease stride to 39
-    ; CALL        DRAW_VERTICAL_LINE_3_UP           ; Draw bottom of door colors
     LD          HL,CHRRAM_L0_DOOR_IDX
     LD          A,CHAR_LT_ANGLE
     INC         DE                                  ; Increase stride to 40
@@ -515,11 +501,9 @@ DRAW_L1_WALL:
     CALL        DRAW_CHRCOLS
     ADD         HL,DE                               ; Go to next row
     CALL        DRAW_UL_3X3_CORNER                  ; Draw bottom wall char blocks
-    ; ADD         HL,DE                               ; Go to next row
     INC         HL                                  ; NEW
     LD          A,CHAR_RT_ANGLE						; RIGHT angle CHR
     DEC         DE                                  ; Decrease stride to 39
-    ; CALL        DRAW_SINGLE_CHAR_UP
     CALL        DRAW_VERTICAL_LINE_3_UP             ; Draw bottom wall char block
 
     LD          HL,COLRAM_L1_UR_WALL_IDX
@@ -534,11 +518,9 @@ DRAW_L1_WALL:
     CALL        DRAW_CHRCOLS
     ADD         HL,DE                               ; Go to next row
     CALL        DRAW_UL_3X3_CORNER                  ; Draw bottom wall color blocks
-    ; ADD         HL,DE                               ; Go to next row
     INC         HL                                  ; NEW
     LD          A,COLOR(DKGRY,DKBLU)   			    ; DKGRY on DKBLU
     DEC         DE                                  ; Decrease stride to 39
-    ; JP          DRAW_SINGLE_CHAR_UP                 ; Draw bottom wall color blocks
     JP          DRAW_VERTICAL_LINE_3_UP             ; Draw bottom wall color blocks
     RET
 DRAW_FL1_DOOR:
@@ -662,12 +644,9 @@ DRAW_WALL_R0:
     LD          DE,$27                              ; Pitch to 39 / $27
     CALL        DRAW_VERTICAL_LINE_4_DOWN           ; Draw top of RO wall
 
-; Old bottom of wall stuff
-    ; LD          HL,DAT_ram_335c
     INC         A                                   ; Increment A to CHAR_LT_ANGLE ($c1)
     INC         DE                                  ; Increment pitch to 40 / $28
     INC         DE                                  ; Increment pitch to 41 / $29
-    ; JP          DRAW_VERTICAL_LINE_4_DOWN           ; Draw bottom of R0 wall
     RET
 DRAW_R0_DOOR_HIDDEN:
     CALL        DRAW_WALL_R0
@@ -693,14 +672,8 @@ DRAW_R0_DOOR:
     LD          BC,RECT(3,11)                       ; 3 x 11 rectangle (was 12)
     CALL        DRAW_CHRCOLS
 
-    ; ADD         HL,DE                               ; Move down a row
-    ; CALL        DRAW_UR_3X3_CORNER                  ; Draw bottom door blocks
-    ; ADD         HL,DE                               ; Move down a row
-    ; INC         DE                                  ; Increment pitch to 41
-    ; CALL        DRAW_VERTICAL_LINE_3_UP
     LD          HL,DAT_ram_30df
     LD          A,CHAR_RT_ANGLE						; Right angle char
-    ; DEC         DE                                  ; Decrement pitch to 40
     DEC         DE                                  ; Decrement pitch to 39
     JP          CONTINUE_VERTICAL_LINE_DOWN         ; Draw top of door angles
 
@@ -804,13 +777,8 @@ DRAW_R0_CORNERS:
     ADD         HL,DE                               ; Go to next row
     DEC         HL                                  ; Decrease stride to 39
     CALL        DRAW_CHRCOLS
-    ; ADD         HL,DE
-    ; INC         HL
-    ; CALL        DRAW_UR_3X3_CORNER
-    ; ADD         HL,DE
     POP         AF
     INC         DE                                  ; Increase stride to 41
-    ; CALL        DRAW_SINGLE_CHAR_UP
     JP          (IX)
 
 DRAW_R1_CORNERS:
@@ -823,16 +791,13 @@ DRAW_R1_CORNERS:
     CALL        DRAW_DR_3X3_CORNER                  ; Draw upper wall blocks
     ADD         HL,DE                               ; Go to next row
     DEC         HL                                  ; Go back one cell
-    ; INC         HL                                  ; NEW, forward one cell
     CALL        DRAW_CHRCOLS
     ADD         HL,DE                               ; Go to next row
     INC         HL                                  ; Go to next cell
     CALL        DRAW_UR_3X3_CORNER
-    ; ADD         HL,DE                               ; Go to next row
     DEC         HL                                  ; NEW, back one cell
     POP         AF                                  ; 
     INC         DE                                  ; Stride is 41
-    ; CALL        DRAW_SINGLE_CHAR_UP                 
     CALL        DRAW_VERTICAL_LINE_3_UP                 
     JP          (IX)
 
