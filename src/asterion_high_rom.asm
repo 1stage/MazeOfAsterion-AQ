@@ -4670,200 +4670,185 @@ PLAYER_DIES:
     JP          SCREEN_SAVER_FULL_SCREEN            ; Jump to screen saver
 
 DO_USE_PHYS_POTION:
-    CALL        PLAY_USE_PHYS_POTION_SOUND
-    INC         B								;  Change from LEVEL to
-								;  COLOR value (Level + 1)
-    LD          H,B
-    LD          L,B
-    LD          (COLRAM_PHYS_STATS_1000),HL								;  Update PHYS color (1000s & 100s)
-								;  to potion level on BLK
-    LD          (COLRAM_PHYS_STATS_10),HL								;  Update PHYS color (10s & 1s)
-								;  to potion level on BLK
-    LD          H,$d0								;  DKGRN on BLK
-    LD          L,H
-    LD          (COLRAM_SPRT_STATS_10),HL								;  Update SPRT color (10s)
-								;  to DKGRN on BLACK
-    LD          (COLRAM_SPRT_STATS_1),HL								;  Update SPRT color (1s)
-								;  to DKGRN on BLACK
-    JP          PROCESS_POTION_UPDATES
+    CALL        PLAY_USE_PHYS_POTION_SOUND          ; Play potion usage sound (3x SOUND_03)
+    INC         B                                   ; Convert level (0-3) to color value (1-4)
+    LD          H,B                                 ; H = color value
+    LD          L,B                                 ; L = color value (both bytes)
+    LD          (COLRAM_PHYS_STATS_1000),HL         ; Set phys health color (1000s/100s)
+    LD          (COLRAM_PHYS_STATS_10),HL           ; Set phys health color (10s/1s)
+    LD          H,COLOR(DKGRN,BLK)                  ; H = dark green on black
+    LD          L,H                                 ; L = dark green on black
+    LD          (COLRAM_SPRT_STATS_10),HL           ; Set sprt health color (10s) to dark green
+    LD          (COLRAM_SPRT_STATS_1),HL            ; Set sprt health color (1s) to dark green
+    JP          PROCESS_POTION_UPDATES              ; Continue with potion processing
 DO_USE_SPRT_POTION:
-    CALL        PLAY_USE_PHYS_POTION_SOUND
-    INC         B								;  Change from LEVEL to
-								;  COLOR value (Level + 1)
-    LD          H,B
-    LD          L,B
-    LD          (COLRAM_SPRT_STATS_10),HL								;  Update SPRT color (10s)
-								;  to potion level on BLK
-    LD          (COLRAM_SPRT_STATS_1),HL								;  Update SPRT color (1s)
-								;  to potion level on BLK
-    LD          H,$d0								;  DKGRN on BLK
-    LD          L,H
-    LD          (COLRAM_PHYS_STATS_1000),HL								;  Update PHYS color (1000s & 100s)
-								;  to DKGRN on BLK
-    LD          (COLRAM_PHYS_STATS_10),HL								;  Update PHYS color (10s & 1s)
-								;  to DKGRN on BLK
-    JP          PROCESS_POTION_UPDATES
+    CALL        PLAY_USE_PHYS_POTION_SOUND          ; Play potion usage sound (3x SOUND_03)
+    INC         B                                   ; Convert level (0-3) to color value (1-4)
+    LD          H,B                                 ; H = color value
+    LD          L,B                                 ; L = color value (both bytes)
+    LD          (COLRAM_SPRT_STATS_10),HL           ; Set sprt health color (10s)
+    LD          (COLRAM_SPRT_STATS_1),HL            ; Set sprt health color (1s)
+    LD          H,COLOR(DKGRN,BLK)                  ; H = dark green on black
+    LD          L,H                                 ; L = dark green on black
+    LD          (COLRAM_PHYS_STATS_1000),HL         ; Set phys health color (1000s/100s) to dark green
+    LD          (COLRAM_PHYS_STATS_10),HL           ; Set phys health color (10s/1s) to dark green
+    JP          PROCESS_POTION_UPDATES              ; Continue with potion processing
 DO_USE_KEY:
-    LD          A,(ITEM_F0)
-    LD          C,0x0
-    SRL         A
-    RR          C
-    SRL         A
-    RL          C
-    RL          C
-    CP          $14
-    JP          NZ,NO_ACTION_TAKEN
-    LD          A,B
-    CP          C
-    JP          C,NO_ACTION_TAKEN
-    LD          A,C
-    LD          B,A
-    AND         A
-    JP          Z,LAB_ram_f048
-    CALL        UPDATE_SCR_SAVER_TIMER
-    INC         C
+    LD          A,(ITEM_F0)                         ; Load item at current position
+    LD          C,0x0                               ; Initialize C = 0
+    SRL         A                                   ; Shift right 1 bit
+    RR          C                                   ; Rotate right through C
+    SRL         A                                   ; Shift right again (total 2 bits)
+    RL          C                                   ; Rotate left through C
+    RL          C                                   ; Rotate left again (extract level)
+    CP          $14                                 ; Compare to $14 (door base code)
+    JP          NZ,NO_ACTION_TAKEN                  ; If not a door, no action
+    LD          A,B                                 ; A = key level (from item)
+    CP          C                                   ; Compare key level to door level
+    JP          C,NO_ACTION_TAKEN                   ; If key < door level, can't unlock
+    LD          A,C                                 ; A = door level
+    LD          B,A                                 ; B = door level
+    AND         A                                   ; Test if zero (lowest level)
+    JP          Z,LAB_ram_f048                      ; If level 0, skip loop
+    CALL        UPDATE_SCR_SAVER_TIMER              ; Reset screen saver timer
+    INC         C                                   ; C = door level + 1
 LAB_ram_f043:
-    SUB         C
-    JP          NC,LAB_ram_f043
-    ADD         A,C
-    LD          B,A
+    SUB         C                                   ; Subtract (door level + 1)
+    JP          NC,LAB_ram_f043                     ; Loop while no borrow
+    ADD         A,C                                 ; Add back to get remainder
+    LD          B,A                                 ; B = adjusted level
 LAB_ram_f048:
-    LD          A,R								;  Semi-random number into A
-    AND         0x7
+    LD          A,R                                 ; Get semi-random value from refresh register
+    AND         0x7                                 ; Mask to 0-7
 LAB_ram_f04c:
-    JP          Z,LAB_ram_f071
-    SUB         0x7
+    JP          Z,LAB_ram_f071                      ; If 0, handle special case
+    SUB         0x7                                 ; Subtract 7
 LAB_ram_f050:
-    JP          NC,LAB_ram_f04c
-    ADD         A,$1d
+    JP          NC,LAB_ram_f04c                     ; Loop while >= 7 (normalize to 0-6)
+    ADD         A,$1d                               ; Add $1D base offset
 LAB_ram_f054:
-    RR          B
-    RR          C
-    RR          B
-    RLA
-    RL          C
-    RLA
-    EX          AF,AF'
-    LD          A,(PLAYER_MAP_POS)
-    CALL        ITEM_MAP_CHECK
-    EX          AF,AF'
-    LD          (BC),A
-    LD          A,(COMBAT_BUSY_FLAG)
-    AND         A
-    JP          NZ,INIT_MELEE_ANIM
-    JP          UPDATE_VIEWPORT
+    RR          B                                   ; Rotate B right (level bits)
+    RR          C                                   ; Rotate C right
+    RR          B                                   ; Rotate B right again
+    RLA                                             ; Rotate A left (item type)
+    RL          C                                   ; Rotate C left
+    RLA                                             ; Rotate A left again
+    EX          AF,AF'                              ; Save AF to alternate set
+    LD          A,(PLAYER_MAP_POS)                  ; Load player's map position
+    CALL        ITEM_MAP_CHECK                      ; Get item map address in BC
+    EX          AF,AF'                              ; Restore AF from alternate set
+    LD          (BC),A                              ; Store item code at map position
+    LD          A,(COMBAT_BUSY_FLAG)                ; Check combat state
+    AND         A                                   ; Test if in combat
+    JP          NZ,INIT_MELEE_ANIM                  ; If in combat, init animation
+    JP          UPDATE_VIEWPORT                     ; Otherwise update viewport
 LAB_ram_f071:
-    LD          A,C
-    CP          0x4
-    JP          Z,LAB_ram_f07c
-    LD          B,A
-    LD          A,$16
-    JP          LAB_ram_f054
+    LD          A,C                                 ; A = door level from C
+    CP          0x4                                 ; Compare to 4
+    JP          Z,LAB_ram_f07c                      ; If level 4, special case
+    LD          B,A                                 ; B = door level
+    LD          A,$16                               ; A = $16 (key item base)
+    JP          LAB_ram_f054                        ; Jump to encode and place item
 LAB_ram_f07c:
-    LD          B,0x3
-    LD          A,$1c
-    JP          LAB_ram_f054
+    LD          B,0x3                               ; B = 3 (level 3)
+    LD          A,$1c                               ; A = $1C (chaos potion base)
+    JP          LAB_ram_f054                        ; Jump to encode and place item
 USE_SOMETHING_ELSE:
-    EX          AF,AF'
-    LD          A,(WALL_F0_STATE)
-    AND         A
-    JP          Z,CHECK_FOR_NON_ITEMS
-    BIT         0x2,A
-    JP          Z,CHECK_FOR_END_ITEM
+    EX          AF,AF'                              ; Swap to alternate AF register
+    LD          A,(WALL_F0_STATE)                   ; Load wall state at position F0
+    AND         A                                   ; Test if wall exists
+    JP          Z,CHECK_FOR_NON_ITEMS               ; If no wall, check for items/monsters
+    BIT         0x2,A                               ; Test bit 2 of wall state
+    JP          Z,CHECK_FOR_END_ITEM                ; If bit 2 clear, check end item
 CHECK_FOR_NON_ITEMS:
-    LD          A,(ITEM_F1)
-    CP          $fe								;  Compare to EMPTY
-    JP          Z,CHECK_FOR_END_ITEM
-    CP          $78								;  Compare to MONSTERS
-    JP          NC,CHECK_IF_BOW_XBOW
+    LD          A,(ITEM_F1)                         ; Load item at position F1
+    CP          $fe                                 ; Compare to $FE (empty)
+    JP          Z,CHECK_FOR_END_ITEM                ; If empty, check end item
+    CP          $78                                 ; Compare to $78 (monster base)
+    JP          NC,CHECK_IF_BOW_XBOW                ; If >= $78 (monster), check weapon
 CHECK_FOR_END_ITEM:
-    EX          AF,AF'
-    CP          $ff								;  Compare to EMPTY-END
-    JP          NZ,NO_ACTION_TAKEN
-    EX          AF,AF'
+    EX          AF,AF'                              ; Swap back to main AF register
+    CP          $ff                                 ; Compare to $FF (end marker)
+    JP          NZ,NO_ACTION_TAKEN                  ; If not end marker, no action
+    EX          AF,AF'                              ; Swap to alternate AF again
 CHECK_IF_BOW_XBOW:
-    EX          AF,AF'
-    CP          0x6								;  Compare to BOW
-    JP          NZ,CHECK_IF_SCROLL_STAFF
+    EX          AF,AF'                              ; Swap back to main AF register
+    CP          0x6                                 ; Compare to 6 (bow item type)
+    JP          NZ,CHECK_IF_SCROLL_STAFF            ; If not bow, check scroll/staff
 USE_BOW_XBOW:
-    PUSH        BC								;  Save BC
-    LD          A,(ARROW_INV)								;  Get Arrow Inventory
-    SUB         0x1								;  Decrease by 1
-    JP          C,NO_ACTION_TAKEN								;  If Arrow Inv <1, end
-    LD          (ARROW_INV),A
-    CALL        CHK_ITEM_BREAK
-    POP         BC
-    JP          NC,BOW_XBOW_NO_BREAK
-    LD          A,$fe								;  $fe = EMPTY ITEM
-    LD          (RIGHT_HAND_ITEM),A								;  Put EMPTY ITEM into Right Hand
+    PUSH        BC                                  ; Save BC (item level)
+    LD          A,(ARROW_INV)                       ; Load arrow inventory count
+    SUB         0x1                                 ; Decrement by 1
+    JP          C,NO_ACTION_TAKEN                   ; If < 0 (no arrows), no action
+    LD          (ARROW_INV),A                       ; Store decremented arrow count
+    CALL        CHK_ITEM_BREAK                      ; Check if bow/crossbow breaks
+    POP         BC                                  ; Restore BC (item level)
+    JP          NC,BOW_XBOW_NO_BREAK                ; If no break, continue
+    LD          A,$fe                               ; A = $FE (empty item marker)
+    LD          (RIGHT_HAND_ITEM),A                 ; Clear right hand (bow broke)
 BOW_XBOW_NO_BREAK:
-    LD          D,0x5
-    JP          LAB_ram_f0e9
+    LD          D,0x5                               ; D = 5 (bow/arrow animation type)
+    JP          LAB_ram_f0e9                        ; Jump to setup animation
 CHECK_IF_SCROLL_STAFF:
-    CP          0x7								;  Compare to SCROLL
-    JP          NZ,CHECK_OTHERS
+    CP          0x7                                 ; Compare to 7 (scroll item type)
+    JP          NZ,CHECK_OTHERS                     ; If not scroll, check other items
 USE_SCROLL_STAFF:
-    PUSH        BC
-    CALL        CHK_ITEM_BREAK
-    POP         BC
-    JP          NC,SCROLL_STAFF_NO_BREAK
-    LD          A,$fe
-    LD          (RIGHT_HAND_ITEM),A
+    PUSH        BC                                  ; Save BC (item level)
+    CALL        CHK_ITEM_BREAK                      ; Check if scroll/staff breaks
+    POP         BC                                  ; Restore BC (item level)
+    JP          NC,SCROLL_STAFF_NO_BREAK            ; If no break, continue
+    LD          A,$fe                               ; A = $FE (empty item marker)
+    LD          (RIGHT_HAND_ITEM),A                 ; Clear right hand (scroll/staff broke)
 SCROLL_STAFF_NO_BREAK:
-    LD          D,0x9								;  Use FIREBALL ammo
-    JP          LAB_ram_f0e9
+    LD          D,0x9                               ; D = 9 (fireball animation type)
+    JP          LAB_ram_f0e9                        ; Jump to setup animation
 CHECK_OTHERS:
-    CP          0xb								;  Compare to STAFF
-    JP          Z,USE_SCROLL_STAFF
-    CP          0xc								;  Compare to XBOW
-    JP          Z,USE_BOW_XBOW
-    CP          0x6								;  Compare to BOW
-    JP          C,NO_ACTION_TAKEN
-    CP          $10								;  Compare to LADDER
-    JP          NC,LAB_ram_f113
-    LD          D,A
-    CALL        SWAP_TO_ALT_REGS
+    CP          0xb                                 ; Compare to $0B (staff item type)
+    JP          Z,USE_SCROLL_STAFF                  ; If staff, use as scroll/staff
+    CP          0xc                                 ; Compare to $0C (crossbow item type)
+    JP          Z,USE_BOW_XBOW                      ; If crossbow, use as bow/crossbow
+    CP          0x6                                 ; Compare to 6 (bow)
+    JP          C,NO_ACTION_TAKEN                   ; If < 6, no action
+    CP          $10                                 ; Compare to $10 (ladder)
+    JP          NC,LAB_ram_f113                     ; If >= $10, jump to special handler
+    LD          D,A                                 ; D = item type (for animation)
+    CALL        SWAP_TO_ALT_REGS                    ; Swap to alternate registers
 LAB_ram_f0e9:
-    CALL        SETUP_ITEM_ANIMATION
-    JP          INIT_MONSTER_COMBAT
-CLEAR_RIGHT_ITEM_AND_SETUP_ANIM:								;   Clear right-hand item and set up animation.
-								;   Used when consumable weapons break (bow/crossbow/scroll/staff).
-    CALL        SWAP_TO_ALT_REGS
-SETUP_ITEM_ANIMATION:								;   Configure item animation parameters.
-								;   Inputs: D = item type, B = item level
-								;   Effects: Sets ITEM_ANIM_STATE, ITEM_SPRITE_INDEX, ITEM_ANIM_LOOP_COUNT, ITEM_ANIM_CHRRAM_PTR
-								;   and initiates animation via LAB_ram_e3d7.
-    LD          A,0x3
-    LD          (ITEM_ANIM_STATE),A
-    LD          A,D
-    SLA         A
-    SLA         A
-    OR          B
-    LD          (ITEM_SPRITE_INDEX),A
-    LD          HL,$203
-    LD          (ITEM_ANIM_LOOP_COUNT),HL
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
-    LD          (ITEM_ANIM_CHRRAM_PTR),HL
-    LD          A,L
-    LD          (RAM_AD),A
-    JP          COPY_RH_ITEM_FRAME_GFX
+    CALL        SETUP_ITEM_ANIMATION                ; Setup item animation parameters
+    JP          INIT_MONSTER_COMBAT                 ; Initialize monster combat
+CLEAR_RIGHT_ITEM_AND_SETUP_ANIM:
+    CALL        SWAP_TO_ALT_REGS                    ; Swap to alternate register set
+SETUP_ITEM_ANIMATION:
+    LD          A,0x3                               ; A = 3 (animation state)
+    LD          (ITEM_ANIM_STATE),A                 ; Store animation state
+    LD          A,D                                 ; A = item type
+    SLA         A                                   ; Shift left (multiply by 2)
+    SLA         A                                   ; Shift left again (multiply by 4)
+    OR          B                                   ; OR with item level (bits 0-1)
+    LD          (ITEM_SPRITE_INDEX),A               ; Store sprite index (type*4 + level)
+    LD          HL,$203                             ; HL = $203 (loop count)
+    LD          (ITEM_ANIM_LOOP_COUNT),HL           ; Store animation loop count
+    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics area
+    LD          (ITEM_ANIM_CHRRAM_PTR),HL           ; Store graphics pointer
+    LD          A,L                                 ; A = low byte of CHRRAM pointer
+    LD          (RAM_AD),A                          ; Store to RAM_AD
+    JP          COPY_RH_ITEM_FRAME_GFX              ; Copy frame graphics and return
 LAB_ram_f113:
-    CP          $11
-    JP          NZ,LAB_ram_f119
-    JP          LAB_ram_f11e
+    CP          $11                                 ; Compare to $11 (ladder up/down)
+    JP          NZ,LAB_ram_f119                     ; If not ladder, check next
+    JP          LAB_ram_f11e                        ; If ladder, jump to handler
 LAB_ram_f119:
-    CP          $14
-    JP          NZ,NO_ACTION_TAKEN
+    CP          $14                                 ; Compare to $14 (door)
+    JP          NZ,NO_ACTION_TAKEN                  ; If not door, no action
 LAB_ram_f11e:
-    LD          D,A
-    LD          A,(COMBAT_BUSY_FLAG)
-    AND         A
-    JP          Z,NO_ACTION_TAKEN
-    XOR         A								;  A  = $00
-								;  Reset C & N, Set Z
-    LD          (COMBAT_BUSY_FLAG),A
-    CALL        CLEAR_RIGHT_ITEM_AND_SETUP_ANIM
-    JP          WAIT_FOR_INPUT
+    LD          D,A                                 ; D = item type (ladder or door)
+    LD          A,(COMBAT_BUSY_FLAG)                ; Load combat state flag
+    AND         A                                   ; Test if in combat
+    JP          Z,NO_ACTION_TAKEN                   ; If not in combat, no action
+    XOR         A                                   ; A = 0 (clear flags)
+    LD          (COMBAT_BUSY_FLAG),A                ; Clear combat busy flag
+    CALL        CLEAR_RIGHT_ITEM_AND_SETUP_ANIM     ; Setup animation for item
+    JP          WAIT_FOR_INPUT                      ; Return to input wait
 INIT_MONSTER_COMBAT:								;   Monster combat round initializer.
 ;   Preconditions: Right-hand item already decoded into B (weapon level) and ITEM_F1 holds
 ;   monster/item code at player position. COMBAT_BUSY_FLAG must be 0 for a new round.
