@@ -700,42 +700,151 @@ DISABLE_HC:
     INC         A                               ; Test for $FF (no input)
     JP          NZ,READ_KEY                      ; If input detected, keep waiting
     JP          UPDATE_VIEWPORT                  ; Close map and return to normal viewport
-MAP_ITEM_MONSTER:
-    LD          BC,MAP_LADDER_OFFSET
-FIND_NEXT_ITEM_MONSTER_LOOP:
-    LD          A,(BC)
-    INC         BC
-    INC         A
-    RET         Z
-    LD          A,(BC)
-    CP          H								; CP A to H (low end of itemRange)
-    INC         BC
-    JP          C,FIND_NEXT_ITEM_MONSTER_LOOP
-    CP          L								; CP A to L (high end of itemRange)
-    JP          NC,FIND_NEXT_ITEM_MONSTER_LOOP
-    DEC         C
-    DEC         BC
-    RET
 
+;==============================================================================
+; MAP_ITEM_MONSTER
+;==============================================================================
+; Initializes search for monsters or items in the dungeon map data. Sets BC
+; to point to the map item/monster list and falls through to the search loop.
+;
+; Flow:
+; 1. Set BC to MAP_LADDER_OFFSET (start of map item list)
+; 2. Fall through to FIND_NEXT_ITEM_MONSTER_LOOP
+;
+; Input:
+;   HL = Item/monster type range (H=low bound, L=high bound)
+;
+; Output:
+;   BC = MAP_LADDER_OFFSET (item list pointer)
+;   Falls through to search loop
+;
+; Registers:
+; --- Start ---
+;   HL = Item range bounds (H=min, L=max)
+; --- In Process ---
+;   BC = MAP_LADDER_OFFSET (list start pointer)
+; ---  End  ---
+;   BC = First entry pointer (or end marker)
+;   Z flag set if no matching items found
+;
+; Memory Modified: None
+; Calls: FIND_NEXT_ITEM_MONSTER_LOOP (fall-through)
+;==============================================================================
+MAP_ITEM_MONSTER:
+    LD          BC,MAP_LADDER_OFFSET             ; Point to start of map item/monster list
+
+;==============================================================================
+; FIND_NEXT_ITEM_MONSTER_LOOP
+;==============================================================================
+; Searches through the map item/monster list for entries matching the specified
+; type range. Each list entry is 2 bytes: [position_offset][item_code]. The
+; list is terminated with $FF. Filters entries based on H/L range bounds.
+;
+; Flow:
+; 1. Read position offset from (BC)
+; 2. Check for $FF terminator (returns Z flag set)
+; 3. Read item code from (BC+1)
+; 4. Compare code to range bounds (H=low, L=high)
+; 5. If outside range, advance to next entry and repeat
+; 6. If in range, return with BC pointing to position offset
+;
+; Input:
+;   BC = Current position in item list
+;   HL = Item type range (H=minimum code, L=maximum code)
+;
+; Output:
+;   BC = Pointer to matching entry's position offset
+;   Z flag set if end of list ($FF found)
+;   Z flag clear if match found
+;
+; Registers:
+; --- Start ---
+;   BC = List pointer (entry position offset)
+;   HL = Range bounds (H=min, L=max)
+; --- In Process ---
+;   A  = Position offset, then item code
+;   BC = Incremented through list entries
+; ---  End  ---
+;   BC = Match position (BC-2) or end of list
+;   A  = Last item code compared
+;   Z flag = match status
+;
+; Memory Modified: None
+; Calls: None (returns to caller)
+;==============================================================================
+FIND_NEXT_ITEM_MONSTER_LOOP:
+    LD          A,(BC)                          ; Load position offset byte
+    INC         BC                              ; Advance to item code byte
+    INC         A                               ; Test for $FF terminator (becomes $00)
+    RET         Z                               ; Return with Z flag if end of list
+    LD          A,(BC)                          ; Load item code
+    CP          H                               ; Compare to low bound (H)
+    INC         BC                              ; Advance to next entry
+    JP          C,FIND_NEXT_ITEM_MONSTER_LOOP    ; If code < low bound, continue search
+    CP          L                               ; Compare to high bound (L)
+    JP          NC,FIND_NEXT_ITEM_MONSTER_LOOP   ; If code >= high bound, continue search
+    DEC         C                               ; Back up to item code byte
+    DEC         BC                              ; Back up to position offset byte
+    RET                                         ; Return with Z clear (match found)
+
+;==============================================================================
+; UPDATE_COLRAM_FROM_OFFSET
+;==============================================================================
+; Updates a color RAM cell in the viewport based on a linear offset (0-383).
+; Converts the offset to a 2D coordinate in the 24x16 viewport grid and sets
+; the color at that position to the value in D register.
+;
+; Flow:
+; 1. Extract X coordinate from lower nibble of offset
+; 2. Calculate base row address in COLRAM
+; 3. Extract row number from upper nibble and multiply by 40
+; 4. Add X coordinate to get final COLRAM address
+; 5. Write color value from D to calculated address
+;
+; Input:
+;   A = Linear offset (0-383) into 24x16 viewport grid
+;   D = Color value to write (COLOR(fg,bg) format)
+;
+; Output:
+;   Color updated at calculated COLRAM position
+;   (HL) = D (color written to COLRAM)
+;
+; Registers:
+; --- Start ---
+;   A  = Linear offset value
+;   D  = Color value to set
+; --- In Process ---
+;   A  = X coordinate, then row calculations
+;   BC = Offset accumulators for row/column math
+;   HL = COLRAM_F0_WALL_IDX base, then final COLRAM address
+;   B  = Row multiplier carry bit
+; ---  End  ---
+;   HL = Final COLRAM address
+;   (HL) = Color value from D
+;   A, BC modified
+;
+; Memory Modified: COLRAM_VIEWPORT_IDX (one cell at calculated offset)
+; Calls: None
+;==============================================================================
 UPDATE_COLRAM_FROM_OFFSET:
-    PUSH        AF
-    AND         0xf
-    LD          HL,COLRAM_F0_WALL_IDX
-    LD          C,A
-    LD          B,0x0
-    ADD         HL,BC
-    POP         AF
-    AND         $f0
-    RRA
-    LD          C,A
-    ADD         HL,BC
-    RLA
-    RLA
-    RL          B
-    LD          C,A
-    ADD         HL,BC
-    LD          (HL),D								;  LD (HL),D
-    RET
+    PUSH        AF                              ; Preserve original offset
+    AND         0xf                             ; Mask lower nibble (X coordinate 0-15)
+    LD          HL,COLRAM_MINI_MAP_IDX          ; Point to viewport COLRAM base
+    LD          C,A                             ; Copy X coordinate to C
+    LD          B,0x0                           ; Clear B for 16-bit addition
+    ADD         HL,BC                           ; Add X offset to base address
+    POP         AF                              ; Restore original offset
+    AND         $f0                             ; Mask upper nibble (row number * 16)
+    RRA                                         ; Divide by 2 (row * 8)
+    LD          C,A                             ; Copy to C
+    ADD         HL,BC                           ; Add (row * 8) to address
+    RLA                                         ; Multiply by 2 (row * 16)
+    RLA                                         ; Multiply by 2 (row * 32)
+    RL          B                               ; Capture carry bit into B
+    LD          C,A                             ; Copy (row * 32) to C
+    ADD         HL,BC                           ; Add (row * 32), total = row * 40
+    LD          (HL),D                          ; Write color value D to COLRAM
+    RET                                         ; Return to caller
 CHK_ITEM_BREAK:
     LD          A,B								;  A  = itemLevel (0-3)
     RLCA								;  A  = A * 2
