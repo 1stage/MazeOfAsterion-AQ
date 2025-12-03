@@ -796,7 +796,7 @@ CALC_MINIMAP_WALL:
     LD          A,(DE)                          ; Load wall flags from current cell
     OR          A                               ; Test if any walls present
     JP          Z,SET_MINIMAP_NO_WALLS          ; If no walls, draw empty cell
-    AND         0xf                             ; Mask lower nibble (north wall flag)
+    AND         0xf                             ; Mask lower nybble (north wall flag)
     JP          NZ,LAB_ram_e2d6                 ; If north wall set, check west wall
 SET_MINIMAP_N_WALL:
     LD          A,$a3							; Load character $a3 (north wall only)
@@ -809,7 +809,7 @@ SET_MINIMAP_NW_WALLS:
     JP          DRAW_MINIMAP_WALL               ; Draw corner wall character
 LAB_ram_e2d6:
     LD          A,(DE)                          ; Reload wall flags
-    AND         $f0                             ; Mask upper nibble (west wall flag)
+    AND         $f0                             ; Mask upper nybble (west wall flag)
     JP          NZ,SET_MINIMAP_NW_WALLS         ; If west wall set, draw north+west
 SET_MINIMAP_W_WALL:
     LD          A,$b5							; Load character $b5 (west wall only)
@@ -982,9 +982,9 @@ FIND_NEXT_ITEM_MONSTER_LOOP:
 ; the color at that position to the value in D register.
 ;
 ; Flow:
-; 1. Extract X coordinate from lower nibble of offset
+; 1. Extract X coordinate from lower nybble of offset
 ; 2. Calculate base row address in COLRAM
-; 3. Extract row number from upper nibble and multiply by 40
+; 3. Extract row number from upper nybble and multiply by 40
 ; 4. Add X coordinate to get final COLRAM address
 ; 5. Write color value from D to calculated address
 ;
@@ -1015,13 +1015,13 @@ FIND_NEXT_ITEM_MONSTER_LOOP:
 ;==============================================================================
 UPDATE_COLRAM_FROM_OFFSET:
     PUSH        AF                              ; Preserve original offset
-    AND         0xf                             ; Mask lower nibble (X coordinate 0-15)
+    AND         0xf                             ; Mask lower nybble (X coordinate 0-15)
     LD          HL,COLRAM_MINI_MAP_IDX          ; Point to viewport COLRAM base
     LD          C,A                             ; Copy X coordinate to C
     LD          B,0x0                           ; Clear B for 16-bit addition
     ADD         HL,BC                           ; Add X offset to base address
     POP         AF                              ; Restore original offset
-    AND         $f0                             ; Mask upper nibble (row number * 16)
+    AND         $f0                             ; Mask upper nybble (row number * 16)
     RRA                                         ; Divide by 2 (row * 8)
     LD          C,A                             ; Copy to C
     ADD         HL,BC                           ; Add (row * 8) to address
@@ -1239,74 +1239,233 @@ COPY_RH_ITEM_FRAME_GFX:
     ADD         A,$ff                           ; Decrement by 1
     LD          (ITEM_ANIM_TIMER_COPY),A        ; Cache copy for animation timing
     RET                                         ; Done
-SUB_ram_e401:
-    LD          A,L
-    AND         0xf
-    LD          B,A
-    INC         B
-    CALL        SUB_ram_e41d
-    LD          C,A
-    LD          A,L
-    AND         $f0
+
+;==============================================================================
+; RANDOMIZE_BCD_NYBBLES — Randomize BCD nybbles in L
+;==============================================================================
+; Takes the value in L, extracts and randomizes each BCD nybble independently,
+; then recombines them back into L. Uses modulo arithmetic to constrain the
+; random value to valid BCD ranges (0-9 for each nybble).
+;
+; Flow:
+; 1. Extract lower nybble of L, add 1 to get range (1-16)
+; 2. Call RANDOM_MOD_B to get random value modulo that range
+; 3. Save result in C
+; 4. Extract upper nybble of L, shift to lower position, add 1
+; 5. Call RANDOM_MOD_B again for upper nybble randomization
+; 6. Shift result back to upper nybble, combine with C, store in L
+;
+; Input:
+;   L = BCD value (two nybbles)
+;
+; Output:
+;   L = Randomized BCD value (each nybble randomized independently)
+;
+; Registers:
+; --- Start ---
+;   L = Input BCD value
+; --- In Process ---
+;   A = Extracted nybbles and calculations
+;   B = Range parameter for modulo
+;   C = Randomized lower nybble (temporary)
+; ---  End  ---
+;   L = Randomized output
+;   A = Combined result
+;
+; Memory Modified: None directly; screen saver timer via RANDOM_MOD_B
+; Calls: RANDOM_MOD_B (twice)
+;==============================================================================
+RANDOMIZE_BCD_NYBBLES:
+    LD          A,L                             ; Load BCD value
+    AND         0xf                             ; Mask lower nybble (0-15)
+    LD          B,A                             ; Copy to B
+    INC         B                               ; B = nybble + 1 (range 1-16)
+    CALL        RANDOM_MOD_B                    ; Get random A mod B
+    LD          C,A                             ; Save randomized lower nybble in C
+    LD          A,L                             ; Reload BCD value
+    AND         $f0                             ; Mask upper nybble
+    RLCA                                        ; Shift right 4 bits (nybble to lower position)
     RLCA
     RLCA
     RLCA
-    RLCA
-    LD          B,A
-    INC         B
-    CALL        SUB_ram_e41d
-    RLCA
-    RLCA
+    LD          B,A                             ; Copy to B
+    INC         B                               ; B = nybble + 1 (range 1-16)
+    CALL        RANDOM_MOD_B                    ; Get random A mod B
+    RLCA                                        ; Shift left 4 bits (nybble to upper position)
     RLCA
     RLCA
-    ADD         A,C
-    LD          L,A
+    RLCA
+    ADD         A,C                             ; Combine upper nybble with lower (from C)
+    LD          L,A                             ; Store combined result in L
     RET
-SUB_ram_e41d:
-    CALL        UPDATE_SCR_SAVER_TIMER
-    AND         0xf
-LAB_ram_e422:
-    SUB         B
-    JP          NC,LAB_ram_e422
-    ADD         A,B
+;==============================================================================
+; RANDOM_MOD_B — Random Modulo
+;==============================================================================
+; Returns a pseudo-random value modulo B. Uses UPDATE_SCR_SAVER_TIMER as a
+; random source, then repeatedly subtracts B until result is in range [0,B-1].
+;
+; Flow:
+; 1. Call UPDATE_SCR_SAVER_TIMER to get pseudo-random byte in A
+; 2. Mask to lower nybble (0-15)
+; 3. Subtract B repeatedly until A < B (modulo operation)
+; 4. Add B back once to get final value in range [0, B-1]
+;
+; Input:
+;   B = Modulo divisor (range limit)
+;
+; Output:
+;   A = Random value in range [0, B-1]
+;
+; Registers:
+; --- Start ---
+;   B = Divisor
+; --- In Process ---
+;   A = Random byte, then modulo result
+; ---  End  ---
+;   A = Result in range [0, B-1]
+;
+; Memory Modified: Screen saver timer via UPDATE_SCR_SAVER_TIMER
+; Calls: UPDATE_SCR_SAVER_TIMER
+;==============================================================================
+RANDOM_MOD_B:
+    CALL        UPDATE_SCR_SAVER_TIMER          ; Get pseudo-random byte in A
+    AND         0xf                             ; Mask to lower nybble (0-15)
+RAND_MOD_LOOP:                                   ; Modulo loop
+    SUB         B                               ; A = A - B
+    JP          NC,RAND_MOD_LOOP                ; If no borrow (A >= B), repeat
+    ADD         A,B                             ; A went negative; add B back
+    RET                                         ; Return A in range [0, B-1]
+
+;==============================================================================
+; ADD_BCD_HL_DE — Add BCD Values (HL += DE)
+;==============================================================================
+; Adds two 16-bit BCD (Binary Coded Decimal) values. Uses DAA (Decimal Adjust
+; Accumulator) after each byte addition to keep result in valid BCD format.
+;
+; Flow:
+; 1. Add E to L with BCD adjustment
+; 2. Add D to H with carry, plus BCD adjustment
+; 3. Return HL with BCD sum
+;
+; Input:
+;   HL = BCD value (addend)
+;   DE = BCD value (addend)
+;
+; Output:
+;   HL = BCD sum (HL + DE in BCD)
+;
+; Registers:
+; --- Start ---
+;   HL = BCD addend 1
+;   DE = BCD addend 2
+; --- In Process ---
+;   A = Intermediate sums with carry
+; ---  End  ---
+;   HL = BCD result
+;   A = Final high byte result
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
+ADD_BCD_HL_DE:
+    LD          A,L                             ; Load low byte of HL
+    ADD         A,E                             ; Add low byte of DE
+    DAA                                         ; Decimal adjust for BCD
+    LD          L,A                             ; Store BCD result in L
+    LD          A,D                             ; Load high byte of DE
+    ADC         A,H                             ; Add high byte of HL with carry
+    DAA                                         ; Decimal adjust for BCD
+    LD          H,A                             ; Store BCD result in H
     RET
-SUB_ram_e427:
-    LD          A,L
-    ADD         A,E
-    DAA
-    LD          L,A
-    LD          A,D
-    ADC         A,H
-    DAA
-    LD          H,A
-    RET
+
+;==============================================================================
+; RECALC_PHYS_HEALTH — Subtract BCD Values (HL -= DE)
+;==============================================================================
+; Subtracts two 16-bit BCD values, typically used to recalculate physical
+; health after damage. Uses DAA after each byte subtraction to maintain BCD.
+;
+; Flow:
+; 1. Subtract E from L with BCD adjustment
+; 2. Subtract D from H with borrow, plus BCD adjustment
+; 3. Return HL with BCD difference
+;
+; Input:
+;   HL = BCD value (minuend)
+;   DE = BCD value (subtrahend)
+;
+; Output:
+;   HL = BCD difference (HL - DE in BCD)
+;
+; Registers:
+; --- Start ---
+;   HL = BCD minuend
+;   DE = BCD subtrahend
+; --- In Process ---
+;   A = Intermediate differences with borrow
+; ---  End  ---
+;   HL = BCD result
+;   A = Final high byte result
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 RECALC_PHYS_HEALTH:
-    LD          A,L
-    SUB         E
-    DAA								;  Normalize BCD
-    LD          L,A
-    LD          A,H
-    SBC         A,D
-    DAA								;  Normalize BCD
-    LD          H,A
+    LD          A,L                             ; Load low byte of HL
+    SUB         E                               ; Subtract low byte of DE
+    DAA                                         ; Decimal adjust for BCD
+    LD          L,A                             ; Store BCD result in L
+    LD          A,H                             ; Load high byte of HL
+    SBC         A,D                             ; Subtract high byte of DE with borrow
+    DAA                                         ; Decimal adjust for BCD
+    LD          H,A                             ; Store BCD result in H
     RET
-SUB_ram_e439:
-    XOR         A
-    RR          H
-    JP          NC,LAB_ram_e446
-    RR          L
-    LD          A,L
-    SUB         $30
-    LD          L,A
-    JP          LAB_ram_e448
-LAB_ram_e446:
-    RR          L
-LAB_ram_e448:
-    BIT         0x3,L
-    RET         Z
-    LD          A,L
-    SUB         0x3
-    LD          L,A
+;==============================================================================
+; DIVIDE_BCD_HL_BY_2 — Divide BCD HL by 2 with Rounding
+;==============================================================================
+; Divides a 16-bit BCD value in HL by 2 using right shifts. Applies BCD
+; correction when shifting across nybble boundaries and rounds down if the
+; lower nybble of L has bit 3 set.
+;
+; Flow:
+; 1. Rotate right H; if carry, rotate L and subtract $30 (BCD correction)
+; 2. If no carry from H, just rotate L
+; 3. Check bit 3 of L; if set, subtract 3 (rounding adjustment)
+;
+; Input:
+;   HL = BCD value to divide
+;
+; Output:
+;   HL = BCD value divided by 2 (with rounding)
+;
+; Registers:
+; --- Start ---
+;   HL = BCD dividend
+; --- In Process ---
+;   A = Correction values ($30, 3)
+; ---  End  ---
+;   HL = BCD quotient
+;   Flags reflect final state
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
+DIVIDE_BCD_HL_BY_2:
+    XOR         A                               ; Clear A and carry flag
+    RR          H                               ; Rotate H right (divide high byte by 2)
+    JP          NC,DIVIDE_NO_CARRY              ; If no carry, skip BCD correction
+    RR          L                               ; Rotate L right with carry from H
+    LD          A,L                             ; Load L
+    SUB         $30                             ; BCD correction: subtract $30
+    LD          L,A                             ; Store corrected value
+    JP          DIVIDE_ROUND_CHECK              ; Continue to rounding check
+DIVIDE_NO_CARRY:                                ; No carry from H
+    RR          L                               ; Rotate L right (divide by 2)
+DIVIDE_ROUND_CHECK:                             ; Rounding adjustment
+    BIT         0x3,L                           ; Test bit 3 of L
+    RET         Z                               ; If clear, no rounding needed
+    LD          A,L                             ; Load L
+    SUB         0x3                             ; Subtract 3 for rounding
+    LD          L,A                             ; Store adjusted value
     RET
 SUB_ram_e450:
     LD          DE,(ITEM_ANIM_CHRRAM_PTR)
@@ -1327,24 +1486,24 @@ LAB_ram_e45a:
     CALL        NEW_RIGHT_HAND_ITEM
     EXX
     LD          HL,(PLAYER_PHYS_HEALTH_MAX)
-    CALL        SUB_ram_e439
+    CALL        DIVIDE_BCD_HL_BY_2
     CALL        RECALC_PHYS_HEALTH
     JP          NC,LAB_ram_e487
     LD          HL,0x0
 LAB_ram_e487:
-    CALL        SUB_ram_e401
+    CALL        RANDOMIZE_BCD_NYBBLES
     LD          L,H
     LD          H,A
-    CALL        SUB_ram_e401
+    CALL        RANDOMIZE_BCD_NYBBLES
     LD          L,H
     LD          H,A
     EX          DE,HL
-    CALL        SUB_ram_e439
+    CALL        DIVIDE_BCD_HL_BY_2
     EX          DE,HL
-    CALL        SUB_ram_e427
+    CALL        ADD_BCD_HL_DE
     EX          DE,HL
-    CALL        SUB_ram_e401
-    CALL        SUB_ram_e427
+    CALL        RANDOMIZE_BCD_NYBBLES
+    CALL        ADD_BCD_HL_DE
     LD          DE,(NEW_DAMAGE)
     CALL        RECALC_PHYS_HEALTH
     JP          C,LAB_ram_e4bb
@@ -1359,7 +1518,7 @@ MONSTER_TAKES_PHYS_DAMAGE:
     JP          REDRAW_MONSTER_HEALTH
 LAB_ram_e4bb:
     LD          HL,0x6
-    CALL        SUB_ram_e401
+    CALL        RANDOMIZE_BCD_NYBBLES
     JP          MONSTER_TAKES_PHYS_DAMAGE
 LAB_ram_e4c3:
     EXX
@@ -1377,7 +1536,7 @@ LAB_ram_e4c3:
     LD          A,(COLRAM_PHYS_STATS_1000)
     CALL        SUB_ram_e5ba
     LD          HL,(PLAYER_PHYS_HEALTH_MAX)
-    CALL        SUB_ram_e439
+    CALL        DIVIDE_BCD_HL_BY_2
     LD          A,L
     CP          B
     JP          NC,MONSTER_KILLED
@@ -1409,7 +1568,7 @@ LAB_ram_e50f:
     EXX
     CALL        NEW_RIGHT_HAND_ITEM
     EXX
-    CALL        SUB_ram_e439
+    CALL        DIVIDE_BCD_HL_BY_2
     LD          A,L
     SUB         E
     DAA
@@ -1417,14 +1576,14 @@ LAB_ram_e50f:
     JP          NC,LAB_ram_e525
     LD          L,0x0
 LAB_ram_e525:
-    CALL        SUB_ram_e401
+    CALL        RANDOMIZE_BCD_NYBBLES
     EX          DE,HL
-    CALL        SUB_ram_e439
+    CALL        DIVIDE_BCD_HL_BY_2
     LD          A,L
     ADD         A,E
     DAA
     LD          E,A
-    CALL        SUB_ram_e401
+    CALL        RANDOMIZE_BCD_NYBBLES
     ADD         A,E
     DAA
     LD          L,A
@@ -1445,7 +1604,7 @@ MONSTER_TAKES_SPRT_DAMAGE:
     JP          REDRAW_MONSTER_HEALTH
 LAB_ram_e54f:
     LD          HL,0x3
-    CALL        SUB_ram_e401
+    CALL        RANDOMIZE_BCD_NYBBLES
     JP          MONSTER_TAKES_SPRT_DAMAGE
 LAB_ram_e557:
     PUSH        AF
@@ -1733,9 +1892,9 @@ ACCUM_DAMAGE_LOOP:
     ; Player takes damage - calculate shield defense
     LD          A,(SHIELD_SPRT)                 ; Load player's shield value
     LD          E,A                             ; E = shield defense value
-    CALL        SUB_ram_e439                    ; Calculate random shield effectiveness
+    CALL        DIVIDE_BCD_HL_BY_2              ; Calculate random shield effectiveness
     LD          D,L                             ; D = shield roll result
-    CALL        SUB_ram_e401                    ; Generate random damage variance
+    CALL        RANDOMIZE_BCD_NYBBLES           ; Generate random damage variance
     LD          A,L                             ; A = random variance
     ADD         A,D                             ; A = shield roll + variance
     DAA                                         ; Decimal adjust
@@ -1754,13 +1913,13 @@ PLAYER_TAKES_SPRT_DAMAGE:
     JP          REDRAW_SCREEN_AFTER_DAMAGE      ; Jump to finish animation
 LAB_ram_e68a:
     LD          HL,0x2                          ; Shield blocked - reduce damage to 2
-    CALL        SUB_ram_e401                    ; Add random variance
+    CALL        RANDOMIZE_BCD_NYBBLES           ; Add random variance
     LD          E,L                             ; E = reduced damage
     JP          PLAYER_TAKES_SPRT_DAMAGE        ; Apply reduced damage to player
 
     ; Monster takes damage - calculate physical damage with shield
 MONSTER_PHYS_BRANCH:
-    CALL        SUB_ram_e401                    ; Generate random damage variance
+    CALL        RANDOMIZE_BCD_NYBBLES           ; Generate random damage variance
     LD          A,(WEAPON_VALUE_HOLDER)         ; Load base weapon damage
     ADD         A,L                             ; A = base damage + variance
     DAA                                         ; Decimal adjust
@@ -1793,7 +1952,7 @@ REDRAW_SCREEN_AFTER_DAMAGE:
     JP          REDRAW_VIEWPORT                 ; Redraw viewport and return
 LAB_ram_e6c4:
     LD          HL,0x3                          ; Defense too low - boost damage to 3
-    CALL        SUB_ram_e401                    ; Add random variance
+    CALL        RANDOMIZE_BCD_NYBBLES           ; Add random variance
     JP          MONSTER_CALC_PHYS_DAMAGE        ; Apply boosted damage to monster
 DO_SWAP_HANDS:
     LD          HL,RIGHT_HAND_ITEM
@@ -1844,10 +2003,10 @@ LAB_ram_e72b:
     RET         NZ
     LD          H,0x0
     LD          L,B
-    CALL        SUB_ram_e439
+    CALL        DIVIDE_BCD_HL_BY_2
     LD          B,L
     LD          L,C
-    CALL        SUB_ram_e439
+    CALL        DIVIDE_BCD_HL_BY_2
     LD          C,L
     RET
 NEW_RIGHT_HAND_ITEM:
@@ -3944,7 +4103,7 @@ LAB_ram_f200:
     LD          HL,$405
     EXX
     LD          HL,(PLAYER_PHYS_HEALTH)
-    CALL        SUB_ram_e439
+    CALL        DIVIDE_BCD_HL_BY_2
     EX          DE,HL
     LD          A,(PLAYER_SPRT_HEALTH)
     LD          L,A
@@ -5760,7 +5919,7 @@ HEAL_PLAYER_PHYS_HEALTH:
     LD          HL,FOOD_INV
     DEC         (HL)
     LD          HL,(PLAYER_PHYS_HEALTH)
-    CALL        SUB_ram_e427
+    CALL        ADD_BCD_HL_DE
     LD          (PLAYER_PHYS_HEALTH),HL
     CALL        REDRAW_STATS
     LD          A,(PLAYER_SPRT_HEALTH_MAX)
