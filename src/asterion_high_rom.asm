@@ -23,45 +23,45 @@
 ;   All game variables initialized
 ;
 GAMEINIT:
-    LD          SP,$3fff						; Reset stack pointer (top of BANK0 RAM)
-    CALL        WIPE_VARIABLE_SPACE				; Clear variable region; HL now at start of init block ($3A62)
-    LD          (HL),0x2						; Store constant 02 at $3A62 (game/state flag)
-    INC         L			       		        ; Advance to $3A63
-    LD          A,$32					    	; A = 32 (ASCII '2' or preset timer/item value)
-    LD          (HL),A					    	; Store 32 at $3A63
-    INC         L					    		; Advance to $3A64
-    LD          (HL),A		    				; Store 32 at $3A64
-    INC         L				    			; Advance to $3A65
-    LD          (HL),A				    		; Store 32 at $3A65
-    INC         L						    	; Advance to $3A66
-    DEC         A							    ; A = 31 (adjust constant for next slots)
-    LD          (HL),A  						; Store 31 at $3A66
-    INC         L		    					; Advance to $3A67
-    LD          (HL),A		    				; Store 31 at $3A67
-    INC         L				    			; Advance to $3A68 (start of zero block)
-    LD          B,$12				    		; Loop counter: 18 bytes to zero ($12)
-    XOR         A						    	; A = 00 (zero fill value)
+    LD          SP,$3fff                            ; Reset stack pointer (top of BANK0 RAM)
+    CALL        WIPE_VARIABLE_SPACE                 ; Clear variable region; HL now at start of init block ($3A62)
+    LD          (HL),0x2                            ; Store constant 02 at $3A62 (game/state flag)
+    INC         L                                   ; Advance to $3A63
+    LD          A,$32                               ; A = 32 (ASCII '2' or preset timer/item value)
+    LD          (HL),A                              ; Store 32 at $3A63
+    INC         L                                   ; Advance to $3A64
+    LD          (HL),A                              ; Store 32 at $3A64
+    INC         L                                   ; Advance to $3A65
+    LD          (HL),A                              ; Store 32 at $3A65
+    INC         L                                   ; Advance to $3A66
+    DEC         A                                   ; A = 31 (adjust constant for next slots)
+    LD          (HL),A                              ; Store 31 at $3A66
+    INC         L                                   ; Advance to $3A67
+    LD          (HL),A                              ; Store 31 at $3A67
+    INC         L                                   ; Advance to $3A68 (start of zero block)
+    LD          B,$12                               ; Loop counter: 18 bytes to zero ($12)
+    XOR         A                                   ; A = 00 (zero fill value)
 INIT_ZERO_VAR_BLOCK_LOOP:
-    LD          (HL),A					    	; Zero current byte
-    INC         L						    	; Advance to next byte in zero region
-    DJNZ        INIT_ZERO_VAR_BLOCK_LOOP		; Continue until B exhausted
-    LD          A,$18							; A = 18 (preset value for next slot)
-    LD          (HL),A							; Store 18 at current address ($3A7A)
-    INC         HL						    	; Move to $3A7B (start of $FE fill block)
-    LD          A,$fe							; A = FE (empty/sentinel marker value)
-    LD          B,$10							; Loop counter: 16 bytes to fill with FE
+    LD          (HL),A                              ; Zero current byte
+    INC         L                                   ; Advance to next byte in zero region
+    DJNZ        INIT_ZERO_VAR_BLOCK_LOOP            ; Continue until B exhausted
+    LD          A,$18                               ; A = 18 (preset value for next slot)
+    LD          (HL),A                              ; Store 18 at current address ($3A7A)
+    INC         HL                                  ; Move to $3A7B (start of $FE fill block)
+    LD          A,$fe                               ; A = FE (empty/sentinel marker value)
+    LD          B,$10                               ; Loop counter: 16 bytes to fill with FE
 RESET_ITEM_ANIM_VARS_LOOP:
-    LD          (HL),A						    ; Store FE in current slot
-    INC         HL							    ; Advance to next slot
-    DJNZ        RESET_ITEM_ANIM_VARS_LOOP		; Repeat until 16 bytes filled with FE
-    LD          B,$20							; B = 20 (SPACE char for screen clear)
-    LD          HL,CHRRAM						; HL = start of character RAM ($3000)
-    CALL        FILL_FULL_1024					; Clear CHRRAM with SPACE
-    LD          HL,$5e							; HL = initial timer seed value ($005E)
-    LD          (TIMER_E),HL					; Store timer seed
-    LD          A,R							    ; Read R register (pseudo-random)
-    LD          H,A						    	; Copy random byte to H
-    LD          (RNDHOLD_AA),HL					; Seed random hold variable
+    LD          (HL),A                              ; Store FE in current slot
+    INC         HL                                  ; Advance to next slot
+    DJNZ        RESET_ITEM_ANIM_VARS_LOOP           ; Repeat until 16 bytes filled with FE
+    LD          B,$20                               ; B = 20 (SPACE char for screen clear)
+    LD          HL,CHRRAM                           ; HL = start of character RAM ($3000)
+    CALL        FILL_FULL_1024                      ; Clear CHRRAM with SPACE
+    LD          HL,$5e                              ; HL = initial timer seed value ($005E)
+    LD          (TIMER_E),HL                        ; Store timer seed
+    LD          A,R                                 ; Read R register (pseudo-random)
+    LD          H,A                                 ; Copy random byte to H
+    LD          (RNDHOLD_AA),HL                     ; Seed random hold variable
     
 ; PSG_MIXER_RESET - Initialize PSG mixer and silence all channels
 ;   - Selects AY/PSG register 7 (mixer control)
@@ -75,21 +75,21 @@ RESET_ITEM_ANIM_VARS_LOOP:
 ;   All mixer outputs disabled (silenced)
 ;   Falls through to COLRAM clear and title setup
 PSG_MIXER_RESET:
-    LD          BC,$7f						; Select PSG mixer register (B holds high port, C=$7F latch)
-    LD          A,0x7							; A = PSG register select value
-    OUT         (C),A							; Write select
-    DEC         C							    ; C = $7E (data port)
-    LD          A,$3f							; A = PSG data (enable / volume mask)
-    OUT         (C),A							; Write PSG configuration
-    LD          B,0x6							; B = color fill value for COLRAM (palette constant)
+    LD          BC,$7f                              ; Select PSG mixer register (B holds high port, C=$7F latch)
+    LD          A,0x7                               ; A = PSG register select value
+    OUT         (C),A                               ; Write select
+    DEC         C                                   ; C = $7E (data port)
+    LD          A,$3f                               ; A = PSG data (enable / volume mask)
+    OUT         (C),A                               ; Write PSG configuration
+    LD          B,0x6                               ; B = color fill value for COLRAM (palette constant)
 
 CLEAR_COLRAM_DEFAULT:
-    LD          B,COLOR(BLK,CYN)				; B = BLK on CYN (0x06) uniform background color
-    LD          HL,COLRAM						; HL = start of color RAM ($3400)
-    CALL        FILL_FULL_1024					; Clear COLRAM with uniform color
-    CALL        CHK_ITEM						; Prepare item graphics state (side-effects only)
-    CALL        DRAW_TITLE						; Draw title screen (CHR + COLRAM)
-    JP          INPUT_DEBOUNCE					; Transfer to input debounce handler (no return)
+    LD          B,COLOR(BLK,CYN)                    ; B = BLK on CYN (0x06) uniform background color
+    LD          HL,COLRAM                           ; HL = start of color RAM ($3400)
+    CALL        FILL_FULL_1024                      ; Clear COLRAM with uniform color
+    CALL        CHK_ITEM                            ; Prepare item graphics state (side-effects only)
+    CALL        DRAW_TITLE                          ; Draw title screen (CHR + COLRAM)
+    JP          INPUT_DEBOUNCE                      ; Transfer to input debounce handler (no return)
 
 ; DRAW_TITLE - Copy title screen graphics to display memory
 ;   - Copies 1000 bytes of character data from TITLE_SCREEN to CHRRAM
@@ -108,15 +108,15 @@ CLEAR_COLRAM_DEFAULT:
 ;   HL = End of source data (TITLE_SCREEN + 1000, TITLE_SCREEN_COL + 1000)
 ;
 DRAW_TITLE:
-    LD          DE,CHRRAM						; DE = destination (CHR screen base)
-    LD          HL,TITLE_SCREEN					; HL = source character data
-    LD          BC,1000						    ; Copy length = 1000 bytes
-    LDIR								        ; Bulk copy characters
-    LD          DE,COLRAM						; DE = destination (color RAM base)
-    LD          HL,TITLE_SCREEN_COL				; HL = source color data
-    LD          BC,1000						    ; Copy length = 1000 bytes
-    LDIR								        ; Bulk copy colors
-    RET								            ; Return to caller
+    LD          DE,CHRRAM                           ; DE = destination (CHR screen base)
+    LD          HL,TITLE_SCREEN                     ; HL = source character data
+    LD          BC,1000                             ; Copy length = 1000 bytes
+    LDIR								            ; Bulk copy characters
+    LD          DE,COLRAM                           ; DE = destination (color RAM base)
+    LD          HL,TITLE_SCREEN_COL                 ; HL = source color data
+    LD          BC,1000                             ; Copy length = 1000 bytes
+    LDIR								            ; Bulk copy colors
+    RET								                ; Return to caller
 
 ; BLANK_SCRN - Clear screen and initialize game UI elements
 ;   - Clears CHRRAM with SPACE characters and COLRAM with DKGRY on BLK
@@ -144,53 +144,53 @@ DRAW_TITLE:
 ;   Control transfers to DO_SWAP_HANDS
 ;
 BLANK_SCRN:
-    LD          HL,CHRRAM						; HL = CHR screen start
-    LD          B,$20							; B = SPACE character value
-    CALL        FILL_FULL_1024					; Clear character RAM
-    LD          HL,COLRAM						; HL = color RAM start
-    LD          B,COLOR(DKGRY,BLK)				; B = dark grey on black
-    CALL        FILL_FULL_1024					; Clear color RAM
+    LD          HL,CHRRAM                           ; HL = CHR screen start
+    LD          B,$20                               ; B = SPACE character value
+    CALL        FILL_FULL_1024                      ; Clear character RAM
+    LD          HL,COLRAM                           ; HL = color RAM start
+    LD          B,COLOR(DKGRY,BLK)                  ; B = dark grey on black
+    CALL        FILL_FULL_1024                      ; Clear color RAM
 
-    LD          A,COLOR(DKGRN,BLK)				; A = dark green on black (panel color)
-    LD          HL,COLRAM_PHYS_STATS_1000		; HL = top-left of stats panel color area
-    LD          BC,RECT(9,3)					; 9 x 3 rectangle
-    CALL        FILL_CHRCOL_RECT				; Paint stats panel background
+    LD          A,COLOR(DKGRN,BLK)                  ; A = dark green on black (panel color)
+    LD          HL,COLRAM_PHYS_STATS_1000           ; HL = top-left of stats panel color area
+    LD          BC,RECT(9,3)                        ; 9 x 3 rectangle
+    CALL        FILL_CHRCOL_RECT                    ; Paint stats panel background
 
-    LD          DE,STATS_TXT					; DE = stats label graphics
-    LD          HL,CHRRAM_STATS_TOP				; HL = position to draw stats label
-    LD          B,COLOR(DKGRN,BLK)				; B = panel text color
-    CALL        GFX_DRAW						; Draw stats text
-    LD          HL,CHRRRAM_HEALTH_SPACER_IDX	; HL = spacer graphics location
-    CALL        GFX_DRAW						; Draw spacer
-    LD          HL,$30							; HL = 0030 (initial PHYS health BCD)
-    LD          E,$15							; E = 15 (initial SPRT health BCD)
-    LD          (PLAYER_PHYS_HEALTH),HL			; Set current physical health
-    LD          (PLAYER_PHYS_HEALTH_MAX),HL		; Set max physical health
-    LD          A,E							    ; A = spirit health BCD
-    LD          (PLAYER_SPRT_HEALTH),A			; Set current spirit health
-    LD          (PLAYER_SPRT_HEALTH_MAX),A		; Set max spirit health
-    CALL        REDRAW_STATS					; Render initial stats values
-    LD          HL,$20							; HL = 0020 (misc counter / timer init)
-    LD          (BYTE_ram_3aa9),HL				; Store counter value
+    LD          DE,STATS_TXT                        ; DE = stats label graphics
+    LD          HL,CHRRAM_STATS_TOP                 ; HL = position to draw stats label
+    LD          B,COLOR(DKGRN,BLK)                  ; B = panel text color
+    CALL        GFX_DRAW                            ; Draw stats text
+    LD          HL,CHRRRAM_HEALTH_SPACER_IDX        ; HL = spacer graphics location
+    CALL        GFX_DRAW                            ; Draw spacer
+    LD          HL,$30                              ; HL = 0030 (initial PHYS health BCD)
+    LD          E,$15                               ; E = 15 (initial SPRT health BCD)
+    LD          (PLAYER_PHYS_HEALTH),HL             ; Set current physical health
+    LD          (PLAYER_PHYS_HEALTH_MAX),HL         ; Set max physical health
+    LD          A,E                                 ; A = spirit health BCD
+    LD          (PLAYER_SPRT_HEALTH),A              ; Set current spirit health
+    LD          (PLAYER_SPRT_HEALTH_MAX),A          ; Set max spirit health
+    CALL        REDRAW_STATS                        ; Render initial stats values
+    LD          HL,$20                              ; HL = 0020 (misc counter / timer init)
+    LD          (BYTE_ram_3aa9),HL                  ; Store counter value
 
-    LD          A,$14							; A = 14 (starting food/arrows BCD)
-    LD          (FOOD_INV),A					; Initialize food inventory
-    LD          (ARROW_INV),A					; Initialize arrow inventory
-    LD          B,COLOR(RED,BLK)				; B = red on black (left hand item color)
-    LD          HL,CHRRAM_LEFT_HAND_ITEM_IDX	; HL = left hand item position
-    LD          DE,BOW							; DE = BOW graphics pointer
-    CALL        GFX_DRAW						; Draw BOW in left hand slot
-    CALL        FIX_ICON_COLORS					; Normalize icon colors post-draw
-    CALL        DRAW_COMPASS					; Draw initial compass
-    DEC         A		    					; A = 13 (used in shield calc temp)
-    LD          B,A			    				; B = 13 (temp store)
-    LD          A,0x3							; A = 3 (base for shield computation)
-    SUB         B				    			; A = 3 - 13 = wrap/underflow (used to derive right-hand item code)
-    LD          (RIGHT_HAND_ITEM),A				; Store computed right-hand item code
-    RRCA							        	; Rotate for flag-based shield path decision
-    JP          C,SET_ALT_SHIELD_BASE			; If carry set, use alternate shield base
-    LD          B,$10							; B = $10 (standard shield base level)
-    JP          ADJUST_SHIELD_LEVEL				; Continue shield setup
+    LD          A,$14                               ; A = 14 (starting food/arrows BCD)
+    LD          (FOOD_INV),A                        ; Initialize food inventory
+    LD          (ARROW_INV),A                       ; Initialize arrow inventory
+    LD          B,COLOR(RED,BLK)                    ; B = red on black (left hand item color)
+    LD          HL,CHRRAM_LEFT_HAND_ITEM_IDX        ; HL = left hand item position
+    LD          DE,BOW                              ; DE = BOW graphics pointer
+    CALL        GFX_DRAW                            ; Draw BOW in left hand slot
+    CALL        FIX_ICON_COLORS                     ; Normalize icon colors post-draw
+    CALL        DRAW_COMPASS                        ; Draw initial compass
+    DEC         A                                   ; A = 13 (used in shield calc temp)
+    LD          B,A                                 ; B = 13 (temp store)
+    LD          A,0x3                               ; A = 3 (base for shield computation)
+    SUB         B                                   ; A = 3 - 13 = wrap/underflow (used to derive right-hand item code)
+    LD          (RIGHT_HAND_ITEM),A                 ; Store computed right-hand item code
+    RRCA							                                     ; Rotate for flag-based shield path decision
+    JP          C,SET_ALT_SHIELD_BASE               ; If carry set, use alternate shield base
+    LD          B,$10                               ; B = $10 (standard shield base level)
+    JP          ADJUST_SHIELD_LEVEL                 ; Continue shield setup
 
 ; SET_ALT_SHIELD_BASE - Set base shield level for alternative path
 ;   - Entry point for shield initialization when carry flag is set
@@ -205,7 +205,7 @@ BLANK_SCRN:
 ;   Falls through to ADJUST_SHIELD_LEVEL
 ;
 SET_ALT_SHIELD_BASE:
-    LD          B,$30							; B = $30 (alternate shield base level)
+    LD          B,$30                               ; B = $30 (alternate shield base level)
 
 ; ADJUST_SHIELD_LEVEL - Calculate final shield level based on flags
 ;   - Tests carry flag from RRCA to determine shield upgrade level
@@ -225,11 +225,11 @@ SET_ALT_SHIELD_BASE:
 ;   Falls through to LAB_ram_e10c
 ;
 ADJUST_SHIELD_LEVEL:
-    RRCA								        ; Rotate again; carry indicates upgrade path
-    JP          NC,FINALIZE_STARTUP_STATE		; If no carry, skip upgrade addition
-    LD          A,$40							; A = $40 (upgrade increment)
-    ADD         A,B		    					; A = base + $40
-    LD          B,A			    				; B = final shield level
+    RRCA								            ; Rotate again; carry indicates upgrade path
+    JP          NC,FINALIZE_STARTUP_STATE           ; If no carry, skip upgrade addition
+    LD          A,$40                               ; A = $40 (upgrade increment)
+    ADD         A,B                                 ; A = base + $40
+    LD          B,A                                 ; B = final shield level
 
 ; FINALIZE_STARTUP_STATE - Finalize starting equipment and initialize game world
 ;   - Sets left hand item to BOW ($18)
@@ -254,17 +254,17 @@ ADJUST_SHIELD_LEVEL:
 ;   Control transfers to DO_SWAP_HANDS (does not return)
 ;
 FINALIZE_STARTUP_STATE:
-    LD          A,$18					    		; A = $18 (BOW item code)
-    LD          (LEFT_HAND_ITEM),A			    	; Set left hand item to BOW
-    LD          HL,CHRRAM_RIGHT_HAND_ITEM_IDX		; HL = right hand item screen pos
-    LD          DE,BUCKLER						    ; DE = BUCKLER graphics pointer
-    CALL        GFX_DRAW							; Draw BUCKLER in right hand slot
-    CALL        BUILD_MAP							; Generate dungeon walls/items
-    CALL        SUB_ram_cdbf						; Init sound / system routine
-    CALL        SUB_ram_f2c4						; Additional startup (timer/UI) routine
-    CALL        REDRAW_START						; Draw initial non-viewport UI elements
-    CALL        REDRAW_VIEWPORT						; Render initial 3D maze view
-    JP          DO_SWAP_HANDS						; Enter main input loop (no return)
+    LD          A,$18                               ; A = $18 (BOW item code)
+    LD          (LEFT_HAND_ITEM),A                  ; Set left hand item to BOW
+    LD          HL,CHRRAM_RIGHT_HAND_ITEM_IDX       ; HL = right hand item screen pos
+    LD          DE,BUCKLER                          ; DE = BUCKLER graphics pointer
+    CALL        GFX_DRAW                            ; Draw BUCKLER in right hand slot
+    CALL        BUILD_MAP                           ; Generate dungeon walls/items
+    CALL        SUB_ram_cdbf                        ; Init sound / system routine
+    CALL        SUB_ram_f2c4                        ; Additional startup (timer/UI) routine
+    CALL        REDRAW_START                        ; Draw initial non-viewport UI elements
+    CALL        REDRAW_VIEWPORT                     ; Render initial 3D maze view
+    JP          DO_SWAP_HANDS                       ; Enter main input loop (no return)
 
 ;==============================================================================
 ; DO_MOVE_FW_CHK_WALLS - Attempt forward movement with wall and monster checks
@@ -283,26 +283,26 @@ FINALIZE_STARTUP_STATE:
 ;   Position updated if movement valid, else NO_ACTION_TAKEN
 ;
 DO_MOVE_FW_CHK_WALLS:
-    LD          A,(WALL_F0_STATE)					; Load F0 wall state
-    CP          0x0							    	; Check if no wall present
-    JP          Z,FW_WALLS_CLEAR_CHK_MONSTER		; If clear, check for monster
-    BIT         0x2,A								; Test bit 2 (closed door flag)
-    JP          Z,NO_ACTION_TAKEN					; If wall/closed door, block movement
+    LD          A,(WALL_F0_STATE)                   ; Load F0 wall state
+    CP          0x0                                 ; Check if no wall present
+    JP          Z,FW_WALLS_CLEAR_CHK_MONSTER        ; If clear, check for monster
+    BIT         0x2,A                               ; Test bit 2 (closed door flag)
+    JP          Z,NO_ACTION_TAKEN                   ; If wall/closed door, block movement
 FW_WALLS_CLEAR_CHK_MONSTER:
-    LD          A,(ITEM_F1)							; Load F1 item/monster code
-    INC         A									; Adjust for offset
-    INC         A									; (FE -> 00, monster codes shift)
-    CP          $7a							        ; Compare against monster threshold
-    JP          NC,NO_ACTION_TAKEN					; If monster blocking, abort movement
-    LD          BC,(DIR_FACING_HI)					; Load direction vector (BC = offset)
-    LD          (PREV_DIR_VECTOR),BC				; Save previous direction for backtrack
-    LD          A,(DIR_FACING_SHORT)				; Load facing byte (1-4)
-    LD          (PREV_DIR_FACING),A					; Save previous facing
-    LD          A,(PLAYER_MAP_POS)					; Load current map position
-    LD          (PLAYER_PREV_MAP_LOC),A				; Save previous position for backtrack
-    ADD         A,B									; Add direction offset to position
-    LD          (PLAYER_MAP_POS),A					; Store new player position
-    JP          UPDATE_VIEWPORT						; Redraw viewport at new position
+    LD          A,(ITEM_F1)                         ; Load F1 item/monster code
+    INC         A                                   ; Adjust for offset
+    INC         A                                   ; (FE -> 00, monster codes shift)
+    CP          $7a                                 ; Compare against monster threshold
+    JP          NC,NO_ACTION_TAKEN                  ; If monster blocking, abort movement
+    LD          BC,(DIR_FACING_HI)                  ; Load direction vector (BC = offset)
+    LD          (PREV_DIR_VECTOR),BC                ; Save previous direction for backtrack
+    LD          A,(DIR_FACING_SHORT)                ; Load facing byte (1-4)
+    LD          (PREV_DIR_FACING),A                 ; Save previous facing
+    LD          A,(PLAYER_MAP_POS)                  ; Load current map position
+    LD          (PLAYER_PREV_MAP_LOC),A             ; Save previous position for backtrack
+    ADD         A,B                                 ; Add direction offset to position
+    LD          (PLAYER_MAP_POS),A                  ; Store new player position
+    JP          UPDATE_VIEWPORT                     ; Redraw viewport at new position
 
 ;==============================================================================
 ; DO_JUMP_BACK - Jump back to previous position (backtrack)
@@ -322,38 +322,38 @@ FW_WALLS_CLEAR_CHK_MONSTER:
 ;   Position restored, viewport updated, or combat re-initialized
 ;
 DO_JUMP_BACK:
-    LD          HL,PLAYER_MAP_POS					; HL = current position address
-    LD          A,(PLAYER_PREV_MAP_LOC)				; A = saved previous position
-    CP          (HL)								; Compare: already at previous location?
-    JP          Z,CANNOT_JUMP_BACK					; If same position, play error sound
-    EX          AF,AF'								; Save position in AF' for later restore
-    LD          HL,(PREV_DIR_VECTOR)				; HL = previous direction vector
-    LD          A,(DIR_FACING_LO)					; A = current low direction byte
+    LD          HL,PLAYER_MAP_POS                   ; HL = current position address
+    LD          A,(PLAYER_PREV_MAP_LOC)             ; A = saved previous position
+    CP          (HL)                                ; Compare: already at previous location?
+    JP          Z,CANNOT_JUMP_BACK                  ; If same position, play error sound
+    EX          AF,AF'                              ; Save position in AF' for later restore
+    LD          HL,(PREV_DIR_VECTOR)                ; HL = previous direction vector
+    LD          A,(DIR_FACING_LO)                   ; A = current low direction byte
     NEG											    ; Negate to get reverse direction
-    CP          H									; Compare with previous direction high byte
-    JP          Z,NO_ACTION_TAKEN					; If directions don't allow backtrack, block
-    EX          AF,AF'								; Restore saved position to A
-    LD          (PLAYER_MAP_POS),A					; Write previous position as new position
-    LD          (DIR_FACING_HI),HL					; Restore previous direction vector
-    LD          A,(PREV_DIR_FACING)					; A = previous facing byte (1-4)
-    LD          (DIR_FACING_SHORT),A				; Restore facing direction
-    LD          A,(COMBAT_BUSY_FLAG)				; Check if in combat
-    AND         A									; Test zero
-    JP          Z,UPDATE_VIEWPORT					; If not in combat, just redraw
-    CALL        CLEAR_MONSTER_STATS					; Clear combat UI/state
-    JP          INIT_MELEE_ANIM						; Re-enter combat animation
+    CP          H                                   ; Compare with previous direction high byte
+    JP          Z,NO_ACTION_TAKEN                   ; If directions don't allow backtrack, block
+    EX          AF,AF'                              ; Restore saved position to A
+    LD          (PLAYER_MAP_POS),A                  ; Write previous position as new position
+    LD          (DIR_FACING_HI),HL                  ; Restore previous direction vector
+    LD          A,(PREV_DIR_FACING)                 ; A = previous facing byte (1-4)
+    LD          (DIR_FACING_SHORT),A                ; Restore facing direction
+    LD          A,(COMBAT_BUSY_FLAG)                ; Check if in combat
+    AND         A                                   ; Test zero
+    JP          Z,UPDATE_VIEWPORT                   ; If not in combat, just redraw
+    CALL        CLEAR_MONSTER_STATS                 ; Clear combat UI/state
+    JP          INIT_MELEE_ANIM                     ; Re-enter combat animation
 
 ; CANNOT_JUMP_BACK - Play error sound when backtrack invalid
 ;   - Called when player at same position as previous (can't backtrack)
 ;   - Plays error tone then checks combat state
 CANNOT_JUMP_BACK:
-    LD          BC,$500								; BC = sound frequency parameter
-    LD          DE,$20								; DE = sound duration parameter
-    CALL        PLAY_SOUND_LOOP						; Play error beep
-    LD          A,(COMBAT_BUSY_FLAG)				; Check combat state
-    AND         A									; Test if in combat
-    JP          Z,WAIT_FOR_INPUT					; If not in combat, wait for next input
-    JP          INIT_MELEE_ANIM						; If in combat, re-enter melee
+    LD          BC,$500                             ; BC = sound frequency parameter
+    LD          DE,$20                              ; DE = sound duration parameter
+    CALL        PLAY_SOUND_LOOP                     ; Play error beep
+    LD          A,(COMBAT_BUSY_FLAG)                ; Check combat state
+    AND         A                                   ; Test if in combat
+    JP          Z,WAIT_FOR_INPUT                    ; If not in combat, wait for next input
+    JP          INIT_MELEE_ANIM                     ; If in combat, re-enter melee
 
 ; DO_COUNT_FOOD:
 ;     LD          A,(FOOD_INV)
@@ -407,10 +407,10 @@ CANNOT_JUMP_BACK:
 ; Calls: PLAY_SOUND_LOOP, WAIT_FOR_INPUT
 ;==============================================================================
 NO_ACTION_TAKEN:
-    LD          BC,$500                         ; Set delay duration ($500)
-    LD          DE,$20                          ; Set sound pitch/frequency ($20)
-    CALL        PLAY_SOUND_LOOP                 ; Play the blocked action sound
-    JP          WAIT_FOR_INPUT                  ; Return to input polling loop
+    LD          BC,$500                             ; Set delay duration ($500)
+    LD          DE,$20                              ; Set sound pitch/frequency ($20)
+    CALL        PLAY_SOUND_LOOP                     ; Play the blocked action sound
+    JP          WAIT_FOR_INPUT                      ; Return to input polling loop
 
 
 ;==============================================================================
@@ -452,13 +452,13 @@ NO_ACTION_TAKEN:
 ; Calls: LAB_ram_e244 (fall-through delay loop)
 ;==============================================================================
 PLAY_SOUND_LOOP:
-    DEC         DE                              ; Decrement pitch counter
-    LD          A,E                             ; Load E into A
-    OR          D                               ; OR with D to test for zero
-    RET         Z                               ; If DE=0, sound complete, return
-    OUT         (SPEAKER),A                     ; Send toggle value to speaker port
-    LD          H,B                             ; Copy BC to HL for delay
-    LD          L,C                             ; HL = BC (delay duration)
+    DEC         DE                                  ; Decrement pitch counter
+    LD          A,E                                 ; Load E into A
+    OR          D                                   ; OR with D to test for zero
+    RET         Z                                   ; If DE=0, sound complete, return
+    OUT         (SPEAKER),A                         ; Send toggle value to speaker port
+    LD          H,B                                 ; Copy BC to HL for delay
+    LD          L,C                                 ; HL = BC (delay duration)
 
 ;==============================================================================
 ; LAB_ram_e244
@@ -493,11 +493,11 @@ PLAY_SOUND_LOOP:
 ; Calls: PLAY_SOUND_LOOP (loops back)
 ;==============================================================================
 SOUND_DELAY_LOOP:
-    DEC         HL                              ; Decrement delay counter
-    LD          A,L                             ; Load L into A
-    OR          H                               ; OR with H to test for zero
-    JP          NZ,SOUND_DELAY_LOOP             ; If HL≠0, continue delay loop
-    JP          PLAY_SOUND_LOOP                 ; Return to next sound cycle
+    DEC         HL                                  ; Decrement delay counter
+    LD          A,L                                 ; Load L into A
+    OR          H                                   ; OR with H to test for zero
+    JP          NZ,SOUND_DELAY_LOOP                 ; If HL≠0, continue delay loop
+    JP          PLAY_SOUND_LOOP                     ; Return to next sound cycle
 
 ;==============================================================================
 ; USE_MAP
@@ -545,35 +545,35 @@ SOUND_DELAY_LOOP:
 ; Calls: FILL_CHRCOL_RECT, SOUND_03, DRAW_RED/YELLOW/PURPLE/WHITE_MAP, UPDATE_VIEWPORT
 ;==============================================================================
 USE_MAP:
-    LD          A,(GAME_BOOLEANS)               ; Load game state flags
-    BIT         0x2,A							; Check bit 2 (map owned flag)
-    JP          Z,NO_ACTION_TAKEN               ; If not owned, exit without action
-    LD          A,(MAP_INV_SLOT)                ; Load map quality level (0-4)
-    AND         A                               ; Test if zero (no map)
-    JP          Z,INIT_MELEE_ANIM               ; If no map slot, exit to melee animation
-    EXX								            ; Swap to alternate register set
+    LD          A,(GAME_BOOLEANS)                   ; Load game state flags
+    BIT         0x2,A                               ; Check bit 2 (map owned flag)
+    JP          Z,NO_ACTION_TAKEN                   ; If not owned, exit without action
+    LD          A,(MAP_INV_SLOT)                    ; Load map quality level (0-4)
+    AND         A                                   ; Test if zero (no map)
+    JP          Z,INIT_MELEE_ANIM                   ; If no map slot, exit to melee animation
+    EXX								                ; Swap to alternate register set
 
-    LD          BC,RECT(24,24)					; Set dimensions: 24 wide x 24 high
-    LD          HL,CHRRAM_VIEWPORT_IDX          ; Point to viewport character RAM
-    LD          A,$20							; Load SPACE character ($20)
-    CALL        FILL_CHRCOL_RECT				; Clear viewport with spaces
-    CALL        SOUND_03                        ; Play map open sound
-    LD          BC,RECT(24,24)					; Set dimensions: 24 wide x 24 high
-    LD          HL,COLRAM_VIEWPORT_IDX          ; Point to viewport color RAM
-    LD          A,COLOR(DKBLU,BLK)				; Set color: dark blue on black
-    CALL        FILL_CHRCOL_RECT				; Fill viewport with map background color
+    LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high
+    LD          HL,CHRRAM_VIEWPORT_IDX              ; Point to viewport character RAM
+    LD          A,$20                               ; Load SPACE character ($20)
+    CALL        FILL_CHRCOL_RECT                    ; Clear viewport with spaces
+    CALL        SOUND_03                            ; Play map open sound
+    LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high
+    LD          HL,COLRAM_VIEWPORT_IDX              ; Point to viewport color RAM
+    LD          A,COLOR(DKBLU,BLK)                  ; Set color: dark blue on black
+    CALL        FILL_CHRCOL_RECT                    ; Fill viewport with map background color
 
-    EXX								            ; Swap back to main register set
-    PUSH        AF                              ; Preserve A register
-    LD          A,(MAP_INV_SLOT)                ; Load map quality level
-    LD          B,A                             ; Copy to B for decrement testing
-    POP         AF                              ; Restore A register
-    DEC         B                               ; Test for level 1 (red map)
-    JP          Z,DRAW_RED_MAP					; Draw basic walls and player only
-    DEC         B                               ; Test for level 2 (yellow map)
-    JP          Z,DRAW_YELLOW_MAP				; Draw walls, player, and ladder
-    DEC         B                               ; Test for level 3 (purple map)
-    JP          Z,DRAW_PURPLE_MAP				; Draw walls, player, ladder, and monsters
+    EXX								                ; Swap back to main register set
+    PUSH        AF                                  ; Preserve A register
+    LD          A,(MAP_INV_SLOT)                    ; Load map quality level
+    LD          B,A                                 ; Copy to B for decrement testing
+    POP         AF                                  ; Restore A register
+    DEC         B                                   ; Test for level 1 (red map)
+    JP          Z,DRAW_RED_MAP                      ; Draw basic walls and player only
+    DEC         B                                   ; Test for level 2 (yellow map)
+    JP          Z,DRAW_YELLOW_MAP                   ; Draw walls, player, and ladder
+    DEC         B                                   ; Test for level 3 (purple map)
+    JP          Z,DRAW_PURPLE_MAP                   ; Draw walls, player, ladder, and monsters
 
 ;==============================================================================
 ; DRAW_WHITE_MAP
@@ -610,8 +610,8 @@ USE_MAP:
 ; Calls: MAP_ITEM_MONSTER, UPDATE_ITEM_CELLS
 ;==============================================================================
 DRAW_WHITE_MAP:
-    LD          HL,$74                           ; Set item range lower bound ($74..$78)
-    CALL        MAP_ITEM_MONSTER                 ; Prepare list pointer (BC = MAP_LADDER_OFFSET)
+    LD          HL,$74                              ; Set item range lower bound ($74..$78)
+    CALL        MAP_ITEM_MONSTER                    ; Prepare list pointer (BC = MAP_LADDER_OFFSET)
 
 ;==============================================================================
 ; UPDATE_ITEM_CELLS
@@ -648,16 +648,16 @@ DRAW_WHITE_MAP:
 ; Calls: UPDATE_COLRAM_FROM_OFFSET, FIND_NEXT_ITEM_MONSTER_LOOP, DRAW_PURPLE_MAP
 ;==============================================================================
 UPDATE_ITEM_CELLS:
-    JP          Z,DRAW_PURPLE_MAP               ; If end of list, proceed to monster coloring
-    LD          A,(BC)                          ; Load item position offset
-    INC         C                               ; Advance pointer to item code
-    INC         C                               ; Skip past item code byte
-    EXX                                         ; Swap to alternate register set for COLRAM
-    LD          D,$b6                           ; Set item color (DKBLU on YEL-ish index $b6)
-    CALL        UPDATE_COLRAM_FROM_OFFSET       ; Color the cell at offset A with D
-    EXX                                         ; Swap back to main register set
-    CALL        FIND_NEXT_ITEM_MONSTER_LOOP     ; Find next matching item in range
-    JP          UPDATE_ITEM_CELLS               ; Repeat until list exhausted
+    JP          Z,DRAW_PURPLE_MAP                   ; If end of list, proceed to monster coloring
+    LD          A,(BC)                              ; Load item position offset
+    INC         C                                   ; Advance pointer to item code
+    INC         C                                   ; Skip past item code byte
+    EXX                                             ; Swap to alternate register set for COLRAM
+    LD          D,$b6                               ; Set item color (DKBLU on YEL-ish index $b6)
+    CALL        UPDATE_COLRAM_FROM_OFFSET           ; Color the cell at offset A with D
+    EXX                                             ; Swap back to main register set
+    CALL        FIND_NEXT_ITEM_MONSTER_LOOP         ; Find next matching item in range
+    JP          UPDATE_ITEM_CELLS                   ; Repeat until list exhausted
 
 ;==============================================================================
 ; DRAW_PURPLE_MAP
@@ -696,19 +696,19 @@ UPDATE_ITEM_CELLS:
 ; Calls: MAP_ITEM_MONSTER, UPDATE_COLRAM_FROM_OFFSET, FIND_NEXT_ITEM_MONSTER_LOOP
 ;==============================================================================
 DRAW_PURPLE_MAP:
-    LD          HL,$78a8						; Set item range for monsters ($78 to $a8)
-    CALL        MAP_ITEM_MONSTER                ; Initialize monster search (BC = MAP_LADDER_OFFSET)
+    LD          HL,$78a8                            ; Set item range for monsters ($78 to $a8)
+    CALL        MAP_ITEM_MONSTER                    ; Initialize monster search (BC = MAP_LADDER_OFFSET)
 UPDATE_MONSTER_CELLS_LOOP:
-    JP          Z,DRAW_YELLOW_MAP               ; If no more monsters, continue to yellow map
-    LD          A,(BC)                          ; Load monster position offset
-    INC         C                               ; Advance pointer past position
-    INC         C                               ; Advance pointer past monster code
-    EXX								            ; Swap to alternate register set (viewport pointers)
-    LD          D,COLOR(DKBLU,RED)				; Set monster cell color: dark blue on red
-    CALL        UPDATE_COLRAM_FROM_OFFSET       ; Update color at monster position
-    EXX								            ; Swap back to main register set
-    CALL        FIND_NEXT_ITEM_MONSTER_LOOP     ; Find next monster in list
-    JP          UPDATE_MONSTER_CELLS_LOOP       ; Repeat for all monsters
+    JP          Z,DRAW_YELLOW_MAP                   ; If no more monsters, continue to yellow map
+    LD          A,(BC)                              ; Load monster position offset
+    INC         C                                   ; Advance pointer past position
+    INC         C                                   ; Advance pointer past monster code
+    EXX								                ; Swap to alternate register set (viewport pointers)
+    LD          D,COLOR(DKBLU,RED)                  ; Set monster cell color: dark blue on red
+    CALL        UPDATE_COLRAM_FROM_OFFSET           ; Update color at monster position
+    EXX								                ; Swap back to main register set
+    CALL        FIND_NEXT_ITEM_MONSTER_LOOP         ; Find next monster in list
+    JP          UPDATE_MONSTER_CELLS_LOOP           ; Repeat for all monsters
 
 ;==============================================================================
 ; DRAW_YELLOW_MAP
@@ -742,9 +742,9 @@ UPDATE_MONSTER_CELLS_LOOP:
 ; Calls: UPDATE_COLRAM_FROM_OFFSET, DRAW_RED_MAP
 ;==============================================================================
 DRAW_YELLOW_MAP:
-    LD          D,COLOR(DKBLU,MAG)				; Set ladder cell color: dark blue on magenta
-    LD          A,(ITEM_HOLDER)                 ; Load ladder position offset
-    CALL        UPDATE_COLRAM_FROM_OFFSET       ; Update color at ladder position
+    LD          D,COLOR(DKBLU,MAG)                  ; Set ladder cell color: dark blue on magenta
+    LD          A,(ITEM_HOLDER)                     ; Load ladder position offset
+    CALL        UPDATE_COLRAM_FROM_OFFSET           ; Update color at ladder position
 
 ;==============================================================================
 ; DRAW_RED_MAP
@@ -785,41 +785,41 @@ DRAW_YELLOW_MAP:
 ; Calls: SET_MINIMAP_PLAYER_LOC
 ;==============================================================================
 DRAW_RED_MAP:
-    LD          BC,RECT(16,24)                  ; Set dimensions: 16 wide, 24 high (B=16, C=24)
-    LD          DE,HC_LAST_INPUT                ; Point to dungeon map data
-    LD          HL,CHRRAM_MINI_MAP_IDX          ; Point to mini-map character area
+    LD          BC,RECT(16,24)                      ; Set dimensions: 16 wide, 24 high (B=16, C=24)
+    LD          DE,HC_LAST_INPUT                    ; Point to dungeon map data
+    LD          HL,CHRRAM_MINI_MAP_IDX              ; Point to mini-map character area
 CALC_MINIMAP_WALL:
-    INC         DE                              ; Advance to next dungeon cell
-    LD          A,D                             ; Check high byte of dungeon pointer
-    CP          $39                             ; Compare to end of dungeon data ($39xx)
-    JP          Z,SET_MINIMAP_PLAYER_LOC        ; If at end, mark player position
-    LD          A,(DE)                          ; Load wall flags from current cell
-    OR          A                               ; Test if any walls present
-    JP          Z,SET_MINIMAP_NO_WALLS          ; If no walls, draw empty cell
-    AND         0xf                             ; Mask lower nybble (north wall flag)
-    JP          NZ,LAB_ram_e2d6                 ; If north wall set, check west wall
+    INC         DE                                  ; Advance to next dungeon cell
+    LD          A,D                                 ; Check high byte of dungeon pointer
+    CP          $39                                 ; Compare to end of dungeon data ($39xx)
+    JP          Z,SET_MINIMAP_PLAYER_LOC            ; If at end, mark player position
+    LD          A,(DE)                              ; Load wall flags from current cell
+    OR          A                                   ; Test if any walls present
+    JP          Z,SET_MINIMAP_NO_WALLS              ; If no walls, draw empty cell
+    AND         0xf                                 ; Mask lower nybble (north wall flag)
+    JP          NZ,LAB_ram_e2d6                     ; If north wall set, check west wall
 SET_MINIMAP_N_WALL:
-    LD          A,$a3							; Load character $a3 (north wall only)
-    JP          DRAW_MINIMAP_WALL               ; Draw wall character
+    LD          A,$a3                               ; Load character $a3 (north wall only)
+    JP          DRAW_MINIMAP_WALL                   ; Draw wall character
 SET_MINIMAP_NO_WALLS:
-    LD          A,$a0							; Load character $a0 (no walls)
-    JP          DRAW_MINIMAP_WALL               ; Draw empty cell character
+    LD          A,$a0                               ; Load character $a0 (no walls)
+    JP          DRAW_MINIMAP_WALL                   ; Draw empty cell character
 SET_MINIMAP_NW_WALLS:
-    LD          A,$b7							; Load character $b7 (north and west walls)
-    JP          DRAW_MINIMAP_WALL               ; Draw corner wall character
+    LD          A,$b7                               ; Load character $b7 (north and west walls)
+    JP          DRAW_MINIMAP_WALL                   ; Draw corner wall character
 LAB_ram_e2d6:
-    LD          A,(DE)                          ; Reload wall flags
-    AND         $f0                             ; Mask upper nybble (west wall flag)
-    JP          NZ,SET_MINIMAP_NW_WALLS         ; If west wall set, draw north+west
+    LD          A,(DE)                              ; Reload wall flags
+    AND         $f0                                 ; Mask upper nybble (west wall flag)
+    JP          NZ,SET_MINIMAP_NW_WALLS             ; If west wall set, draw north+west
 SET_MINIMAP_W_WALL:
-    LD          A,$b5							; Load character $b5 (west wall only)
+    LD          A,$b5                               ; Load character $b5 (west wall only)
 DRAW_MINIMAP_WALL:
-    LD          (HL),A                          ; Write wall character to mini-map
-    INC         HL                              ; Advance to next mini-map cell
-    DJNZ        CALC_MINIMAP_WALL               ; Decrement B (column counter), repeat if not zero
-    ADD         HL,BC                           ; Advance HL to next row (skip remainder of 40-char line)
-    LD          B,$10                           ; Reset column counter to 16
-    JP          CALC_MINIMAP_WALL               ; Continue to next row
+    LD          (HL),A                              ; Write wall character to mini-map
+    INC         HL                                  ; Advance to next mini-map cell
+    DJNZ        CALC_MINIMAP_WALL                   ; Decrement B (column counter), repeat if not zero
+    ADD         HL,BC                               ; Advance HL to next row (skip remainder of 40-char line)
+    LD          B,$10                               ; Reset column counter to 16
+    JP          CALC_MINIMAP_WALL                   ; Continue to next row
 
 ;==============================================================================
 ; SET_MINIMAP_PLAYER_LOC
@@ -859,34 +859,34 @@ DRAW_MINIMAP_WALL:
 ; Calls: UPDATE_COLRAM_FROM_OFFSET, WAIT_A_TICK, UPDATE_VIEWPORT
 ;==============================================================================
 SET_MINIMAP_PLAYER_LOC:
-    LD          A,(PLAYER_MAP_POS)              ; Load player position offset
-    LD          D,COLOR(DKBLU,WHT)				; Set player cell color: dark blue on white
-    CALL        UPDATE_COLRAM_FROM_OFFSET       ; Mark player position on map
-    CALL        WAIT_A_TICK                     ; Wait for display stability
+    LD          A,(PLAYER_MAP_POS)                  ; Load player position offset
+    LD          D,COLOR(DKBLU,WHT)                  ; Set player cell color: dark blue on white
+    CALL        UPDATE_COLRAM_FROM_OFFSET           ; Mark player position on map
+    CALL        WAIT_A_TICK                         ; Wait for display stability
 
 READ_KEY:
-    LD          BC,$ff                          ; Set BC to keyboard port ($ff)
-    IN          A,(C)                           ; Read keyboard input
-    INC         A                               ; Test for $FF (no key pressed)
-    JP          NZ,READ_KEY                     ; If key pressed, wait for release
+    LD          BC,$ff                              ; Set BC to keyboard port ($ff)
+    IN          A,(C)                               ; Read keyboard input
+    INC         A                                   ; Test for $FF (no key pressed)
+    JP          NZ,READ_KEY                         ; If key pressed, wait for release
 ENABLE_HC:
-    LD          C,$f7                           ; Set port to hand controller 1 ($f7)
-    LD          A,0xf                           ; Load hand controller enable value
-    OUT         (C),A                           ; Enable hand controller
-    DEC         C                               ; Set port to hand controller 2 ($f6)
+    LD          C,$f7                               ; Set port to hand controller 1 ($f7)
+    LD          A,0xf                               ; Load hand controller enable value
+    OUT         (C),A                               ; Enable hand controller
+    DEC         C                                   ; Set port to hand controller 2 ($f6)
 READ_HC:
-    IN          A,(C)                           ; Read hand controller input
-    INC         A                               ; Test for $FF (no input)
-    JP          NZ,READ_KEY                     ; If input detected, wait for release
-    INC         C                               ; Switch back to port $f7
-    LD          A,0xe                           ; Load hand controller disable value
+    IN          A,(C)                               ; Read hand controller input
+    INC         A                                   ; Test for $FF (no input)
+    JP          NZ,READ_KEY                         ; If input detected, wait for release
+    INC         C                                   ; Switch back to port $f7
+    LD          A,0xe                               ; Load hand controller disable value
 DISABLE_HC:
-    OUT         (C),A                           ; Disable hand controller
-    DEC         C                               ; Set port back to $f6
-    IN          A,(C)                           ; Read hand controller input again
-    INC         A                               ; Test for $FF (no input)
-    JP          NZ,READ_KEY                     ; If input detected, keep waiting
-    JP          UPDATE_VIEWPORT                 ; Close map and return to normal viewport
+    OUT         (C),A                               ; Disable hand controller
+    DEC         C                                   ; Set port back to $f6
+    IN          A,(C)                               ; Read hand controller input again
+    INC         A                                   ; Test for $FF (no input)
+    JP          NZ,READ_KEY                         ; If input detected, keep waiting
+    JP          UPDATE_VIEWPORT                     ; Close map and return to normal viewport
 
 ;==============================================================================
 ; MAP_ITEM_MONSTER
@@ -918,7 +918,7 @@ DISABLE_HC:
 ; Calls: FIND_NEXT_ITEM_MONSTER_LOOP (fall-through)
 ;==============================================================================
 MAP_ITEM_MONSTER:
-    LD          BC,MAP_LADDER_OFFSET             ; Point to start of map item/monster list
+    LD          BC,MAP_LADDER_OFFSET                ; Point to start of map item/monster list
 
 ;==============================================================================
 ; FIND_NEXT_ITEM_MONSTER_LOOP
@@ -960,19 +960,19 @@ MAP_ITEM_MONSTER:
 ; Calls: None (returns to caller)
 ;==============================================================================
 FIND_NEXT_ITEM_MONSTER_LOOP:
-    LD          A,(BC)                          ; Load position offset byte
-    INC         BC                              ; Advance to item code byte
-    INC         A                               ; Test for $FF terminator (becomes $00)
-    RET         Z                               ; Return with Z flag if end of list
-    LD          A,(BC)                          ; Load item code
-    CP          H                               ; Compare to low bound (H)
-    INC         BC                              ; Advance to next entry
-    JP          C,FIND_NEXT_ITEM_MONSTER_LOOP   ; If code < low bound, continue search
-    CP          L                               ; Compare to high bound (L)
-    JP          NC,FIND_NEXT_ITEM_MONSTER_LOOP  ; If code >= high bound, continue search
-    DEC         C                               ; Back up to item code byte
-    DEC         BC                              ; Back up to position offset byte
-    RET                                         ; Return with Z clear (match found)
+    LD          A,(BC)                              ; Load position offset byte
+    INC         BC                                  ; Advance to item code byte
+    INC         A                                   ; Test for $FF terminator (becomes $00)
+    RET         Z                                   ; Return with Z flag if end of list
+    LD          A,(BC)                              ; Load item code
+    CP          H                                   ; Compare to low bound (H)
+    INC         BC                                  ; Advance to next entry
+    JP          C,FIND_NEXT_ITEM_MONSTER_LOOP       ; If code < low bound, continue search
+    CP          L                                   ; Compare to high bound (L)
+    JP          NC,FIND_NEXT_ITEM_MONSTER_LOOP      ; If code >= high bound, continue search
+    DEC         C                                   ; Back up to item code byte
+    DEC         BC                                  ; Back up to position offset byte
+    RET                                             ; Return with Z clear (match found)
 
 ;==============================================================================
 ; UPDATE_COLRAM_FROM_OFFSET
@@ -1014,24 +1014,24 @@ FIND_NEXT_ITEM_MONSTER_LOOP:
 ; Calls: None
 ;==============================================================================
 UPDATE_COLRAM_FROM_OFFSET:
-    PUSH        AF                              ; Preserve original offset
-    AND         0xf                             ; Mask lower nybble (X coordinate 0-15)
-    LD          HL,COLRAM_MINI_MAP_IDX          ; Point to viewport COLRAM base
-    LD          C,A                             ; Copy X coordinate to C
-    LD          B,0x0                           ; Clear B for 16-bit addition
-    ADD         HL,BC                           ; Add X offset to base address
-    POP         AF                              ; Restore original offset
-    AND         $f0                             ; Mask upper nybble (row number * 16)
-    RRA                                         ; Divide by 2 (row * 8)
-    LD          C,A                             ; Copy to C
-    ADD         HL,BC                           ; Add (row * 8) to address
-    RLA                                         ; Multiply by 2 (row * 16)
-    RLA                                         ; Multiply by 2 (row * 32)
-    RL          B                               ; Capture carry bit into B
-    LD          C,A                             ; Copy (row * 32) to C
-    ADD         HL,BC                           ; Add (row * 32), total = row * 40
-    LD          (HL),D                          ; Write color value D to COLRAM
-    RET                                         ; Return to caller
+    PUSH        AF                                  ; Preserve original offset
+    AND         0xf                                 ; Mask lower nybble (X coordinate 0-15)
+    LD          HL,COLRAM_MINI_MAP_IDX              ; Point to viewport COLRAM base
+    LD          C,A                                 ; Copy X coordinate to C
+    LD          B,0x0                               ; Clear B for 16-bit addition
+    ADD         HL,BC                               ; Add X offset to base address
+    POP         AF                                  ; Restore original offset
+    AND         $f0                                 ; Mask upper nybble (row number * 16)
+    RRA                                             ; Divide by 2 (row * 8)
+    LD          C,A                                 ; Copy to C
+    ADD         HL,BC                               ; Add (row * 8) to address
+    RLA                                             ; Multiply by 2 (row * 16)
+    RLA                                             ; Multiply by 2 (row * 32)
+    RL          B                                   ; Capture carry bit into B
+    LD          C,A                                 ; Copy (row * 32) to C
+    ADD         HL,BC                               ; Add (row * 32), total = row * 40
+    LD          (HL),D                              ; Write color value D to COLRAM
+    RET                                             ; Return to caller
 
 ;==============================================================================
 ; CHK_ITEM_BREAK
@@ -1066,34 +1066,34 @@ UPDATE_COLRAM_FROM_OFFSET:
 ; Calls: MAKE_RANDOM_BYTE, ITEM_POOFS_RH, FIX_RH_COLORS
 ;==============================================================================
 CHK_ITEM_BREAK:
-    LD          A,B                             ; Load item level (0-3)
-    RLCA                                        ; Scale: level * 2
-    RLCA                                        ; Scale: level * 4
-    RLCA                                        ; Scale: level * 8 (break factor)
-    LD          C,A                             ; Save factor in C
-    CALL        MAKE_RANDOM_BYTE                ; A = random byte
-    ADD         A,C                             ; Add factor; test for carry (overflow)
-    JP          C,ITEM_POOFS_RH                 ; If overflow, item breaks immediately
-    ADD         A,0x5                           ; Add small constant to increase chance
-    RET         NC                              ; If still no carry, item survives
+    LD          A,B                                 ; Load item level (0-3)
+    RLCA                                            ; Scale: level * 2
+    RLCA                                            ; Scale: level * 4
+    RLCA                                            ; Scale: level * 8 (break factor)
+    LD          C,A                                 ; Save factor in C
+    CALL        MAKE_RANDOM_BYTE                    ; A = random byte
+    ADD         A,C                                 ; Add factor; test for carry (overflow)
+    JP          C,ITEM_POOFS_RH                     ; If overflow, item breaks immediately
+    ADD         A,0x5                               ; Add small constant to increase chance
+    RET         NC                                  ; If still no carry, item survives
     
 ITEM_POOFS_RH:
-    SCF                                         ; Set carry to indicate break
-    EX          AF,AF'                          ; Preserve flags/state in alternate set
-    LD          HL,CHRRAM_RH_POOF_IDX           ; CHRRAM pointer for poof animation
-    CALL        PLAY_POOF_ANIM                  ; Execute poof animation frames
+    SCF                                             ; Set carry to indicate break
+    EX          AF,AF'                              ; Preserve flags/state in alternate set
+    LD          HL,CHRRAM_RH_POOF_IDX               ; CHRRAM pointer for poof animation
+    CALL        PLAY_POOF_ANIM                      ; Execute poof animation frames
 FIX_RH_COLORS:
-    PUSH        AF                              ; Preserve registers during color fix
+    PUSH        AF                                  ; Preserve registers during color fix
     PUSH        BC
     PUSH        HL
-    LD          A,COLOR(DKGRY,BLK)              ; Set RH item area to dark gray on black
-    LD          BC,RECT(4,4)                    ; 4x4 rectangle (RH item viewport)
-    LD          HL,COLRAM_RH_ITEM_IDX           ; Color RAM base for RH item block
-    CALL        FILL_CHRCOL_RECT                ; Clear/neutralize RH item colors
+    LD          A,COLOR(DKGRY,BLK)                  ; Set RH item area to dark gray on black
+    LD          BC,RECT(4,4)                        ; 4x4 rectangle (RH item viewport)
+    LD          HL,COLRAM_RH_ITEM_IDX               ; Color RAM base for RH item block
+    CALL        FILL_CHRCOL_RECT                    ; Clear/neutralize RH item colors
     POP         HL
     POP         BC
     POP         AF
-    SCF                                         ; Keep carry set indicating break
+    SCF                                             ; Keep carry set indicating break
     RET
 
 ;==============================================================================
@@ -1140,28 +1140,28 @@ FIX_RH_COLORS:
 ; Calls: SOUND_05, COPY_GFX_2_BUFFER, CHK_ITEM, ADVANCE_RH_ANIM_FRAME, COPY_RH_ITEM_FRAME_GFX
 ;==============================================================================
 ANIMATE_RH_ITEM_STEP:
-    CALL        SOUND_05                        ; Play animation sound 05
-    LD          A,(ITEM_ANIM_STATE)             ; Load item animation state
-    LD          HL,(ITEM_ANIM_LOOP_COUNT)       ; Load loop counters (HL)
-    DEC         A                               ; Decrement state
-    JP          NZ,ADVANCE_RH_ANIM_FRAME        ; If still non-zero, branch to frame step
-    DEC         L                               ; Decrement inner loop count
-    JP          NZ,RESET_RH_ANIM_STATE          ; If not zero, refresh state and continue
-    DEC         H                               ; Decrement outer loop count
-    JP          Z,ITEM_COMBAT_DISPATCH          ; If zero, animation complete
-    LD          A,$31                           ; Prepare monster frame state value
-    LD          (RAM_AC),A                      ; Store into RAM_AC
-    LD          L,0x4                           ; Reset inner loop count to 4
+    CALL        SOUND_05                            ; Play animation sound 05
+    LD          A,(ITEM_ANIM_STATE)                 ; Load item animation state
+    LD          HL,(ITEM_ANIM_LOOP_COUNT)           ; Load loop counters (HL)
+    DEC         A                                   ; Decrement state
+    JP          NZ,ADVANCE_RH_ANIM_FRAME            ; If still non-zero, branch to frame step
+    DEC         L                                   ; Decrement inner loop count
+    JP          NZ,RESET_RH_ANIM_STATE              ; If not zero, refresh state and continue
+    DEC         H                                   ; Decrement outer loop count
+    JP          Z,ITEM_COMBAT_DISPATCH              ; If zero, animation complete
+    LD          A,$31                               ; Prepare monster frame state value
+    LD          (RAM_AC),A                          ; Store into RAM_AC
+    LD          L,0x4                               ; Reset inner loop count to 4
 RESET_RH_ANIM_STATE:
-    LD          A,0x4                           ; Reset animation state to 4
-    LD          (ITEM_ANIM_STATE),A             ; Write back state
-    LD          (ITEM_ANIM_LOOP_COUNT),HL       ; Write back loop counters
-    LD          HL,(ITEM_ANIM_CHRRAM_PTR)       ; Load CHRRAM pointer for frame
-    LD          BC,$29                          ; Per-frame pointer delta (41 bytes)
-    XOR         A                               ; Clear A for SBC
-    SBC         HL,BC                           ; Move pointer backwards by $29
-    LD          (ITEM_ANIM_CHRRAM_PTR),HL       ; Save updated pointer
-    JP          COPY_RH_ITEM_FRAME_GFX          ; Continue to graphics copy/update
+    LD          A,0x4                               ; Reset animation state to 4
+    LD          (ITEM_ANIM_STATE),A                 ; Write back state
+    LD          (ITEM_ANIM_LOOP_COUNT),HL           ; Write back loop counters
+    LD          HL,(ITEM_ANIM_CHRRAM_PTR)           ; Load CHRRAM pointer for frame
+    LD          BC,$29                              ; Per-frame pointer delta (41 bytes)
+    XOR         A                                   ; Clear A for SBC
+    SBC         HL,BC                               ; Move pointer backwards by $29
+    LD          (ITEM_ANIM_CHRRAM_PTR),HL           ; Save updated pointer
+    JP          COPY_RH_ITEM_FRAME_GFX              ; Continue to graphics copy/update
 
 ;==============================================================================
 ; ADVANCE_RH_ANIM_FRAME — Animation Frame Step
@@ -1186,10 +1186,10 @@ RESET_RH_ANIM_STATE:
 ; Calls: COPY_RH_ITEM_FRAME_GFX (fall-through)
 ;==============================================================================
 ADVANCE_RH_ANIM_FRAME:
-    LD          (ITEM_ANIM_STATE),A             ; Persist new animation state
-    LD          HL,(ITEM_ANIM_CHRRAM_PTR)       ; Load CHRRAM pointer
-    DEC         HL                              ; Move to previous byte
-    LD          (ITEM_ANIM_CHRRAM_PTR),HL       ; Save updated pointer
+    LD          (ITEM_ANIM_STATE),A                 ; Persist new animation state
+    LD          HL,(ITEM_ANIM_CHRRAM_PTR)           ; Load CHRRAM pointer
+    DEC         HL                                  ; Move to previous byte
+    LD          (ITEM_ANIM_CHRRAM_PTR),HL           ; Save updated pointer
 
 ;==============================================================================
 ; COPY_RH_ITEM_FRAME_GFX — Copy Frame Graphics and Update State
@@ -1220,25 +1220,25 @@ ADVANCE_RH_ANIM_FRAME:
 ; Calls: COPY_GFX_2_BUFFER, CHK_ITEM
 ;==============================================================================
 COPY_RH_ITEM_FRAME_GFX:
-    LD          BC,$c8                          ; Frame addressing delta (200 bytes)
-    XOR         A                               ; Clear A for SBC
-    SBC         HL,BC                           ; HL = HL - $c8
-    PUSH        HL                              ; Save source pointer
-    ADD         HL,BC                           ; HL = HL + $c8 (restore for copy base)
-    LD          DE,ITEM_MOVE_CHR_BUFFER         ; Destination buffer for movement CHR
-    CALL        COPY_GFX_2_BUFFER               ; Copy frame graphics to buffer
-    POP         HL                              ; Restore source pointer
-    LD          C,L                             ; Save low byte of pointer into C
-    LD          A,(RAM_AC)                      ; Load accumulator for monster frame
-    LD          (MON_FS),A                      ; Update MON_FS from RAM_AC
-    LD          A,(ITEM_SPRITE_INDEX)           ; Load item sprite index
-    CALL        CHK_ITEM                        ; Run item check/update routine
-    LD          A,$32                           ; Set monster frame state constant
-    LD          (MON_FS),A                      ; Update MON_FS to $32
-    LD          A,(TIMER_A)                     ; Load timer A
-    ADD         A,$ff                           ; Decrement by 1
-    LD          (ITEM_ANIM_TIMER_COPY),A        ; Cache copy for animation timing
-    RET                                         ; Done
+    LD          BC,$c8                              ; Frame addressing delta (200 bytes)
+    XOR         A                                   ; Clear A for SBC
+    SBC         HL,BC                               ; HL = HL - $c8
+    PUSH        HL                                  ; Save source pointer
+    ADD         HL,BC                               ; HL = HL + $c8 (restore for copy base)
+    LD          DE,ITEM_MOVE_CHR_BUFFER             ; Destination buffer for movement CHR
+    CALL        COPY_GFX_2_BUFFER                   ; Copy frame graphics to buffer
+    POP         HL                                  ; Restore source pointer
+    LD          C,L                                 ; Save low byte of pointer into C
+    LD          A,(RAM_AC)                          ; Load accumulator for monster frame
+    LD          (MON_FS),A                          ; Update MON_FS from RAM_AC
+    LD          A,(ITEM_SPRITE_INDEX)               ; Load item sprite index
+    CALL        CHK_ITEM                            ; Run item check/update routine
+    LD          A,$32                               ; Set monster frame state constant
+    LD          (MON_FS),A                          ; Update MON_FS to $32
+    LD          A,(TIMER_A)                         ; Load timer A
+    ADD         A,$ff                               ; Decrement by 1
+    LD          (ITEM_ANIM_TIMER_COPY),A            ; Cache copy for animation timing
+    RET                                             ; Done
 
 ;==============================================================================
 ; RANDOMIZE_BCD_NYBBLES — Randomize BCD nybbles in L
@@ -1276,27 +1276,27 @@ COPY_RH_ITEM_FRAME_GFX:
 ; Calls: RANDOM_MOD_B (twice)
 ;==============================================================================
 RANDOMIZE_BCD_NYBBLES:
-    LD          A,L                             ; Load BCD value
-    AND         0xf                             ; Mask lower nybble (0-15)
-    LD          B,A                             ; Copy to B
-    INC         B                               ; B = nybble + 1 (range 1-16)
-    CALL        RANDOM_MOD_B                    ; Get random A mod B
-    LD          C,A                             ; Save randomized lower nybble in C
-    LD          A,L                             ; Reload BCD value
-    AND         $f0                             ; Mask upper nybble
-    RLCA                                        ; Shift right 4 bits (nybble to lower position)
+    LD          A,L                                 ; Load BCD value
+    AND         0xf                                 ; Mask lower nybble (0-15)
+    LD          B,A                                 ; Copy to B
+    INC         B                                   ; B = nybble + 1 (range 1-16)
+    CALL        RANDOM_MOD_B                        ; Get random A mod B
+    LD          C,A                                 ; Save randomized lower nybble in C
+    LD          A,L                                 ; Reload BCD value
+    AND         $f0                                 ; Mask upper nybble
+    RLCA                                            ; Shift right 4 bits (nybble to lower position)
     RLCA
     RLCA
     RLCA
-    LD          B,A                             ; Copy to B
-    INC         B                               ; B = nybble + 1 (range 1-16)
-    CALL        RANDOM_MOD_B                    ; Get random A mod B
-    RLCA                                        ; Shift left 4 bits (nybble to upper position)
+    LD          B,A                                 ; Copy to B
+    INC         B                                   ; B = nybble + 1 (range 1-16)
+    CALL        RANDOM_MOD_B                        ; Get random A mod B
+    RLCA                                            ; Shift left 4 bits (nybble to upper position)
     RLCA
     RLCA
     RLCA
-    ADD         A,C                             ; Combine upper nybble with lower (from C)
-    LD          L,A                             ; Store combined result in L
+    ADD         A,C                                 ; Combine upper nybble with lower (from C)
+    LD          L,A                                 ; Store combined result in L
     RET
 ;==============================================================================
 ; RANDOM_MOD_B — Random Modulo
@@ -1328,13 +1328,13 @@ RANDOMIZE_BCD_NYBBLES:
 ; Calls: UPDATE_SCR_SAVER_TIMER
 ;==============================================================================
 RANDOM_MOD_B:
-    CALL        UPDATE_SCR_SAVER_TIMER          ; Get pseudo-random byte in A
-    AND         0xf                             ; Mask to lower nybble (0-15)
-RAND_MOD_LOOP:                                   ; Modulo loop
-    SUB         B                               ; A = A - B
-    JP          NC,RAND_MOD_LOOP                ; If no borrow (A >= B), repeat
-    ADD         A,B                             ; A went negative; add B back
-    RET                                         ; Return A in range [0, B-1]
+    CALL        UPDATE_SCR_SAVER_TIMER              ; Get pseudo-random byte in A
+    AND         0xf                                 ; Mask to lower nybble (0-15)
+RAND_MOD_LOOP:                                      ; Modulo loop
+    SUB         B                                   ; A = A - B
+    JP          NC,RAND_MOD_LOOP                    ; If no borrow (A >= B), repeat
+    ADD         A,B                                 ; A went negative; add B back
+    RET                                             ; Return A in range [0, B-1]
 
 ;==============================================================================
 ; ADD_BCD_HL_DE — Add BCD Values (HL += DE)
@@ -1368,14 +1368,14 @@ RAND_MOD_LOOP:                                   ; Modulo loop
 ; Calls: None
 ;==============================================================================
 ADD_BCD_HL_DE:
-    LD          A,L                             ; Load low byte of HL
-    ADD         A,E                             ; Add low byte of DE
-    DAA                                         ; Decimal adjust for BCD
-    LD          L,A                             ; Store BCD result in L
-    LD          A,D                             ; Load high byte of DE
-    ADC         A,H                             ; Add high byte of HL with carry
-    DAA                                         ; Decimal adjust for BCD
-    LD          H,A                             ; Store BCD result in H
+    LD          A,L                                 ; Load low byte of HL
+    ADD         A,E                                 ; Add low byte of DE
+    DAA                                             ; Decimal adjust for BCD
+    LD          L,A                                 ; Store BCD result in L
+    LD          A,D                                 ; Load high byte of DE
+    ADC         A,H                                 ; Add high byte of HL with carry
+    DAA                                             ; Decimal adjust for BCD
+    LD          H,A                                 ; Store BCD result in H
     RET
 
 ;==============================================================================
@@ -1410,14 +1410,14 @@ ADD_BCD_HL_DE:
 ; Calls: None
 ;==============================================================================
 RECALC_PHYS_HEALTH:
-    LD          A,L                             ; Load low byte of HL
-    SUB         E                               ; Subtract low byte of DE
-    DAA                                         ; Decimal adjust for BCD
-    LD          L,A                             ; Store BCD result in L
-    LD          A,H                             ; Load high byte of HL
-    SBC         A,D                             ; Subtract high byte of DE with borrow
-    DAA                                         ; Decimal adjust for BCD
-    LD          H,A                             ; Store BCD result in H
+    LD          A,L                                 ; Load low byte of HL
+    SUB         E                                   ; Subtract low byte of DE
+    DAA                                             ; Decimal adjust for BCD
+    LD          L,A                                 ; Store BCD result in L
+    LD          A,H                                 ; Load high byte of HL
+    SBC         A,D                                 ; Subtract high byte of DE with borrow
+    DAA                                             ; Decimal adjust for BCD
+    LD          H,A                                 ; Store BCD result in H
     RET
 
 ;==============================================================================
@@ -1451,22 +1451,22 @@ RECALC_PHYS_HEALTH:
 ; Calls: None
 ;==============================================================================
 DIVIDE_BCD_HL_BY_2:
-    XOR         A                               ; Clear A and carry flag
-    RR          H                               ; Rotate H right (divide high byte by 2)
-    JP          NC,DIVIDE_NO_CARRY              ; If no carry, skip BCD correction
-    RR          L                               ; Rotate L right with carry from H
-    LD          A,L                             ; Load L
-    SUB         $30                             ; BCD correction: subtract $30
-    LD          L,A                             ; Store corrected value
-    JP          DIVIDE_ROUND_CHECK              ; Continue to rounding check
-DIVIDE_NO_CARRY:                                ; No carry from H
-    RR          L                               ; Rotate L right (divide by 2)
-DIVIDE_ROUND_CHECK:                             ; Rounding adjustment
-    BIT         0x3,L                           ; Test bit 3 of L
-    RET         Z                               ; If clear, no rounding needed
-    LD          A,L                             ; Load L
-    SUB         0x3                             ; Subtract 3 for rounding
-    LD          L,A                             ; Store adjusted value
+    XOR         A                                   ; Clear A and carry flag
+    RR          H                                   ; Rotate H right (divide high byte by 2)
+    JP          NC,DIVIDE_NO_CARRY                  ; If no carry, skip BCD correction
+    RR          L                                   ; Rotate L right with carry from H
+    LD          A,L                                 ; Load L
+    SUB         $30                                 ; BCD correction: subtract $30
+    LD          L,A                                 ; Store corrected value
+    JP          DIVIDE_ROUND_CHECK                  ; Continue to rounding check
+DIVIDE_NO_CARRY:                                    ; No carry from H
+    RR          L                                   ; Rotate L right (divide by 2)
+DIVIDE_ROUND_CHECK:                                 ; Rounding adjustment
+    BIT         0x3,L                               ; Test bit 3 of L
+    RET         Z                                   ; If clear, no rounding needed
+    LD          A,L                                 ; Load L
+    SUB         0x3                                 ; Subtract 3 for rounding
+    LD          L,A                                 ; Store adjusted value
     RET
 
  
@@ -1497,9 +1497,9 @@ DIVIDE_ROUND_CHECK:                             ; Rounding adjustment
 ; Calls: COPY_GFX_FROM_BUFFER
 ;==============================================================================
 COPY_ITEM_GFX_TO_CHRRAM:
-    LD          DE,(ITEM_ANIM_CHRRAM_PTR)     ; Load destination CHRRAM pointer for item anim
-    LD          HL,ITEM_MOVE_CHR_BUFFER       ; Load source buffer containing 4x4 item gfx
-    JP          COPY_GFX_FROM_BUFFER          ; Copy buffer graphics to CHRRAM at DE
+    LD          DE,(ITEM_ANIM_CHRRAM_PTR)           ; Load destination CHRRAM pointer for item anim
+    LD          HL,ITEM_MOVE_CHR_BUFFER             ; Load source buffer containing 4x4 item gfx
+    JP          COPY_GFX_FROM_BUFFER                ; Copy buffer graphics to CHRRAM at DE
     
  
 ;==============================================================================
@@ -1529,24 +1529,24 @@ COPY_ITEM_GFX_TO_CHRRAM:
 ; Calls: COPY_ITEM_GFX_TO_CHRRAM, NEW_RIGHT_HAND_ITEM
 ;==============================================================================
 ITEM_COMBAT_DISPATCH:
-    CALL        COPY_ITEM_GFX_TO_CHRRAM       ; Copy RH item gfx into CHRRAM
-    LD          A,$32                         ; Prepare status value $32
-    LD          (RAM_AC),A                    ; Store status into RAM_AC
-    LD          (RAM_AD),A                    ; Store status into RAM_AD
-    LD          A,(WEAPON_SPRT)               ; Load spiritual/physical weapon flag
-    LD          E,A                           ; Move flag into E for math
-    LD          D,0x0                         ; Clear D to form DE
-    CP          0x0                           ; Compare: physical (0) vs spiritual (≠0)
-    JP          NZ,CALC_SPRT_DAMAGE           ; If spiritual, branch to spiritual path
-    LD          DE,(WEAPON_PHYS)              ; Load physical weapon damage pair
-    EXX                                       ; Switch to alt regs for item setup
-    CALL        NEW_RIGHT_HAND_ITEM           ; Finalize right-hand item state
-    EXX                                       ; Restore primary regs
-    LD          HL,(PLAYER_PHYS_HEALTH_MAX)   ; Load player max physical health (BCD)
-    CALL        DIVIDE_BCD_HL_BY_2            ; Compute half of max health
-    CALL        RECALC_PHYS_HEALTH            ; Normalize/check health math state
-    JP          NC,APPLY_PHYS_DAMAGE          ; If no carry, proceed with physical mix/damage
-    LD          HL,0x0                        ; Else seed zero to proceed with fallback
+    CALL        COPY_ITEM_GFX_TO_CHRRAM             ; Copy RH item gfx into CHRRAM
+    LD          A,$32                               ; Prepare status value $32
+    LD          (RAM_AC),A                          ; Store status into RAM_AC
+    LD          (RAM_AD),A                          ; Store status into RAM_AD
+    LD          A,(WEAPON_SPRT)                     ; Load spiritual/physical weapon flag
+    LD          E,A                                 ; Move flag into E for math
+    LD          D,0x0                               ; Clear D to form DE
+    CP          0x0                                 ; Compare: physical (0) vs spiritual (≠0)
+    JP          NZ,CALC_SPRT_DAMAGE                 ; If spiritual, branch to spiritual path
+    LD          DE,(WEAPON_PHYS)                    ; Load physical weapon damage pair
+    EXX                                             ; Switch to alt regs for item setup
+    CALL        NEW_RIGHT_HAND_ITEM                 ; Finalize right-hand item state
+    EXX                                             ; Restore primary regs
+    LD          HL,(PLAYER_PHYS_HEALTH_MAX)         ; Load player max physical health (BCD)
+    CALL        DIVIDE_BCD_HL_BY_2                  ; Compute half of max health
+    CALL        RECALC_PHYS_HEALTH                  ; Normalize/check health math state
+    JP          NC,APPLY_PHYS_DAMAGE                ; If no carry, proceed with physical mix/damage
+    LD          HL,0x0                              ; Else seed zero to proceed with fallback
     
  
 ;==============================================================================
@@ -1576,31 +1576,31 @@ ITEM_COMBAT_DISPATCH:
 ; Calls: RANDOMIZE_BCD_NYBBLES (SUB_ram_e401), DIVIDE_BCD_HL_BY_2 (SUB_ram_e439), ADD_BCD_HL_DE (SUB_ram_e427), REDRAW_MONSTER_HEALTH
 ;==============================================================================
 APPLY_PHYS_DAMAGE:
-    CALL        RANDOMIZE_BCD_NYBBLES         ; Randomize BCD nybbles (seed mix)
-    LD          L,H                           ; Move H into L for mixing
-    LD          H,A                           ; Move random A into H
-    CALL        RANDOMIZE_BCD_NYBBLES         ; Randomize again for variability
-    LD          L,H                           ; Shuffle H→L
-    LD          H,A                           ; Shuffle A→H
-    EX          DE,HL                         ; Swap seed with weapon value
-    CALL        DIVIDE_BCD_HL_BY_2            ; Halve the seed (normalize)
-    EX          DE,HL                         ; Restore HL=seed, DE=weapon
-    CALL        ADD_BCD_HL_DE                 ; HL += DE (seed + weapon)
-    EX          DE,HL                         ; Swap again for further mix
-    CALL        RANDOMIZE_BCD_NYBBLES         ; Randomize to perturb mix
-    CALL        ADD_BCD_HL_DE                 ; HL += DE (final mix value)
-    LD          DE,(NEW_DAMAGE)               ; Point DE to NEW_DAMAGE storage
-    CALL        RECALC_PHYS_HEALTH            ; Compute resulting damage value
-    JP          C,PHYS_FALLBACK_SEED          ; If carry, use heavy fallback path
+    CALL        RANDOMIZE_BCD_NYBBLES               ; Randomize BCD nybbles (seed mix)
+    LD          L,H                                 ; Move H into L for mixing
+    LD          H,A                                 ; Move random A into H
+    CALL        RANDOMIZE_BCD_NYBBLES               ; Randomize again for variability
+    LD          L,H                                 ; Shuffle H→L
+    LD          H,A                                 ; Shuffle A→H
+    EX          DE,HL                               ; Swap seed with weapon value
+    CALL        DIVIDE_BCD_HL_BY_2                  ; Halve the seed (normalize)
+    EX          DE,HL                               ; Restore HL=seed, DE=weapon
+    CALL        ADD_BCD_HL_DE                       ; HL += DE (seed + weapon)
+    EX          DE,HL                               ; Swap again for further mix
+    CALL        RANDOMIZE_BCD_NYBBLES               ; Randomize to perturb mix
+    CALL        ADD_BCD_HL_DE                       ; HL += DE (final mix value)
+    LD          DE,(NEW_DAMAGE)                     ; Point DE to NEW_DAMAGE storage
+    CALL        RECALC_PHYS_HEALTH                  ; Compute resulting damage value
+    JP          C,PHYS_FALLBACK_SEED                ; If carry, use heavy fallback path
 MONSTER_TAKES_PHYS_DAMAGE:
-    EX          DE,HL                         ; HL=NEW_DAMAGE, DE=monster phys
-    LD          HL,(CURR_MONSTER_PHYS)        ; Load monster physical HP (BCD)
-    CALL        RECALC_PHYS_HEALTH            ; Apply damage calculation to HL vs DE
-    JP          C,MONSTER_PHYS_DEATH          ; If carry/underflow, treat as death
-    OR          L                              ; Check if low byte is zero
-    JP          Z,MONSTER_PHYS_DEATH          ; If zero, monster dead
-    LD          (CURR_MONSTER_PHYS),HL        ; Store updated monster physical HP
-    JP          REDRAW_MONSTER_HEALTH         ; Refresh HUD with new HP
+    EX          DE,HL                               ; HL=NEW_DAMAGE, DE=monster phys
+    LD          HL,(CURR_MONSTER_PHYS)              ; Load monster physical HP (BCD)
+    CALL        RECALC_PHYS_HEALTH                  ; Apply damage calculation to HL vs DE
+    JP          C,MONSTER_PHYS_DEATH                ; If carry/underflow, treat as death
+    OR          L                                   ; Check if low byte is zero
+    JP          Z,MONSTER_PHYS_DEATH                ; If zero, monster dead
+    LD          (CURR_MONSTER_PHYS),HL              ; Store updated monster physical HP
+    JP          REDRAW_MONSTER_HEALTH               ; Refresh HUD with new HP
 
  
 ;==============================================================================
@@ -1628,9 +1628,9 @@ MONSTER_TAKES_PHYS_DAMAGE:
 ; Calls: RANDOMIZE_BCD_NYBBLES
 ;==============================================================================
 PHYS_FALLBACK_SEED:
-    LD          HL,0x6                        ; Seed HL with constant 6
-    CALL        RANDOMIZE_BCD_NYBBLES         ; Randomize seed for non-trivial hit
-    JP          MONSTER_TAKES_PHYS_DAMAGE     ; Continue with standard apply path
+    LD          HL,0x6                              ; Seed HL with constant 6
+    CALL        RANDOMIZE_BCD_NYBBLES               ; Randomize seed for non-trivial hit
+    JP          MONSTER_TAKES_PHYS_DAMAGE           ; Continue with standard apply path
     
  
 ;==============================================================================
@@ -1660,87 +1660,87 @@ PHYS_FALLBACK_SEED:
 ; Calls: REDRAW_MONSTER_HEALTH, EXPAND_STAT_THRESHOLDS, SUB_ram_e439, UPDATE_SCR_SAVER_TIMER
 ;==============================================================================
 MONSTER_PHYS_DEATH:
-    EXX                                       ; Use alt regs for clear/HUD
-    LD          HL,0x0                        ; HL = 0
-    LD          (CURR_MONSTER_PHYS),HL        ; Clear monster physical HP
-    CALL        REDRAW_MONSTER_HEALTH         ; Redraw HUD after death
-    EXX                                       ; Restore primary regs
-    INC         L                             ; Increment local threshold counter
-    LD          A,$99                         ; Load high threshold constant
-    CP          H                             ; Compare against H
-    JP          NZ,MONSTER_KILLED             ; If mismatch, conclude kill
-    LD          A,$61                         ; Load low threshold constant
-    CP          L                             ; Compare against L
-    JP          NC,MONSTER_KILLED             ; If <=, conclude kill
-    LD          A,(COLRAM_PHYS_STATS_1000)    ; Read phys stats color/threshold byte
-    CALL        EXPAND_STAT_THRESHOLDS        ; Expand thresholds into B/C
-    LD          HL,(PLAYER_PHYS_HEALTH_MAX)   ; Load player max physical health
-    CALL        DIVIDE_BCD_HL_BY_2            ; Half the max health
-    LD          A,L                           ; A = low byte half
-    CP          B                             ; Compare with scaled threshold B
-    JP          NC,MONSTER_KILLED             ; If not above, conclude kill
+    EXX                                             ; Use alt regs for clear/HUD
+    LD          HL,0x0                              ; HL = 0
+    LD          (CURR_MONSTER_PHYS),HL              ; Clear monster physical HP
+    CALL        REDRAW_MONSTER_HEALTH               ; Redraw HUD after death
+    EXX                                             ; Restore primary regs
+    INC         L                                   ; Increment local threshold counter
+    LD          A,$99                               ; Load high threshold constant
+    CP          H                                   ; Compare against H
+    JP          NZ,MONSTER_KILLED                   ; If mismatch, conclude kill
+    LD          A,$61                               ; Load low threshold constant
+    CP          L                                   ; Compare against L
+    JP          NC,MONSTER_KILLED                   ; If <=, conclude kill
+    LD          A,(COLRAM_PHYS_STATS_1000)          ; Read phys stats color/threshold byte
+    CALL        EXPAND_STAT_THRESHOLDS              ; Expand thresholds into B/C
+    LD          HL,(PLAYER_PHYS_HEALTH_MAX)         ; Load player max physical health
+    CALL        DIVIDE_BCD_HL_BY_2                  ; Half the max health
+    LD          A,L                                 ; A = low byte half
+    CP          B                                   ; Compare with scaled threshold B
+    JP          NC,MONSTER_KILLED                   ; If not above, conclude kill
 PHYS_THRESHOLD_LOOP:
-    CALL        UPDATE_SCR_SAVER_TIMER        ; Tick screen saver timer
-    SUB         $40                           ; Reduce local counter by 0x40
-    JP          C,INCREASE_MAX_PHYS_HEALTH    ; If underflow, increase max phys
-    CP          C                             ; Compare remaining against C threshold
-    JP          NC,MONSTER_KILLED             ; If <=, conclude kill
+    CALL        UPDATE_SCR_SAVER_TIMER              ; Tick screen saver timer
+    SUB         $40                                 ; Reduce local counter by 0x40
+    JP          C,INCREASE_MAX_PHYS_HEALTH          ; If underflow, increase max phys
+    CP          C                                   ; Compare remaining against C threshold
+    JP          NC,MONSTER_KILLED                   ; If <=, conclude kill
 INCREASE_MAX_PHYS_HEALTH:
-    LD          HL,(PLAYER_PHYS_HEALTH_MAX)   ; Load current max phys health
-    LD          A,L                           ; A = low byte
-    ADD         A,0x1                         ; Increment by 1
-    DAA                                       ; Adjust to valid BCD
-    LD          L,A                           ; Store back to L
-    LD          A,H                           ; A = high byte
-    ADC         A,0x0                         ; Propagate carry into H
-    LD          H,A                           ; Store back to H
-    LD          (PLAYER_PHYS_HEALTH_MAX),HL   ; Save updated max phys health
-    LD          A,C                           ; A = C threshold
-    SUB         $10                           ; Reduce threshold step by 0x10
-    JP          C,MONSTER_KILLED              ; If underflow, conclude kill
-    LD          C,A                           ; Update C with reduced threshold
-    JP          PHYS_THRESHOLD_LOOP           ; Loop threshold processing
+    LD          HL,(PLAYER_PHYS_HEALTH_MAX)         ; Load current max phys health
+    LD          A,L                                 ; A = low byte
+    ADD         A,0x1                               ; Increment by 1
+    DAA                                             ; Adjust to valid BCD
+    LD          L,A                                 ; Store back to L
+    LD          A,H                                 ; A = high byte
+    ADC         A,0x0                               ; Propagate carry into H
+    LD          H,A                                 ; Store back to H
+    LD          (PLAYER_PHYS_HEALTH_MAX),HL         ; Save updated max phys health
+    LD          A,C                                 ; A = C threshold
+    SUB         $10                                 ; Reduce threshold step by 0x10
+    JP          C,MONSTER_KILLED                    ; If underflow, conclude kill
+    LD          C,A                                 ; Update C with reduced threshold
+    JP          PHYS_THRESHOLD_LOOP                 ; Loop threshold processing
 CALC_SPRT_DAMAGE:
-    LD          A,(PLAYER_SPRT_HEALTH_MAX)    ; Load player max spiritual health
-    LD          H,0x0                         ; Clear high byte
-    LD          L,A                           ; HL = max sprt as BCD
-    EXX                                       ; Use alt regs for item setup
-    CALL        NEW_RIGHT_HAND_ITEM           ; Finalize right-hand item state
-    EXX                                       ; Restore primary regs
-    CALL        DIVIDE_BCD_HL_BY_2            ; Half the spiritual max
-    LD          A,L                           ; A = half value
-    SUB         E                             ; Subtract weapon sprt component
-    DAA                                       ; Normalize to BCD
-    LD          L,A                           ; L = adjusted half
-    JP          NC,SPRT_SEED_MIX              ; If no borrow, continue
-    LD          L,0x0                         ; If negative, clamp to 0
+    LD          A,(PLAYER_SPRT_HEALTH_MAX)          ; Load player max spiritual health
+    LD          H,0x0                               ; Clear high byte
+    LD          L,A                                 ; HL = max sprt as BCD
+    EXX                                             ; Use alt regs for item setup
+    CALL        NEW_RIGHT_HAND_ITEM                 ; Finalize right-hand item state
+    EXX                                             ; Restore primary regs
+    CALL        DIVIDE_BCD_HL_BY_2                  ; Half the spiritual max
+    LD          A,L                                 ; A = half value
+    SUB         E                                   ; Subtract weapon sprt component
+    DAA                                             ; Normalize to BCD
+    LD          L,A                                 ; L = adjusted half
+    JP          NC,SPRT_SEED_MIX                    ; If no borrow, continue
+    LD          L,0x0                               ; If negative, clamp to 0
 SPRT_SEED_MIX:
-    CALL        RANDOMIZE_BCD_NYBBLES         ; Randomize seed
-    EX          DE,HL                         ; Swap seed with DE
-    CALL        DIVIDE_BCD_HL_BY_2            ; Halve seed
-    LD          A,L                           ; A = low byte seed
-    ADD         A,E                           ; Add weapon sprt value
-    DAA                                       ; Normalize to BCD
-    LD          E,A                           ; E = mixed value
-    CALL        RANDOMIZE_BCD_NYBBLES         ; Randomize again
-    ADD         A,E                           ; Add mixed value
-    DAA                                       ; Normalize to BCD
-    LD          L,A                           ; L = final seed
-    LD          A,(BYTE_ram_3aa5)             ; Load environment/bonus modifier
-    LD          E,A                           ; E = modifier
-    LD          A,L                           ; A = seed
-    SUB         E                             ; Subtract modifier to adjust
-    DAA                                       ; Normalize to BCD
-    JP          C,SPRT_FALLBACK_SEED          ; If negative, use fallback seed
-    LD          L,A                           ; L = adjusted seed
+    CALL        RANDOMIZE_BCD_NYBBLES               ; Randomize seed
+    EX          DE,HL                               ; Swap seed with DE
+    CALL        DIVIDE_BCD_HL_BY_2                  ; Halve seed
+    LD          A,L                                 ; A = low byte seed
+    ADD         A,E                                 ; Add weapon sprt value
+    DAA                                             ; Normalize to BCD
+    LD          E,A                                 ; E = mixed value
+    CALL        RANDOMIZE_BCD_NYBBLES               ; Randomize again
+    ADD         A,E                                 ; Add mixed value
+    DAA                                             ; Normalize to BCD
+    LD          L,A                                 ; L = final seed
+    LD          A,(BYTE_ram_3aa5)                   ; Load environment/bonus modifier
+    LD          E,A                                 ; E = modifier
+    LD          A,L                                 ; A = seed
+    SUB         E                                   ; Subtract modifier to adjust
+    DAA                                             ; Normalize to BCD
+    JP          C,SPRT_FALLBACK_SEED                ; If negative, use fallback seed
+    LD          L,A                                 ; L = adjusted seed
 MONSTER_TAKES_SPRT_DAMAGE:
-    LD          A,(CURR_MONSTER_SPRT)         ; Load monster spiritual HP
-    SUB         L                             ; Apply damage L to A
-    DAA                                       ; Normalize to BCD
-    JP          C,MONSTER_SPRT_DEATH          ; If underflow, kill path
-    JP          Z,MONSTER_SPRT_DEATH          ; If zero, kill path
-    LD          (CURR_MONSTER_SPRT),A         ; Store updated spiritual HP
-    JP          REDRAW_MONSTER_HEALTH         ; Refresh HUD
+    LD          A,(CURR_MONSTER_SPRT)               ; Load monster spiritual HP
+    SUB         L                                   ; Apply damage L to A
+    DAA                                             ; Normalize to BCD
+    JP          C,MONSTER_SPRT_DEATH                ; If underflow, kill path
+    JP          Z,MONSTER_SPRT_DEATH                ; If zero, kill path
+    LD          (CURR_MONSTER_SPRT),A               ; Store updated spiritual HP
+    JP          REDRAW_MONSTER_HEALTH               ; Refresh HUD
  
 ;==============================================================================
 ; SPRT_FALLBACK_SEED  
@@ -1767,9 +1767,9 @@ MONSTER_TAKES_SPRT_DAMAGE:
 ; Calls: RANDOMIZE_BCD_NYBBLES, MONSTER_TAKES_SPRT_DAMAGE
 ;==============================================================================
 SPRT_FALLBACK_SEED:
-    LD          HL,0x3                        ; Seed HL with small constant 3
-    CALL        RANDOMIZE_BCD_NYBBLES         ; Randomize seed for variability
-    JP          MONSTER_TAKES_SPRT_DAMAGE     ; Continue to apply spiritual damage
+    LD          HL,0x3                              ; Seed HL with small constant 3
+    CALL        RANDOMIZE_BCD_NYBBLES               ; Randomize seed for variability
+    JP          MONSTER_TAKES_SPRT_DAMAGE           ; Continue to apply spiritual damage
  
 ;==============================================================================
 ; MONSTER_SPRT_DEATH  
@@ -1797,56 +1797,56 @@ SPRT_FALLBACK_SEED:
 ; Calls: REDRAW_MONSTER_HEALTH, EXPAND_STAT_THRESHOLDS, UPDATE_SCR_SAVER_TIMER
 ;==============================================================================
 MONSTER_SPRT_DEATH:
-    PUSH        AF                            ; Preserve recent accumulator
-    XOR         A                             ; A = 0
-    LD          (CURR_MONSTER_SPRT),A         ; Clear monster spiritual HP
-    CALL        REDRAW_MONSTER_HEALTH         ; Update HUD
-    POP         AF                            ; Restore accumulator
-    DEC         A                             ; Decrement for threshold start
-    CP          $86                           ; Compare against constant $86
-    JP          C,ITEM_USED_UP                ; If below, item is used up
-    LD          A,(COLRAM_SPRT_STATS_10)      ; Load spiritual stats threshold byte
-    CALL        EXPAND_STAT_THRESHOLDS        ; Expand into B/C thresholds
-    LD          A,(PLAYER_SPRT_HEALTH_MAX)    ; Load player max spiritual health
-    CP          B                             ; Compare to threshold B
-    JP          NC,ITEM_USED_UP               ; If not greater, item used up
+    PUSH        AF                                  ; Preserve recent accumulator
+    XOR         A                                   ; A = 0
+    LD          (CURR_MONSTER_SPRT),A               ; Clear monster spiritual HP
+    CALL        REDRAW_MONSTER_HEALTH               ; Update HUD
+    POP         AF                                  ; Restore accumulator
+    DEC         A                                   ; Decrement for threshold start
+    CP          $86                                 ; Compare against constant $86
+    JP          C,ITEM_USED_UP                      ; If below, item is used up
+    LD          A,(COLRAM_SPRT_STATS_10)            ; Load spiritual stats threshold byte
+    CALL        EXPAND_STAT_THRESHOLDS              ; Expand into B/C thresholds
+    LD          A,(PLAYER_SPRT_HEALTH_MAX)          ; Load player max spiritual health
+    CP          B                                   ; Compare to threshold B
+    JP          NC,ITEM_USED_UP                     ; If not greater, item used up
  
 ;==============================================================================
 ; REDUCE_ITEM_BY_30  
 REDUCE_ITEM_BY_30:
-    CALL        UPDATE_SCR_SAVER_TIMER        ; Tick screen saver timer
-    SUB         $30                           ; Reduce local counter by 0x30
-    JP          C,INCREASE_MAX_SPRT_HEALTH    ; Underflow triggers max sprt increase
-    CP          C                             ; Compare remaining against C threshold
-    JP          NC,ITEM_USED_UP               ; If <=, item used up
+    CALL        UPDATE_SCR_SAVER_TIMER              ; Tick screen saver timer
+    SUB         $30                                 ; Reduce local counter by 0x30
+    JP          C,INCREASE_MAX_SPRT_HEALTH          ; Underflow triggers max sprt increase
+    CP          C                                   ; Compare remaining against C threshold
+    JP          NC,ITEM_USED_UP                     ; If <=, item used up
  
 ;==============================================================================
 ; INCREASE_MAX_SPRT_HEALTH  
 INCREASE_MAX_SPRT_HEALTH:
-    LD          A,(PLAYER_SPRT_HEALTH_MAX)    ; Load current max spiritual health
-    ADD         A,0x1                         ; Increment by 1
-    DAA                                       ; Adjust to valid BCD
-    LD          (PLAYER_SPRT_HEALTH_MAX),A    ; Store updated max sprt health
-    LD          A,C                           ; A = C threshold
-    SUB         $10                           ; Reduce threshold by 0x10 step
-    JP          C,ITEM_USED_UP                ; If underflow, end
-    LD          C,A                           ; Update C threshold
-    JP          REDUCE_ITEM_BY_30             ; Loop reduction/increase sequence
+    LD          A,(PLAYER_SPRT_HEALTH_MAX)          ; Load current max spiritual health
+    ADD         A,0x1                               ; Increment by 1
+    DAA                                             ; Adjust to valid BCD
+    LD          (PLAYER_SPRT_HEALTH_MAX),A          ; Store updated max sprt health
+    LD          A,C                                 ; A = C threshold
+    SUB         $10                                 ; Reduce threshold by 0x10 step
+    JP          C,ITEM_USED_UP                      ; If underflow, end
+    LD          C,A                                 ; Update C threshold
+    JP          REDUCE_ITEM_BY_30                   ; Loop reduction/increase sequence
  
 ;==============================================================================
 ; ITEM_USED_UP  
 ITEM_USED_UP:
-    JP          MONSTER_KILLED                ; Conclude: monster killed, item consumed
+    JP          MONSTER_KILLED                      ; Conclude: monster killed, item consumed
  
 ;==============================================================================
 ; CLEAR_MONSTER_STATS  
 CLEAR_MONSTER_STATS:
-    XOR         A                             ; A=0
-    LD          (COMBAT_BUSY_FLAG),A          ; Clear combat busy flag
-    LD          BC,$403                       ; BC = width/height for fill rect
-    LD          HL,CHRRAM_LEVEL_IDX           ; HL = CHRRAM start index
-    LD          A,$20                         ; A = fill color/code
-    JP          FILL_CHRCOL_RECT              ; Fill screen region to clear stats
+    XOR         A                                   ; A=0
+    LD          (COMBAT_BUSY_FLAG),A                ; Clear combat busy flag
+    LD          BC,$403                             ; BC = width/height for fill rect
+    LD          HL,CHRRAM_LEVEL_IDX                 ; HL = CHRRAM start index
+    LD          A,$20                               ; A = fill color/code
+    JP          FILL_CHRCOL_RECT                    ; Fill screen region to clear stats
  
 ;==============================================================================
 ; EXPAND_STAT_THRESHOLDS  
@@ -1878,26 +1878,26 @@ CLEAR_MONSTER_STATS:
 ; Calls: None
 ;==============================================================================
 EXPAND_STAT_THRESHOLDS:
-    AND         0xf                           ; Mask to low nybble
-    INC         A                             ; Increment seed (x2 total)
-    INC         A                             ; Increment again
-    LD          B,A                           ; B = base seed
-    RLCA                                      ; Rotate left 4 times (×16)
+    AND         0xf                                 ; Mask to low nybble
+    INC         A                                   ; Increment seed (x2 total)
+    INC         A                                   ; Increment again
+    LD          B,A                                 ; B = base seed
+    RLCA                                            ; Rotate left 4 times (×16)
     RLCA
     RLCA
     RLCA
-    LD          C,A                           ; C = rotated high-nybble value
-    LD          A,B                           ; A = base seed
-    ADD         A,A                           ; ×2 scale in BCD
-    DAA                                       ; Normalize BCD
-    ADD         A,A                           ; ×4
-    DAA                                       ; Normalize
-    ADD         A,A                           ; ×8
-    DAA                                       ; Normalize
-    ADD         A,A                           ; ×16
-    DAA                                       ; Normalize
-    LD          B,A                           ; B = scaled threshold
-    RET                                       ; Return with B/C prepared
+    LD          C,A                                 ; C = rotated high-nybble value
+    LD          A,B                                 ; A = base seed
+    ADD         A,A                                 ; ×2 scale in BCD
+    DAA                                             ; Normalize BCD
+    ADD         A,A                                 ; ×4
+    DAA                                             ; Normalize
+    ADD         A,A                                 ; ×8
+    DAA                                             ; Normalize
+    ADD         A,A                                 ; ×16
+    DAA                                             ; Normalize
+    LD          B,A                                 ; B = scaled threshold
+    RET                                             ; Return with B/C prepared
 
 ;==============================================================================
 ; MELEE_ANIM_LOOP
@@ -1944,32 +1944,32 @@ EXPAND_STAT_THRESHOLDS:
 ; Calls: SOUND_05, MELEE_DRAW_WEAPON_FRAME, COPY_GFX_2_BUFFER, CHK_ITEM
 ;==============================================================================
 MELEE_ANIM_LOOP:
-    CALL        SOUND_05                        ; Play attack sound blip
-    LD          A,(MELEE_ANIM_STATE)            ; Load current animation state (1 or 3)
-    LD          HL,(MONSTER_ATT_POS_COUNT)      ; Load position frame counter
-    DEC         A                               ; Decrement state: 1→0 or 3→2
-    JP          NZ,MELEE_MOVE_MONSTER_TO_PLAYER ; If state≠1, jump to increment position
-    DEC         L                               ; State=1: decrement low byte of counter
-    JP          NZ,MELEE_MOVE_PLAYER_TO_MONSTER ; If L≠0, continue animation
-    DEC         H                               ; L reached 0: decrement high byte
-    JP          Z,FINISH_AND_APPLY_DAMAGE       ; If both bytes=0, animation done, apply damage
-    LD          A,$32                           ; Reset some animation flag
-    LD          (RAM_AF),A                      ; Store flag value
-    LD          L,0x2                           ; Reset low counter to 2
+    CALL        SOUND_05                            ; Play attack sound blip
+    LD          A,(MELEE_ANIM_STATE)                ; Load current animation state (1 or 3)
+    LD          HL,(MONSTER_ATT_POS_COUNT)          ; Load position frame counter
+    DEC         A                                   ; Decrement state: 1→0 or 3→2
+    JP          NZ,MELEE_MOVE_MONSTER_TO_PLAYER     ; If state≠1, jump to increment position
+    DEC         L                                   ; State=1: decrement low byte of counter
+    JP          NZ,MELEE_MOVE_PLAYER_TO_MONSTER     ; If L≠0, continue animation
+    DEC         H                                   ; L reached 0: decrement high byte
+    JP          Z,FINISH_AND_APPLY_DAMAGE           ; If both bytes=0, animation done, apply damage
+    LD          A,$32                               ; Reset some animation flag
+    LD          (RAM_AF),A                          ; Store flag value
+    LD          L,0x2                               ; Reset low counter to 2
 MELEE_MOVE_PLAYER_TO_MONSTER:
-    LD          A,0x3                           ; Set animation state to 3 (player attacking)
-    LD          (MELEE_ANIM_STATE),A            ; Store new state
-    LD          (MONSTER_ATT_POS_COUNT),HL      ; Save updated frame counter
-    LD          HL,(MONSTER_ATT_POS_OFFSET)     ; Load current weapon screen position
-    LD          BC,$29                          ; BC = 41 (one row + 1 cell advance)
-    ADD         HL,BC                           ; Advance weapon position by 41 bytes
-    LD          (MONSTER_ATT_POS_OFFSET),HL     ; Store new weapon position
-    JP          MELEE_DRAW_WEAPON_FRAME         ; Draw weapon at new position
+    LD          A,0x3                               ; Set animation state to 3 (player attacking)
+    LD          (MELEE_ANIM_STATE),A                ; Store new state
+    LD          (MONSTER_ATT_POS_COUNT),HL          ; Save updated frame counter
+    LD          HL,(MONSTER_ATT_POS_OFFSET)         ; Load current weapon screen position
+    LD          BC,$29                              ; BC = 41 (one row + 1 cell advance)
+    ADD         HL,BC                               ; Advance weapon position by 41 bytes
+    LD          (MONSTER_ATT_POS_OFFSET),HL         ; Store new weapon position
+    JP          MELEE_DRAW_WEAPON_FRAME             ; Draw weapon at new position
 MELEE_MOVE_MONSTER_TO_PLAYER:
-    LD          (MELEE_ANIM_STATE),A            ; Store current state (decremented)
-    LD          HL,(MONSTER_ATT_POS_OFFSET)     ; Load current weapon screen position
-    INC         HL                              ; Move weapon forward by 1 byte
-    LD          (MONSTER_ATT_POS_OFFSET),HL     ; Store new position
+    LD          (MELEE_ANIM_STATE),A                ; Store current state (decremented)
+    LD          HL,(MONSTER_ATT_POS_OFFSET)         ; Load current weapon screen position
+    INC         HL                                  ; Move weapon forward by 1 byte
+    LD          (MONSTER_ATT_POS_OFFSET),HL         ; Store new position
 
 ;==============================================================================
 ; MELEE_DRAW_WEAPON_FRAME
@@ -2006,25 +2006,25 @@ MELEE_MOVE_MONSTER_TO_PLAYER:
 ; Calls: COPY_GFX_2_BUFFER, CHK_ITEM
 ;==============================================================================
 MELEE_DRAW_WEAPON_FRAME:
-    LD          BC,$c8                          ; BC = 200 (screen offset adjustment)
-    XOR         A                               ; A = 0 (clear for subtraction)
-    SBC         HL,BC                           ; HL = screen position - 200 (calculate actual CHRRAM address)
-    PUSH        HL                              ; Save adjusted screen address
-    ADD         HL,BC                           ; Restore original position offset
-    LD          DE,BYTE_ram_3a20                ; DE = background buffer address
-    CALL        COPY_GFX_2_BUFFER               ; Save 4x4 screen area to buffer
-    POP         BC                              ; BC = adjusted screen address (from stack)
-    LD          B,0x0                           ; B = 0 (clear high byte for CHK_ITEM parameter)
-    LD          A,(RAM_AF)                      ; Load animation frame/flag
-    LD          (MON_FS),A                      ; Store as monster/weapon sprite frame selector
-    LD          A,(MONSTER_SPRITE_FRAME)        ; Load weapon sprite ID
-    CALL        CHK_ITEM                        ; Draw weapon sprite at position BC
-    LD          A,$32                           ; Reset sprite frame flag
-    LD          (MON_FS),A                      ; Store reset value
-    LD          A,(TIMER_A)                     ; Load system timer
-    ADD         A,$ff                           ; Decrement timer (add -1)
-    LD          (MONSTER_ANIM_TIMER_COPY),A     ; Store updated animation timer
-    RET                                         ; Return to animation loop
+    LD          BC,$c8                              ; BC = 200 (screen offset adjustment)
+    XOR         A                                   ; A = 0 (clear for subtraction)
+    SBC         HL,BC                               ; HL = screen position - 200 (calculate actual CHRRAM address)
+    PUSH        HL                                  ; Save adjusted screen address
+    ADD         HL,BC                               ; Restore original position offset
+    LD          DE,BYTE_ram_3a20                    ; DE = background buffer address
+    CALL        COPY_GFX_2_BUFFER                   ; Save 4x4 screen area to buffer
+    POP         BC                                  ; BC = adjusted screen address (from stack)
+    LD          B,0x0                               ; B = 0 (clear high byte for CHK_ITEM parameter)
+    LD          A,(RAM_AF)                          ; Load animation frame/flag
+    LD          (MON_FS),A                          ; Store as monster/weapon sprite frame selector
+    LD          A,(MONSTER_SPRITE_FRAME)            ; Load weapon sprite ID
+    CALL        CHK_ITEM                            ; Draw weapon sprite at position BC
+    LD          A,$32                               ; Reset sprite frame flag
+    LD          (MON_FS),A                          ; Store reset value
+    LD          A,(TIMER_A)                         ; Load system timer
+    ADD         A,$ff                               ; Decrement timer (add -1)
+    LD          (MONSTER_ANIM_TIMER_COPY),A         ; Store updated animation timer
+    RET                                             ; Return to animation loop
 
 ;==============================================================================
 ; MELEE_RESTORE_BG_FROM_BUFFER
@@ -2051,9 +2051,9 @@ MELEE_DRAW_WEAPON_FRAME:
 ; Calls: COPY_GFX_FROM_BUFFER
 ;==============================================================================
 MELEE_RESTORE_BG_FROM_BUFFER:
-    LD          DE,(MONSTER_ATT_POS_OFFSET)     ; DE = screen position where weapon is drawn
-    LD          HL,BYTE_ram_3a20                ; HL = buffer with saved background
-    JP          COPY_GFX_FROM_BUFFER            ; Restore background, erasing weapon sprite
+    LD          DE,(MONSTER_ATT_POS_OFFSET)         ; DE = screen position where weapon is drawn
+    LD          HL,BYTE_ram_3a20                    ; HL = buffer with saved background
+    JP          COPY_GFX_FROM_BUFFER                ; Restore background, erasing weapon sprite
 
 ;==============================================================================
 ; FINISH_AND_APPLY_DAMAGE
@@ -2094,19 +2094,19 @@ MELEE_RESTORE_BG_FROM_BUFFER:
 ;        REDRAW_STATS, PLAYER_DIES, REDRAW_START, REDRAW_VIEWPORT
 ;==============================================================================
 FINISH_AND_APPLY_DAMAGE:
-    CALL        MELEE_RESTORE_BG_FROM_BUFFER    ; Restore background, erase weapon sprite
-                                                ; Note: This call restores the saved 4x4 background
-                                                ; block into the viewport, effectively erasing the
-                                                ; weapon sprite drawn during the previous frame.
-    LD          A,$31                           ; Set damage calculation flag
-    LD          (RAM_AF),A                      ; Store flag
-    LD          (RAM_AE),A                      ; Store flag copy
-    LD          A,(INPUT_HOLDER)                ; Load number of damage iterations
-    LD          B,A                             ; B = iteration counter
-    LD          H,0x0                           ; H = 0 (high byte of damage accumulator)
-    LD          A,(WEAPON_VALUE_HOLDER)         ; Load base weapon damage value
-    LD          L,A                             ; L = base damage (low byte)
-    JP          ACCUM_DAMAGE_LOOP               ; Jump into damage calculation loop
+    CALL        MELEE_RESTORE_BG_FROM_BUFFER        ; Restore background, erase weapon sprite
+                                                    ; Note: This call restores the saved 4x4 background
+                                                    ; block into the viewport, effectively erasing the
+                                                    ; weapon sprite drawn during the previous frame.
+    LD          A,$31                               ; Set damage calculation flag
+    LD          (RAM_AF),A                          ; Store flag
+    LD          (RAM_AE),A                          ; Store flag copy
+    LD          A,(INPUT_HOLDER)                    ; Load number of damage iterations
+    LD          B,A                                 ; B = iteration counter
+    LD          H,0x0                               ; H = 0 (high byte of damage accumulator)
+    LD          A,(WEAPON_VALUE_HOLDER)             ; Load base weapon damage value
+    LD          L,A                                 ; L = base damage (low byte)
+    JP          ACCUM_DAMAGE_LOOP                   ; Jump into damage calculation loop
 
 ;==============================================================================
 ; ACCUM_DAMAGE_STEP — BCD Damage Accumulation Loop Body
@@ -2144,8 +2144,8 @@ FINISH_AND_APPLY_DAMAGE:
 ; Calls: None (called by ACCUM_DAMAGE_LOOP)
 ;==============================================================================
 ACCUM_DAMAGE_STEP:
-    ADD         A,L                             ; A = A + L (accumulate damage)
-    DAA                                         ; Decimal adjust for BCD arithmetic
+    ADD         A,L                                 ; A = A + L (accumulate damage)
+    DAA                                             ; Decimal adjust for BCD arithmetic
 
 ;==============================================================================
 ; ACCUM_DAMAGE_LOOP — Damage Multiplication Entry Point
@@ -2184,26 +2184,26 @@ ACCUM_DAMAGE_STEP:
 ; Calls: ACCUM_DAMAGE_STEP (loops back)
 ;==============================================================================
 ACCUM_DAMAGE_LOOP:
-    DJNZ        ACCUM_DAMAGE_STEP               ; Loop B times: B--, if B != 0 jump to step
-    LD          L,A                             ; L = total calculated damage
-    LD          A,(MONSTER_SPRITE_FRAME)        ; Load target identifier (sprite frame code)
-    AND         $fc                             ; Mask to sprite family ($24-$27 → $24)
-    CP          $24                             ; Check if player is target ($24-$27 range)
-    JP          NZ,MONSTER_PHYS_BRANCH          ; If not player target, jump to monster damage
+    DJNZ        ACCUM_DAMAGE_STEP                   ; Loop B times: B--, if B != 0 jump to step
+    LD          L,A                                 ; L = total calculated damage
+    LD          A,(MONSTER_SPRITE_FRAME)            ; Load target identifier (sprite frame code)
+    AND         $fc                                 ; Mask to sprite family ($24-$27 → $24)
+    CP          $24                                 ; Check if player is target ($24-$27 range)
+    JP          NZ,MONSTER_PHYS_BRANCH              ; If not player target, jump to monster damage
     
     ; Player is target - calculate spiritual shield effectiveness
-    LD          A,(SHIELD_SPRT)                 ; Load player's spiritual shield value
-    LD          E,A                             ; E = shield defense value (saved for later)
-    CALL        DIVIDE_BCD_HL_BY_2              ; HL = damage / 2; result in L (shield effectiveness roll)
-    LD          D,L                             ; D = shield roll result (half damage)
-    CALL        RANDOMIZE_BCD_NYBBLES           ; Randomize L nybbles for variance
-    LD          A,L                             ; A = random variance value
-    ADD         A,D                             ; A = shield roll + variance
-    DAA                                         ; Decimal adjust for BCD
-    SUB         E                               ; A = (shield roll + variance) - shield value
-    DAA                                         ; Decimal adjust for BCD
-    JP          C,SHIELD_BLOCKS_DAMAGE          ; If negative (shield blocked), reduce damage
-    LD          E,A                             ; E = final damage to apply (penetrated shield) (penetrated shield)
+    LD          A,(SHIELD_SPRT)                     ; Load player's spiritual shield value
+    LD          E,A                                 ; E = shield defense value (saved for later)
+    CALL        DIVIDE_BCD_HL_BY_2                  ; HL = damage / 2; result in L (shield effectiveness roll)
+    LD          D,L                                 ; D = shield roll result (half damage)
+    CALL        RANDOMIZE_BCD_NYBBLES               ; Randomize L nybbles for variance
+    LD          A,L                                 ; A = random variance value
+    ADD         A,D                                 ; A = shield roll + variance
+    DAA                                             ; Decimal adjust for BCD
+    SUB         E                                   ; A = (shield roll + variance) - shield value
+    DAA                                             ; Decimal adjust for BCD
+    JP          C,SHIELD_BLOCKS_DAMAGE              ; If negative (shield blocked), reduce damage
+    LD          E,A                                 ; E = final damage to apply (penetrated shield) (penetrated shield)
 
 ;==============================================================================
 ; PLAYER_TAKES_SPRT_DAMAGE — Apply Spiritual Damage to Player
@@ -2240,14 +2240,14 @@ ACCUM_DAMAGE_LOOP:
 ; Calls: PLAYER_DIES, REDRAW_STATS, REDRAW_SCREEN_AFTER_DAMAGE
 ;==============================================================================
 PLAYER_TAKES_SPRT_DAMAGE:
-    LD          A,(PLAYER_SPRT_HEALTH)          ; Load player's current spiritual health
-    SUB         E                               ; A = health - damage (BCD subtraction)
-    DAA                                         ; Decimal adjust for BCD
-    JP          C,PLAYER_DIES                   ; If negative (carry set), player dies
-    JP          Z,PLAYER_DIES                   ; If zero health, player dies
-    LD          (PLAYER_SPRT_HEALTH),A          ; Store new health value
-    CALL        REDRAW_STATS                    ; Update stats display on screen
-    JP          REDRAW_SCREEN_AFTER_DAMAGE      ; Jump to finish animation and redraw and redraw
+    LD          A,(PLAYER_SPRT_HEALTH)              ; Load player's current spiritual health
+    SUB         E                                   ; A = health - damage (BCD subtraction)
+    DAA                                             ; Decimal adjust for BCD
+    JP          C,PLAYER_DIES                       ; If negative (carry set), player dies
+    JP          Z,PLAYER_DIES                       ; If zero health, player dies
+    LD          (PLAYER_SPRT_HEALTH),A              ; Store new health value
+    CALL        REDRAW_STATS                        ; Update stats display on screen
+    JP          REDRAW_SCREEN_AFTER_DAMAGE          ; Jump to finish animation and redraw and redraw
 
 ;==============================================================================
 ; SHIELD_BLOCKS_DAMAGE — Shield Block Damage Reduction
@@ -2281,10 +2281,10 @@ PLAYER_TAKES_SPRT_DAMAGE:
 ; Calls: RANDOMIZE_BCD_NYBBLES, PLAYER_TAKES_SPRT_DAMAGE
 ;==============================================================================
 SHIELD_BLOCKS_DAMAGE:
-    LD          HL,0x2                          ; Base reduced damage = 2
-    CALL        RANDOMIZE_BCD_NYBBLES           ; Randomize to 0-2 range
-    LD          E,L                             ; E = reduced damage value
-    JP          PLAYER_TAKES_SPRT_DAMAGE        ; Apply minimal damage to player
+    LD          HL,0x2                              ; Base reduced damage = 2
+    CALL        RANDOMIZE_BCD_NYBBLES               ; Randomize to 0-2 range
+    LD          E,L                                 ; E = reduced damage value
+    JP          PLAYER_TAKES_SPRT_DAMAGE            ; Apply minimal damage to player
 
 ;==============================================================================
 ; MONSTER_PHYS_BRANCH — Monster Takes Physical Damage
@@ -2328,18 +2328,18 @@ SHIELD_BLOCKS_DAMAGE:
 ; Calls: RANDOMIZE_BCD_NYBBLES, RECALC_PHYS_HEALTH, MONSTER_CALC_PHYS_DAMAGE or BOOST_MIN_DAMAGE
 ;==============================================================================
 MONSTER_PHYS_BRANCH:
-    CALL        RANDOMIZE_BCD_NYBBLES           ; Randomize L nybbles for damage variance
-    LD          A,(WEAPON_VALUE_HOLDER)         ; Load base weapon damage value
-    ADD         A,L                             ; A = base damage + variance
-    DAA                                         ; Decimal adjust for BCD
-    LD          L,A                             ; L = damage low byte
-    LD          A,H                             ; A = damage high byte (was 0)
-    ADC         A,0x0                           ; Add carry from low byte addition
-    DAA                                         ; Decimal adjust for BCD
-    LD          H,A                             ; H = damage high byte
-    LD          DE,(SHIELD_PHYS)                ; DE = monster's physical defense (16-bit BCD)
-    CALL        RECALC_PHYS_HEALTH              ; HL = HL - DE; carry if HL < DE
-    JP          C,BOOST_MIN_DAMAGE              ; If HL < DE (defense too strong), boost damage boost damage
+    CALL        RANDOMIZE_BCD_NYBBLES               ; Randomize L nybbles for damage variance
+    LD          A,(WEAPON_VALUE_HOLDER)             ; Load base weapon damage value
+    ADD         A,L                                 ; A = base damage + variance
+    DAA                                             ; Decimal adjust for BCD
+    LD          L,A                                 ; L = damage low byte
+    LD          A,H                                 ; A = damage high byte (was 0)
+    ADC         A,0x0                               ; Add carry from low byte addition
+    DAA                                             ; Decimal adjust for BCD
+    LD          H,A                                 ; H = damage high byte
+    LD          DE,(SHIELD_PHYS)                    ; DE = monster's physical defense (16-bit BCD)
+    CALL        RECALC_PHYS_HEALTH                  ; HL = HL - DE; carry if HL < DE
+    JP          C,BOOST_MIN_DAMAGE                  ; If HL < DE (defense too strong), boost damage boost damage
 
 ;==============================================================================
 ; MONSTER_CALC_PHYS_DAMAGE — Apply Physical Damage to Monster
@@ -2380,14 +2380,14 @@ MONSTER_PHYS_BRANCH:
 ; Calls: RECALC_PHYS_HEALTH, PLAYER_DIES, REDRAW_STATS, REDRAW_SCREEN_AFTER_DAMAGE
 ;==============================================================================
 MONSTER_CALC_PHYS_DAMAGE:
-    EX          DE,HL                           ; Swap: DE = damage, HL = unused
-    LD          HL,(PLAYER_PHYS_HEALTH)         ; Load monster's health (stored in player field during melee)
-    CALL        RECALC_PHYS_HEALTH              ; HL = HL - DE; carry if HL < DE
-    JP          C,PLAYER_DIES                   ; If underflow (health < 0), monster dies
-    OR          L                               ; A = A | L; check if low byte is zero
-    JP          Z,PLAYER_DIES                   ; If health = 0, monster dies
-    LD          (PLAYER_PHYS_HEALTH),HL         ; Store monster's new health value
-    CALL        REDRAW_STATS                    ; Update stats display on screen on screen
+    EX          DE,HL                               ; Swap: DE = damage, HL = unused
+    LD          HL,(PLAYER_PHYS_HEALTH)             ; Load monster's health (stored in player field during melee)
+    CALL        RECALC_PHYS_HEALTH                  ; HL = HL - DE; carry if HL < DE
+    JP          C,PLAYER_DIES                       ; If underflow (health < 0), monster dies
+    OR          L                                   ; A = A | L; check if low byte is zero
+    JP          Z,PLAYER_DIES                       ; If health = 0, monster dies
+    LD          (PLAYER_PHYS_HEALTH),HL             ; Store monster's new health value
+    CALL        REDRAW_STATS                        ; Update stats display on screen on screen
 
 ;==============================================================================
 ; REDRAW_SCREEN_AFTER_DAMAGE — Finalize Combat Round Visual Update
@@ -2418,10 +2418,10 @@ MONSTER_CALC_PHYS_DAMAGE:
 ; Calls: REDRAW_START, REDRAW_VIEWPORT
 ;==============================================================================
 REDRAW_SCREEN_AFTER_DAMAGE:
-    CALL        REDRAW_START                    ; Prepare for viewport redraw
-                                                ; Viewport redraw occurs after damage is applied
-                                                ; to reflect any visual changes from the combat round.
-    JP          REDRAW_VIEWPORT                 ; Redraw viewport and return to game loop
+    CALL        REDRAW_START                        ; Prepare for viewport redraw
+                                                    ; Viewport redraw occurs after damage is applied
+                                                    ; to reflect any visual changes from the combat round.
+    JP          REDRAW_VIEWPORT                     ; Redraw viewport and return to game loop
 
 ;==============================================================================
 ; BOOST_MIN_DAMAGE — Boost Damage When Defense Too Low
@@ -2454,9 +2454,9 @@ REDRAW_SCREEN_AFTER_DAMAGE:
 ; Calls: RANDOMIZE_BCD_NYBBLES, MONSTER_CALC_PHYS_DAMAGE
 ;==============================================================================
 BOOST_MIN_DAMAGE:
-    LD          HL,0x3                          ; Base boosted damage = 3
-    CALL        RANDOMIZE_BCD_NYBBLES           ; Randomize to 0-3 range
-    JP          MONSTER_CALC_PHYS_DAMAGE        ; Apply boosted damage to monster
+    LD          HL,0x3                              ; Base boosted damage = 3
+    CALL        RANDOMIZE_BCD_NYBBLES               ; Randomize to 0-3 range
+    JP          MONSTER_CALC_PHYS_DAMAGE            ; Apply boosted damage to monster
 
 ;==============================================================================
 ; DO_SWAP_HANDS — Swap Left and Right Hand Items
@@ -2506,37 +2506,37 @@ BOOST_MIN_DAMAGE:
 ;        COPY_GFX_FROM_BUFFER, NEW_RIGHT_HAND_ITEM, GET_ITEM_SHIELD_BONUS, LAB_ram_e812
 ;==============================================================================
 DO_SWAP_HANDS:
-    LD          HL,RIGHT_HAND_ITEM              ; HL points to right-hand item code
-    LD          BC,LEFT_HAND_ITEM               ; BC points to left-hand item code
-    CALL        SUB_ram_ea62                    ; Swap the two item codes
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX      ; HL = right-hand graphics source
-    LD          DE,ITEM_MOVE_CHR_BUFFER         ; DE = temporary buffer destination
-    CALL        COPY_GFX_2_BUFFER               ; Save right-hand graphics to buffer
-    LD          HL,CHRRAM_LEFT_HD_GFX_IDX       ; HL = left-hand graphics source
-    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX      ; DE = right-hand graphics destination
-    CALL        COPY_GFX_SCRN_2_SCRN            ; Copy left-hand graphics to right-hand slot
-    LD          HL,ITEM_MOVE_CHR_BUFFER         ; HL = buffered graphics source
-    LD          DE,CHRRAM_LEFT_HD_GFX_IDX       ; DE = left-hand graphics destination
-    CALL        COPY_GFX_FROM_BUFFER            ; Copy buffered graphics to left-hand slot
-    CALL        NEW_RIGHT_HAND_ITEM             ; Update right-hand item attributes
-    LD          BC,0x0                          ; Clear BC (will hold shield bonuses)
-    LD          HL,RIGHT_HAND_ITEM              ; HL points to new right-hand item
-    CALL        GET_ITEM_SHIELD_BONUS           ; Get old right-hand item's shield bonuses into BC
-    LD          A,(SHIELD_SPRT)                 ; Load current spiritual shield
-    SUB         C                               ; Subtract old right-hand SPRT bonus
-    DAA                                         ; Decimal adjust for BCD
-    LD          (SHIELD_SPRT),A                 ; Store updated spiritual shield
-    LD          A,(SHIELD_PHYS)                 ; Load physical shield low byte
-    SUB         B                               ; Subtract old right-hand PHYS bonus
-    DAA                                         ; Decimal adjust for BCD
-    LD          (SHIELD_PHYS),A                 ; Store updated physical shield low byte
-    LD          A,(SHIELD_PHYS+1)               ; Load physical shield high byte
-    SBC         A,0x0                           ; Subtract borrow from high byte
-    LD          (SHIELD_PHYS+1),A               ; Store updated physical shield high byte
-    LD          BC,0x0                          ; Clear BC for next item's bonuses
-    LD          HL,LEFT_HAND_ITEM               ; HL points to new left-hand item
-    CALL        GET_ITEM_SHIELD_BONUS           ; Get old left-hand item's shield bonuses into BC
-    JP          LAB_ram_e812                    ; Jump to add new shield bonuses
+    LD          HL,RIGHT_HAND_ITEM                  ; HL points to right-hand item code
+    LD          BC,LEFT_HAND_ITEM                   ; BC points to left-hand item code
+    CALL        SUB_ram_ea62                        ; Swap the two item codes
+    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; HL = right-hand graphics source
+    LD          DE,ITEM_MOVE_CHR_BUFFER             ; DE = temporary buffer destination
+    CALL        COPY_GFX_2_BUFFER                   ; Save right-hand graphics to buffer
+    LD          HL,CHRRAM_LEFT_HD_GFX_IDX           ; HL = left-hand graphics source
+    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; DE = right-hand graphics destination
+    CALL        COPY_GFX_SCRN_2_SCRN                ; Copy left-hand graphics to right-hand slot
+    LD          HL,ITEM_MOVE_CHR_BUFFER             ; HL = buffered graphics source
+    LD          DE,CHRRAM_LEFT_HD_GFX_IDX           ; DE = left-hand graphics destination
+    CALL        COPY_GFX_FROM_BUFFER                ; Copy buffered graphics to left-hand slot
+    CALL        NEW_RIGHT_HAND_ITEM                 ; Update right-hand item attributes
+    LD          BC,0x0                              ; Clear BC (will hold shield bonuses)
+    LD          HL,RIGHT_HAND_ITEM                  ; HL points to new right-hand item
+    CALL        GET_ITEM_SHIELD_BONUS               ; Get old right-hand item's shield bonuses into BC
+    LD          A,(SHIELD_SPRT)                     ; Load current spiritual shield
+    SUB         C                                   ; Subtract old right-hand SPRT bonus
+    DAA                                             ; Decimal adjust for BCD
+    LD          (SHIELD_SPRT),A                     ; Store updated spiritual shield
+    LD          A,(SHIELD_PHYS)                     ; Load physical shield low byte
+    SUB         B                                   ; Subtract old right-hand PHYS bonus
+    DAA                                             ; Decimal adjust for BCD
+    LD          (SHIELD_PHYS),A                     ; Store updated physical shield low byte
+    LD          A,(SHIELD_PHYS+1)                   ; Load physical shield high byte
+    SBC         A,0x0                               ; Subtract borrow from high byte
+    LD          (SHIELD_PHYS+1),A                   ; Store updated physical shield high byte
+    LD          BC,0x0                              ; Clear BC for next item's bonuses
+    LD          HL,LEFT_HAND_ITEM                   ; HL points to new left-hand item
+    CALL        GET_ITEM_SHIELD_BONUS               ; Get old left-hand item's shield bonuses into BC
+    JP          LAB_ram_e812                        ; Jump to add new shield bonuses
 
 ;==============================================================================
 ; GET_ITEM_SHIELD_BONUS — Get Item Shield Bonuses
@@ -2582,13 +2582,13 @@ DO_SWAP_HANDS:
 ; Calls: ITEM_ATTR_LOOKUP, DIVIDE_BCD_HL_BY_2 (twice)
 ;==============================================================================
 GET_ITEM_SHIELD_BONUS:
-    LD          A,(HL)                          ; Load item code from (HL)
-    CP          $14                             ; Compare to $14 (first non-shield advanced item)
-    RET         NC                              ; If >= $14, not a shield, return
-    CP          $10                             ; Compare to $10 (advanced shield start)
-    JP          NC,CALC_SHIELD_ATTRS            ; If >= $10, process as advanced shield
-    CP          0x4                             ; Compare to $04 (first non-shield basic item)
-    RET         NC                              ; If >= $04 and < $10, not a shield, return
+    LD          A,(HL)                              ; Load item code from (HL)
+    CP          $14                                 ; Compare to $14 (first non-shield advanced item)
+    RET         NC                                  ; If >= $14, not a shield, return
+    CP          $10                                 ; Compare to $10 (advanced shield start)
+    JP          NC,CALC_SHIELD_ATTRS                ; If >= $10, process as advanced shield
+    CP          0x4                                 ; Compare to $04 (first non-shield basic item)
+    RET         NC                                  ; If >= $04 and < $10, not a shield, return
     ; Falls through for $00-$03 (basic shields)
 
 ;==============================================================================
@@ -2632,20 +2632,20 @@ GET_ITEM_SHIELD_BONUS:
 ; Calls: ITEM_ATTR_LOOKUP, DIVIDE_BCD_HL_BY_2 (twice)
 ;==============================================================================
 CALC_SHIELD_ATTRS:
-    AND         0x3                             ; Mask to level bits (0-3)
-    INC         A                               ; Increment to 1-4 for lookup
-    CALL        ITEM_ATTR_LOOKUP                ; Get item attributes; returns HL = attr ptr, B/C set
-    LD          A,(HL)                          ; Load attribute byte
-    AND         $fc                             ; Mask upper 6 bits (check if attributes exist)
-    RET         NZ                              ; If non-zero, attributes invalid or special, return
-    LD          H,0x0                           ; Clear H for 16-bit division
-    LD          L,B                             ; L = physical attribute value
-    CALL        DIVIDE_BCD_HL_BY_2              ; Halve physical attribute
-    LD          B,L                             ; B = halved physical bonus
-    LD          L,C                             ; L = spiritual attribute value
-    CALL        DIVIDE_BCD_HL_BY_2              ; Halve spiritual attribute
-    LD          C,L                             ; C = halved spiritual bonus
-    RET                                         ; Return with B/C containing halved bonuses
+    AND         0x3                                 ; Mask to level bits (0-3)
+    INC         A                                   ; Increment to 1-4 for lookup
+    CALL        ITEM_ATTR_LOOKUP                    ; Get item attributes; returns HL = attr ptr, B/C set
+    LD          A,(HL)                              ; Load attribute byte
+    AND         $fc                                 ; Mask upper 6 bits (check if attributes exist)
+    RET         NZ                                  ; If non-zero, attributes invalid or special, return
+    LD          H,0x0                               ; Clear H for 16-bit division
+    LD          L,B                                 ; L = physical attribute value
+    CALL        DIVIDE_BCD_HL_BY_2                  ; Halve physical attribute
+    LD          B,L                                 ; B = halved physical bonus
+    LD          L,C                                 ; L = spiritual attribute value
+    CALL        DIVIDE_BCD_HL_BY_2                  ; Halve spiritual attribute
+    LD          C,L                                 ; C = halved spiritual bonus
+    RET                                             ; Return with B/C containing halved bonuses
  
 ;==============================================================================
 ; NEW_RIGHT_HAND_ITEM — Recalculate Right-Hand Weapon Stats
@@ -2675,22 +2675,22 @@ CALC_SHIELD_ATTRS:
 ; Calls: CALC_WEAPON_VALUE, RECALC_AND_REDRAW_BCD
 ;==============================================================================
 NEW_RIGHT_HAND_ITEM:
-    LD          A,(RIGHT_HAND_ITEM)             ; Load current right-hand item code into A
-    CP          $18                             ; Compare to $18 (RED Bow start)
-    JP          C,LAB_ram_e7c0                  ; If below range, clear weapon values
-    CP          $34                             ; Compare to $34 (one past WHITE Crossbow)
-    JP          NC,LAB_ram_e7c0                 ; If at/above, clear weapon values
-    LD          BC,0x0                          ; Clear BC (B/C used during bit rotations)
-    LD          E,0x0                           ; E = 0 (used by spiritual path later)
-    SRL         A                               ; Logical shift right: begin subtype decode
-    RR          B                               ; Rotate through carry into B (collect bits)
-    RRA                                         ; Rotate A right through carry (continue decode)
-    RL          B                               ; Rotate B left: accumulate subtype bits
-    RL          B                               ; Rotate B left again: finalize subtype accumulation
-    SUB         0x6                             ; Normalize subtype to tier base
-    JP          NZ,LAB_ram_e763                 ; If not zero, branch to tier handlers
-    LD          D,0x6                           ; D = base tier value for physical path
-    JP          LAB_ram_e78b                    ; Compute physical weapon value
+    LD          A,(RIGHT_HAND_ITEM)                 ; Load current right-hand item code into A
+    CP          $18                                 ; Compare to $18 (RED Bow start)
+    JP          C,LAB_ram_e7c0                      ; If below range, clear weapon values
+    CP          $34                                 ; Compare to $34 (one past WHITE Crossbow)
+    JP          NC,LAB_ram_e7c0                     ; If at/above, clear weapon values
+    LD          BC,0x0                              ; Clear BC (B/C used during bit rotations)
+    LD          E,0x0                               ; E = 0 (used by spiritual path later)
+    SRL         A                                   ; Logical shift right: begin subtype decode
+    RR          B                                   ; Rotate through carry into B (collect bits)
+    RRA                                             ; Rotate A right through carry (continue decode)
+    RL          B                                   ; Rotate B left: accumulate subtype bits
+    RL          B                                   ; Rotate B left again: finalize subtype accumulation
+    SUB         0x6                                 ; Normalize subtype to tier base
+    JP          NZ,LAB_ram_e763                     ; If not zero, branch to tier handlers
+    LD          D,0x6                               ; D = base tier value for physical path
+    JP          LAB_ram_e78b                        ; Compute physical weapon value
  
 ;==============================================================================
 ; LAB_ram_e763 — Tier Branch (Spiritual Path Selector)
@@ -2717,10 +2717,10 @@ NEW_RIGHT_HAND_ITEM:
 ; Calls: None
 ;==============================================================================
 LAB_ram_e763:
-    DEC         A                               ; Decrement tier counter
-    JP          NZ,LAB_ram_e76a                ; If not zero, continue to next branch
-    LD          D,0x6                           ; D = spiritual tier value
-    JP          LAB_ram_e79e                    ; Compute spiritual weapon value
+    DEC         A                                   ; Decrement tier counter
+    JP          NZ,LAB_ram_e76a                     ; If not zero, continue to next branch
+    LD          D,0x6                               ; D = spiritual tier value
+    JP          LAB_ram_e79e                        ; Compute spiritual weapon value
  
 ;==============================================================================
 ; LAB_ram_e76a — Tier Branch (Physical Path Selector)
@@ -2747,10 +2747,10 @@ LAB_ram_e763:
 ; Calls: None
 ;==============================================================================
 LAB_ram_e76a:
-    DEC         A                               ; Decrement tier counter
-    JP          NZ,LAB_ram_e771                ; If not zero, check next branch
-    LD          D,$16                           ; D = higher physical tier value
-    JP          LAB_ram_e78b                    ; Compute physical weapon value
+    DEC         A                                   ; Decrement tier counter
+    JP          NZ,LAB_ram_e771                     ; If not zero, check next branch
+    LD          D,$16                               ; D = higher physical tier value
+    JP          LAB_ram_e78b                        ; Compute physical weapon value
  
 ;==============================================================================
 ; LAB_ram_e771 — Tier Branch (Spiritual Path Selector)
@@ -2777,10 +2777,10 @@ LAB_ram_e76a:
 ; Calls: None
 ;==============================================================================
 LAB_ram_e771:
-    DEC         A                               ; Decrement tier counter
-    JP          NZ,LAB_ram_e778                ; If not zero, check next branch
-    LD          D,$20                           ; D = higher spiritual tier value
-    JP          LAB_ram_e79e                    ; Compute spiritual weapon value
+    DEC         A                                   ; Decrement tier counter
+    JP          NZ,LAB_ram_e778                     ; If not zero, check next branch
+    LD          D,$20                               ; D = higher spiritual tier value
+    JP          LAB_ram_e79e                        ; Compute spiritual weapon value
  
 ;==============================================================================
 ; LAB_ram_e778 — Tier Branch (Physical Path Selector)
@@ -2807,10 +2807,10 @@ LAB_ram_e771:
 ; Calls: None
 ;==============================================================================
 LAB_ram_e778:
-    DEC         A                               ; Decrement tier counter
-    JP          NZ,LAB_ram_e77f                ; If not zero, check next branch
-    LD          D,$24                           ; D = higher physical tier value
-    JP          LAB_ram_e78b                    ; Compute physical weapon value
+    DEC         A                                   ; Decrement tier counter
+    JP          NZ,LAB_ram_e77f                     ; If not zero, check next branch
+    LD          D,$24                               ; D = higher physical tier value
+    JP          LAB_ram_e78b                        ; Compute physical weapon value
  
 ;==============================================================================
 ; LAB_ram_e77f — Tier Branch (Spiritual Path Selector)
@@ -2837,10 +2837,10 @@ LAB_ram_e778:
 ; Calls: None
 ;==============================================================================
 LAB_ram_e77f:
-    DEC         A                               ; Decrement tier counter
-    JP          NZ,LAB_ram_e786                ; If not zero, go to final physical tier
-    LD          D,$15                           ; D = spiritual tier value
-    JP          LAB_ram_e79e                    ; Compute spiritual weapon value
+    DEC         A                                   ; Decrement tier counter
+    JP          NZ,LAB_ram_e786                     ; If not zero, go to final physical tier
+    LD          D,$15                               ; D = spiritual tier value
+    JP          LAB_ram_e79e                        ; Compute spiritual weapon value
  
 ;==============================================================================
 ; LAB_ram_e786 — Final Tier (Physical Path)
@@ -2867,8 +2867,8 @@ LAB_ram_e77f:
 ; Calls: None
 ;==============================================================================
 LAB_ram_e786:
-    DEC         A                               ; Final decrement on tier counter
-    LD          D,$18                           ; D = final physical tier value
+    DEC         A                                   ; Final decrement on tier counter
+    LD          D,$18                               ; D = final physical tier value
  
 ;==============================================================================
 ; LAB_ram_e78b — Compute Physical Weapon Value
@@ -2895,17 +2895,17 @@ LAB_ram_e786:
 ; Calls: CALC_WEAPON_VALUE
 ;==============================================================================
 LAB_ram_e78b:
-    CALL        CALC_WEAPON_VALUE              ; A = base weapon value from tier D
-    ADD         A,A                            ; Double A for physical weighting
-    DAA                                        ; Decimal adjust to maintain BCD
-    LD          L,A                            ; L = low byte of PHYS value
-    LD          A,0x0                          ; Prepare zero for high byte computation
-    RLA                                         ; Rotate left: move carry into high nybble
-    LD          H,A                            ; H = high byte of PHYS value
-    LD          (WEAPON_PHYS),HL               ; Store 16-bit PHYS value
-    XOR         A                               ; A = 0
-    LD          (WEAPON_SPRT),A                ; Clear SPRT value
-    JP          LAB_ram_e7aa                   ; Redraw HUD weapon counters
+    CALL        CALC_WEAPON_VALUE                   ; A = base weapon value from tier D
+    ADD         A,A                                 ; Double A for physical weighting
+    DAA                                             ; Decimal adjust to maintain BCD
+    LD          L,A                                 ; L = low byte of PHYS value
+    LD          A,0x0                               ; Prepare zero for high byte computation
+    RLA                                             ; Rotate left: move carry into high nybble
+    LD          H,A                                 ; H = high byte of PHYS value
+    LD          (WEAPON_PHYS),HL                    ; Store 16-bit PHYS value
+    XOR         A                                   ; A = 0
+    LD          (WEAPON_SPRT),A                     ; Clear SPRT value
+    JP          LAB_ram_e7aa                        ; Redraw HUD weapon counters
  
 ;==============================================================================
 ; LAB_ram_e79e — Compute Spiritual Weapon Value
@@ -2932,10 +2932,10 @@ LAB_ram_e78b:
 ; Calls: CALC_WEAPON_VALUE
 ;==============================================================================
 LAB_ram_e79e:
-    CALL        CALC_WEAPON_VALUE              ; A = spiritual weapon value from tier D
-    LD          (WEAPON_SPRT),A                ; Store SPRT value (8-bit BCD)
-    LD          HL,0x0                         ; HL = 0
-    LD          (WEAPON_PHYS),HL               ; Clear PHYS value
+    CALL        CALC_WEAPON_VALUE                   ; A = spiritual weapon value from tier D
+    LD          (WEAPON_SPRT),A                     ; Store SPRT value (8-bit BCD)
+    LD          HL,0x0                              ; HL = 0
+    LD          (WEAPON_PHYS),HL                    ; Clear PHYS value
  
 ;==============================================================================
 ; LAB_ram_e7aa — Redraw Weapon Values on HUD
@@ -2961,14 +2961,14 @@ LAB_ram_e79e:
 ; Calls: RECALC_AND_REDRAW_BCD
 ;==============================================================================
 LAB_ram_e7aa:
-    LD          DE,CHRRAM_PHYS_WEAPON_IDX      ; DE = PHYS HUD counter CHRRAM address
-    LD          HL,WEAPON_PHYS                 ; HL = pointer to PHYS value
-    LD          B,0x2                          ; B = number of digits (2)
-    CALL        RECALC_AND_REDRAW_BCD          ; Recalculate and draw PHYS digits
-    LD          DE,CHRRAM_SPRT_WEAPON_IDX      ; DE = SPRT HUD counter CHRRAM address
-    LD          HL,WEAPON_SPRT                 ; HL = pointer to SPRT value
-    LD          B,0x1                          ; B = number of digits (1)
-    JP          RECALC_AND_REDRAW_BCD          ; Recalculate and draw SPRT digit
+    LD          DE,CHRRAM_PHYS_WEAPON_IDX           ; DE = PHYS HUD counter CHRRAM address
+    LD          HL,WEAPON_PHYS                      ; HL = pointer to PHYS value
+    LD          B,0x2                               ; B = number of digits (2)
+    CALL        RECALC_AND_REDRAW_BCD               ; Recalculate and draw PHYS digits
+    LD          DE,CHRRAM_SPRT_WEAPON_IDX           ; DE = SPRT HUD counter CHRRAM address
+    LD          HL,WEAPON_SPRT                      ; HL = pointer to SPRT value
+    LD          B,0x1                               ; B = number of digits (1)
+    JP          RECALC_AND_REDRAW_BCD               ; Recalculate and draw SPRT digit
  
 ;==============================================================================
 ; LAB_ram_e7c0 — Clear Weapon Values Outside Range
@@ -3197,42 +3197,42 @@ PROCESS_MAP:
 ; Calls: SUB_ram_ea62, UPDATE_MELEE_OBJECTS, COPY_GFX_SCRN_2_SCRN, COPY_GFX_FROM_BUFFER, RECOLOR_ITEM, NEW_RIGHT_HAND_ITEM
 ;==============================================================================
 PICK_UP_NON_TREASURE:
-    LD          HL,RIGHT_HAND_ITEM              ; Point to current right-hand item
-    LD          A,(HL)                          ; Load current right-hand item code
-    LD          (ITEM_F0),A                     ; Store it as new floor item
-    CALL        SUB_ram_ea62                    ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX      ; Point to right-hand graphics in CHRRAM
-    LD          DE,ITEM_MOVE_CHR_BUFFER         ; Point to temporary graphics buffer
-    CALL        COPY_GFX_2_BUFFER               ; Copy right-hand graphics to temp buffer (4x4 chars)
-    LD          HL,CHRRAM_F0_ITEM_IDX           ; Point to F0 floor item graphics in CHRRAM
-    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX      ; Point to right-hand graphics position
-    CALL        COPY_GFX_SCRN_2_SCRN            ; Copy F0 item graphics to right-hand position
-    LD          HL,ITEM_MOVE_CHR_BUFFER         ; Point to temporary buffer (old right-hand graphics)
-    LD          DE,CHRRAM_F0_ITEM_IDX           ; Point to F0 floor item graphics position
-    CALL        COPY_GFX_FROM_BUFFER            ; Copy temp buffer to F0 position (complete swap)
+    LD          HL,RIGHT_HAND_ITEM                  ; Point to current right-hand item
+    LD          A,(HL)                              ; Load current right-hand item code
+    LD          (ITEM_F0),A                         ; Store it as new floor item
+    CALL        SUB_ram_ea62                        ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
+    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics in CHRRAM
+    LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary graphics buffer
+    CALL        COPY_GFX_2_BUFFER                   ; Copy right-hand graphics to temp buffer (4x4 chars)
+    LD          HL,CHRRAM_F0_ITEM_IDX               ; Point to F0 floor item graphics in CHRRAM
+    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics position
+    CALL        COPY_GFX_SCRN_2_SCRN                ; Copy F0 item graphics to right-hand position
+    LD          HL,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer (old right-hand graphics)
+    LD          DE,CHRRAM_F0_ITEM_IDX               ; Point to F0 floor item graphics position
+    CALL        COPY_GFX_FROM_BUFFER                ; Copy temp buffer to F0 position (complete swap)
 
-    LD          HL,COLRAM_F0_ITEM_IDX           ; Point to F0 item color attributes in COLRAM
-    LD          DE,TWOCOLOR(NOCLR,DKGRY,DKGRY,NOCLR)      ; NOCLR, DKGRY, DKGRY, NOCLR
-                                                        ;   D  = Target BG color: 
-                                                        ;       $0 in upper nybble, BG in lower nybble
-                                                        ;   E  = Comparison FG color: 
-                                                        ;       FG in upper nybble, $0 in lower nybble
-    LD          C,COLOR(BLK,DKGRY)            ;   C  = Target FG color for reversed colors that match E: 
-                                                ;       FG in upper nybble, $0 in lower nybble
-    CALL        RECOLOR_ITEM                    ; Recolor F0 item area (4x4 cells)
+    LD          HL,COLRAM_F0_ITEM_IDX               ; Point to F0 item color attributes in COLRAM
+    LD          DE,TWOCOLOR(NOCLR,DKGRY,DKGRY,NOCLR)  ; NOCLR, DKGRY, DKGRY, NOCLR
+                                                    ;   D  = Target BG color: 
+                                                    ;       $0 in upper nybble, BG in lower nybble
+                                                    ;   E  = Comparison FG color: 
+                                                    ;       FG in upper nybble, $0 in lower nybble
+    LD          C,COLOR(BLK,DKGRY)                  ; C  = Target FG color for reversed colors that match E: 
+                                                    ;       FG in upper nybble, $0 in lower nybble
+    CALL        RECOLOR_ITEM                        ; Recolor F0 item area (4x4 cells)
 
-    LD          HL,COLRAM_RH_ITEM_IDX           ; Point to right-hand item color attributes
-    LD          DE,TWOCOLOR(NOCLR,BLK,DKGRY,NOCLR)      ; NOCLR, BLK, DKGRY, NOCLR
-                                                        ;   D  = Target BG color: 
-                                                        ;       $0 in upper nybble, BG in lower nybble
-                                                        ;   E  = Comparison FG color: 
-                                                        ;       FG in upper nybble, $0 in lower nybble
-    LD          C,COLOR(DKGRY,NOCLR)               ;   C  = Target FG color for reversed colors that match E: 
-                                                ;       FG in upper nybble, $0 in lower nybble
-    CALL        RECOLOR_ITEM                    ; Clear right-hand item area to floor color
+    LD          HL,COLRAM_RH_ITEM_IDX               ; Point to right-hand item color attributes
+    LD          DE,TWOCOLOR(NOCLR,BLK,DKGRY,NOCLR)  ; NOCLR, BLK, DKGRY, NOCLR
+                                                    ;   D  = Target BG color: 
+                                                    ;       $0 in upper nybble, BG in lower nybble
+                                                    ;   E  = Comparison FG color: 
+                                                    ;       FG in upper nybble, $0 in lower nybble
+    LD          C,COLOR(DKGRY,NOCLR)                ; C  = Target FG color for reversed colors that match E: 
+                                                    ;       FG in upper nybble, $0 in lower nybble
+    CALL        RECOLOR_ITEM                        ; Clear right-hand item area to floor color
 
-    CALL        NEW_RIGHT_HAND_ITEM             ; Recalculate weapon stats for new right-hand item
-    JP          INPUT_DEBOUNCE                  ; Wait for input debounce then return to main loop
+    CALL        NEW_RIGHT_HAND_ITEM                 ; Recalculate weapon stats for new right-hand item
+    JP          INPUT_DEBOUNCE                      ; Wait for input debounce then return to main loop
 
 ;==============================================================================
 ; RECOLOR_ITEM
@@ -3276,33 +3276,33 @@ PICK_UP_NON_TREASURE:
 ; Calls: None (leaf function)
 ;==============================================================================
 RECOLOR_ITEM:
-    LD          A,0x4                           ; A = 4 rows to process
+    LD          A,0x4                               ; A = 4 rows to process
 RECOLOR_OUTER_LOOP:
-    EX          AF,AF'                          ; Preserve row counter in alternate register
-    LD          B,0x4                           ; B = 4 cells per row
+    EX          AF,AF'                              ; Preserve row counter in alternate register
+    LD          B,0x4                               ; B = 4 cells per row
 CHECK_FG_COLOR:
-    LD          A,(HL)                          ; Load current cell color from COLRAM
-    AND         $f0                             ; Mask to retain FG color
-    CP          E                               ; Compare with FG color in E
-    JP          Z,CHANGE_FG_COLOR               ; If FG colors match, jump to conditional recolor
-    OR          D                               ; No match: apply base recolor (OR with D)
+    LD          A,(HL)                              ; Load current cell color from COLRAM
+    AND         $f0                                 ; Mask to retain FG color
+    CP          E                                   ; Compare with FG color in E
+    JP          Z,CHANGE_FG_COLOR                   ; If FG colors match, jump to conditional recolor
+    OR          D                                   ; No match: apply base recolor (OR with D)
 STORE_COLORS_LOOP:
-    LD          (HL),A                          ; Store updated color back to COLRAM
-    INC         HL                              ; Advance to next character cell
-    DJNZ        CHECK_FG_COLOR                  ; Decrement B, loop for 4 columns
-    PUSH        DE                              ; Preserve DE registers
-    LD          DE,$24                          ; DE = 36 (skip to next row: 40 - 4)
-    ADD         HL,DE                           ; Advance HL to start of next row
-    POP         DE                              ; Restore DE registers
-    EX          AF,AF'                          ; Restore row counter from alternate register
-    DEC         A                               ; Decrement row counter
-    JP          NZ,RECOLOR_OUTER_LOOP           ; If more rows, continue outer loop
-    RET                                         ; Return when all 4 rows processed
+    LD          (HL),A                              ; Store updated color back to COLRAM
+    INC         HL                                  ; Advance to next character cell
+    DJNZ        CHECK_FG_COLOR                      ; Decrement B, loop for 4 columns
+    PUSH        DE                                  ; Preserve DE registers
+    LD          DE,$24                              ; DE = 36 (skip to next row: 40 - 4)
+    ADD         HL,DE                               ; Advance HL to start of next row
+    POP         DE                                  ; Restore DE registers
+    EX          AF,AF'                              ; Restore row counter from alternate register
+    DEC         A                                   ; Decrement row counter
+    JP          NZ,RECOLOR_OUTER_LOOP               ; If more rows, continue outer loop
+    RET                                             ; Return when all 4 rows processed
 CHANGE_FG_COLOR:
-    LD          A,(HL)                          ; Reload current cell color
-    AND         $0f                             ; Mask to retain BG color
-    OR          C                               ; Apply conditional color from C register
-    JP          STORE_COLORS_LOOP               ; Jump back to store result and continue
+    LD          A,(HL)                              ; Reload current cell color
+    AND         $0f                                 ; Mask to retain BG color
+    OR          C                                   ; Apply conditional color from C register
+    JP          STORE_COLORS_LOOP                   ; Jump back to store result and continue
     
 ;==============================================================================
 ; WAIT_A_TICK
@@ -3328,8 +3328,8 @@ CHANGE_FG_COLOR:
 ; Calls: SLEEP
 ;==============================================================================
 WAIT_A_TICK:
-    LD          BC,$8600                        ; Load BC with 134 sleep cycles (0x86 = 134)
-    JP          SLEEP                           ; Jump to sleep routine: void SLEEP(short cycleCount)
+    LD          BC,$8600                            ; Load BC with 134 sleep cycles (0x86 = 134)
+    JP          SLEEP                               ; Jump to sleep routine: void SLEEP(short cycleCount)
 
 ;==============================================================================
 ; PICK_UP_F0_ITEM
@@ -3380,25 +3380,25 @@ WAIT_A_TICK:
 ; Calls: UPDATE_F0_ITEM (twice - for character and color clearing)
 ;==============================================================================
 PICK_UP_F0_ITEM:
-    AND         A                               ; Clear carry flag and test A for zero
-    EX          AF,AF'                          ; Save item code in alternate AF register
-    LD          A,$fe                           ; A = $FE (empty item marker)
-    LD          (BC),A                          ; Clear floor item storage (mark as empty)
-    LD          HL,CHRRAM_F0_ITEM_IDX           ; Point to F0 item character graphics in CHRRAM
-    LD          A,$20                           ; A = $20 (SPACE character)
-    CALL        UPDATE_F0_ITEM                  ; Clear F0 character graphics with space (4x4 area)
-    LD          HL,COLRAM_F0_ITEM_IDX           ; Point to F0 item color attributes in COLRAM
-    LD          A,COLOR(BLK,DKGRY)              ; A = BLK on DKGRY (floor color scheme)
-    CALL        UPDATE_F0_ITEM                  ; Clear F0 color graphics with floor colors (4x4 area)
-    EX          AF,AF'                          ; Restore original item code to A register
-    RRA                                         ; Rotate A right: bit 0 → carry, bits 7-1 → bits 6-0
-    RR          D                               ; Rotate D right: carry → bit 7, bits 7-1 → bits 6-0
-    RRA                                         ; Rotate A right again: bit 0 → carry, bits 6-0 → bits 5-0
-    RL          D                               ; Rotate D left: carry → bit 0, bit 7 → carry
-    RL          D                               ; Rotate D left again: carry → bit 0, bit 7 → carry
-                                                ; Net effect: D = (original_item_code >> 2) & 0x03
-                                                ; D now contains item level (0-3) from bits 2-3
-    RET                                         ; Return with level in D, floor cleared
+    AND         A                                   ; Clear carry flag and test A for zero
+    EX          AF,AF'                              ; Save item code in alternate AF register
+    LD          A,$fe                               ; A = $FE (empty item marker)
+    LD          (BC),A                              ; Clear floor item storage (mark as empty)
+    LD          HL,CHRRAM_F0_ITEM_IDX               ; Point to F0 item character graphics in CHRRAM
+    LD          A,$20                               ; A = $20 (SPACE character)
+    CALL        UPDATE_F0_ITEM                      ; Clear F0 character graphics with space (4x4 area)
+    LD          HL,COLRAM_F0_ITEM_IDX               ; Point to F0 item color attributes in COLRAM
+    LD          A,COLOR(BLK,DKGRY)                  ; A = BLK on DKGRY (floor color scheme)
+    CALL        UPDATE_F0_ITEM                      ; Clear F0 color graphics with floor colors (4x4 area)
+    EX          AF,AF'                              ; Restore original item code to A register
+    RRA                                             ; Rotate A right: bit 0 → carry, bits 7-1 → bits 6-0
+    RR          D                                   ; Rotate D right: carry → bit 7, bits 7-1 → bits 6-0
+    RRA                                             ; Rotate A right again: bit 0 → carry, bits 6-0 → bits 5-0
+    RL          D                                   ; Rotate D left: carry → bit 0, bit 7 → carry
+    RL          D                                   ; Rotate D left again: carry → bit 0, bit 7 → carry
+                                                    ; Net effect: D = (original_item_code >> 2) & 0x03
+                                                    ; D now contains item level (0-3) from bits 2-3
+    RET                                             ; Return with level in D, floor cleared
 
 ;==============================================================================
 ; COPY_GFX_2_BUFFER
@@ -3434,22 +3434,22 @@ PICK_UP_F0_ITEM:
 ; Calls: None (uses LDIR instruction for block copying)
 ;==============================================================================
 COPY_GFX_2_BUFFER:
-    LD          A,0x4                           ; Set row counter to 4 (copy 4 rows)
+    LD          A,0x4                               ; Set row counter to 4 (copy 4 rows)
 COPY_GFX_2_BUFF_LOOP:
-    LD          BC,0x4                          ; Set BC to 4 (copy 4 characters per row)
-    LDIR                                        ; Copy 4 bytes from (HL) to (DE), auto-increment both
-    DEC         A                               ; Decrement row counter
-    JP          Z,COPY_GFX_2_BUF_MEMCHK         ; If all 4 rows copied, jump to memory page check
-    LD          BC,$24                          ; BC = 36 (skip to next row: 40 - 4 = 36)
-    ADD         HL,BC                           ; Advance HL to start of next source row
-    JP          COPY_GFX_2_BUFF_LOOP             ; Loop back to copy next row
+    LD          BC,0x4                              ; Set BC to 4 (copy 4 characters per row)
+    LDIR                                            ; Copy 4 bytes from (HL) to (DE), auto-increment both
+    DEC         A                                   ; Decrement row counter
+    JP          Z,COPY_GFX_2_BUF_MEMCHK             ; If all 4 rows copied, jump to memory page check
+    LD          BC,$24                              ; BC = 36 (skip to next row: 40 - 4 = 36)
+    ADD         HL,BC                               ; Advance HL to start of next source row
+    JP          COPY_GFX_2_BUFF_LOOP                ; Loop back to copy next row
 COPY_GFX_2_BUF_MEMCHK:
-    LD          A,H                             ; Load high byte of HL for memory page detection
-    CP          $34                             ; Compare with $34 (COLRAM start page)
-    RET         NC                              ; If HL >= $34xx (in COLRAM range), return
-    LD          BC,$384                         ; BC = $384 (offset from CHRRAM to corresponding COLRAM)
-    ADD         HL,BC                           ; Adjust HL from CHRRAM ($30xx) to COLRAM ($34xx)
-    JP          COPY_GFX_2_BUFFER               ; Recursive call to copy corresponding COLRAM area
+    LD          A,H                                 ; Load high byte of HL for memory page detection
+    CP          $34                                 ; Compare with $34 (COLRAM start page)
+    RET         NC                                  ; If HL >= $34xx (in COLRAM range), return
+    LD          BC,$384                             ; BC = $384 (offset from CHRRAM to corresponding COLRAM)
+    ADD         HL,BC                               ; Adjust HL from CHRRAM ($30xx) to COLRAM ($34xx)
+    JP          COPY_GFX_2_BUFFER                   ; Recursive call to copy corresponding COLRAM area
 
 ;==============================================================================
 ; COPY_GFX_FROM_BUFFER
@@ -3480,26 +3480,26 @@ COPY_GFX_2_BUF_MEMCHK:
 ; Calls: None (uses LDIR instruction for block copying)
 ;==============================================================================
 COPY_GFX_FROM_BUFFER:
-    LD          A,0x4                           ; Set row counter to 4 (copy 4 rows)
+    LD          A,0x4                               ; Set row counter to 4 (copy 4 rows)
 COPY_GFX_FROM_BUFF_LOOP:
-    LD          BC,0x4                          ; Set BC to 4 (copy 4 characters per row)
-    LDIR                                        ; Copy 4 bytes from (HL) to (DE), auto-increment both
-    DEC         A                               ; Decrement row counter
-    JP          Z,COPY_GFX_FROM_BUFF_MEMCHK     ; If all 4 rows copied, jump to memory page check
-    EX          DE,HL                           ; Swap HL and DE for destination pointer advancement
-    LD          BC,$24                          ; BC = 36 (skip to next row: 40 - 4 = 36)
-    ADD         HL,BC                           ; Advance destination pointer to next row
-    EX          DE,HL                           ; Restore HL as source, DE as destination
-    JP          COPY_GFX_FROM_BUFF_LOOP         ; Loop back to copy next row
+    LD          BC,0x4                              ; Set BC to 4 (copy 4 characters per row)
+    LDIR                                            ; Copy 4 bytes from (HL) to (DE), auto-increment both
+    DEC         A                                   ; Decrement row counter
+    JP          Z,COPY_GFX_FROM_BUFF_MEMCHK         ; If all 4 rows copied, jump to memory page check
+    EX          DE,HL                               ; Swap HL and DE for destination pointer advancement
+    LD          BC,$24                              ; BC = 36 (skip to next row: 40 - 4 = 36)
+    ADD         HL,BC                               ; Advance destination pointer to next row
+    EX          DE,HL                               ; Restore HL as source, DE as destination
+    JP          COPY_GFX_FROM_BUFF_LOOP             ; Loop back to copy next row
 COPY_GFX_FROM_BUFF_MEMCHK:
-    LD          A,D                             ; Load high byte of DE for destination memory page detection
-    CP          $34                             ; Compare with $34 (COLRAM start page)
-    RET         NC                              ; If DE >= $34xx (in COLRAM range), return
-    LD          BC,$384                         ; BC = $384 (offset from CHRRAM to corresponding COLRAM)
-    EX          DE,HL                           ; Swap to adjust destination pointer
-    ADD         HL,BC                           ; Adjust DE from CHRRAM ($30xx) to COLRAM ($34xx)
-    EX          DE,HL                           ; Restore HL as source, DE as adjusted destination
-    JP          COPY_GFX_FROM_BUFFER            ; Recursive call to copy corresponding COLRAM area
+    LD          A,D                                 ; Load high byte of DE for destination memory page detection
+    CP          $34                                 ; Compare with $34 (COLRAM start page)
+    RET         NC                                  ; If DE >= $34xx (in COLRAM range), return
+    LD          BC,$384                             ; BC = $384 (offset from CHRRAM to corresponding COLRAM)
+    EX          DE,HL                               ; Swap to adjust destination pointer
+    ADD         HL,BC                               ; Adjust DE from CHRRAM ($30xx) to COLRAM ($34xx)
+    EX          DE,HL                               ; Restore HL as source, DE as adjusted destination
+    JP          COPY_GFX_FROM_BUFFER                ; Recursive call to copy corresponding COLRAM area
 
 ;==============================================================================
 ; COPY_GFX_SCRN_2_SCRN  
@@ -3531,28 +3531,28 @@ COPY_GFX_FROM_BUFF_MEMCHK:
 ; Calls: None (uses LDIR instruction for block copying)
 ;==============================================================================
 COPY_GFX_SCRN_2_SCRN:
-    LD          A,0x4                           ; Set row counter to 4 (copy 4 rows)
+    LD          A,0x4                               ; Set row counter to 4 (copy 4 rows)
 COPY_GFX_SCRN_2_SCRN_LOOP:
-    LD          BC,0x4                          ; Set BC to 4 (copy 4 characters per row)
-    LDIR                                        ; Copy 4 bytes from (HL) to (DE), auto-increment both
-    DEC         A                               ; Decrement row counter  
-    JP          Z,COPY_GFX_SCRN_2_SCRN_MEMCHK   ; If all 4 rows copied, jump to memory page check
-    LD          BC,$24                          ; BC = 36 (skip to next row: 40 - 4 = 36)
-    ADD         HL,BC                           ; Advance source pointer to next row
-    EX          DE,HL                           ; Swap to advance destination pointer
-    ADD         HL,BC                           ; Advance destination pointer to next row
-    EX          DE,HL                           ; Restore HL as source, DE as destination
-    JP          COPY_GFX_SCRN_2_SCRN_LOOP       ; Loop back to copy next row
+    LD          BC,0x4                              ; Set BC to 4 (copy 4 characters per row)
+    LDIR                                            ; Copy 4 bytes from (HL) to (DE), auto-increment both
+    DEC         A                                   ; Decrement row counter  
+    JP          Z,COPY_GFX_SCRN_2_SCRN_MEMCHK       ; If all 4 rows copied, jump to memory page check
+    LD          BC,$24                              ; BC = 36 (skip to next row: 40 - 4 = 36)
+    ADD         HL,BC                               ; Advance source pointer to next row
+    EX          DE,HL                               ; Swap to advance destination pointer
+    ADD         HL,BC                               ; Advance destination pointer to next row
+    EX          DE,HL                               ; Restore HL as source, DE as destination
+    JP          COPY_GFX_SCRN_2_SCRN_LOOP           ; Loop back to copy next row
 COPY_GFX_SCRN_2_SCRN_MEMCHK:
-    LD          A,H                             ; Load high byte of HL for source memory page detection
-    CP          $34                             ; Compare with $34 (COLRAM start page)
-    RET         NC                              ; If HL >= $34xx (in COLRAM range), return
-    LD          BC,$384                         ; BC = $384 (offset from CHRRAM to corresponding COLRAM)
-    ADD         HL,BC                           ; Adjust source from CHRRAM ($30xx) to COLRAM ($34xx)
-    EX          DE,HL                           ; Swap to adjust destination pointer
-    ADD         HL,BC                           ; Adjust destination from CHRRAM ($30xx) to COLRAM ($34xx)
-    EX          DE,HL                           ; Restore HL as source, DE as destination
-    JP          COPY_GFX_SCRN_2_SCRN            ; Recursive call to copy corresponding COLRAM areas
+    LD          A,H                                 ; Load high byte of HL for source memory page detection
+    CP          $34                                 ; Compare with $34 (COLRAM start page)
+    RET         NC                                  ; If HL >= $34xx (in COLRAM range), return
+    LD          BC,$384                             ; BC = $384 (offset from CHRRAM to corresponding COLRAM)
+    ADD         HL,BC                               ; Adjust source from CHRRAM ($30xx) to COLRAM ($34xx)
+    EX          DE,HL                               ; Swap to adjust destination pointer
+    ADD         HL,BC                               ; Adjust destination from CHRRAM ($30xx) to COLRAM ($34xx)
+    EX          DE,HL                               ; Restore HL as source, DE as destination
+    JP          COPY_GFX_SCRN_2_SCRN                ; Recursive call to copy corresponding COLRAM areas
 
 ;==============================================================================
 ; ITEM_ATTR_LOOKUP  
@@ -3582,28 +3582,28 @@ COPY_GFX_SCRN_2_SCRN_MEMCHK:
 ; Calls: None
 ;==============================================================================
 ITEM_ATTR_LOOKUP:
-    DEC         A                               ; Decrement A and test for specific values
-    JP          NZ,ITEM_ATTR_0                  ; If A≠0, try next case
-    LD          BC,$501                         ; Case A=0: Load PHYS=5, SPRT=1 attributes
-    RET                                         ; Return with attribute values
+    DEC         A                                   ; Decrement A and test for specific values
+    JP          NZ,ITEM_ATTR_0                      ; If A≠0, try next case
+    LD          BC,$501                             ; Case A=0: Load PHYS=5, SPRT=1 attributes
+    RET                                             ; Return with attribute values
 ITEM_ATTR_0:
-    DEC         A                               ; Decrement A again (now A-1 → A-2)
-    JP          NZ,ITEM_ATTR_1                  ; If A≠0, try next case  
-    LD          BC,$804                         ; Case A=1: Load attributes $08,$04
-    RET                                         ; Return with attribute values
+    DEC         A                                   ; Decrement A again (now A-1 → A-2)
+    JP          NZ,ITEM_ATTR_1                      ; If A≠0, try next case  
+    LD          BC,$804                             ; Case A=1: Load attributes $08,$04
+    RET                                             ; Return with attribute values
 ITEM_ATTR_1:
-    DEC         A                               ; Decrement A again (now A-2 → A-3)
-    JP          NZ,ITEM_ATTR_2_PTR              ; If A≠0, try next case
-    LD          BC,LAB_ram_1208                 ; Case A=2: Load memory address reference
-    RET                                         ; Return with address
+    DEC         A                                   ; Decrement A again (now A-2 → A-3)
+    JP          NZ,ITEM_ATTR_2_PTR                  ; If A≠0, try next case
+    LD          BC,LAB_ram_1208                     ; Case A=2: Load memory address reference
+    RET                                             ; Return with address
 ITEM_ATTR_2_PTR:
-    DEC         A                               ; Decrement A again (now A-3 → A-4)
-    JP          NZ,ITEM_ATTR_DEFAULT_ZERO       ; If A≠0, use default case
-    LD          BC,BYTE_ram_2613                ; Case A=3: Load memory address reference
-    RET                                         ; Return with address
+    DEC         A                                   ; Decrement A again (now A-3 → A-4)
+    JP          NZ,ITEM_ATTR_DEFAULT_ZERO           ; If A≠0, use default case
+    LD          BC,BYTE_ram_2613                    ; Case A=3: Load memory address reference
+    RET                                             ; Return with address
 ITEM_ATTR_DEFAULT_ZERO:
-    LD          BC,0x0                          ; Default case A=4+: Load null values
-    RET                                         ; Return with zero values
+    LD          BC,0x0                              ; Default case A=4+: Load null values
+    RET                                             ; Return with zero values
 
 ;==============================================================================
 ; SUB_ram_e9e1  
@@ -3648,23 +3648,23 @@ ITEM_ATTR_DEFAULT_ZERO:
 ; Calls: NO_ACTION_TAKEN (conditional jump, not return)
 ;==============================================================================
 SUB_ram_e9e1:
-    LD          A,(RIGHT_HAND_ITEM)             ; Load current right-hand item
-    CP          $fe                             ; Compare with $FE (empty item marker)
-    JP          NZ,LAB_ram_e9ec                 ; If item present, jump to memory update
-    POP         HL                              ; Discard return address from stack
-    JP          NO_ACTION_TAKEN                 ; Jump to no-action handler (abort operation)
+    LD          A,(RIGHT_HAND_ITEM)                 ; Load current right-hand item
+    CP          $fe                                 ; Compare with $FE (empty item marker)
+    JP          NZ,LAB_ram_e9ec                     ; If item present, jump to memory update
+    POP         HL                                  ; Discard return address from stack
+    JP          NO_ACTION_TAKEN                     ; Jump to no-action handler (abort operation)
 ; --- Memory update section (item present in right hand) ---
 LAB_ram_e9ec:
-    LD          A,$ff                           ; Load $FF marker value
-    LD          (BC),A                          ; Store $FF at BC memory location
-    DEC         C                               ; Move to previous memory location (BC-1)
-    DEC         C                               ; Move to previous memory location (BC-2)
-    LD          A,H                             ; Load H register value (item data)
-    LD          (BC),A                          ; Store item data at BC-2 location
-    INC         C                               ; Move forward to BC-1 location
-    LD          A,$fe                           ; Load $FE marker value
-    LD          (BC),A                          ; Store $FE at BC-1 location
-    RET                                         ; Return to caller
+    LD          A,$ff                               ; Load $FF marker value
+    LD          (BC),A                              ; Store $FF at BC memory location
+    DEC         C                                   ; Move to previous memory location (BC-1)
+    DEC         C                                   ; Move to previous memory location (BC-2)
+    LD          A,H                                 ; Load H register value (item data)
+    LD          (BC),A                              ; Store item data at BC-2 location
+    INC         C                                   ; Move forward to BC-1 location
+    LD          A,$fe                               ; Load $FE marker value
+    LD          (BC),A                              ; Store $FE at BC-1 location
+    RET                                             ; Return to caller
 DO_ROTATE_PACK:
     LD          HL,INV_ITEM_SLOT_1                  ; Point to inventory slot 1
     LD          BC,ITEM_MOVE_COL_BUFFER             ; Point to temporary buffer
@@ -3702,7 +3702,7 @@ LAB_ram_ea0c:
     LD          HL,CHHRAM_INV_6_IDX                 ; Point to inv slot 6 graphics
     LD          DE,DAT_ram_324c                     ; Point to inv slot 5 graphics
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 6 graphics to slot 5
-    LD          HL,WAIT_FOR_INPUT					; Stash WAIT_FOR_INPUT as a later return value
+    LD          HL,WAIT_FOR_INPUT                   ; Stash WAIT_FOR_INPUT as a later return value
     PUSH        HL
     LD          HL,ITEM_MOVE_CHR_BUFFER             ; Point to buffer (saved slot 1 graphics)
     LD          DE,CHHRAM_INV_6_IDX                 ; Point to inv slot 6 graphics
@@ -3714,7 +3714,7 @@ SUB_ram_ea62:
     LD          (HL),A                              ; Store A to (HL)
     LD          A,D                                 ; Load saved (HL) value from D
     LD          (BC),A                              ; Store to (BC)
-    RET                                             ; Return (values swapped)
+    RET                                              ; Return (values swapped)
 DO_SWAP_PACK:
     LD          HL,INV_ITEM_SLOT_1                  ; Point to inventory slot 1
     LD          BC,RIGHT_HAND_ITEM                  ; Point to right-hand item slot
@@ -3725,7 +3725,7 @@ DO_SWAP_PACK:
     LD          HL,DAT_ram_31b4                     ; Point to inv slot 1 graphics
     LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy inv slot 1 graphics to right-hand
-    LD          HL,WAIT_FOR_INPUT					; Stash WAIT_FOR_INPUT as a later return value
+    LD          HL,WAIT_FOR_INPUT                   ; Stash WAIT_FOR_INPUT as a later return value
     PUSH        HL                                  ; Push return address to stack
     LD          HL,ITEM_MOVE_CHR_BUFFER             ; Point to buffer (saved right-hand graphics)
     LD          DE,DAT_ram_31b4                     ; Point to inv slot 1 graphics
@@ -3749,8 +3749,8 @@ DO_SWAP_PACK:
 ;   Falls through to INPUT_DEBOUNCE
 ;
 UPDATE_VIEWPORT:
-    CALL        REDRAW_START						; Refresh non-viewport UI (stats, compass, etc.)
-    CALL        REDRAW_VIEWPORT						; Render 3D maze view
+    CALL        REDRAW_START                        ; Refresh non-viewport UI (stats, compass, etc.)
+    CALL        REDRAW_VIEWPORT                     ; Render 3D maze view
 
 ;==============================================================================
 ; INPUT_DEBOUNCE - Brief delay before accepting next input
@@ -3764,7 +3764,7 @@ UPDATE_VIEWPORT:
 ;   Falls through to WAIT_FOR_INPUT
 ;
 INPUT_DEBOUNCE:
-    CALL        WAIT_A_TICK							; Brief delay for input debounce
+    CALL        WAIT_A_TICK                         ; Brief delay for input debounce
 
 ;==============================================================================
 ; WAIT_FOR_INPUT - Main input loop with timer, animation, and screensaver
@@ -3788,16 +3788,16 @@ INPUT_DEBOUNCE:
 ;   Loops indefinitely until input or animation trigger
 ;
 WAIT_FOR_INPUT:
-    CALL        TIMER_UPDATE						; Increment TIMER_A, update game timers
-    CALL        BLINK_ROUTINE						; Handle item/animation blink state
-    JP          NC,TIMER_UPDATED_CHECK_INPUT		; If no blink update needed, check input
-    LD          HL,TIMER_C							; HL = inactivity timer address
-    INC         (HL)								; Increment inactivity counter
-    LD          A,(HL)								; A = current inactivity count
-    CP          $15									; Compare with screensaver threshold (21)
-    JP          C,TIMER_UPDATED_CHECK_INPUT			; If below threshold, skip screensaver
-    XOR         A									; A = 0 (reset counter)
-    LD          (HL),A								; Reset inactivity timer
+    CALL        TIMER_UPDATE                        ; Increment TIMER_A, update game timers
+    CALL        BLINK_ROUTINE                       ; Handle item/animation blink state
+    JP          NC,TIMER_UPDATED_CHECK_INPUT        ; If no blink update needed, check input
+    LD          HL,TIMER_C                          ; HL = inactivity timer address
+    INC         (HL)                                ; Increment inactivity counter
+    LD          A,(HL)                              ; A = current inactivity count
+    CP          $15                                 ; Compare with screensaver threshold (21)
+    JP          C,TIMER_UPDATED_CHECK_INPUT         ; If below threshold, skip screensaver
+    XOR         A                                   ; A = 0 (reset counter)
+    LD          (HL),A                              ; Reset inactivity timer
 
 ;==============================================================================
 ; SCREEN_SAVER_FULL_SCREEN - Animated color-cycling screensaver
@@ -3824,58 +3824,58 @@ WAIT_FOR_INPUT:
 ;   Colors restored, returns to INPUT_DEBOUNCE
 ;
 SCREEN_SAVER_FULL_SCREEN:
-    LD          HL,$800								; H=8 rotations, L=0 (loop counter init)
+    LD          HL,$800                             ; H=8 rotations, L=0 (loop counter init)
 SCREEN_SAVER_REDRAW_LOOP:
-    LD          DE,COLRAM							; DE = start of color RAM
+    LD          DE,COLRAM                           ; DE = start of color RAM
 RECALC_SCREEN_SAVER_COLORS:
-    LD          A,(DE)								; Load current color byte
+    LD          A,(DE)                              ; Load current color byte
     RRCA										    ; Rotate right (shift color bits)
-    LD          (DE),A								; Store rotated color
-    INC         DE									; Advance to next color cell
-    LD          A,$38								; A = $38 (COLRAM end page + 1)
-    CP          D									; Check if past end of COLRAM
-    JP          NZ,RECALC_SCREEN_SAVER_COLORS		; Continue rotating all colors
-    DEC         H									; Decrement rotation pass counter
-    JP          NZ,CHECK_INPUT_DURING_SCREEN_SAVER	; If more passes remain, check input
-    LD          H,0x8								; Reset rotation counter to 8
+    LD          (DE),A                              ; Store rotated color
+    INC         DE                                  ; Advance to next color cell
+    LD          A,$38                               ; A = $38 (COLRAM end page + 1)
+    CP          D                                   ; Check if past end of COLRAM
+    JP          NZ,RECALC_SCREEN_SAVER_COLORS       ; Continue rotating all colors
+    DEC         H                                   ; Decrement rotation pass counter
+    JP          NZ,CHECK_INPUT_DURING_SCREEN_SAVER  ; If more passes remain, check input
+    LD          H,0x8                               ; Reset rotation counter to 8
 CHECK_INPUT_DURING_SCREEN_SAVER:
-    DEC         L									; Decrement check frequency counter
-    JP          Z,SCREEN_SAVER_REDRAW_LOOP			; If zero, restart rotation cycle
-    LD          BC,$140								; BC = sleep duration parameter
-    CALL        SLEEP								; Delay between animation frames
-    LD          BC,$ff								; BC = keyboard port
-    IN          A,(C)								; Read keyboard row
-    INC         A									; Test for $FF (no key pressed)
-    JP          NZ,EXIT_SCREENSAVER					; If key pressed, exit screensaver
-    LD          C,$f7								; C = handcontroller port 1
-    LD          A,0xf								; A = port enable mask
-    OUT         (C),A								; Enable handcontroller port
-    DEC         C									; C = $F6 (data port)
-    IN          A,(C)								; Read handcontroller state
-    INC         A									; Test for $FF (no input)
-    JP          NZ,EXIT_SCREENSAVER					; If input detected, exit screensaver
-    INC         C									; C = $F7 (control port)
-    LD          A,0xe								; A = disable mask
-    OUT         (C),A								; Disable handcontroller port
-    DEC         C									; C = $F6 (data port)
-    IN          A,(C)								; Read again
-    INC         A									; Test for input
-    JP          Z,CHECK_INPUT_DURING_SCREEN_SAVER	; If no input, continue screensaver
+    DEC         L                                   ; Decrement check frequency counter
+    JP          Z,SCREEN_SAVER_REDRAW_LOOP          ; If zero, restart rotation cycle
+    LD          BC,$140                             ; BC = sleep duration parameter
+    CALL        SLEEP                               ; Delay between animation frames
+    LD          BC,$ff                              ; BC = keyboard port
+    IN          A,(C)                               ; Read keyboard row
+    INC         A                                   ; Test for $FF (no key pressed)
+    JP          NZ,EXIT_SCREENSAVER                 ; If key pressed, exit screensaver
+    LD          C,$f7                               ; C = handcontroller port 1
+    LD          A,0xf                               ; A = port enable mask
+    OUT         (C),A                               ; Enable handcontroller port
+    DEC         C                                   ; C = $F6 (data port)
+    IN          A,(C)                               ; Read handcontroller state
+    INC         A                                   ; Test for $FF (no input)
+    JP          NZ,EXIT_SCREENSAVER                 ; If input detected, exit screensaver
+    INC         C                                   ; C = $F7 (control port)
+    LD          A,0xe                               ; A = disable mask
+    OUT         (C),A                               ; Disable handcontroller port
+    DEC         C                                   ; C = $F6 (data port)
+    IN          A,(C)                               ; Read again
+    INC         A                                   ; Test for input
+    JP          Z,CHECK_INPUT_DURING_SCREEN_SAVER   ; If no input, continue screensaver
 
 EXIT_SCREENSAVER:
-    LD          DE,COLRAM							; DE = start of COLRAM (restore colors)
+    LD          DE,COLRAM                           ; DE = start of COLRAM (restore colors)
 RESTORE_COLOR_BYTE:
-    LD          B,H									; B = rotation counter (reverse rotations)
-    LD          A,(DE)								; Load rotated color byte
+    LD          B,H                                 ; B = rotation counter (reverse rotations)
+    LD          A,(DE)                              ; Load rotated color byte
 REVERSE_ROTATE_LOOP:
     RRCA										    ; Rotate right to undo screensaver rotation
-    DJNZ        REVERSE_ROTATE_LOOP					; Repeat H times to restore original
-    LD          (DE),A								; Store restored color
-    INC         DE									; Advance to next color cell
-    LD          A,$38								; A = COLRAM end check
-    CP          D									; Past end of COLRAM?
-    JP          NZ,RESTORE_COLOR_BYTE				; Continue restoring all colors
-    JP          INPUT_DEBOUNCE						; Return to input loop
+    DJNZ        REVERSE_ROTATE_LOOP                 ; Repeat H times to restore original
+    LD          (DE),A                              ; Store restored color
+    INC         DE                                  ; Advance to next color cell
+    LD          A,$38                               ; A = COLRAM end check
+    CP          D                                   ; Past end of COLRAM?
+    JP          NZ,RESTORE_COLOR_BYTE               ; Continue restoring all colors
+    JP          INPUT_DEBOUNCE                      ; Return to input loop
     
 ;==============================================================================
 ; TIMER_UPDATED_CHECK_INPUT - Timer-driven item/combat animation + AI checks
@@ -3895,72 +3895,72 @@ REVERSE_ROTATE_LOOP:
 ;   Jumps to WAIT_FOR_INPUT or into AI branch (LAB_ram_eb7b)
 ;
 TIMER_UPDATED_CHECK_INPUT:
-    LD          A,(RAM_AD)						; Load animation state byte AD
-    CP          $32								; Is state equal to $32? (branch set)
-    JP          Z,LAB_ram_eb53					; Yes → handle screensaver/idle branch
-    LD          A,(RAM_AE)						; Load animation state byte AE
-    CP          $31								; Compare with $31
-    JP          NZ,LAB_ram_eb27					; If not $31 → check monster/melee tick
-    LD          HL,TIMER_A						; HL points to master tick counter
-    LD          A,(ITEM_ANIM_TIMER_COPY)		; A = last processed item-anim tick
-    CP          (HL)							; Has TIMER_A advanced since last item tick?
-    JP          NZ,WAIT_FOR_INPUT				; No → nothing to animate this frame
-    CALL        COPY_ITEM_GFX_TO_CHRRAM			; Update item blink/phase bookkeeping
-    CALL        ANIMATE_RH_ITEM_STEP			; Redraw/update UI/icons for item state
-    JP          WAIT_FOR_INPUT					; Return to main input loop
+    LD          A,(RAM_AD)                          ; Load animation state byte AD
+    CP          $32                                 ; Is state equal to $32? (branch set)
+    JP          Z,LAB_ram_eb53                      ; Yes → handle screensaver/idle branch
+    LD          A,(RAM_AE)                          ; Load animation state byte AE
+    CP          $31                                 ; Compare with $31
+    JP          NZ,LAB_ram_eb27                     ; If not $31 → check monster/melee tick
+    LD          HL,TIMER_A                          ; HL points to master tick counter
+    LD          A,(ITEM_ANIM_TIMER_COPY)            ; A = last processed item-anim tick
+    CP          (HL)                                ; Has TIMER_A advanced since last item tick?
+    JP          NZ,WAIT_FOR_INPUT                   ; No → nothing to animate this frame
+    CALL        COPY_ITEM_GFX_TO_CHRRAM             ; Update item blink/phase bookkeeping
+    CALL        ANIMATE_RH_ITEM_STEP                ; Redraw/update UI/icons for item state
+    JP          WAIT_FOR_INPUT                      ; Return to main input loop
 
 ;-------------------------------------------------------------------------------
 ; Monster/melee animation tick gate (when AE != $31)
 ;-------------------------------------------------------------------------------
 LAB_ram_eb27:
-    LD          HL,TIMER_A						; HL points to master tick counter
-    LD          A,(MONSTER_ANIM_TIMER_COPY)		; A = last processed monster-anim tick
-    CP          (HL)							; Has TIMER_A advanced for monster anim?
-    JP          NZ,WAIT_FOR_INPUT				; No → skip animation this frame
-    CALL        MELEE_RESTORE_BG_FROM_BUFFER	; Restore background under melee sprites
-    CALL        COPY_ITEM_GFX_TO_CHRRAM			; Update blink/phase shared bookkeeping
-    CALL        ANIMATE_RH_ITEM_STEP			; Redraw any UI impacted by anim state
-    CALL        MELEE_ANIM_LOOP					; Advance melee/monster animation frame(s)
-    JP          WAIT_FOR_INPUT					; Back to main loop
+    LD          HL,TIMER_A                          ; HL points to master tick counter
+    LD          A,(MONSTER_ANIM_TIMER_COPY)         ; A = last processed monster-anim tick
+    CP          (HL)                                ; Has TIMER_A advanced for monster anim?
+    JP          NZ,WAIT_FOR_INPUT                   ; No → skip animation this frame
+    CALL        MELEE_RESTORE_BG_FROM_BUFFER        ; Restore background under melee sprites
+    CALL        COPY_ITEM_GFX_TO_CHRRAM             ; Update blink/phase shared bookkeeping
+    CALL        ANIMATE_RH_ITEM_STEP                ; Redraw any UI impacted by anim state
+    CALL        MELEE_ANIM_LOOP                     ; Advance melee/monster animation frame(s)
+    JP          WAIT_FOR_INPUT                      ; Back to main loop
 
 ;-------------------------------------------------------------------------------
 ; Monster/melee animation (UI already up-to-date or not needed)
 ;-------------------------------------------------------------------------------
 LAB_ram_eb40:
-    LD          HL,TIMER_A                     ; HL points to master tick counter
-    LD          A,(MONSTER_ANIM_TIMER_COPY)    ; A = last processed monster-anim tick
-    CP          (HL)                            ; Has TIMER_A advanced for monster anim?
-    JP          NZ,WAIT_FOR_INPUT               ; No → skip animation this frame
-    CALL        MELEE_RESTORE_BG_FROM_BUFFER    ; Restore background under melee sprites
-    CALL        MELEE_ANIM_LOOP                ; Advance melee/monster animation frame(s)
-    JP          WAIT_FOR_INPUT                 ; Back to main loop
+    LD          HL,TIMER_A                          ; HL points to master tick counter
+    LD          A,(MONSTER_ANIM_TIMER_COPY)         ; A = last processed monster-anim tick
+    CP          (HL)                                ; Has TIMER_A advanced for monster anim?
+    JP          NZ,WAIT_FOR_INPUT                   ; No → skip animation this frame
+    CALL        MELEE_RESTORE_BG_FROM_BUFFER        ; Restore background under melee sprites
+    CALL        MELEE_ANIM_LOOP                     ; Advance melee/monster animation frame(s)
+    JP          WAIT_FOR_INPUT                      ; Back to main loop
 
 ;-------------------------------------------------------------------------------
 ; Idle branch when RAM_AD == $32 (screensaver timer + conditional AI)
 ;-------------------------------------------------------------------------------
 LAB_ram_eb53:
-    LD          A,(RAM_AE)						; Read secondary state AE
-    CP          $31								; If not $31, use simpler melee branch
-    JP          NZ,LAB_ram_eb40					; → Skip UI updates, just animate melee
-    CALL        UPDATE_SCR_SAVER_TIMER				; Bump inactivity/screensaver counters
-    LD          A,(COMBAT_BUSY_FLAG)				; Is combat currently running?
-    AND         A								; Set flags from A
-    JP          NZ,LAB_ram_ebd6					; If busy, bypass AI/random actions
-    LD          B,0x4								; B = direction selector (4 probes)
-    LD          HL,ITEM_F1						; HL = pointer to F1 cell (front row 1)
-    LD          A,(HL)							; A = item/monster id at F1
-    INC         A								; Normalize/flag for threshold compare
-    INC         A								; (two INCs used consistently in this code)
-    LD          HL,ITEM_FR1						; HL = pointer to FR1 (probing sequence)
+    LD          A,(RAM_AE)                          ; Read secondary state AE
+    CP          $31                                 ; If not $31, use simpler melee branch
+    JP          NZ,LAB_ram_eb40                     ; → Skip UI updates, just animate melee
+    CALL        UPDATE_SCR_SAVER_TIMER              ; Bump inactivity/screensaver counters
+    LD          A,(COMBAT_BUSY_FLAG)                ; Is combat currently running?
+    AND         A                                   ; Set flags from A
+    JP          NZ,LAB_ram_ebd6                     ; If busy, bypass AI/random actions
+    LD          B,0x4                               ; B = direction selector (4 probes)
+    LD          HL,ITEM_F1                          ; HL = pointer to F1 cell (front row 1)
+    LD          A,(HL)                              ; A = item/monster id at F1
+    INC         A                                   ; Normalize/flag for threshold compare
+    INC         A                                   ; (two INCs used consistently in this code)
+    LD          HL,ITEM_FR1                         ; HL = pointer to FR1 (probing sequence)
 LAB_ram_eb6f:
-    CP          $7a								; >= $7A ⇒ monster/eligible target present
-    JP          NC,LAB_ram_eb7b					; If present, run AI/random action
-    INC         HL								; Else move to next probe cell
-    LD          A,(HL)							; A = next item/monster id
-    INC         A								; Normalize/flag as above
+    CP          $7a                                 ; >= $7A ⇒ monster/eligible target present
+    JP          NC,LAB_ram_eb7b                     ; If present, run AI/random action
+    INC         HL                                  ; Else move to next probe cell
+    LD          A,(HL)                              ; A = next item/monster id
+    INC         A                                   ; Normalize/flag as above
     INC         A
-    DJNZ        LAB_ram_eb6f						; Probe up to 4 positions
-    JP          LAB_ram_ebd6						; Nothing eligible → continue main loop
+    DJNZ        LAB_ram_eb6f                        ; Probe up to 4 positions
+    JP          LAB_ram_ebd6                        ; Nothing eligible → continue main loop
 
 ;-------------------------------------------------------------------------------
 ; LAB_ram_eb7b - Random AI nudge: occasional turn/advance + redraw/engage
@@ -4044,24 +4044,24 @@ LAB_ram_ebcc:
 ;   else falls back to `WAIT_FOR_INPUT`
 ;
 LAB_ram_ebd6:
-    LD          BC,$ff								; BC = keyboard port
-    IN          A,(C)								; Read keyboard row
-    INC         A									; Test for $FF (no key pressed)
-    JP          NZ,LAB_ram_ec52					; Key pressed → handle keyboard input
-    LD          C,$f7								; C = HC control port
-    LD          A,0xf								; A = enable mask
-    OUT         (C),A								; Enable HC read
-    DEC         C									; C = $F6 (HC data)
-    IN          A,(C)								; Read HC state
-    INC         A									; Test for $FF (no input)
-    JP          NZ,LAB_ram_ebf7					; If input present, go HC handling
-    INC         C									; C = $F7
-    LD          A,0xe								; A = disable mask
-    OUT         (C),A								; Disable HC port
-    DEC         C									; C = $F6
-    IN          A,(C)								; Read again (stabilize)
-    INC         A									; $FF means no input
-    JP          Z,WAIT_FOR_INPUT					; No input anywhere → continue loop
+    LD          BC,$ff                              ; BC = keyboard port
+    IN          A,(C)                               ; Read keyboard row
+    INC         A                                   ; Test for $FF (no key pressed)
+    JP          NZ,LAB_ram_ec52                     ; Key pressed → handle keyboard input
+    LD          C,$f7                               ; C = HC control port
+    LD          A,0xf                               ; A = enable mask
+    OUT         (C),A                               ; Enable HC read
+    DEC         C                                   ; C = $F6 (HC data)
+    IN          A,(C)                               ; Read HC state
+    INC         A                                   ; Test for $FF (no input)
+    JP          NZ,LAB_ram_ebf7                     ; If input present, go HC handling
+    INC         C                                   ; C = $F7
+    LD          A,0xe                               ; A = disable mask
+    OUT         (C),A                               ; Disable HC port
+    DEC         C                                   ; C = $F6
+    IN          A,(C)                               ; Read again (stabilize)
+    INC         A                                   ; $FF means no input
+    JP          Z,WAIT_FOR_INPUT                    ; No input anywhere → continue loop
 LAB_ram_ebf7:
     CALL        PLAY_DESCENDING_SOUND               ; Acknowledge HC input with tone
     LD          HL,HC_INPUT_HOLDER                  ; Point to HC input storage buffer
@@ -4346,7 +4346,7 @@ SUB_ram_edaf:
     LD          A,0xc                               ; Set loop counter to 12 rows
 LAB_ram_edb1:
     LD          BC,0x8                              ; Set byte count to 8
-    LDIR                                            ; Copy 8 bytes from (HL) to (DE)
+    LDIR                                             ; Copy 8 bytes from (HL) to (DE)
     LD          BC,$20                              ; Load row offset ($20 = 32)
     ADD         HL,BC                               ; Move HL to next row
     DEC         A                                   ; Decrement row counter
@@ -4388,8 +4388,8 @@ DOOR_CLOSE_ANIM_LOOP:
 
 ;   UNREACHABLE CODE - Dead code after unconditional jump
 ;   Appears to be orphaned delay routine, never executed
-;    LD          BC,$1600                            ; Load delay count ($1600 = 5632)
-;    JP          SLEEP                               ; Jump to SLEEP routine
+;    LD          BC,$1600                           ; Load delay count ($1600 = 5632)
+;    JP          SLEEP                              ; Jump to SLEEP routine
 
 DO_TURN_LEFT:
     LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
@@ -5186,96 +5186,96 @@ LAB_ram_f333:
 ;==============================================================================
 GFX_DRAW:
     PUSH        HL                                  ; Save original cursor position on stack
-    LD          C,$28								; $28 = +40, down one row
+    LD          C,$28                               ; $28 = +40, down one row
 GFX_DRAW_MAIN_LOOP:
-    LD          A,(DE)								; Get next AQUASCII byte from string
+    LD          A,(DE)                              ; Get next AQUASCII byte from string
     INC         DE                                  ; Advance to next byte in string
     INC         A                                   ; Test if byte was $FF (becomes $00, sets Z flag)
-    JP          NZ,GFX_MOVE_RIGHT					; If not $FF, continue processing this character
+    JP          NZ,GFX_MOVE_RIGHT                   ; If not $FF, continue processing this character
     POP         HL                                  ; $FF found - restore original HL from stack
     RET                                             ; End of graphics string, return to caller
 GFX_MOVE_RIGHT:
-    DEC         A								    ; Test if character was $00 (becomes $FF after earlier INC)
+    DEC         A                                   ; Test if character was $00 (becomes $FF after earlier INC)
     JP          NZ,GFX_CRLF                         ; If not $00, check for $01 (carriage return)
     INC         HL                                  ; $00 = move cursor right one position
     JP          GFX_DRAW_MAIN_LOOP                  ; Continue with next character
 GFX_CRLF:
-    CP          0x1							    	; $01 = down one row, back to index (CR+LF)
+    CP          0x1                                 ; $01 = down one row, back to index (CR+LF)
     JP          NZ,GFX_BACKSPACE
-    LD          A,B				    				; Save color in A
-    LD          B,0x0				   				; Clear B for 16-bit math
-    POP         HL						    		; Get original line start from stack
-    ADD         HL,BC								; Move down one row (C=$28=40 chars)
-    PUSH        HL							    	; Save new line start to stack
-    LD          B,A								    ; Restore color to B
+    LD          A,B                                 ; Save color in A
+    LD          B,0x0                               ; Clear B for 16-bit math
+    POP         HL                                  ; Get original line start from stack
+    ADD         HL,BC                               ; Move down one row (C=$28=40 chars)
+    PUSH        HL                                  ; Save new line start to stack
+    LD          B,A                                 ; Restore color to B
     JP          GFX_DRAW_MAIN_LOOP
 GFX_BACKSPACE:
-    CP          0x2							    	; $02 = back up one column
+    CP          0x2                                 ; $02 = back up one column
     JP          NZ,GFX_LINE_FEED                    ; If not $02, check for $03 (line feed)
     DEC         HL                                  ; $02 = move cursor back one position
     JP          GFX_DRAW_MAIN_LOOP                  ; Continue with next character
 GFX_LINE_FEED:
-    CP          0x3							    	; $03 = down one row, same column (LF)
+    CP          0x3                                 ; $03 = down one row, same column (LF)
     JP          NZ,GFX_CURSOR_UP
-    LD          A,B							    	; Save color in A
-    LD          B,0x0								; Clear B for 16-bit math
-    ADD         HL,BC								; Move current position down one row
-    EX          (SP),HL					    		; Put new cursor pos on stack, get line start in HL
-    ADD         HL,BC								; Move line start down one row too
-    EX          (SP),HL					    		; Put updated line start back on stack
-    LD          B,A						    		; Restore color value from A back to B
+    LD          A,B                                 ; Save color in A
+    LD          B,0x0                               ; Clear B for 16-bit math
+    ADD         HL,BC                               ; Move current position down one row
+    EX          (SP),HL                             ; Put new cursor pos on stack, get line start in HL
+    ADD         HL,BC                               ; Move line start down one row too
+    EX          (SP),HL                             ; Put updated line start back on stack
+    LD          B,A                                 ; Restore color value from A back to B
     JP          GFX_DRAW_MAIN_LOOP                  ; Continue with next character
 GFX_CURSOR_UP:
-    CP          0x4							    	; $04 = up one row, same column (reverse LF)
+    CP          0x4                                 ; $04 = up one row, same column (reverse LF)
     JP          NZ,GFX_REVERSE_COLOR                ; If not $04, check for $A0 (reverse colors)
-    LD          A,B							    	; Save color in A
-    LD          B,0x0								; Clear B for 16-bit math
-    SBC         HL,BC								; Move current position up one row (subtract 40)
-    EX          (SP),HL						    	; Put new cursor pos on stack, get line start in HL
-    SBC         HL,BC								; Move line start up one row too
-    EX          (SP),HL						    	; Put updated line start back on stack
-    LD          B,A							    	; Restore color value from A back to B
+    LD          A,B                                 ; Save color in A
+    LD          B,0x0                               ; Clear B for 16-bit math
+    SBC         HL,BC                               ; Move current position up one row (subtract 40)
+    EX          (SP),HL                             ; Put new cursor pos on stack, get line start in HL
+    SBC         HL,BC                               ; Move line start up one row too
+    EX          (SP),HL                             ; Put updated line start back on stack
+    LD          B,A                                 ; Restore color value from A back to B
     JP          GFX_DRAW_MAIN_LOOP                  ; Continue with next character
 GFX_REVERSE_COLOR:
-    CP          $a0							    	; $a0 = reverse FG & BG colors
+    CP          $a0                                 ; $a0 = reverse FG & BG colors
     JP          NZ,GFX_DRAW_CHAR                    ; If not $A0, treat as normal character
-    RRC         B							    	; Rotate color byte right 4 times
+    RRC         B                                   ; Rotate color byte right 4 times
     RRC         B                                   ; to swap foreground and background
     RRC         B                                   ; nybbles (FG=1,BG=2 becomes FG=2,BG=1)
     RRC         B
     JP          GFX_DRAW_MAIN_LOOP                  ; Continue with next character
 GFX_DRAW_CHAR:
-    LD          (HL),A								; Draw character to CHRRAM
+    LD          (HL),A                              ; Draw character to CHRRAM
                                                     ; Map from CHRRAM to COLRAM: add $400 offset
                                                     ; CHRRAM $3000-$33FF maps to COLRAM $3400-$37FF
-    INC         H						    		; +$100 
-    INC         H				    				; +$200
-    INC         H			    					; +$300  
-    INC         H		    						; +$400 = COLRAM offset
+    INC         H                                   ; +$100 
+    INC         H                                   ; +$200
+    INC         H                                   ; +$300  
+    INC         H                                   ; +$400 = COLRAM offset
                                                     ; Determine color nybble placement in COLRAM byte
-    LD          A,0xf								; Load $0F as threshold value
-    CP          B				    				; Compare $0F with color in B register
-    LD          A,(HL)								; Load current COLRAM byte
-    JP          C,GFX_COLOR_LOW_NYBBLE				; If B > $0F (foreground), store in low nybble
+    LD          A,0xf                               ; Load $0F as threshold value
+    CP          B                                   ; Compare $0F with color in B register
+    LD          A,(HL)                              ; Load current COLRAM byte
+    JP          C,GFX_COLOR_LOW_NYBBLE              ; If B > $0F (foreground), store in low nybble
                                                     ; Store color in high nybble (foreground colors $0x-$Fx)
-    RLCA							            	; Rotate existing COLRAM byte left 4 times
-    RLCA							            	; to move low nybble to high position
-    RLCA				            				; (preserves existing foreground color)
+    RLCA							                ; Rotate existing COLRAM byte left 4 times
+    RLCA							                ; to move low nybble to high position
+    RLCA				            			    ; (preserves existing foreground color)
     RLCA  
-    AND         $f0						    		; Keep only high nybble, clear low nybble
+    AND         $f0                                 ; Keep only high nybble, clear low nybble
     JP          GFX_SWAP_FG_BG                      ; Continue to merge with new color
 GFX_COLOR_LOW_NYBBLE:
                                                     ; Store color in low nybble (background colors $10+)  
-    AND         0xf								    ; Keep only low nybble of existing COLRAM
+    AND         0xf                                 ; Keep only low nybble of existing COLRAM
 GFX_SWAP_FG_BG:
-    OR          B							    	; Merge new color with existing COLRAM byte
-    LD          (HL),A								; Write combined color to COLRAM
+    OR          B                                   ; Merge new color with existing COLRAM byte
+    LD          (HL),A                              ; Write combined color to COLRAM
                                                     ; Return from COLRAM back to CHRRAM: subtract $400 offset
-    DEC         H				    				; -$100
-    DEC         H					    			; -$200  
-    DEC         H				    				; -$300
-    DEC         H				    				; -$400 = back to CHRRAM
-    INC         HL					    			; Move to next character position
+    DEC         H                                   ; -$100
+    DEC         H                                   ; -$200  
+    DEC         H                                   ; -$300
+    DEC         H                                   ; -$400 = back to CHRRAM
+    INC         HL                                  ; Move to next character position
     JP          GFX_DRAW_MAIN_LOOP                  ; Continue with next character
 
 ;==============================================================================
@@ -5330,52 +5330,52 @@ GFX_SWAP_FG_BG:
 ; Calls: MAKE_RANDOM_BYTE, UPDATE_SCR_SAVER_TIMER, SUB_ram_f4d4
 ;==============================================================================
 BUILD_MAP:
-    LD          HL,MAPSPACE_WALLS               ; Point to start of wall map ($3800)
-    LD          B,0x0                           ; B=0 for 256-byte loop (0→255)
+    LD          HL,MAPSPACE_WALLS                   ; Point to start of wall map ($3800)
+    LD          B,0x0                               ; B=0 for 256-byte loop (0→255)
 GENERATE_MAPWALLS_LOOP:
-    CALL        MAKE_RANDOM_BYTE                ; Get first random byte
-    LD          E,A                             ; Store in E for AND masking
-    CALL        MAKE_RANDOM_BYTE                ; Get second random byte  
-    AND         E                               ; AND with first random byte
-    AND         $63                             ; Mask to valid starting wall bits (0110 0011)
-    LD          (HL),A                          ; Store starting wall data at current position
-    INC         L                               ; Move to next wall position (wraps at 256)
-    DJNZ        GENERATE_MAPWALLS_LOOP          ; Loop for all 256 wall positions
+    CALL        MAKE_RANDOM_BYTE                    ; Get first random byte
+    LD          E,A                                 ; Store in E for AND masking
+    CALL        MAKE_RANDOM_BYTE                    ; Get second random byte  
+    AND         E                                   ; AND with first random byte
+    AND         $63                                 ; Mask to valid starting wall bits (0110 0011)
+    LD          (HL),A                              ; Store starting wall data at current position
+    INC         L                                   ; Move to next wall position (wraps at 256)
+    DJNZ        GENERATE_MAPWALLS_LOOP              ; Loop for all 256 wall positions
 
 POSITION_PLAYER_IN_MAP:
-    LD          A,(PLAYER_MAP_POS)              ; Get player's map position from the last floor
-    LD          L,A                             ; Use as index into wall map
-    LD          (HL),$42                        ; Set player starting spot with N and W walls and closed doors
+    LD          A,(PLAYER_MAP_POS)                  ; Get player's map position from the last floor
+    LD          L,A                                 ; Use as index into wall map
+    LD          (HL),$42                            ; Set player starting spot with N and W walls and closed doors
 GENERATE_LADDER_POSITION:
-    CALL        UPDATE_SCR_SAVER_TIMER          ; Get random value from timer
-    INC         A                               ; Test for $FF (invalid position)
-    JP          Z,GENERATE_LADDER_POSITION      ; Keep trying if $FF
-    DEC         A                               ; Restore original value
-    LD          (ITEM_HOLDER),A                 ; Save ladder position
-    LD          L,A                             ; Use as wall map index
-    LD          (HL),$63                        ; Mark ladder position in wall map     
+    CALL        UPDATE_SCR_SAVER_TIMER              ; Get random value from timer
+    INC         A                                   ; Test for $FF (invalid position)
+    JP          Z,GENERATE_LADDER_POSITION          ; Keep trying if $FF
+    DEC         A                                   ; Restore original value
+    LD          (ITEM_HOLDER),A                     ; Save ladder position
+    LD          L,A                                 ; Use as wall map index
+    LD          (HL),$63                            ; Mark ladder position in wall map     
 
 START_ITEM_TABLE:                   
-    LD          HL,ITEM_TABLE                   ; Point to start of item table
-    LD          (HL),A                          ; Store ladder position as first item
-    INC         L                               ; Move to item type field
-    LD          (HL),$42                        ; Store ladder item type ($42)
-								                ; (always 1st item after offset)
+    LD          HL,ITEM_TABLE                       ; Point to start of item table
+    LD          (HL),A                              ; Store ladder position as first item
+    INC         L                                   ; Move to item type field
+    LD          (HL),$42                            ; Store ladder item type ($42)
+								                    ; (always 1st item after offset)
 
-    INC         L                               ; Move to first item slot (after ladder)
-    LD          A,(INPUT_HOLDER)                ; Get input value for calculation
-    LD          B,A                             ; Use as loop counter
-    LD          A,0x2                           ; Start with base value 2
-    JP          LAB_ram_f3db                    ; Jump into BCD multiplication loop
+    INC         L                                   ; Move to first item slot (after ladder)
+    LD          A,(INPUT_HOLDER)                    ; Get input value for calculation
+    LD          B,A                                 ; Use as loop counter
+    LD          A,0x2                               ; Start with base value 2
+    JP          LAB_ram_f3db                        ; Jump into BCD multiplication loop
 LAB_ram_f3d9:
-    ADD         A,A                             ; Double the value (A = A * 2)
-    DAA                                         ; Decimal adjust for BCD arithmetic
+    ADD         A,A                                 ; Double the value (A = A * 2)
+    DAA                                             ; Decimal adjust for BCD arithmetic
 LAB_ram_f3db:
-    DJNZ        LAB_ram_f3d9                    ; Loop B times (2^B in BCD)
-    LD          C,A                             ; Save calculated threshold in C
-    LD          A,(DUNGEON_LEVEL)               ; Get current dungeon level
-    CP          C                               ; Compare level to threshold
-    JP          C,SET_ITEM_LIMIT                ; Skip item generation if level < threshold
+    DJNZ        LAB_ram_f3d9                        ; Loop B times (2^B in BCD)
+    LD          C,A                                 ; Save calculated threshold in C
+    LD          A,(DUNGEON_LEVEL)                   ; Get current dungeon level
+    CP          C                                   ; Compare level to threshold
+    JP          C,SET_ITEM_LIMIT                    ; Skip item generation if level < threshold
 
 GENERATE_ITEM_TABLE:
     CALL        UPDATE_SCR_SAVER_TIMER              ; Get random position value in A
@@ -5488,7 +5488,7 @@ LAB_ram_f482:
     LD          (HL),C                              ; Store final item code with encoded color
     INC         L                                   ; Move to next position (low byte only)
     DEC         B                                   ; Decrement item counter
-    JP          NZ,GENERATE_RANDOM_ITEM             ; If more items, continue loop             ; If more items, continue loop
+    JP          NZ,GENERATE_RANDOM_ITEM             ; If more items, continue loop
     LD          (HL),$ff                            ; Store $FF terminator
     LD          DE,TEMP_MAP                         ; DE = temp map buffer for filtering
     LD          HL,MAP_LADDER_OFFSET                ; HL = source map (with ladder)
@@ -5555,21 +5555,21 @@ LAB_ram_f4e4:
     DEC         B                                   ; Clear Z flag (no duplicate found)
     RET                                             ; Return with Z clear
 REDRAW_START:
-    LD          HL,CALC_ITEMS					; Save CALC_ITEMS function address
-    PUSH        HL                              ; PUSH it onto the stack for RET value after COMPASS redraw
-    LD          HL,PLAYER_MAP_POS               ; Get player map position variable address
-    LD          E,(HL)                          ; Put player's position into E
-    LD          D,$38							; DE = Player map position in WALL MAP SPACE (starts at $3800)
-    LD          HL,WALL_F0_STATE                ; Start of WALL_xx_STATE bytes
-    LD          C,0x5                           ; C is a step value to more easily jump to WALL_xx_STATE values
-    LD          A,(DIR_FACING_SHORT)            ; Load DIR_FACING_SHORT into A (1=N, 2=E, 3=S, 4=W)
+    LD          HL,CALC_ITEMS                       ; Save CALC_ITEMS function address
+    PUSH        HL                                  ; PUSH it onto the stack for RET value after COMPASS redraw
+    LD          HL,PLAYER_MAP_POS                   ; Get player map position variable address
+    LD          E,(HL)                              ; Put player's position into E
+    LD          D,$38                               ; DE = Player map position in WALL MAP SPACE (starts at $3800)
+    LD          HL,WALL_F0_STATE                    ; Start of WALL_xx_STATE bytes
+    LD          C,0x5                               ; C is a step value to more easily jump to WALL_xx_STATE values
+    LD          A,(DIR_FACING_SHORT)                ; Load DIR_FACING_SHORT into A (1=N, 2=E, 3=S, 4=W)
     DEC         A
-    JP          Z,FACING_NORTH                  ; Dir facing was 1, north
+    JP          Z,FACING_NORTH                      ; Dir facing was 1, north
     DEC         A                               
-    JP          Z,FACING_EAST                   ; Dir facing was 2, east
+    JP          Z,FACING_EAST                       ; Dir facing was 2, east
     DEC         A
-    JP          Z,FACING_SOUTH                  ; Dir facing was 3, south
-    JP          FACING_WEST                     ; Dir facing was 4, west
+    JP          Z,FACING_SOUTH                      ; Dir facing was 3, south
+    JP          FACING_WEST                         ; Dir facing was 4, west
 
 ; FACING_WEST - Calculate all wall states when player is facing west
 ;   - Calculates wall states for all 18 wall positions (including 4 half-walls) plus B0 behind player
@@ -5591,93 +5591,93 @@ REDRAW_START:
 ;   HL = Final wall state address (WALL_B0_STATE + 1)
 ;
 FACING_WEST:    
-    LD          A,(DE)                          ; Get S0 walls data
-    AND         0x7								; Mask to west wall data (F0)
-    LD          (HL),A                          ; Save WALL_F0_STATE ($33e8)
-    DEC         E                               ; Move to S1
-    CALL        GET_WEST_WALL                   ; Save WALL_F1_STATE ($33e9)
-    DEC         E                               ; Move to S2
-    CALL        GET_WEST_WALL                   ; Save WALL_F2_STATE ($33ea)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$10                           ; Increase A by 16
-    LD          E,A                             ; Save A to E (Move to SL2)
-    CALL        GET_NORTH_WALL                  ; Get L2 wall data
-    INC         L                               ; Next wall state byte (L2)
-    LD          (HL),A                          ; Save WALL_L2_STATE ($33eb)
-    LD          A,(DE)                          ; Get SL2 data 
-    AND         0x7                             ; Mask to west wall data (FL2)
-    CALL        CALC_HALF_WALLS                 ; Save FL2 A and B half-states ($33ec & $33f1 (+5))
-    LD          A,E                             ; Save E into A for math
-    SUB         $10                             ; Decrease A by 16
-    LD          E,A                             ; Save A to E (Move to S2)
-    CALL        GET_NORTH_WALL                  ; Get R2 wall data
-    LD          (HL),A                          ; Save WALL_R2_STATE ($33ed)
-    LD          A,E                             ; Save E into A for math
-    SUB         $10                             ; Decrease A by 16
-    LD          E,A                             ; Save A to E (Move to SR2)
-    LD          A,(DE)                          ; Get SR2 data
-    AND         0x7                             ; Mask to west wall data (FR2)
-    CALL        CALC_HALF_WALLS                 ; Save FR2 A and B half-states ($33ee & $33f4 (+6))
-    LD          A,E                             ; Copy E to A for math
-    ADD         A,$21                           ; Increase A by 33
-    LD          E,A                             ; Save A to E (Move to SL1)
-    CALL        GET_NORTH_WALL                  ; Get L1 wall data
-    LD          (HL),A                          ; Save WALL_L1_STATE ($33ef)
-    LD          A,(DE)                          ; Get SL1 data
-    AND         0x7                             ; Mask to west wall data (FL1)
-    CALL        CALC_HALF_WALLS                 ; Save FL1 A and B half-states ($33f0 & $33f7 (+7))
-    LD          A,E                             ; Save E to A for math
-    SUB         $10                             ; Decrease A by 16
-    LD          E,A                             ; Save A to E (Move to S1)
-    CALL        GET_NORTH_WALL                  ; Get R1 wall data
-    INC         L                               ; ($33f2)
-    LD          (HL),A                          ; Save WALL_R1_STATE ($33f2)
-    LD          A,E                             ; Save E to A for math
-    SUB         $10                             ; Decrease A by 16
-    LD          E,A                             ; Save A to E (Move to SR1)
-    LD          A,(DE)                          ; Get SR1 data
-    AND         0x7                             ; Mask to west wall data (FR1)
-    CALL        CALC_HALF_WALLS                 ; Save FR1 A and B half-states ($33f3 & $33fb (+8))
-    LD          A,E                             ; Save E to A for math
-    ADD         A,$21                           ; Increase A by 33
-    LD          E,A                             ; Save A to E (Move to SL0)
-    CALL        GET_NORTH_WALL                  ; Get L0 wall data
-    INC         L                               ; ($33f5)
-    LD          (HL),A                          ; Save WALL_L0_STATE ($33f5)
-    CALL        GET_WEST_WALL                   ; Save WALL_FL0_STATE ($33f6)
-    LD          A,E                             ; Save E to A for math
-    ADD         A,0xe                           ; Increase A by 14
-    LD          E,A                             ; Save A to E (Move to SL22)
-    CALL        GET_NORTH_WALL                  ; Get L22 wall data
-    INC         L                               ; ($33f7)
-    INC         L                               ; ($33f8)
-    LD          (HL),A                          ; Save WALL_L22_STATE ($33f8)
-    LD          A,E                             ; Save E to A for math
-    SUB         $1e                             ; Decrease A by 30
-    LD          E,A                             ; Save A to E (Move to S0)
-    CALL        GET_NORTH_WALL                  ; Get R0 wall data
-    INC         L                               ; ($33f9)
-    LD          (HL),A                          ; Save WALL_R0_STATE ($33f9)
-    LD          A,E                             ; Save E to A for math
-    SUB         $10                             ; Decrease A by 16
-    LD          E,A                             ; Save A to E (Move to SR0)
-    CALL        GET_WEST_WALL                   ; Save WALL_FR0_STATE ($33fa)
-    DEC         E                               ; Move to SR1
-    DEC         E                               ; Move to SR2
-    CALL        GET_NORTH_WALL                  ; Get R22 wall data
-    INC         L                               ; ($33fb)
-    INC         L                               ; ($33fc)
-    LD          (HL),A                          ; Save WALL_R22_STATE ($33fc)
-    LD          A,E                             ; Save E to A for math
-    ADD         A,$13                           ; Increase A by 19
-    LD          E,A                             ; Save A to E (Move to SB)
-    CALL        GET_WEST_WALL                   ; Save WALL_B0_STATE ($33fd)
+    LD          A,(DE)                              ; Get S0 walls data
+    AND         0x7                                 ; Mask to west wall data (F0)
+    LD          (HL),A                              ; Save WALL_F0_STATE ($33e8)
+    DEC         E                                   ; Move to S1
+    CALL        GET_WEST_WALL                       ; Save WALL_F1_STATE ($33e9)
+    DEC         E                                   ; Move to S2
+    CALL        GET_WEST_WALL                       ; Save WALL_F2_STATE ($33ea)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$10                               ; Increase A by 16
+    LD          E,A                                 ; Save A to E (Move to SL2)
+    CALL        GET_NORTH_WALL                      ; Get L2 wall data
+    INC         L                                   ; Next wall state byte (L2)
+    LD          (HL),A                              ; Save WALL_L2_STATE ($33eb)
+    LD          A,(DE)                              ; Get SL2 data 
+    AND         0x7                                 ; Mask to west wall data (FL2)
+    CALL        CALC_HALF_WALLS                     ; Save FL2 A and B half-states ($33ec & $33f1 (+5))
+    LD          A,E                                 ; Save E into A for math
+    SUB         $10                                 ; Decrease A by 16
+    LD          E,A                                 ; Save A to E (Move to S2)
+    CALL        GET_NORTH_WALL                      ; Get R2 wall data
+    LD          (HL),A                              ; Save WALL_R2_STATE ($33ed)
+    LD          A,E                                 ; Save E into A for math
+    SUB         $10                                 ; Decrease A by 16
+    LD          E,A                                 ; Save A to E (Move to SR2)
+    LD          A,(DE)                              ; Get SR2 data
+    AND         0x7                                 ; Mask to west wall data (FR2)
+    CALL        CALC_HALF_WALLS                     ; Save FR2 A and B half-states ($33ee & $33f4 (+6))
+    LD          A,E                                 ; Copy E to A for math
+    ADD         A,$21                               ; Increase A by 33
+    LD          E,A                                 ; Save A to E (Move to SL1)
+    CALL        GET_NORTH_WALL                      ; Get L1 wall data
+    LD          (HL),A                              ; Save WALL_L1_STATE ($33ef)
+    LD          A,(DE)                              ; Get SL1 data
+    AND         0x7                                 ; Mask to west wall data (FL1)
+    CALL        CALC_HALF_WALLS                     ; Save FL1 A and B half-states ($33f0 & $33f7 (+7))
+    LD          A,E                                 ; Save E to A for math
+    SUB         $10                                 ; Decrease A by 16
+    LD          E,A                                 ; Save A to E (Move to S1)
+    CALL        GET_NORTH_WALL                      ; Get R1 wall data
+    INC         L                                   ; ($33f2)
+    LD          (HL),A                              ; Save WALL_R1_STATE ($33f2)
+    LD          A,E                                 ; Save E to A for math
+    SUB         $10                                 ; Decrease A by 16
+    LD          E,A                                 ; Save A to E (Move to SR1)
+    LD          A,(DE)                              ; Get SR1 data
+    AND         0x7                                 ; Mask to west wall data (FR1)
+    CALL        CALC_HALF_WALLS                     ; Save FR1 A and B half-states ($33f3 & $33fb (+8))
+    LD          A,E                                 ; Save E to A for math
+    ADD         A,$21                               ; Increase A by 33
+    LD          E,A                                 ; Save A to E (Move to SL0)
+    CALL        GET_NORTH_WALL                      ; Get L0 wall data
+    INC         L                                   ; ($33f5)
+    LD          (HL),A                              ; Save WALL_L0_STATE ($33f5)
+    CALL        GET_WEST_WALL                       ; Save WALL_FL0_STATE ($33f6)
+    LD          A,E                                 ; Save E to A for math
+    ADD         A,0xe                               ; Increase A by 14
+    LD          E,A                                 ; Save A to E (Move to SL22)
+    CALL        GET_NORTH_WALL                      ; Get L22 wall data
+    INC         L                                   ; ($33f7)
+    INC         L                                   ; ($33f8)
+    LD          (HL),A                              ; Save WALL_L22_STATE ($33f8)
+    LD          A,E                                 ; Save E to A for math
+    SUB         $1e                                 ; Decrease A by 30
+    LD          E,A                                 ; Save A to E (Move to S0)
+    CALL        GET_NORTH_WALL                      ; Get R0 wall data
+    INC         L                                   ; ($33f9)
+    LD          (HL),A                              ; Save WALL_R0_STATE ($33f9)
+    LD          A,E                                 ; Save E to A for math
+    SUB         $10                                 ; Decrease A by 16
+    LD          E,A                                 ; Save A to E (Move to SR0)
+    CALL        GET_WEST_WALL                       ; Save WALL_FR0_STATE ($33fa)
+    DEC         E                                   ; Move to SR1
+    DEC         E                                   ; Move to SR2
+    CALL        GET_NORTH_WALL                      ; Get R22 wall data
+    INC         L                                   ; ($33fb)
+    INC         L                                   ; ($33fc)
+    LD          (HL),A                              ; Save WALL_R22_STATE ($33fc)
+    LD          A,E                                 ; Save E to A for math
+    ADD         A,$13                               ; Increase A by 19
+    LD          E,A                                 ; Save A to E (Move to SB)
+    CALL        GET_WEST_WALL                       ; Save WALL_B0_STATE ($33fd)
     LD          D,$ff
     LD          E,$f0
-    LD          (DIR_FACING_HI),DE              ; Set west-facing bytes
-    LD          DE,WEST_TXT                     ; Stage west pointing compass text
-    JP          CALC_REDRAW_COMPASS             ; Included for code relocatability
-                                                ; even though it currently follows
+    LD          (DIR_FACING_HI),DE                  ; Set west-facing bytes
+    LD          DE,WEST_TXT                         ; Stage west pointing compass text
+    JP          CALC_REDRAW_COMPASS                 ; Included for code relocatability
+                                                    ; even though it currently follows
 
 ; CALC_REDRAW_COMPASS - Calculate and redraw compass
 ;   - Takes current direction and renders it on the compass
@@ -5690,7 +5690,7 @@ FACING_WEST:
 ;   HL = Compass pointer screen index (CHRRAM)
 ;
 CALC_REDRAW_COMPASS:
-    LD          B,COLOR(RED,BLK)			; RED on BLK
+    LD          B,COLOR(RED,BLK)                    ; RED on BLK
     LD          HL,CHRRAM_POINTER_IDX
     JP          GFX_DRAW
 
@@ -5706,10 +5706,10 @@ CALC_REDRAW_COMPASS:
 ;   HL = Next WALL_xx_STATE variable location
 ;
 GET_WEST_WALL:
-    LD          A,(DE)      ; Get current map space walls data
-    AND         0x7         ; Mask to only lower nybble (West wall)
-    INC         L           ; Move ahead in WALL_xx_STATE memory
-    LD          (HL),A      ; Store west wall data
+    LD          A,(DE)                              ; Get current map space walls data
+    AND         0x7                                 ; Mask to only lower nybble (West wall)
+    INC         L                                   ; Move ahead in WALL_xx_STATE memory
+    LD          (HL),A                              ; Store west wall data
     RET
 
 ; GET_NORTH_WALL - Get data of north wall and put into bottom 3 bits
@@ -5723,11 +5723,11 @@ GET_WEST_WALL:
 ;   HL = SAME WALL_xx_STATE variable location
 ;
 GET_NORTH_WALL:
-    LD          A,(DE)      ; Get current wall map space byte
-    AND         $e0         ; Mask to upper nybble (north wall)
-    RLCA                    ; Rotate bits...
-    RLCA                    ; ...into bottom...
-    RLCA                    ; ...nybble bits
+    LD          A,(DE)                              ; Get current wall map space byte
+    AND         $e0                                 ; Mask to upper nybble (north wall)
+    RLCA                                            ; Rotate bits...
+    RLCA                                            ; ...into bottom...
+    RLCA                                            ; ...nybble bits
     RET
 
 ; CALC_HALF_WALLS - Get wall data and put into bottom 3 bits
@@ -5745,18 +5745,18 @@ GET_NORTH_WALL:
 ;   HL = Two wall states ahead from original WALL_xx_STATE variable location
 ;
 CALC_HALF_WALLS:
-    INC         L           ; Move to next WALL_xx_STATE variable location   
-    LD          (HL),A      ; Save wall state data
-    LD          B,A         ; Save A into B
-    LD          A,L         ; Save L into A
-    ADD         A,C         ; Add C (current half-wall WALL_xx_STATE shift offset) to A
-    LD          L,A         ; Save A back into L
-    LD          (HL),B      ; Save wall value into shifted WALL_xx_STATE slot
-    LD          A,L         ; Put L into A
-    SUB         C           ; Subtract C from A
-    LD          L,A         ; Load A into L (undo the shift)
-    INC         L           ; Move to next WALL_xx_STATE location (unshifted)
-    INC         C           ; Increment C
+    INC         L                                   ; Move to next WALL_xx_STATE variable location   
+    LD          (HL),A                              ; Save wall state data
+    LD          B,A                                 ; Save A into B
+    LD          A,L                                 ; Save L into A
+    ADD         A,C                                 ; Add C (current half-wall WALL_xx_STATE shift offset) to A
+    LD          L,A                                 ; Save A back into L
+    LD          (HL),B                              ; Save wall value into shifted WALL_xx_STATE slot
+    LD          A,L                                 ; Put L into A
+    SUB         C                                   ; Subtract C from A
+    LD          L,A                                 ; Load A into L (undo the shift)
+    INC         L                                   ; Move to next WALL_xx_STATE location (unshifted)
+    INC         C                                   ; Increment C
     RET
 
 ; FACING_NORTH - Calculate all wall states when player is facing north
@@ -5779,86 +5779,86 @@ CALC_HALF_WALLS:
 ;   HL = Final wall state address (WALL_B0_STATE + 1)
 ;
 FACING_NORTH:
-    CALL        GET_NORTH_WALL                  ; Get F0 wall data
-    LD          (HL),A                          ; Save WALL_F0_STATE ($33e8)
-    LD          A,E                             ; Put E in A for math
-    SUB         $10                             ; Decrease A by 16
-    LD          E,A                             ; Save A to E (Move to S1)
-    CALL        GET_NORTH_WALL                  ; Get F1 wall data
-    INC         L                               ; Next wall state byte (F1)
-    LD          (HL),A                          ; Save WALL_F1_STATE ($33e9)
-    LD          A,E                             ; Put E in A for math
-    SUB         $10                             ; Decrease A by 16
-    LD          E,A                             ; Save A to E (Move to S2)
-    CALL        GET_NORTH_WALL                  ; Get F2 wall data
-    INC         L                               ; Next wall state byte (F2)
-    LD          (HL),A                          ; Save WALL_F2_STATE ($33ea)
-    CALL        GET_WEST_WALL                   ; Save WALL_L2_STATE ($33eb)
-    DEC         E                               ; Move to SL2
-    CALL        GET_NORTH_WALL                  ; Get FL2 wall data
-    CALL        CALC_HALF_WALLS                 ; Save FL2 A and B half-states ($33ec & $33f1 (+5))
-    INC         E                               ; Move to S2
-    INC         E                               ; Move to SR2
-    LD          A,(DE)                          ; Get SR2 data
-    AND         0x7                             ; Mask to west wall data (FR2)
-    LD          (HL),A                          ; Save WALL_R2_STATE ($33ed)
-    CALL        GET_NORTH_WALL                  ; Get FR2 wall data
-    CALL        CALC_HALF_WALLS                 ; Save FR2 A and B half-states ($33ee & $33f4 (+6))
-    LD          A,E                             ; Put E in A for math
-    ADD         A,0xf                           ; Increase A by 15
-    LD          E,A                             ; Save A to E (Move to S1)
-    LD          A,(DE)                          ; Get S1 data
-    AND         0x7                             ; Mask to west wall data (L1)
-    LD          (HL),A                          ; Save WALL_L1_STATE ($33ef)
-    DEC         E                               ; Move to SL1
-    CALL        GET_NORTH_WALL                  ; Get FL1 wall data
-    CALL        CALC_HALF_WALLS                 ; Save FL1 A and B half-states ($33f0 & $33f7 (+7))
-    INC         E                               ; Move to S1
-    INC         E                               ; Move to SR1
-    CALL        GET_WEST_WALL                   ; Save WALL_R1_STATE ($33f2)
-    CALL        GET_NORTH_WALL                  ; Get FR1 wall data
-    CALL        CALC_HALF_WALLS                 ; Save FR1 A and B half-states ($33f3 & $33fb (+8))
-    LD          A,E                             ; Put E in A for math
-    ADD         A,0xf                           ; Increase A by 15
-    LD          E,A                             ; Save A to E (Move to S0)
-    CALL        GET_WEST_WALL                   ; Save WALL_L0_STATE ($33f5)
-    DEC         E                               ; Move to SL0
-    CALL        GET_NORTH_WALL                  ; Get FL0 wall data
-    INC         L                               ; ($33f5)
-    LD          (HL),A                          ; Save WALL_FL0_STATE ($33f6)
-    LD          A,E                             ; Put E in A for math
-    SUB         $20                             ; Decrease A by 32
-    LD          E,A                             ; Save A to E (Move to SL2)
-    LD          A,(DE)                          ; Get SL22 data
-    AND         0x7                             ; Mask to west wall data (L22)
-    INC         L                               ; ($33f7)
-    INC         L                               ; ($33f8)
-    LD          (HL),A                          ; Save WALL_L22_STATE ($33f8)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$22                           ; Increase A by 34
-    LD          E,A                             ; Save A to E (Move to SR0)
-    CALL        GET_WEST_WALL                   ; Save WALL_R0_STATE ($33f9)
-    CALL        GET_NORTH_WALL                  ; Get FR0 wall data
-    INC         L                               ; ($33fa)
-    LD          (HL),A                          ; Save WALL_FR0_STATE ($33fa)
-    LD          A,E                             ; Put E in A for math
-    SUB         $1f                             ; Decrease A by 31
-    LD          E,A                             ; Save A to E (Move to SR22)
-    LD          A,(DE)                          ; Get SR22 data
-    AND         0x7                             ; Mask to west wall data (R22)
-    INC         L                               ; ($33fb)
-    INC         L                               ; ($33fc)
-    LD          (HL),A                          ; Save WALL_R22_STATE ($33fc)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$2e                           ; Increase A by 46
-    LD          E,A                             ; Save A to E (Move to SB)
-    CALL        GET_NORTH_WALL                  ; Get B0 wall data
-    INC         L                               ; ($33fd)
-    LD          (HL),A                          ; Save WALL_B0_STATE ($33fd)
-    LD          D,$f0                           ; Set north-facing bytes
+    CALL        GET_NORTH_WALL                      ; Get F0 wall data
+    LD          (HL),A                              ; Save WALL_F0_STATE ($33e8)
+    LD          A,E                                 ; Put E in A for math
+    SUB         $10                                 ; Decrease A by 16
+    LD          E,A                                 ; Save A to E (Move to S1)
+    CALL        GET_NORTH_WALL                      ; Get F1 wall data
+    INC         L                                   ; Next wall state byte (F1)
+    LD          (HL),A                              ; Save WALL_F1_STATE ($33e9)
+    LD          A,E                                 ; Put E in A for math
+    SUB         $10                                 ; Decrease A by 16
+    LD          E,A                                 ; Save A to E (Move to S2)
+    CALL        GET_NORTH_WALL                      ; Get F2 wall data
+    INC         L                                   ; Next wall state byte (F2)
+    LD          (HL),A                              ; Save WALL_F2_STATE ($33ea)
+    CALL        GET_WEST_WALL                       ; Save WALL_L2_STATE ($33eb)
+    DEC         E                                   ; Move to SL2
+    CALL        GET_NORTH_WALL                      ; Get FL2 wall data
+    CALL        CALC_HALF_WALLS                     ; Save FL2 A and B half-states ($33ec & $33f1 (+5))
+    INC         E                                   ; Move to S2
+    INC         E                                   ; Move to SR2
+    LD          A,(DE)                              ; Get SR2 data
+    AND         0x7                                 ; Mask to west wall data (FR2)
+    LD          (HL),A                              ; Save WALL_R2_STATE ($33ed)
+    CALL        GET_NORTH_WALL                      ; Get FR2 wall data
+    CALL        CALC_HALF_WALLS                     ; Save FR2 A and B half-states ($33ee & $33f4 (+6))
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,0xf                               ; Increase A by 15
+    LD          E,A                                 ; Save A to E (Move to S1)
+    LD          A,(DE)                              ; Get S1 data
+    AND         0x7                                 ; Mask to west wall data (L1)
+    LD          (HL),A                              ; Save WALL_L1_STATE ($33ef)
+    DEC         E                                   ; Move to SL1
+    CALL        GET_NORTH_WALL                      ; Get FL1 wall data
+    CALL        CALC_HALF_WALLS                     ; Save FL1 A and B half-states ($33f0 & $33f7 (+7))
+    INC         E                                   ; Move to S1
+    INC         E                                   ; Move to SR1
+    CALL        GET_WEST_WALL                       ; Save WALL_R1_STATE ($33f2)
+    CALL        GET_NORTH_WALL                      ; Get FR1 wall data
+    CALL        CALC_HALF_WALLS                     ; Save FR1 A and B half-states ($33f3 & $33fb (+8))
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,0xf                               ; Increase A by 15
+    LD          E,A                                 ; Save A to E (Move to S0)
+    CALL        GET_WEST_WALL                       ; Save WALL_L0_STATE ($33f5)
+    DEC         E                                   ; Move to SL0
+    CALL        GET_NORTH_WALL                      ; Get FL0 wall data
+    INC         L                                   ; ($33f5)
+    LD          (HL),A                              ; Save WALL_FL0_STATE ($33f6)
+    LD          A,E                                 ; Put E in A for math
+    SUB         $20                                 ; Decrease A by 32
+    LD          E,A                                 ; Save A to E (Move to SL2)
+    LD          A,(DE)                              ; Get SL22 data
+    AND         0x7                                 ; Mask to west wall data (L22)
+    INC         L                                   ; ($33f7)
+    INC         L                                   ; ($33f8)
+    LD          (HL),A                              ; Save WALL_L22_STATE ($33f8)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$22                               ; Increase A by 34
+    LD          E,A                                 ; Save A to E (Move to SR0)
+    CALL        GET_WEST_WALL                       ; Save WALL_R0_STATE ($33f9)
+    CALL        GET_NORTH_WALL                      ; Get FR0 wall data
+    INC         L                                   ; ($33fa)
+    LD          (HL),A                              ; Save WALL_FR0_STATE ($33fa)
+    LD          A,E                                 ; Put E in A for math
+    SUB         $1f                                 ; Decrease A by 31
+    LD          E,A                                 ; Save A to E (Move to SR22)
+    LD          A,(DE)                              ; Get SR22 data
+    AND         0x7                                 ; Mask to west wall data (R22)
+    INC         L                                   ; ($33fb)
+    INC         L                                   ; ($33fc)
+    LD          (HL),A                              ; Save WALL_R22_STATE ($33fc)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$2e                               ; Increase A by 46
+    LD          E,A                                 ; Save A to E (Move to SB)
+    CALL        GET_NORTH_WALL                      ; Get B0 wall data
+    INC         L                                   ; ($33fd)
+    LD          (HL),A                              ; Save WALL_B0_STATE ($33fd)
+    LD          D,$f0                               ; Set north-facing bytes
     LD          E,0x1
-    LD          (DIR_FACING_HI),DE              ; Set north-facing bytes
-    LD          DE,NORTH_TXT                    ; Stage north pointing compass text
+    LD          (DIR_FACING_HI),DE                  ; Set north-facing bytes
+    LD          DE,NORTH_TXT                        ; Stage north pointing compass text
     JP          CALC_REDRAW_COMPASS
 
 ; FACING_SOUTH - Calculate all wall states when player is facing south
@@ -5881,109 +5881,109 @@ FACING_NORTH:
 ;   HL = Final wall state address (WALL_B0_STATE + 1)
 ;
 FACING_SOUTH:
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$10                           ; Increase A by 16
-    LD          E,A                             ; Save A to E (Move to S1)
-    CALL        GET_NORTH_WALL                  ; Get F0 wall data
-    LD          (HL),A                          ; Save WALL_F0_STATE ($33e8)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$10                           ; Increase A by 16
-    LD          E,A                             ; Save A to E (Move to S2)
-    CALL        GET_NORTH_WALL                  ; Get F1 wall data
-    INC         L                               ; Next wall state byte (F1)
-    LD          (HL),A                          ; Save WALL_F1_STATE ($33e9)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$10                           ; Increase A by 16
-    LD          E,A                             ; Save A to E (Move to S2 + 1)
-    CALL        GET_NORTH_WALL                  ; Get F2 wall data
-    INC         L                               ; Next wall state byte (F2)
-    LD          (HL),A                          ; Save WALL_F2_STATE ($33ea)
-    LD          A,E                             ; Put E in A for math
-    SUB         0xf                             ; Decrease A by 15
-    LD          E,A                             ; Save A to E (Move to SL2)
-    CALL        GET_WEST_WALL                   ; Save WALL_L2_STATE ($33eb)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$10                           ; Increase A by 16
-    LD          E,A                             ; Save A to E (Move to SL2 + 1)
-    CALL        GET_NORTH_WALL                  ; Get FL2 wall data
-    CALL        CALC_HALF_WALLS                 ; Save FL2 A and B half-states ($33ec & $33f1 (+5))
-    LD          A,E                             ; Put E in A for math
-    SUB         $11                             ; Decrease A by 17
-    LD          E,A                             ; Save A to E (Move to S2)
-    LD          A,(DE)                          ; Get S2 data
-    AND         0x7                             ; Mask to west wall data (R2)
-    LD          (HL),A                          ; Save WALL_R2_STATE ($33ed)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,0xf                           ; Increase A by 15
-    LD          E,A                             ; Save A to E (Move to SR2 + 1)
-    CALL        GET_NORTH_WALL                  ; Get FR2 wall data
-    CALL        CALC_HALF_WALLS                 ; Save FR2 A and B half-states ($33ee & $33f4 (+6))
-    LD          A,E                             ; Put E in A for math
-    SUB         $1e                             ; Decrease A by 30
-    LD          E,A                             ; Save A to E (Move to SL1)
-    LD          A,(DE)                          ; Get SL1 data
-    AND         0x7                             ; Mask to west wall data (L1)
-    LD          (HL),A                          ; Save WALL_L1_STATE ($33ef)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$10                           ; Increase A by 16
-    LD          E,A                             ; Save A to E (Move to SL2)
-    CALL        GET_NORTH_WALL                  ; Get FL1 wall data
-    CALL        CALC_HALF_WALLS                 ; Save FL1 A and B half-states ($33f0 & $33f7 (+7))
-    LD          A,E                             ; Put E in A for math
-    SUB         $11                             ; Decrease A by 17
-    LD          E,A                             ; Save A to E (Move to S1)
-    CALL        GET_WEST_WALL                   ; Save WALL_R1_STATE ($33f2)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,0xf                           ; Increase A by 15
-    LD          E,A                             ; Save A to E (Move to SR2)
-    CALL        GET_NORTH_WALL                  ; Get FR1 wall data
-    CALL        CALC_HALF_WALLS                 ; Save FR1 A and B half-states ($33f3 & $33fb (+8))
-    LD          A,E                             ; Put E in A for math
-    SUB         $1e                             ; Decrease A by 30
-    LD          E,A                             ; Save A to E (Move to SL0)
-    CALL        GET_WEST_WALL                   ; Save WALL_L0_STATE ($33f5)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$10                           ; Increase A by 16
-    LD          E,A                             ; Save A to E (Move to SL1)
-    CALL        GET_NORTH_WALL                  ; Get FL0 wall data
-    INC         L                               ; ($33f5)
-    LD          (HL),A                          ; Save WALL_FL0_STATE ($33f6)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$11                           ; Increase A by 17
-    LD          E,A                             ; Save A to E (Move to SL22)
-    LD          A,(DE)                          ; Get SL22 data
-    AND         0x7                             ; Mask to west wall data (L22)
-    INC         L                               ; ($33f7)
-    INC         L                               ; ($33f8)
-    LD          (HL),A                          ; Save WALL_L22_STATE ($33f8)
-    LD          A,E                             ; Put E in A for math
-    SUB         $22                             ; Decrease A by 34
-    LD          E,A                             ; Save A to E (Move to S0)
-    CALL        GET_WEST_WALL                   ; Save WALL_R0_STATE ($33f9)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,0xf                           ; Increase A by 15
-    LD          E,A                             ; Save A to E (Move to SR1)
-    CALL        GET_NORTH_WALL                  ; Get FR0 wall data
-    INC         L                               ; ($33fa)
-    LD          (HL),A                          ; Save WALL_FR0_STATE ($33fa)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$10                           ; Increase A by 16
-    LD          E,A                             ; Save A to E (Move to SR2)
-    LD          A,(DE)                          ; Get SR2 data
-    AND         0x7                             ; Mask to west wall data (R22)
-    INC         L                               ; ($33fb)
-    INC         L                               ; ($33fc)
-    LD          (HL),A                          ; Save WALL_R22_STATE ($33fc)
-    LD          A,E                             ; Put E in A for math
-    SUB         $1f                             ; Decrease A by 31
-    LD          E,A                             ; Save A to E (Move to S0)
-    CALL        GET_NORTH_WALL                  ; Get B0 wall data
-    INC         L                               ; ($33fd)
-    LD          (HL),A                          ; Save WALL_B0_STATE ($33fd)
-    LD          D,$10                           ; Set south-facing bytes
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$10                               ; Increase A by 16
+    LD          E,A                                 ; Save A to E (Move to S1)
+    CALL        GET_NORTH_WALL                      ; Get F0 wall data
+    LD          (HL),A                              ; Save WALL_F0_STATE ($33e8)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$10                               ; Increase A by 16
+    LD          E,A                                 ; Save A to E (Move to S2)
+    CALL        GET_NORTH_WALL                      ; Get F1 wall data
+    INC         L                                   ; Next wall state byte (F1)
+    LD          (HL),A                              ; Save WALL_F1_STATE ($33e9)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$10                               ; Increase A by 16
+    LD          E,A                                 ; Save A to E (Move to S2 + 1)
+    CALL        GET_NORTH_WALL                      ; Get F2 wall data
+    INC         L                                   ; Next wall state byte (F2)
+    LD          (HL),A                              ; Save WALL_F2_STATE ($33ea)
+    LD          A,E                                 ; Put E in A for math
+    SUB         0xf                                 ; Decrease A by 15
+    LD          E,A                                 ; Save A to E (Move to SL2)
+    CALL        GET_WEST_WALL                       ; Save WALL_L2_STATE ($33eb)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$10                               ; Increase A by 16
+    LD          E,A                                 ; Save A to E (Move to SL2 + 1)
+    CALL        GET_NORTH_WALL                      ; Get FL2 wall data
+    CALL        CALC_HALF_WALLS                     ; Save FL2 A and B half-states ($33ec & $33f1 (+5))
+    LD          A,E                                 ; Put E in A for math
+    SUB         $11                                 ; Decrease A by 17
+    LD          E,A                                 ; Save A to E (Move to S2)
+    LD          A,(DE)                              ; Get S2 data
+    AND         0x7                                 ; Mask to west wall data (R2)
+    LD          (HL),A                              ; Save WALL_R2_STATE ($33ed)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,0xf                               ; Increase A by 15
+    LD          E,A                                 ; Save A to E (Move to SR2 + 1)
+    CALL        GET_NORTH_WALL                      ; Get FR2 wall data
+    CALL        CALC_HALF_WALLS                     ; Save FR2 A and B half-states ($33ee & $33f4 (+6))
+    LD          A,E                                 ; Put E in A for math
+    SUB         $1e                                 ; Decrease A by 30
+    LD          E,A                                 ; Save A to E (Move to SL1)
+    LD          A,(DE)                              ; Get SL1 data
+    AND         0x7                                 ; Mask to west wall data (L1)
+    LD          (HL),A                              ; Save WALL_L1_STATE ($33ef)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$10                               ; Increase A by 16
+    LD          E,A                                 ; Save A to E (Move to SL2)
+    CALL        GET_NORTH_WALL                      ; Get FL1 wall data
+    CALL        CALC_HALF_WALLS                     ; Save FL1 A and B half-states ($33f0 & $33f7 (+7))
+    LD          A,E                                 ; Put E in A for math
+    SUB         $11                                 ; Decrease A by 17
+    LD          E,A                                 ; Save A to E (Move to S1)
+    CALL        GET_WEST_WALL                       ; Save WALL_R1_STATE ($33f2)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,0xf                               ; Increase A by 15
+    LD          E,A                                 ; Save A to E (Move to SR2)
+    CALL        GET_NORTH_WALL                      ; Get FR1 wall data
+    CALL        CALC_HALF_WALLS                     ; Save FR1 A and B half-states ($33f3 & $33fb (+8))
+    LD          A,E                                 ; Put E in A for math
+    SUB         $1e                                 ; Decrease A by 30
+    LD          E,A                                 ; Save A to E (Move to SL0)
+    CALL        GET_WEST_WALL                       ; Save WALL_L0_STATE ($33f5)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$10                               ; Increase A by 16
+    LD          E,A                                 ; Save A to E (Move to SL1)
+    CALL        GET_NORTH_WALL                      ; Get FL0 wall data
+    INC         L                                   ; ($33f5)
+    LD          (HL),A                              ; Save WALL_FL0_STATE ($33f6)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$11                               ; Increase A by 17
+    LD          E,A                                 ; Save A to E (Move to SL22)
+    LD          A,(DE)                              ; Get SL22 data
+    AND         0x7                                 ; Mask to west wall data (L22)
+    INC         L                                   ; ($33f7)
+    INC         L                                   ; ($33f8)
+    LD          (HL),A                              ; Save WALL_L22_STATE ($33f8)
+    LD          A,E                                 ; Put E in A for math
+    SUB         $22                                 ; Decrease A by 34
+    LD          E,A                                 ; Save A to E (Move to S0)
+    CALL        GET_WEST_WALL                       ; Save WALL_R0_STATE ($33f9)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,0xf                               ; Increase A by 15
+    LD          E,A                                 ; Save A to E (Move to SR1)
+    CALL        GET_NORTH_WALL                      ; Get FR0 wall data
+    INC         L                                   ; ($33fa)
+    LD          (HL),A                              ; Save WALL_FR0_STATE ($33fa)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$10                               ; Increase A by 16
+    LD          E,A                                 ; Save A to E (Move to SR2)
+    LD          A,(DE)                              ; Get SR2 data
+    AND         0x7                                 ; Mask to west wall data (R22)
+    INC         L                                   ; ($33fb)
+    INC         L                                   ; ($33fc)
+    LD          (HL),A                              ; Save WALL_R22_STATE ($33fc)
+    LD          A,E                                 ; Put E in A for math
+    SUB         $1f                                 ; Decrease A by 31
+    LD          E,A                                 ; Save A to E (Move to S0)
+    CALL        GET_NORTH_WALL                      ; Get B0 wall data
+    INC         L                                   ; ($33fd)
+    LD          (HL),A                              ; Save WALL_B0_STATE ($33fd)
+    LD          D,$10                               ; Set south-facing bytes
     LD          E,$ff
-    LD          (DIR_FACING_HI),DE              ; Set south-facing bytes
-    LD          DE,SOUTH_TXT                    ; Stage south pointing compass text
+    LD          (DIR_FACING_HI),DE                  ; Set south-facing bytes
+    LD          DE,SOUTH_TXT                        ; Stage south pointing compass text
     JP          CALC_REDRAW_COMPASS
 
 ; FACING_EAST - Calculate all wall states when player is facing east
@@ -6006,92 +6006,92 @@ FACING_SOUTH:
 ;   HL = Final wall state address (WALL_B0_STATE + 1)
 ;
 FACING_EAST:
-    INC         E                               ; Move to S1
-    LD          A,(DE)                          ; Get S1 data
-    AND         0x7                             ; Mask to west wall data (F0)
-    LD          (HL),A                          ; Save WALL_F0_STATE ($33e8)
-    INC         E                               ; Move to S2
-    CALL        GET_WEST_WALL                   ; Save WALL_F1_STATE ($33e9)
-    INC         E                               ; Move to S2 + 1
-    CALL        GET_WEST_WALL                   ; Save WALL_F2_STATE ($33ea)
-    DEC         E                               ; Move to S2
-    CALL        GET_NORTH_WALL                  ; Get L2 wall data
-    INC         L                               ; Next wall state byte (L2)
-    LD          (HL),A                          ; Save WALL_L2_STATE ($33eb)
-    LD          A,E                             ; Put E in A for math
-    SUB         0xf                             ; Decrease A by 15
-    LD          E,A                             ; Save A to E (Move to SL2 + 1)
-    LD          A,(DE)                          ; Get SL2 + 1 data
-    AND         0x7                             ; Mask to west wall data (FL2)
-    CALL        CALC_HALF_WALLS                 ; Save FL2 A and B half-states ($33ec & $33f1 (+5))
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$1f                           ; Increase A by 31
-    LD          E,A                             ; Save A to E (Move to SR2)
-    CALL        GET_NORTH_WALL                  ; Get R2 wall data
-    LD          (HL),A                          ; Save WALL_R2_STATE ($33ed)
-    INC         E                               ; Move to SR2 + 1
-    LD          A,(DE)                          ; Get SR2 + 1 data
-    AND         0x7                             ; Mask to west wall data (FR2)
-    CALL        CALC_HALF_WALLS                 ; Save FR2 A and B half-states ($33ee & $33f4 (+6))
-    LD          A,E                             ; Put E in A for math
-    SUB         $12                             ; Decrease A by 18
-    LD          E,A                             ; Save A to E (Move to S1)
-    CALL        GET_NORTH_WALL                  ; Get L1 wall data
-    LD          (HL),A                          ; Save WALL_L1_STATE ($33ef)
-    LD          A,E                             ; Put E in A for math
-    SUB         0xf                             ; Decrease A by 15
-    LD          E,A                             ; Save A to E (Move to SL2)
-    LD          A,(DE)                          ; Get SL2 data
-    AND         0x7                             ; Mask to west wall data (FL1)
-    CALL        CALC_HALF_WALLS                 ; Save FL1 A and B half-states ($33f0 & $33f7 (+7))
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$1f                           ; Increase A by 31
-    LD          E,A                             ; Save A to E (Move to SR1)
-    CALL        GET_NORTH_WALL                  ; Get R1 wall data
-    INC         L                               ; ($33f2)
-    LD          (HL),A                          ; Save WALL_R1_STATE ($33f2)
-    INC         E                               ; Move to SR2
-    LD          A,(DE)                          ; Get SR2 data
-    AND         0x7                             ; Mask to west wall data (FR1)
-    CALL        CALC_HALF_WALLS                 ; Save FR1 A and B half-states ($33f3 & $33fb (+8))
-    LD          A,E                             ; Put E in A for math
-    SUB         $12                             ; Decrease A by 18
-    LD          E,A                             ; Save A to E (Move to S0)
-    CALL        GET_NORTH_WALL                  ; Get L0 wall data
-    INC         L                               ; ($33f5)
-    LD          (HL),A                          ; Save WALL_L0_STATE ($33f5)
-    LD          A,E                             ; Put E in A for math
-    SUB         0xf                             ; Decrease A by 15
-    LD          E,A                             ; Save A to E (Move to SL1)
-    CALL        GET_WEST_WALL                   ; Save WALL_FL0_STATE ($33f6)
-    INC         E                               ; Move to SL2
-    CALL        GET_NORTH_WALL                  ; Get L22 wall data
-    INC         L                               ; ($33f7)
-    INC         L                               ; ($33f8)
-    LD          (HL),A                          ; Save WALL_L22_STATE ($33f8)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$1e                           ; Increase A by 30
-    LD          E,A                             ; Save A to E (Move to SR0)
-    CALL        GET_NORTH_WALL                  ; Get R0 wall data
-    INC         L                               ; ($33f9)
-    LD          (HL),A                          ; Save WALL_R0_STATE ($33f9)
-    INC         E                               ; Move to SR1
-    CALL        GET_WEST_WALL                   ; Save WALL_FR0_STATE ($33fa)
-    LD          A,E                             ; Put E in A for math
-    ADD         A,$11                           ; Increase A by 17
-    LD          E,A                             ; Save A to E (Move to SR22)
-    CALL        GET_NORTH_WALL                  ; Get R22 wall data
-    INC         L                               ; ($33fb)
-    INC         L                               ; ($33fc)
-    LD          (HL),A                          ; Save WALL_R22_STATE ($33fc)
-    LD          A,E                             ; Put E in A for math
-    SUB         $22                             ; Decrease A by 34
-    LD          E,A                             ; Save A to E (Move to S0)
-    CALL        GET_WEST_WALL                   ; Save WALL_B0_STATE ($33fd)
-    LD          D,0x1                           ; Set east-facing bytes
+    INC         E                                   ; Move to S1
+    LD          A,(DE)                              ; Get S1 data
+    AND         0x7                                 ; Mask to west wall data (F0)
+    LD          (HL),A                              ; Save WALL_F0_STATE ($33e8)
+    INC         E                                   ; Move to S2
+    CALL        GET_WEST_WALL                       ; Save WALL_F1_STATE ($33e9)
+    INC         E                                   ; Move to S2 + 1
+    CALL        GET_WEST_WALL                       ; Save WALL_F2_STATE ($33ea)
+    DEC         E                                   ; Move to S2
+    CALL        GET_NORTH_WALL                      ; Get L2 wall data
+    INC         L                                   ; Next wall state byte (L2)
+    LD          (HL),A                              ; Save WALL_L2_STATE ($33eb)
+    LD          A,E                                 ; Put E in A for math
+    SUB         0xf                                 ; Decrease A by 15
+    LD          E,A                                 ; Save A to E (Move to SL2 + 1)
+    LD          A,(DE)                              ; Get SL2 + 1 data
+    AND         0x7                                 ; Mask to west wall data (FL2)
+    CALL        CALC_HALF_WALLS                     ; Save FL2 A and B half-states ($33ec & $33f1 (+5))
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$1f                               ; Increase A by 31
+    LD          E,A                                 ; Save A to E (Move to SR2)
+    CALL        GET_NORTH_WALL                      ; Get R2 wall data
+    LD          (HL),A                              ; Save WALL_R2_STATE ($33ed)
+    INC         E                                   ; Move to SR2 + 1
+    LD          A,(DE)                              ; Get SR2 + 1 data
+    AND         0x7                                 ; Mask to west wall data (FR2)
+    CALL        CALC_HALF_WALLS                     ; Save FR2 A and B half-states ($33ee & $33f4 (+6))
+    LD          A,E                                 ; Put E in A for math
+    SUB         $12                                 ; Decrease A by 18
+    LD          E,A                                 ; Save A to E (Move to S1)
+    CALL        GET_NORTH_WALL                      ; Get L1 wall data
+    LD          (HL),A                              ; Save WALL_L1_STATE ($33ef)
+    LD          A,E                                 ; Put E in A for math
+    SUB         0xf                                 ; Decrease A by 15
+    LD          E,A                                 ; Save A to E (Move to SL2)
+    LD          A,(DE)                              ; Get SL2 data
+    AND         0x7                                 ; Mask to west wall data (FL1)
+    CALL        CALC_HALF_WALLS                     ; Save FL1 A and B half-states ($33f0 & $33f7 (+7))
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$1f                               ; Increase A by 31
+    LD          E,A                                 ; Save A to E (Move to SR1)
+    CALL        GET_NORTH_WALL                      ; Get R1 wall data
+    INC         L                                   ; ($33f2)
+    LD          (HL),A                              ; Save WALL_R1_STATE ($33f2)
+    INC         E                                   ; Move to SR2
+    LD          A,(DE)                              ; Get SR2 data
+    AND         0x7                                 ; Mask to west wall data (FR1)
+    CALL        CALC_HALF_WALLS                     ; Save FR1 A and B half-states ($33f3 & $33fb (+8))
+    LD          A,E                                 ; Put E in A for math
+    SUB         $12                                 ; Decrease A by 18
+    LD          E,A                                 ; Save A to E (Move to S0)
+    CALL        GET_NORTH_WALL                      ; Get L0 wall data
+    INC         L                                   ; ($33f5)
+    LD          (HL),A                              ; Save WALL_L0_STATE ($33f5)
+    LD          A,E                                 ; Put E in A for math
+    SUB         0xf                                 ; Decrease A by 15
+    LD          E,A                                 ; Save A to E (Move to SL1)
+    CALL        GET_WEST_WALL                       ; Save WALL_FL0_STATE ($33f6)
+    INC         E                                   ; Move to SL2
+    CALL        GET_NORTH_WALL                      ; Get L22 wall data
+    INC         L                                   ; ($33f7)
+    INC         L                                   ; ($33f8)
+    LD          (HL),A                              ; Save WALL_L22_STATE ($33f8)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$1e                               ; Increase A by 30
+    LD          E,A                                 ; Save A to E (Move to SR0)
+    CALL        GET_NORTH_WALL                      ; Get R0 wall data
+    INC         L                                   ; ($33f9)
+    LD          (HL),A                              ; Save WALL_R0_STATE ($33f9)
+    INC         E                                   ; Move to SR1
+    CALL        GET_WEST_WALL                       ; Save WALL_FR0_STATE ($33fa)
+    LD          A,E                                 ; Put E in A for math
+    ADD         A,$11                               ; Increase A by 17
+    LD          E,A                                 ; Save A to E (Move to SR22)
+    CALL        GET_NORTH_WALL                      ; Get R22 wall data
+    INC         L                                   ; ($33fb)
+    INC         L                                   ; ($33fc)
+    LD          (HL),A                              ; Save WALL_R22_STATE ($33fc)
+    LD          A,E                                 ; Put E in A for math
+    SUB         $22                                 ; Decrease A by 34
+    LD          E,A                                 ; Save A to E (Move to S0)
+    CALL        GET_WEST_WALL                       ; Save WALL_B0_STATE ($33fd)
+    LD          D,0x1                               ; Set east-facing bytes
     LD          E,$10
-    LD          (DIR_FACING_HI),DE              ; Set east-facing bytes
-    LD          DE,EAST_TXT                     ; Stage east pointing compass text
+    LD          (DIR_FACING_HI),DE                  ; Set east-facing bytes
+    LD          DE,EAST_TXT                         ; Stage east pointing compass text
     JP          CALC_REDRAW_COMPASS
 
 ;==============================================================================
@@ -6146,47 +6146,47 @@ FACING_EAST:
 ;
 ;==============================================================================
 CALC_ITEMS:
-    LD          IX,ITEM_F2                      ; Point IX to start of item position array
-    LD          DE,(DIR_FACING_HI)              ; Load direction facing deltas (D=vertical, E=horizontal)
-    LD          A,(PLAYER_MAP_POS)              ; Get current player map position
-    ADD         A,D                             ; Move forward by D (direction dependent)
-    ADD         A,D                             ; Move forward again (2 spaces ahead)
-    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+0)
-    LD          (IX+0),A                        ; Store result in first item slot
-    LD          A,H                             ; Use H as working position (set by ITEM_MAP_CHECK)
-    SUB         D                               ; Move back by D (1 space ahead)
-    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+1)
-    LD          (IX+1),A                        ; Store result in second item slot
-    LD          A,H                             ; Continue with H as working position
-    SUB         D                               ; Move back by D (player position)
-    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+2)
-    LD          (IX+2),A                        ; Store result in third item slot
-    LD          A,H                             ; Continue with H as working position
-    ADD         A,D                             ; Move forward by D (back to 1 space ahead)
-    SUB         E                               ; Move left by E (diagonal left forward)
-    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+3)
-    LD          (IX+3),A                        ; Store result in fourth item slot
-    LD          A,H                             ; Continue with H as working position
-    ADD         A,E                             ; Move right by E (back to center forward)
-    ADD         A,E                             ; Move right again (diagonal right forward)
-    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+4)
-    LD          (IX+4),A                        ; Store result in fifth item slot
-    LD          A,H                             ; Continue with H as working position
-    SUB         D                               ; Move back by D (diagonal right at player level)
-    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+5)
-    LD          (IX+5),A                        ; Store result in sixth item slot
-    LD          A,H                             ; Continue with H as working position
-    SUB         E                               ; Move left by E (back to player position)
-    SUB         E                               ; Move left again (left side of player)
-    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+6)
-    LD          (IX+6),A                        ; Store result in seventh item slot
-    LD          A,H                             ; Continue with H as working position
-    SUB         D                               ; Move back by D (behind and left of player)
-    ADD         A,E                             ; Move right by E (directly behind player)
-    CALL        ITEM_MAP_CHECK                  ; Check for item at position (IX+7)
-    LD          (IX+7),A                        ; Store result in eighth item slot
+    LD          IX,ITEM_F2                          ; Point IX to start of item position array
+    LD          DE,(DIR_FACING_HI)                  ; Load direction facing deltas (D=vertical, E=horizontal)
+    LD          A,(PLAYER_MAP_POS)                  ; Get current player map position
+    ADD         A,D                                 ; Move forward by D (direction dependent)
+    ADD         A,D                                 ; Move forward again (2 spaces ahead)
+    CALL        ITEM_MAP_CHECK                      ; Check for item at position (IX+0)
+    LD          (IX+0),A                            ; Store result in first item slot
+    LD          A,H                                 ; Use H as working position (set by ITEM_MAP_CHECK)
+    SUB         D                                   ; Move back by D (1 space ahead)
+    CALL        ITEM_MAP_CHECK                      ; Check for item at position (IX+1)
+    LD          (IX+1),A                            ; Store result in second item slot
+    LD          A,H                                 ; Continue with H as working position
+    SUB         D                                   ; Move back by D (player position)
+    CALL        ITEM_MAP_CHECK                      ; Check for item at position (IX+2)
+    LD          (IX+2),A                            ; Store result in third item slot
+    LD          A,H                                 ; Continue with H as working position
+    ADD         A,D                                 ; Move forward by D (back to 1 space ahead)
+    SUB         E                                   ; Move left by E (diagonal left forward)
+    CALL        ITEM_MAP_CHECK                      ; Check for item at position (IX+3)
+    LD          (IX+3),A                            ; Store result in fourth item slot
+    LD          A,H                                 ; Continue with H as working position
+    ADD         A,E                                 ; Move right by E (back to center forward)
+    ADD         A,E                                 ; Move right again (diagonal right forward)
+    CALL        ITEM_MAP_CHECK                      ; Check for item at position (IX+4)
+    LD          (IX+4),A                            ; Store result in fifth item slot
+    LD          A,H                                 ; Continue with H as working position
+    SUB         D                                   ; Move back by D (diagonal right at player level)
+    CALL        ITEM_MAP_CHECK                      ; Check for item at position (IX+5)
+    LD          (IX+5),A                            ; Store result in sixth item slot
+    LD          A,H                                 ; Continue with H as working position
+    SUB         E                                   ; Move left by E (back to player position)
+    SUB         E                                   ; Move left again (left side of player)
+    CALL        ITEM_MAP_CHECK                      ; Check for item at position (IX+6)
+    LD          (IX+6),A                            ; Store result in seventh item slot
+    LD          A,H                                 ; Continue with H as working position
+    SUB         D                                   ; Move back by D (behind and left of player)
+    ADD         A,E                                 ; Move right by E (directly behind player)
+    CALL        ITEM_MAP_CHECK                      ; Check for item at position (IX+7)
+    LD          (IX+7),A                            ; Store result in eighth item slot
 LAB_ram_f7f0:
-    LD          A,$fe                           ; Return $FE (empty space marker)
+    LD          A,$fe                               ; Return $FE (empty space marker)
     RET
 
 ;==============================================================================
@@ -6222,20 +6222,20 @@ LAB_ram_f7f0:
 ;
 ;==============================================================================
 ITEM_MAP_CHECK:
-    LD          H,A                             ; Save target position in H
-    LD          BC,MAP_LADDER_OFFSET            ; Point BC to start of sparse item table
+    LD          H,A                                 ; Save target position in H
+    LD          BC,MAP_LADDER_OFFSET                ; Point BC to start of sparse item table
 ITEM_SEARCH_LOOP:
-    LD          A,(BC)                          ; Load position from table entry
-    INC         BC                              ; Move to item code byte
-    INC         BC                              ; Move to next table entry position
-    INC         A                               ; Test for $FF terminator (becomes $00)
-    JP          Z,LAB_ram_f7f0                  ; Jump if end of table (return $FE)
-    DEC         A                               ; Restore original position value
-    CP          H                               ; Compare with target position
-    JP          NZ,ITEM_SEARCH_LOOP             ; Continue loop if no match
-    DEC         C                               ; Back up to item code byte
-    LD          A,(BC)                          ; Load item/monster code
-    RET                                         ; Return with item code in A
+    LD          A,(BC)                              ; Load position from table entry
+    INC         BC                                  ; Move to item code byte
+    INC         BC                                  ; Move to next table entry position
+    INC         A                                   ; Test for $FF terminator (becomes $00)
+    JP          Z,LAB_ram_f7f0                      ; Jump if end of table (return $FE)
+    DEC         A                                   ; Restore original position value
+    CP          H                                   ; Compare with target position
+    JP          NZ,ITEM_SEARCH_LOOP                 ; Continue loop if no match
+    DEC         C                                   ; Back up to item code byte
+    LD          A,(BC)                              ; Load item/monster code
+    RET                                             ; Return with item code in A
 
 ;==============================================================================
 ; REDRAW_VIEWPORT - Render 3D maze viewport using painter's algorithm
