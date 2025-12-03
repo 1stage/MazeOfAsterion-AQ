@@ -4994,185 +4994,167 @@ MINOTAUR_MERCY_SPRITE:
     JP          MINOTAUR_SET_SPRITE                 ; Jump to set sprite
 INVALID_MONSTER_CODE:
     JP          NO_ACTION_TAKEN                     ; Invalid code, take no action
-SEED_MONSTER_HP_AND_ATTACK:								;   Seeds monster HP and calculates initial attack value.
-								;   Uses D (base damage), HL (HP pair) from dispatch table above.
-								;   Outputs: CURR_MONSTER_SPRT, BYTE_ram_3aa5 (HP triplets), WEAPON_VALUE_HOLDER (attack BCD)
-    CALL        GET_RANDOM_0_TO_7								;   Get random 0-7, then compute monster spiritual HP
-    PUSH        HL
-    LD          HL,CURR_MONSTER_SPRT
-    CALL        WRITE_HP_TRIPLET								;   Write spiritual HP triplet
-    POP         HL
-    LD          D,H
-    CALL        GET_RANDOM_0_TO_7								;   Get random 0-7, then compute monster physical HP
-    PUSH        HL
-    LD          HL,BYTE_ram_3aa5
-    CALL        WRITE_HP_TRIPLET								;   Write physical HP triplet
-    POP         HL
-    LD          D,L
-    LD          E,0x0
-    CALL        CALC_WEAPON_VALUE
-    LD          (WEAPON_VALUE_HOLDER),A
-    CALL        REDRAW_MONSTER_HEALTH
+SEED_MONSTER_HP_AND_ATTACK:
+    CALL        GET_RANDOM_0_TO_7                   ; Get random 0-7 in E for HP reduction
+    PUSH        HL                                  ; Save HL (HP pair: H=sprt, L=phys)
+    LD          HL,CURR_MONSTER_SPRT                ; Point to spiritual HP storage (3 bytes)
+    CALL        WRITE_HP_TRIPLET                    ; Write spiritual HP triplet (value, *2, carry)
+    POP         HL                                  ; Restore HL (HP pair)
+    LD          D,H                                 ; D = spiritual HP base value
+    CALL        GET_RANDOM_0_TO_7                   ; Get random 0-7 in E for HP reduction
+    PUSH        HL                                  ; Save HL (HP pair)
+    LD          HL,BYTE_ram_3aa5                    ; Point to physical HP storage (3 bytes)
+    CALL        WRITE_HP_TRIPLET                    ; Write physical HP triplet (value, *2, carry)
+    POP         HL                                  ; Restore HL (HP pair)
+    LD          D,L                                 ; D = physical HP base value
+    LD          E,0x0                               ; E = 0 (no random reduction for attack)
+    CALL        CALC_WEAPON_VALUE                   ; Calculate monster attack value
+    LD          (WEAPON_VALUE_HOLDER),A             ; Store attack value
+    CALL        REDRAW_MONSTER_HEALTH               ; Update monster health display
 INIT_MELEE_ANIM:
-    LD          A,0x3								;  A  = $03
-    LD          (MELEE_ANIM_STATE),A
-    LD          HL,$206								;  HL = $ce
-    LD          (MONSTER_ATT_POS_COUNT),HL
-    LD          HL,$31ea								;  HL = $0020 db?
-								;  Always $20 (SPACE char)?
-    LD          (MONSTER_ATT_POS_OFFSET),HL
-    LD          A,L
-    LD          (RAM_AE),A
-    CALL        MELEE_DRAW_WEAPON_FRAME
-    JP          WAIT_FOR_INPUT
+    LD          A,0x3                               ; A = 3 (melee animation state)
+    LD          (MELEE_ANIM_STATE),A                ; Store animation state
+    LD          HL,$206                             ; HL = $206 (position count)
+    LD          (MONSTER_ATT_POS_COUNT),HL          ; Store position count
+    LD          HL,$31ea                            ; HL = $31EA (position offset)
+    LD          (MONSTER_ATT_POS_OFFSET),HL         ; Store position offset
+    LD          A,L                                 ; A = low byte ($EA)
+    LD          (RAM_AE),A                          ; Store to RAM_AE
+    CALL        MELEE_DRAW_WEAPON_FRAME             ; Draw weapon frame for melee
+    JP          WAIT_FOR_INPUT                      ; Return to input wait
 REDRAW_MONSTER_HEALTH:
-    LD          DE,CHRRAM_MONSTER_PHYS								;  WAS LD DE,$333d
-    LD          HL,CURR_MONSTER_PHYS
-    LD          B,0x2
-    CALL        RECALC_AND_REDRAW_BCD
-    LD          DE,CHRRAM_MONSTER_SPRT								;  WAS LD DE,$338f
-    LD          HL,CURR_MONSTER_SPRT
-    LD          B,0x1
-    JP          RECALC_AND_REDRAW_BCD
-GET_RANDOM_0_TO_7:								;   Get random value 0-7 for damage reduction.
-								;   Outputs: E = random value 0-7
-								;   Side effects: Updates screen saver timer, falls through to CALC_WEAPON_VALUE
-    CALL        UPDATE_SCR_SAVER_TIMER
-    AND         0x7
-    LD          E,A
-CALC_WEAPON_VALUE:								;   Compute BCD attack/damage value.
-								;   Inputs:
-								;     B = weapon level (0-3)
-								;     D = base damage seed
-								;     E = random subtraction value (0-7)
-								;     C = level-derived additive component (BCD)
-								;   Outputs:
-								;     A = final weapon value in BCD
-								;   Formula: A = (D * (B+1)) - E + C, all BCD normalized, with underflow protection
-    PUSH        BC								;  Save original weaponLevel
-    INC         B								;  B = B + 1
-    LD          A,D								;  A = D
-    JP          LAB_ram_f28c
+    LD          DE,CHRRAM_MONSTER_PHYS              ; Point to monster physical health display
+    LD          HL,CURR_MONSTER_PHYS                ; Point to current monster physical HP
+    LD          B,0x2                               ; 2 bytes (BCD format)
+    CALL        RECALC_AND_REDRAW_BCD               ; Recalculate and redraw physical HP
+    LD          DE,CHRRAM_MONSTER_SPRT              ; Point to monster spiritual health display
+    LD          HL,CURR_MONSTER_SPRT                ; Point to current monster spiritual HP
+    LD          B,0x1                               ; 1 byte (BCD format)
+    JP          RECALC_AND_REDRAW_BCD               ; Recalculate and redraw spiritual HP
+GET_RANDOM_0_TO_7:
+    CALL        UPDATE_SCR_SAVER_TIMER              ; Update screen saver timer (returns random in A)
+    AND         0x7                                 ; Mask to 0-7
+    LD          E,A                                 ; E = random value 0-7
+CALC_WEAPON_VALUE:
+    PUSH        BC                                  ; Save BC (weapon level)
+    INC         B                                   ; B = weapon level + 1 (1-4)
+    LD          A,D                                 ; A = base damage value
+    JP          LAB_ram_f28c                        ; Jump into multiplication loop
 LAB_ram_f28a:
-    ADD         A,D								;  A = A + D
-    DAA								;  Normalize for BCD
+    ADD         A,D                                 ; A = A + base damage
+    DAA                                             ; Decimal adjust (BCD correction)
 LAB_ram_f28c:
-    DJNZ        LAB_ram_f28a								;  B = B - 1
-    SUB         E								;  A = A - E
-    DAA								;  Normalize for BCD
-    JP          NC,LAB_ram_f294
-    ADC         A,E								;  A = A + E (and CARRY) to undo underflow
-    DAA								;  Normalize for BCD
+    DJNZ        LAB_ram_f28a                        ; Loop B times (multiply by level+1)
+    SUB         E                                   ; Subtract random reduction (0-7)
+    DAA                                             ; Decimal adjust (BCD correction)
+    JP          NC,LAB_ram_f294                     ; If no borrow, continue
+    ADC         A,E                                 ; Add back E with carry (prevent negative)
+    DAA                                             ; Decimal adjust (BCD correction)
 LAB_ram_f294:
-    ADD         A,C								;  A = A + C
-    DAA								;  Normalize for BCD
-    POP         BC								;  BC = Original weaponLevel
-    RET								;  A = new weaponValue
-WRITE_HP_TRIPLET:								;   Write BCD HP value as triplet: value, doubled, carry.
-								;   Inputs: A = BCD health value, HL = destination pointer
-								;   Effects: Writes (HL) = A, (HL+1) = A*2 (BCD), (HL+2) = carry from doubling
-								;   Used to store health stats in a 3-byte normalized format.
-    LD          (HL),A
-    INC         HL
-    ADD         A,A
-    DAA
-    LD          (HL),A
-    INC         HL
-    LD          A,0x0
-    RLA
-    LD          (HL),A
-    RET
+    ADD         A,C                                 ; Add dungeon level bonus
+    DAA                                             ; Decimal adjust (BCD correction)
+    POP         BC                                  ; Restore BC (weapon level)
+    RET                                             ; Return with final value in A
+WRITE_HP_TRIPLET:
+    LD          (HL),A                              ; Store original HP value
+    INC         HL                                  ; Point to next byte
+    ADD         A,A                                 ; A = A * 2 (double the value)
+    DAA                                             ; Decimal adjust (BCD correction)
+    LD          (HL),A                              ; Store doubled HP value
+    INC         HL                                  ; Point to next byte
+    LD          A,0x0                               ; A = 0
+    RLA                                             ; Rotate carry left into A
+    LD          (HL),A                              ; Store carry from doubling
+    RET                                             ; Return to caller
 DO_USE_LADDER:
-    LD          A,(COMBAT_BUSY_FLAG)
-    AND         A
-    JP          NZ,NO_ACTION_TAKEN
-    LD          A,(ITEM_F0)
-    CP          $42
-    JP          NZ,NO_ACTION_TAKEN
-    LD          A,(PLAYER_MAP_POS)
-    LD          (PLAYER_PREV_MAP_LOC),A
-    CALL        BUILD_MAP
-    CALL        SUB_ram_cdbf
-    CALL        SUB_ram_f2c4
-    JP          RESET_SHIFT_MODE
+    LD          A,(COMBAT_BUSY_FLAG)                ; Check if in combat
+    AND         A                                   ; Test combat flag
+    JP          NZ,NO_ACTION_TAKEN                  ; If in combat, no action
+    LD          A,(ITEM_F0)                         ; Load item at current position
+    CP          $42                                 ; Compare to $42 (ladder code)
+    JP          NZ,NO_ACTION_TAKEN                  ; If not ladder, no action
+    LD          A,(PLAYER_MAP_POS)                  ; Load current map position
+    LD          (PLAYER_PREV_MAP_LOC),A             ; Store as previous location
+    CALL        BUILD_MAP                           ; Generate new dungeon level
+    CALL        SUB_ram_cdbf                        ; Call subroutine
+    CALL        SUB_ram_f2c4                        ; Update dungeon level display
+    JP          RESET_SHIFT_MODE                    ; Reset shift mode and return
 SUB_ram_f2c4:
-    LD          DE,$3002								;  WAS $33df
-    LD          HL,DUNGEON_LEVEL
-    LD          A,0x1
-    ADD         A,(HL)
-    DAA
-    JP          C,DRAW_99_LOOP_NOTICE
+    LD          DE,$3002                            ; DE = display address for level
+    LD          HL,DUNGEON_LEVEL                    ; Point to current dungeon level (BCD)
+    LD          A,0x1                               ; A = 1 (increment value)
+    ADD         A,(HL)                              ; Add 1 to dungeon level
+    DAA                                             ; Decimal adjust (BCD correction)
+    JP          C,DRAW_99_LOOP_NOTICE               ; If overflow (>99), show loop notice
 LAB_ram_f2d0:
-    LD          (HL),A
-    LD          B,0x1
-    CALL        RECALC_AND_REDRAW_BCD
-    CALL        REDRAW_START
-    JP          REDRAW_VIEWPORT
+    LD          (HL),A                              ; Store new dungeon level
+    LD          B,0x1                               ; 1 byte (BCD format)
+    CALL        RECALC_AND_REDRAW_BCD               ; Recalculate and redraw level
+    CALL        REDRAW_START                        ; Redraw start screen elements
+    JP          REDRAW_VIEWPORT                     ; Redraw viewport and return
 DRAW_99_LOOP_NOTICE:
-    CALL        DRAW_BKGD
-    LD          HL,DAT_ram_3051
-    LD          DE,LEVEL_99_LOOP								;  = "Looks like this dungeon",$01
-    LD          B,$f0
-    CALL        GFX_DRAW
-    LD          B,$1e
+    CALL        DRAW_BKGD                           ; Draw background
+    LD          HL,DAT_ram_3051                     ; Point to screen position
+    LD          DE,LEVEL_99_LOOP                    ; Point to "Looks like this dungeon..." text
+    LD          B,$f0                               ; B = color (white on black)
+    CALL        GFX_DRAW                            ; Draw notice text
+    LD          B,$1e                               ; B = 30 (delay loop count)
 LAB_ram_f2ec:
-    EXX
-    CALL        SLEEP_ZERO								;  byte SLEEP_ZERO(void)
-    EXX
-    DJNZ        LAB_ram_f2ec
-    LD          A,CHAR_BOTTOM_LINE
-    LD          HL,DUNGEON_LEVEL
-    LD          DE,CHHRAM_LVL_IDX
-    JP          LAB_ram_f2d0
+    EXX                                             ; Switch to alternate registers
+    CALL        SLEEP_ZERO                          ; Delay/wait function
+    EXX                                             ; Switch back to main registers
+    DJNZ        LAB_ram_f2ec                        ; Loop 30 times for delay
+    LD          A,CHAR_BOTTOM_LINE                  ; A = bottom line character
+    LD          HL,DUNGEON_LEVEL                    ; Point to dungeon level
+    LD          DE,CHHRAM_LVL_IDX                   ; Point to level display address
+    JP          LAB_ram_f2d0                        ; Jump to update level display
 RECALC_AND_REDRAW_BCD:
-    PUSH        DE
-    LD          DE,$3a50
-    LD          A,B
-    SLA         A
-    DEC         A
-    EX          AF,AF'
+    PUSH        DE                                  ; Save DE (display address)
+    LD          DE,$3a50                            ; DE = temp buffer for BCD conversion
+    LD          A,B                                 ; A = byte count
+    SLA         A                                   ; Shift left (multiply by 2)
+    DEC         A                                   ; Decrement (2*B - 1)
+    EX          AF,AF'                              ; Save to alternate AF
 LAB_ram_f306:
-    LD          A,(HL)
-    AND         0xf								;  Wipe upper nybble
-    ADD         A,$30								;  Numeric char offset
-    LD          (DE),A
-    LD          A,(HL)
-    AND         $f0								;  Wipe lower nybble
-    RRCA								;  Move upper
-    RRCA								;  nybble to
-    RRCA								;  lower
-    RRCA								;  nybble
-    ADD         A,$30								;  Numeric char offset
-    INC         DE
-    LD          (DE),A
-    INC         DE
-    INC         HL
-    DJNZ        LAB_ram_f306
-    DEC         DE
-    POP         HL
-    EX          AF,AF'
-    LD          B,A
+    LD          A,(HL)                              ; Load BCD byte
+    AND         0xf                                 ; Mask lower nibble (ones digit)
+    ADD         A,$30                               ; Add ASCII '0' offset
+    LD          (DE),A                              ; Store ASCII character
+    LD          A,(HL)                              ; Load BCD byte again
+    AND         $f0                                 ; Mask upper nibble (tens digit)
+    RRCA                                            ; Rotate right 4 times
+    RRCA                                            ; to move upper nibble
+    RRCA                                            ; to lower nibble
+    RRCA                                            ; position
+    ADD         A,$30                               ; Add ASCII '0' offset
+    INC         DE                                  ; Move to next buffer position
+    LD          (DE),A                              ; Store ASCII character
+    INC         DE                                  ; Move to next buffer position
+    INC         HL                                  ; Move to next BCD byte
+    DJNZ        LAB_ram_f306                        ; Loop for all bytes
+    DEC         DE                                  ; Move back one position
+    POP         HL                                  ; Restore HL (display address)
+    EX          AF,AF'                              ; Restore count from alternate AF
+    LD          B,A                                 ; B = character count (2*bytes - 1)
 LAB_ram_f31f:
-    LD          A,(DE)
-    CP          $30								;  Numeric char offset
-    JP          NZ,LAB_ram_f32d
-    LD          (HL),$20								;  SPACE char for ZERO
-    INC         HL								;  Move forward one cell
-    DEC         DE								;  Move backwards one byte
-								;  (big endian)
-    DJNZ        LAB_ram_f31f
-    LD          A,(DE)
-    JP          LAB_ram_f333
+    LD          A,(DE)                              ; Load character from buffer
+    CP          $30                                 ; Compare to '0' ASCII
+    JP          NZ,LAB_ram_f32d                     ; If not '0', start copying digits
+    LD          (HL),$20                            ; Store space (suppress leading zero)
+    INC         HL                                  ; Move forward in display
+    DEC         DE                                  ; Move backward in buffer (big-endian)
+    DJNZ        LAB_ram_f31f                        ; Loop while B > 0
+    LD          A,(DE)                              ; Load final character
+    JP          LAB_ram_f333                        ; Jump to store and return
 LAB_ram_f32d:
-    LD          (HL),A
-    INC         HL								;  Move forward one cell
-    DEC         DE								;  Move backwards one byte
-								;  (big endian)
-    LD          A,(DE)
-    DJNZ        LAB_ram_f32d
+    LD          (HL),A                              ; Store character to display
+    INC         HL                                  ; Move forward in display
+    DEC         DE                                  ; Move backward in buffer (big-endian)
+    LD          A,(DE)                              ; Load next character
+    DJNZ        LAB_ram_f32d                        ; Loop while B > 0
 LAB_ram_f333:
-    LD          (HL),A
-    RET
+    LD          (HL),A                              ; Store final character
+    RET                                             ; Return to caller
 
 ;==============================================================================
 ; GFX_DRAW - Render AQUASCII graphics with cursor control
@@ -5396,182 +5378,182 @@ LAB_ram_f3db:
     JP          C,SET_ITEM_LIMIT                ; Skip item generation if level < threshold
 
 GENERATE_ITEM_TABLE:
-    CALL        UPDATE_SCR_SAVER_TIMER
-    INC         A
-    JP          Z,GENERATE_ITEM_TABLE
-    DEC         A
-    LD          C,A
-    LD          A,(ITEM_HOLDER)
-    CP          C
-    JP          Z,GENERATE_ITEM_TABLE
-    LD          A,(PLAYER_MAP_POS)
-    CP          C
-    JP          Z,GENERATE_ITEM_TABLE
-    LD          (HL),C
-    INC         HL
-    LD          (HL),$9f						; Full ITEM_monster range $009f
-    INC         HL
+    CALL        UPDATE_SCR_SAVER_TIMER              ; Get random position value in A
+    INC         A                                   ; Increment (test for $FF)
+    JP          Z,GENERATE_ITEM_TABLE               ; If $FF, retry (avoid terminator)
+    DEC         A                                   ; Restore original value
+    LD          C,A                                 ; C = random position
+    LD          A,(ITEM_HOLDER)                     ; Load ladder position
+    CP          C                                   ; Compare to random position
+    JP          Z,GENERATE_ITEM_TABLE               ; If same as ladder, retry
+    LD          A,(PLAYER_MAP_POS)                  ; Load player position
+    CP          C                                   ; Compare to random position
+    JP          Z,GENERATE_ITEM_TABLE               ; If same as player, retry
+    LD          (HL),C                              ; Store position in table
+    INC         HL                                  ; Move to next byte
+    LD          (HL),$9f                            ; Store $9F (Minotaur code)
+    INC         HL                                  ; Move to next position
 SET_ITEM_LIMIT:
-    LD          B,$50							; Max 128 items+monsters (80 hex = 128 decimal)
+    LD          B,$50                               ; B = $50 (80 items/monsters max)
     
 GENERATE_RANDOM_ITEM:
-    CALL        MAKE_RANDOM_BYTE
-    INC         A
-    JP          Z,GENERATE_RANDOM_ITEM
-    DEC         A
-    EX          AF,AF'
-    LD          A,(DUNGEON_LEVEL)
-    AND         A
-    JP          NZ,LAB_ram_f417
-    EX          AF,AF'
-    CP          0x1
-    JP          Z,GENERATE_RANDOM_ITEM
-    CP          $10
-    JP          Z,GENERATE_RANDOM_ITEM
-    EX          AF,AF'
+    CALL        MAKE_RANDOM_BYTE                    ; Get random byte in A
+    INC         A                                   ; Increment (test for $FF)
+    JP          Z,GENERATE_RANDOM_ITEM              ; If $FF, retry (avoid terminator)
+    DEC         A                                   ; Restore original value
+    EX          AF,AF'                              ; Save position to alternate AF
+    LD          A,(DUNGEON_LEVEL)                   ; Load dungeon level
+    AND         A                                   ; Test if level 0
+    JP          NZ,LAB_ram_f417                     ; If not level 0, skip restrictions
+    EX          AF,AF'                              ; Restore position from alternate
+    CP          0x1                                 ; Compare to position 1
+    JP          Z,GENERATE_RANDOM_ITEM              ; If position 1, retry (reserved)
+    CP          $10                                 ; Compare to position $10
+    JP          Z,GENERATE_RANDOM_ITEM              ; If position $10, retry (reserved)
+    EX          AF,AF'                              ; Save position to alternate
 LAB_ram_f417:
-    EX          AF,AF'
-    LD          E,A
-    LD          A,(PLAYER_MAP_POS)
-    CP          E
-    JP          Z,GENERATE_RANDOM_ITEM
-    LD          A,(ITEM_HOLDER)
-    CP          E
-    JP          Z,GENERATE_RANDOM_ITEM
-    LD          (HL),E
-    INC         L
-    CALL        UPDATE_SCR_SAVER_TIMER
-    AND         $c0
-    RLCA
-    RLCA
-    DEC         A
-    JP          NZ,LAB_ram_f437
-    LD          C,0x5
-    LD          D,0x0
-    JP          LAB_ram_f465
+    EX          AF,AF'                              ; Restore position from alternate
+    LD          E,A                                 ; E = random position
+    LD          A,(PLAYER_MAP_POS)                  ; Load player position
+    CP          E                                   ; Compare to random position
+    JP          Z,GENERATE_RANDOM_ITEM              ; If same as player, retry
+    LD          A,(ITEM_HOLDER)                     ; Load ladder position
+    CP          E                                   ; Compare to random position
+    JP          Z,GENERATE_RANDOM_ITEM              ; If same as ladder, retry
+    LD          (HL),E                              ; Store position in table
+    INC         L                                   ; Move to next byte (low byte only)
+    CALL        UPDATE_SCR_SAVER_TIMER              ; Get random value for item type
+    AND         $c0                                 ; Mask to bits 6-7 (0, 64, 128, 192)
+    RLCA                                            ; Rotate left twice
+    RLCA                                            ; to get 0, 1, 2, 3
+    DEC         A                                   ; A = -1, 0, 1, 2
+    JP          NZ,LAB_ram_f437                     ; If not 0, check next category                     ; If not 0, check next category
+    LD          C,0x5                               ; Category 0: C = 5 (range 0-4)
+    LD          D,0x0                               ; D = 0 (base offset)
+    JP          LAB_ram_f465                        ; Jump to generate item code
 LAB_ram_f437:
-    DEC         A
-    JP          NZ,LAB_ram_f449
-    LD          C,0x5
-    LD          D,0x6
-    LD          A,(DUNGEON_LEVEL)
-    CP          0x6
-    JP          C,LAB_ram_f465
-    LD          C,0x7
-    JP          LAB_ram_f465
+    DEC         A                                   ; Test for category 1
+    JP          NZ,LAB_ram_f449                     ; If not 1, check next category
+    LD          C,0x5                               ; Category 1: C = 5 (range 0-4)
+    LD          D,0x6                               ; D = 6 (base offset for bows/scrolls)
+    LD          A,(DUNGEON_LEVEL)                   ; Load dungeon level
+    CP          0x6                                 ; Compare to level 6
+    JP          C,LAB_ram_f465                      ; If < 6, use range 0-4
+    LD          C,0x7                               ; If >= 6, C = 7 (range 0-6)
+    JP          LAB_ram_f465                        ; Jump to generate item code
 LAB_ram_f449:
-    DEC         A
-    JP          NZ,LAB_ram_f452
-    LD          C,0x4
-    LD          D,$11
-    JP          LAB_ram_f465
+    DEC         A                                   ; Test for category 2
+    JP          NZ,LAB_ram_f452                     ; If not 2, must be category 3 (monsters)
+    LD          C,0x4                               ; Category 2: C = 4 (range 0-3)
+    LD          D,$11                               ; D = $11 (base offset for chests/items)
+    JP          LAB_ram_f465                        ; Jump to generate item code
 LAB_ram_f452:
-    LD          D,$1e
-    LD          C,0x5
-    LD          A,(DUNGEON_LEVEL)
-    CP          0x6
-    JP          C,LAB_ram_f465
-    LD          C,0x7
-    CP          $16
-    JP          C,LAB_ram_f465
-    LD          C,0x9
+    LD          D,$1e                               ; Category 3 (monsters): D = $1E (base offset)
+    LD          C,0x5                               ; C = 5 (range 0-4, monsters $1E-$22)
+    LD          A,(DUNGEON_LEVEL)                   ; Load dungeon level
+    CP          0x6                                 ; Compare to level 6
+    JP          C,LAB_ram_f465                      ; If < 6, use range 0-4
+    LD          C,0x7                               ; If >= 6, C = 7 (range 0-6, adds $23-$24)
+    CP          $16                                 ; Compare to level 22 (BCD)
+    JP          C,LAB_ram_f465                      ; If < 22, use range 0-6
+    LD          C,0x9                               ; If >= 22, C = 9 (range 0-8, adds $25-$26)
 LAB_ram_f465:
-    CALL        MAKE_RANDOM_BYTE
-    AND         0xf
+    CALL        MAKE_RANDOM_BYTE                    ; Get random byte
+    AND         0xf                                 ; Mask to 0-15
 LAB_ram_f46a:
-    SUB         C
-    JP          NC,LAB_ram_f46a
-    ADD         A,C
-    ADD         A,D
-    LD          C,A
-    LD          A,(DUNGEON_LEVEL)
-    INC         A
-    INC         A
-    SRL         A
-    LD          D,A
-    CALL        UPDATE_SCR_SAVER_TIMER
-    LD          E,A
-    CALL        MAKE_RANDOM_BYTE
-    AND         E
-    AND         0x3
+    SUB         C                                   ; Subtract range limit
+    JP          NC,LAB_ram_f46a                     ; Loop while >= C (normalize to 0..C-1)
+    ADD         A,C                                 ; Add back to get final offset
+    ADD         A,D                                 ; Add base offset (item type)
+    LD          C,A                                 ; C = item type code
+    LD          A,(DUNGEON_LEVEL)                   ; Load dungeon level (BCD)
+    INC         A                                   ; Increment level
+    INC         A                                   ; Increment again (level + 2)
+    SRL         A                                   ; Shift right (divide by 2)
+    LD          D,A                                 ; D = (level + 2) / 2 (max color value)
+    CALL        UPDATE_SCR_SAVER_TIMER              ; Get random value
+    LD          E,A                                 ; E = random mask value
+    CALL        MAKE_RANDOM_BYTE                    ; Get another random byte
+    AND         E                                   ; AND with mask (randomize further)
+    AND         0x3                                 ; Mask to 0-3 (color bits)
 LAB_ram_f482:
-    SUB         D
-    JP          NC,LAB_ram_f482
-    ADD         A,D
-    RRA
-    RRA
-    RL          C
-    RLA
-    RL          C
-    LD          (HL),C
-    INC         L
-    DEC         B
-    JP          NZ,GENERATE_RANDOM_ITEM
-    LD          (HL),$ff
-    LD          DE,TEMP_MAP
-    LD          HL,MAP_LADDER_OFFSET
-    LD          B,0x0
+    SUB         D                                   ; Subtract max color value
+    JP          NC,LAB_ram_f482                     ; Loop while >= D (normalize to 0..D-1)
+    ADD         A,D                                 ; Add back to get final color
+    RRA                                             ; Rotate right (shift color bit 0 to carry)
+    RRA                                             ; Rotate right again
+    RL          C                                   ; Rotate carry into item code bit 0
+    RLA                                             ; Rotate A left
+    RL          C                                   ; Rotate carry into item code bit 1
+    LD          (HL),C                              ; Store final item code with encoded color
+    INC         L                                   ; Move to next position (low byte only)
+    DEC         B                                   ; Decrement item counter
+    JP          NZ,GENERATE_RANDOM_ITEM             ; If more items, continue loop             ; If more items, continue loop
+    LD          (HL),$ff                            ; Store $FF terminator
+    LD          DE,TEMP_MAP                         ; DE = temp map buffer for filtering
+    LD          HL,MAP_LADDER_OFFSET                ; HL = source map (with ladder)
+    LD          B,0x0                               ; B = 0 (item counter)
 LAB_ram_f49d:
-    LD          A,(HL)
-    CP          $ff
-    JP          Z,SETUP_MAP_COPY
-    INC         B
-    CALL        SUB_ram_f4d4
-    EXX
-    JP          Z,LAB_ram_f4b7
-    LD          (DE),A
-    INC         DE
-    INC         HL
-    LD          A,(HL)
-    CP          $fe
-    JP          Z,LAB_ram_f4bc
-    INC         B
-    LD          (DE),A
-    INC         DE
-    INC         HL
-    JP          LAB_ram_f49d
+    LD          A,(HL)                              ; Load item code from map
+    CP          $ff                                 ; Compare to $FF (terminator)
+    JP          Z,SETUP_MAP_COPY                    ; If terminator, copy filtered map back
+    INC         B                                   ; Increment item counter
+    CALL        SUB_ram_f4d4                        ; Check for duplicate position
+    EXX                                             ; Switch to alternate registers
+    JP          Z,LAB_ram_f4b7                      ; If duplicate, skip this entry
+    LD          (DE),A                              ; Store position to temp map
+    INC         DE                                  ; Move to next temp position
+    INC         HL                                  ; Move to item code
+    LD          A,(HL)                              ; Load item code
+    CP          $fe                                 ; Compare to $FE (empty marker)
+    JP          Z,LAB_ram_f4bc                      ; If empty, handle specially
+    INC         B                                   ; Increment item counter
+    LD          (DE),A                              ; Store item code to temp map
+    INC         DE                                  ; Move to next temp position
+    INC         HL                                  ; Move to next source entry
+    JP          LAB_ram_f49d                        ; Continue loop
 LAB_ram_f4b7:
-    INC         HL
-    INC         HL
-    DEC         B
-    JP          LAB_ram_f49d
+    INC         HL                                  ; Skip position byte
+    INC         HL                                  ; Skip item code byte
+    DEC         B                                   ; Decrement counter (duplicate removed)
+    JP          LAB_ram_f49d                        ; Continue loop
 LAB_ram_f4bc:
-    INC         HL
-    DEC         DE
-    DEC         B
-    JP          LAB_ram_f49d
+    INC         HL                                  ; Skip $FE marker
+    DEC         DE                                  ; Back up (don't store $FE)
+    DEC         B                                   ; Decrement counter
+    JP          LAB_ram_f49d                        ; Continue loop
 SETUP_MAP_COPY:
-    LD          DE,TEMP_MAP								;  DE = Temp Map
-    LD          HL,MAP_LADDER_OFFSET								;  HL = Real Map
-    INC         B
-    DEC         B
-    JP          Z,MAP_DONE
+    LD          DE,TEMP_MAP                         ; DE = temp map (filtered)
+    LD          HL,MAP_LADDER_OFFSET                ; HL = destination (real map)
+    INC         B                                   ; Increment counter
+    DEC         B                                   ; Test if zero
+    JP          Z,MAP_DONE                          ; If no items, skip copy
 COPY_TEMP_MAP_TO_REAL_MAP:
-    LD          A,(DE)
-    LD          (HL),A
-    INC         HL
-    INC         DE
-    DJNZ        COPY_TEMP_MAP_TO_REAL_MAP								;  Loop while B is not zero
+    LD          A,(DE)                              ; Load byte from temp map
+    LD          (HL),A                              ; Store to real map
+    INC         HL                                  ; Move to next destination
+    INC         DE                                  ; Move to next source
+    DJNZ        COPY_TEMP_MAP_TO_REAL_MAP           ; Loop for all items
 MAP_DONE:
-    LD          (HL),$ff
-    RET
+    LD          (HL),$ff                            ; Store $FF terminator
+    RET                                             ; Return to caller
 SUB_ram_f4d4:
-    PUSH        BC
-    EXX
-    POP         BC
-    DEC         B
-    JP          Z,LAB_ram_f4e4
-    LD          HL,TEMP_MAP
+    PUSH        BC                                  ; Save BC to stack
+    EXX                                             ; Switch to alternate registers
+    POP         BC                                  ; Restore BC from stack (to alt set)
+    DEC         B                                   ; Decrement counter
+    JP          Z,LAB_ram_f4e4                      ; If zero, no items to check
+    LD          HL,TEMP_MAP                         ; Point to temp map
 LAB_ram_f4dd:
-    CP          (HL)
-    RET         Z
-    DEC         B
-    INC         HL
-    INC         HL
-    DJNZ        LAB_ram_f4dd
+    CP          (HL)                                ; Compare position to temp map entry
+    RET         Z                                   ; If match (duplicate), return with Z set
+    DEC         B                                   ; Decrement counter
+    INC         HL                                  ; Skip position byte
+    INC         HL                                  ; Skip item code byte
+    DJNZ        LAB_ram_f4dd                        ; Loop for all items
 LAB_ram_f4e4:
-    DEC         B
-    RET
+    DEC         B                                   ; Clear Z flag (no duplicate found)
+    RET                                             ; Return with Z clear
 REDRAW_START:
     LD          HL,CALC_ITEMS					; Save CALC_ITEMS function address
     PUSH        HL                              ; PUSH it onto the stack for RET value after COMPASS redraw
