@@ -4385,283 +4385,289 @@ DOOR_CLOSE_ANIM_LOOP:
     DJNZ        DOOR_CLOSE_ANIM_LOOP                ; Loop until all 12 rows done
     CALL        CLEAR_MONSTER_STATS                 ; Clear monster statistics
     JP          WAIT_FOR_INPUT                      ; Return to main input loop
-    LD          BC,$1600
-    JP          SLEEP								;  byte SLEEP(short cycleCount)
+
+;   UNREACHABLE CODE - Dead code after unconditional jump
+;   Appears to be orphaned delay routine, never executed
+;    LD          BC,$1600                            ; Load delay count ($1600 = 5632)
+;    JP          SLEEP                               ; Jump to SLEEP routine
+
 DO_TURN_LEFT:
-    LD          A,(COMBAT_BUSY_FLAG)
-    AND         A
-    JP          NZ,NO_ACTION_TAKEN
-    LD          HL,UPDATE_VIEWPORT
-    PUSH        HL
-ROTATE_FACING_LEFT:								;   Decrement DIR_FACING_SHORT (1-4 wraps to 4-1).
-								;   Called by DO_TURN_LEFT and DO_GLANCE_LEFT.
-								;   Effects: Updates DIR_FACING_SHORT (4->3->2->1->4 cycle)
-    LD          A,(DIR_FACING_SHORT)
-    DEC         A
-    JP          NZ,STORE_LEFT_FACING
-    LD          A,0x4								;   Wrap: 1 decremented becomes 4
+    LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
+    AND         A                                   ; Test if zero (not in combat)
+    JP          NZ,NO_ACTION_TAKEN                  ; If in combat, no action
+    LD          HL,UPDATE_VIEWPORT                  ; Load return address
+    PUSH        HL                                  ; Push to stack (will return to update viewport)
+ROTATE_FACING_LEFT:                                 ; Decrement DIR_FACING_SHORT (1-4 wraps to 4)
+                                                    ; Called by DO_TURN_LEFT and DO_GLANCE_LEFT
+                                                    ; Effects: Updates DIR_FACING_SHORT (4->3->2->1->4)
+    LD          A,(DIR_FACING_SHORT)                ; Load current facing direction (1-4)
+    DEC         A                                   ; Decrement direction
+    JP          NZ,STORE_LEFT_FACING                ; If not zero, store new direction
+    LD          A,0x4                               ; Wrap: 1 decremented becomes 4 (west)
 STORE_LEFT_FACING:
-    LD          (DIR_FACING_SHORT),A
-    RET
+    LD          (DIR_FACING_SHORT),A                ; Store new facing direction
+    RET                                             ; Return (to UPDATE_VIEWPORT if from turn)
 DO_TURN_RIGHT:
-    LD          A,(COMBAT_BUSY_FLAG)
-    AND         A
-    JP          NZ,NO_ACTION_TAKEN
-    LD          HL,UPDATE_VIEWPORT
-    PUSH        HL
-ROTATE_FACING_RIGHT:								;   Increment DIR_FACING_SHORT (1-4 wraps to 1).
-								;   Called by DO_TURN_RIGHT and DO_GLANCE_RIGHT.
-								;   Effects: Updates DIR_FACING_SHORT (1->2->3->4->1 cycle)
-    LD          A,(DIR_FACING_SHORT)
-    INC         A
-    CP          0x5
-    JP          NZ,STORE_RIGHT_FACING
-    LD          A,0x1								;   Wrap: 5 becomes 1
+    LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
+    AND         A                                   ; Test if zero (not in combat)
+    JP          NZ,NO_ACTION_TAKEN                  ; If in combat, no action
+    LD          HL,UPDATE_VIEWPORT                  ; Load return address
+    PUSH        HL                                  ; Push to stack (will return to update viewport)
+ROTATE_FACING_RIGHT:                                ; Increment DIR_FACING_SHORT (4 wraps to 1)
+                                                    ; Called by DO_TURN_RIGHT and DO_GLANCE_RIGHT
+                                                    ; Effects: Updates DIR_FACING_SHORT (1->2->3->4->1)
+    LD          A,(DIR_FACING_SHORT)                ; Load current facing direction (1-4)
+    INC         A                                   ; Increment direction
+    CP          0x5                                 ; Compare to 5 (beyond max)
+    JP          NZ,STORE_RIGHT_FACING               ; If not 5, store new direction
+    LD          A,0x1                               ; Wrap: 5 becomes 1 (north)
 STORE_RIGHT_FACING:
-    LD          (DIR_FACING_SHORT),A
-    RET
+    LD          (DIR_FACING_SHORT),A                ; Store new facing direction
+    RET                                             ; Return (to UPDATE_VIEWPORT if from turn)
 DO_GLANCE_RIGHT:
-    LD          A,(COMBAT_BUSY_FLAG)
-    AND         A
-    JP          NZ,NO_ACTION_TAKEN
-    CALL        ROTATE_FACING_RIGHT
-    CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
-    CALL        SLEEP_ZERO								;  byte SLEEP_ZERO(void)
-    JP          DO_TURN_LEFT
+    LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
+    AND         A                                   ; Test if zero (not in combat)
+    JP          NZ,NO_ACTION_TAKEN                  ; If in combat, no action
+    CALL        ROTATE_FACING_RIGHT                 ; Turn right (increment facing)
+    CALL        REDRAW_START                        ; Refresh non-viewport UI elements
+    CALL        REDRAW_VIEWPORT                     ; Render 3D maze view (right view)
+    CALL        SLEEP_ZERO                          ; Brief delay
+    JP          DO_TURN_LEFT                        ; Turn back left (return to original facing)
 DO_GLANCE_LEFT:
-    LD          A,(COMBAT_BUSY_FLAG)
-    AND         A
-    JP          NZ,NO_ACTION_TAKEN
-    CALL        ROTATE_FACING_LEFT
-    CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
-    CALL        SLEEP_ZERO								;  byte SLEEP_ZERO(void)
-    JP          DO_TURN_RIGHT
+    LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
+    AND         A                                   ; Test if zero (not in combat)
+    JP          NZ,NO_ACTION_TAKEN                  ; If in combat, no action
+    CALL        ROTATE_FACING_LEFT                  ; Turn left (decrement facing)
+    CALL        REDRAW_START                        ; Refresh non-viewport UI elements
+    CALL        REDRAW_VIEWPORT                     ; Render 3D maze view (left view)
+    CALL        SLEEP_ZERO                          ; Brief delay
+    JP          DO_TURN_RIGHT                       ; Turn back right (return to original facing)
 DO_USE_ATTACK:
-    LD          A,(RIGHT_HAND_ITEM)
-    LD          B,0x0
-    SRL         A								;  Remove "color/level" in bit 0
-								;  to compare item type, below.
-    RR          B								;  Push bit 0 from A
-								;  (via Carry Flag) to B
-    SRL         A								;  Remove second "color/level" in bit 1
-								;  to compare item type, below
-    RL          B								;  Move bits 0 & 1
-								;  from A to B...
-    RL          B								;  B now has the LEVEL value (0-3)
-    CP          $16								;  Compare to KEY
-								;  58,59,5A,5B 2 @ SRL = 16
-    JP          Z,DO_USE_KEY
-    CP          $19								;  Compare to PHYS POTION
-								;  64,65,66,67 2 @ SRL = 19
-    JP          Z,DO_USE_PHYS_POTION
-    CP          $1a								;  Compare to SPRT POTION
-								;  68,69,6A,6B 2 @ SRL = 1A
-    JP          Z,DO_USE_SPRT_POTION
-    CP          $1c								;  Compare to CHAOS POTION
-								;  70,71,72,73 2 @ SRL = 1c
-    JP          NZ,USE_SOMETHING_ELSE
+    LD          A,(RIGHT_HAND_ITEM)                 ; Load right-hand item code
+    LD          B,0x0                               ; Clear B (will hold level bits)
+    SRL         A                                   ; Shift right, bit 0 to carry
+                                                    ; (extract item type for comparison)
+    RR          B                                   ; Rotate carry into B bit 7
+                                                    ; (push bit 0 from A to B)
+    SRL         A                                   ; Shift right again, bit 1 to carry
+                                                    ; (further extract item type)
+    RL          B                                   ; Rotate carry into B bit 0
+                                                    ; (move bits 0 & 1 from A to B)
+    RL          B                                   ; Rotate B left (B now has level 0-3)
+    CP          $16                                 ; Compare to KEY item type
+                                                    ; ($58-$5B after 2 SRL = $16)
+    JP          Z,DO_USE_KEY                        ; If key, jump to key handler
+    CP          $19                                 ; Compare to PHYS POTION
+                                                    ; ($64-$67 after 2 SRL = $19)
+    JP          Z,DO_USE_PHYS_POTION                ; If phys potion, jump to handler
+    CP          $1a                                 ; Compare to SPRT POTION
+                                                    ; ($68-$6B after 2 SRL = $1A)
+    JP          Z,DO_USE_SPRT_POTION                ; If sprt potion, jump to handler
+    CP          $1c                                 ; Compare to CHAOS POTION
+                                                    ; ($70-$73 after 2 SRL = $1C)
+    JP          NZ,USE_SOMETHING_ELSE               ; If not chaos potion, check other items
 DO_USE_CHAOS_POTION:
-    CALL        PLAY_USE_PHYS_POTION_SOUND
-    INC         B
-    DEC         B
-    JP          NZ,CHECK_YELLOW_L_POTION								;  If NZ, handle other colors
-								;  of LARGE POTION
-    CALL        TOTAL_HEAL								;  LARGE Potion is RED
-								;  so do TOTAL HEAL
+    CALL        PLAY_USE_PHYS_POTION_SOUND          ; Play potion use sound effect
+    INC         B                                   ; Increment B
+    DEC         B                                   ; Decrement B (test if zero)
+    JP          NZ,CHECK_YELLOW_L_POTION            ; If not zero, handle other potion colors
+                                                    ; If zero, large potion is red (full heal)
+    CALL        TOTAL_HEAL                          ; Restore all health (phys + sprt)
 PROCESS_POTION_UPDATES:
-    CALL        REDRAW_STATS
-    LD          A,(COMBAT_BUSY_FLAG)
-    AND         A
-    JP          NZ,INIT_MELEE_ANIM
-    JP          INPUT_DEBOUNCE
+    CALL        REDRAW_STATS                        ; Update health display on screen
+    LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
+    AND         A                                   ; Test if zero (not in combat)
+    JP          NZ,INIT_MELEE_ANIM                  ; If in combat, init animation
+    JP          INPUT_DEBOUNCE                      ; Otherwise, return to input loop
 PLAY_USE_PHYS_POTION_SOUND:
-    EXX
-    CALL        SOUND_03
-    CALL        SOUND_03
-    CALL        SOUND_03
-    JP          CLEAR_RIGHT_HAND
-SWAP_TO_ALT_REGS:								;   Swap to alternate register set (EXX).
-								;   Used before clearing right hand item to preserve main register state.
-    EXX
-CLEAR_RIGHT_HAND:								;   Clear right-hand item slot and draw empty sprite.
-								;   Effects: Sets RIGHT_HAND_ITEM to $FE (empty), draws "poof" animation in right-hand area.
-    LD          A,$fe
-    LD          (RIGHT_HAND_ITEM),A
-    LD          DE,POOF_6								;  = "    ",$01
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
-    LD          B,$d0
-    CALL        GFX_DRAW
-    EXX
-    RET
+    EXX                                             ; Switch to alternate register set
+    CALL        SOUND_03                            ; Play sound effect (step 1)
+    CALL        SOUND_03                            ; Play sound effect (step 2)
+    CALL        SOUND_03                            ; Play sound effect (step 3)
+    JP          CLEAR_RIGHT_HAND                    ; Clear right-hand item and return
+SWAP_TO_ALT_REGS:                                   ; Swap to alternate register set (EXX)
+                                                    ; Preserves main register state before clearing
+    EXX                                             ; Switch to alternate register set
+CLEAR_RIGHT_HAND:                                   ; Clear right-hand item and draw empty sprite
+                                                    ; Effects: Sets RIGHT_HAND_ITEM to $FE (empty)
+                                                    ; Draws "poof" animation in right-hand area
+    LD          A,$fe                               ; Load empty item marker ($FE)
+    LD          (RIGHT_HAND_ITEM),A                 ; Store to right-hand slot (clear item)
+    LD          DE,POOF_6                           ; Point to poof graphics ("    ", $01)
+    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics location
+    LD          B,$d0                               ; Load color attribute ($D0)
+    CALL        GFX_DRAW                            ; Draw poof graphics
+    EXX                                             ; Switch back to main register set
+    RET                                             ; Return to caller
 TOTAL_HEAL:
-    LD          HL,(PLAYER_PHYS_HEALTH_MAX)
-    LD          (PLAYER_PHYS_HEALTH),HL
-    LD          A,(PLAYER_SPRT_HEALTH_MAX)
-    LD          (PLAYER_SPRT_HEALTH),A
-    RET
-REDRAW_STATS_OLD:
-    LD          HL,PLAYER_PHYS_HEALTH
-    LD          DE,CHRRAM_PHYS_HEALTH_1000
-    LD          B,0x2
-    CALL        RECALC_AND_REDRAW_BCD
-    LD          HL,PLAYER_SPRT_HEALTH
-    LD          DE,CHRRAM_SPRT_HEALTH_10
-    LD          B,0x1
-    JP          RECALC_AND_REDRAW_BCD								;  Waz JP FUN_ram_f2fd
-								;  (c3 fd f2)
+    LD          HL,(PLAYER_PHYS_HEALTH_MAX)         ; Load max physical health (2 bytes)
+    LD          (PLAYER_PHYS_HEALTH),HL             ; Store to current physical health (full heal)
+    LD          A,(PLAYER_SPRT_HEALTH_MAX)          ; Load max spiritual health
+    LD          (PLAYER_SPRT_HEALTH),A              ; Store to current spiritual health (full heal)
+    RET                                             ; Return to caller
+
+; REDRAW_STATS_OLD - DEPRECATED FUNCTION (Replaced by REDRAW_STATS)
+;==============================================================================
+; This routine has been replaced with the REDRAW_STATS function. It is
+; preserved here for reference but should not be called in new code.
+;==============================================================================
+;REDRAW_STATS_OLD:
+;    LD          HL,PLAYER_PHYS_HEALTH               ; Point to current physical health
+;    LD          DE,CHRRAM_PHYS_HEALTH_1000          ; Point to screen location for phys health
+;    LD          B,0x2                               ; 2 bytes (BCD format)
+;    CALL        RECALC_AND_REDRAW_BCD               ; Recalculate and redraw physical health
+;    LD          HL,PLAYER_SPRT_HEALTH               ; Point to current spiritual health
+;    LD          DE,CHRRAM_SPRT_HEALTH_10            ; Point to screen location for sprt health
+;    LD          B,0x1                               ; 1 byte (BCD format)
+;    JP          RECALC_AND_REDRAW_BCD               ; Recalculate and redraw spiritual health
+
 CHECK_YELLOW_L_POTION:
-    DEC         B
-    JP          NZ,CHECK_PURPLE_L_POTION
-    LD          BC,$10								;  Set PHYS increase to 10
-    LD          E,0x0								;  Set SPRT increase to 0
+    DEC         B                                   ; Decrement level (B=0 for yellow large)
+    JP          NZ,CHECK_PURPLE_L_POTION            ; If not zero, check purple
+    LD          BC,$10                              ; BC = 10 physical health increase
+    LD          E,0x0                               ; E = 0 spiritual health increase
 PROCESS_LARGE_POTION:
-    CALL        CALC_CURR_PHYS_HEALTH
-    CALL        CALC_MAX_PHYS_HEALTH
-    JP          PROCESS_POTION_UPDATES
+    CALL        CALC_CURR_PHYS_HEALTH               ; Add BC to current physical health
+    CALL        CALC_MAX_PHYS_HEALTH                ; Update max health if increased
+    JP          PROCESS_POTION_UPDATES              ; Continue with updates
 CHECK_PURPLE_L_POTION:
-    DEC         B
-    JP          NZ,CHECK_WHITE_L_POTION
-    LD          BC,0x0								;  Set PHYS increase to 0
-    LD          E,0x6								;  Set SPRT increase to 6
-    JP          PROCESS_LARGE_POTION
+    DEC         B                                   ; Decrement level (B=0 for purple large)
+    JP          NZ,CHECK_WHITE_L_POTION             ; If not zero, check white
+    LD          BC,0x0                              ; BC = 0 physical health increase
+    LD          E,0x6                               ; E = 6 spiritual health increase
+    JP          PROCESS_LARGE_POTION                ; Process the large potion
 CHECK_WHITE_L_POTION:
-    CALL        MAKE_RANDOM_BYTE								;  Get RANDOM BYTE
-								;  and put into A
-    AND         0x3								;  Range it to 0-3
-    DEC         A
-    JP          NZ,LAB_ram_ef08								;  If NZ, check for case 1
-    LD          E,0x0								;  Case 0: set SPRT increase to 0
-    LD          BC,$20								;  Set PHYS increase to 20
-    JP          PROCESS_LARGE_POTION								;  ...and reprocess
+    CALL        MAKE_RANDOM_BYTE                    ; Get semi-random number in A
+    AND         0x3                                 ; Mask to 0-3 for 4 cases
+    DEC         A                                   ; Test for case 0
+    JP          NZ,LAB_ram_ef08                     ; If not case 0, check case 1
+    LD          E,0x0                               ; Case 0: E = 0 spiritual increase
+    LD          BC,$20                              ; BC = 20 physical increase (BCD)
+    JP          PROCESS_LARGE_POTION                ; Process with these values
 LAB_ram_ef08:
-    DEC         A
-    JP          NZ,LAB_ram_ef12
-    LD          BC,0x0								;  Set PHYS increase to 0
-    LD          E,$12								;  Set SPRT increase to 12
-    JP          PROCESS_LARGE_POTION
+    DEC         A                                   ; Test for case 1
+    JP          NZ,LAB_ram_ef12                     ; If not case 1, check case 2
+    LD          BC,0x0                              ; Case 1: BC = 0 physical increase
+    LD          E,$12                               ; E = 12 spiritual increase (BCD)
+    JP          PROCESS_LARGE_POTION                ; Process with these values
 LAB_ram_ef12:
-    DEC         A
-    JP          NZ,CHECK_CASE_3_WL_POTION
-    CALL        TOTAL_HEAL								;  Fill up PHYS and SPRT
-    LD          BC,$10								;  Set PHYS increase to 10
-    LD          E,0x6								;  Set SPRT increase to 6
-    JP          PROCESS_LARGE_POTION
+    DEC         A                                   ; Test for case 2
+    JP          NZ,CHECK_CASE_3_WL_POTION           ; If not case 2, must be case 3
+    CALL        TOTAL_HEAL                          ; Case 2: Full heal first
+    LD          BC,$10                              ; BC = 10 additional physical (BCD)
+    LD          E,0x6                               ; E = 6 additional spiritual (BCD)
+    JP          PROCESS_LARGE_POTION                ; Process bonus increases
 CHECK_CASE_3_WL_POTION:
-    LD          BC,$30								;  Set PHYS decrease to 30
-    LD          E,$15								;  Set SPRT decrease to 15
-    CALL        REDUCE_HEALTH_BIG
-    LD          BC,$15
-    LD          E,0x7
-    CALL        REDUCE_HEALTH_SMALL
-    JP          PROCESS_POTION_UPDATES
+    LD          BC,$30                              ; Case 3: BC = 30 physical decrease (BCD)
+    LD          E,$15                               ; E = 15 spiritual decrease (BCD)
+    CALL        REDUCE_HEALTH_BIG                   ; Reduce current health
+    LD          BC,$15                              ; BC = 15 physical max decrease (BCD)
+    LD          E,0x7                               ; E = 7 spiritual max decrease (BCD)
+    CALL        REDUCE_HEALTH_SMALL                 ; Reduce max health
+    JP          PROCESS_POTION_UPDATES              ; Continue with updates
 CALC_CURR_PHYS_HEALTH:
-    LD          HL,(PLAYER_PHYS_HEALTH)								;  Load current PHYS Health
-								;  into HL
-    LD          A,L
-    ADD         A,C
-    DAA								;  Correct 1000s & 100s
-								;  for BCD
-    LD          L,A
-    LD          A,H
-    ADC         A,B
-    DAA								;  Correct 10s & 1s
-								;  for BCD
-    CP          0x2
-    LD          H,A
-    JP          NZ,UPDATE_HEALTH_VALUES
-    LD          H,0x1
-    LD          L,$99								;  Max PHYS Health of 199
+    LD          HL,(PLAYER_PHYS_HEALTH)             ; Load current physical health (BCD)
+    LD          A,L                                 ; Get low byte (1000s & 100s)
+    ADD         A,C                                 ; Add low byte of increase
+    DAA                                             ; Decimal adjust (BCD correction)
+    LD          L,A                                 ; Store corrected low byte
+    LD          A,H                                 ; Get high byte (10s & 1s)
+    ADC         A,B                                 ; Add high byte with carry
+    DAA                                             ; Decimal adjust (BCD correction)
+    CP          0x2                                 ; Check if >= 200
+    LD          H,A                                 ; Store corrected high byte
+    JP          NZ,UPDATE_HEALTH_VALUES             ; If < 200, continue
+    LD          H,0x1                               ; Cap at 199 (high byte)
+    LD          L,$99                               ; Cap at 199 (low byte = 99 BCD)
 UPDATE_HEALTH_VALUES:
-    LD          (PLAYER_PHYS_HEALTH),HL
-    LD          A,(PLAYER_SPRT_HEALTH)
-    ADD         A,E
-    DAA								;  Correct for BCD
-    LD          (PLAYER_SPRT_HEALTH),A
-    RET         NC
-    LD          A,$99								;  Max SPRT Health of 99
-    LD          (PLAYER_SPRT_HEALTH),A
-    RET
+    LD          (PLAYER_PHYS_HEALTH),HL             ; Store updated physical health
+    LD          A,(PLAYER_SPRT_HEALTH)              ; Load current spiritual health (BCD)
+    ADD         A,E                                 ; Add spiritual increase
+    DAA                                             ; Decimal adjust (BCD correction)
+    LD          (PLAYER_SPRT_HEALTH),A              ; Store updated spiritual health
+    RET         NC                                  ; Return if no overflow
+    LD          A,$99                               ; Cap spiritual at 99 (BCD)
+    LD          (PLAYER_SPRT_HEALTH),A              ; Store capped value
+    RET                                             ; Return to caller
 CALC_MAX_PHYS_HEALTH:
-    LD          HL,(PLAYER_PHYS_HEALTH)
-    LD          BC,(PLAYER_PHYS_HEALTH_MAX)
-    LD          A,H
-    CP          B
-    JP          C,CALC_MAX_SPRT_HEALTH
-    LD          A,L
-    CP          C
-    JP          C,CALC_MAX_SPRT_HEALTH
-    LD          (PLAYER_PHYS_HEALTH_MAX),HL
+    LD          HL,(PLAYER_PHYS_HEALTH)             ; Load current physical health
+    LD          BC,(PLAYER_PHYS_HEALTH_MAX)         ; Load max physical health
+    LD          A,H                                 ; Compare high bytes
+    CP          B                                   ; Current vs max high byte
+    JP          C,CALC_MAX_SPRT_HEALTH              ; If current < max, skip update
+    LD          A,L                                 ; Compare low bytes
+    CP          C                                   ; Current vs max low byte
+    JP          C,CALC_MAX_SPRT_HEALTH              ; If current < max, skip update
+    LD          (PLAYER_PHYS_HEALTH_MAX),HL         ; Update max to current (new high)
 CALC_MAX_SPRT_HEALTH:
-    LD          HL,PLAYER_SPRT_HEALTH_MAX
-    LD          A,(PLAYER_SPRT_HEALTH)
-    CP          (HL)
-    RET         C
-    LD          (HL),A
-    RET
+    LD          HL,PLAYER_SPRT_HEALTH_MAX           ; Point to max spiritual health
+    LD          A,(PLAYER_SPRT_HEALTH)              ; Load current spiritual health
+    CP          (HL)                                ; Compare current vs max
+    RET         C                                   ; Return if current < max
+    LD          (HL),A                              ; Update max to current (new high)
+    RET                                             ; Return to caller
 REDUCE_HEALTH_BIG:
-    LD          HL,(PLAYER_PHYS_HEALTH)
-    LD          A,L
-    SUB         C
-    DAA
-    LD          L,A
-    LD          A,H
-    SBC         A,B
-    DAA
-    LD          H,A
-    JP          C,PLAYER_DIES
-    LD          (PLAYER_PHYS_HEALTH),HL
-    LD          A,(PLAYER_SPRT_HEALTH)
-    SUB         E
-    DAA
-    JP          C,PLAYER_DIES
-    LD          (PLAYER_SPRT_HEALTH),A
-    RET
+    LD          HL,(PLAYER_PHYS_HEALTH)             ; Load current physical health (BCD)
+    LD          A,L                                 ; Get low byte
+    SUB         C                                   ; Subtract low byte of decrease
+    DAA                                             ; Decimal adjust (BCD correction)
+    LD          L,A                                 ; Store result in low byte
+    LD          A,H                                 ; Get high byte
+    SBC         A,B                                 ; Subtract high byte with borrow
+    DAA                                             ; Decimal adjust (BCD correction)
+    LD          H,A                                 ; Store result in high byte
+    JP          C,PLAYER_DIES                       ; If carry (negative), player dies
+    LD          (PLAYER_PHYS_HEALTH),HL             ; Store reduced physical health
+    LD          A,(PLAYER_SPRT_HEALTH)              ; Load current spiritual health
+    SUB         E                                   ; Subtract spiritual decrease
+    DAA                                             ; Decimal adjust (BCD correction)
+    JP          C,PLAYER_DIES                       ; If carry (negative), player dies
+    LD          (PLAYER_SPRT_HEALTH),A              ; Store reduced spiritual health
+    RET                                             ; Return to caller
 REDUCE_HEALTH_SMALL:
-    LD          HL,(PLAYER_PHYS_HEALTH_MAX)
-    LD          A,L
-    SUB         C
-    DAA
-    LD          L,A
-    LD          A,H
-    SBC         A,B
-    DAA
-    LD          H,A
-    JP          C,PLAYER_DIES
-    LD          (PLAYER_PHYS_HEALTH_MAX),HL
-    LD          A,(PLAYER_SPRT_HEALTH_MAX)
-    SUB         E
-    DAA
-    JP          C,PLAYER_DIES
-    LD          (PLAYER_SPRT_HEALTH_MAX),A
-    RET
+    LD          HL,(PLAYER_PHYS_HEALTH_MAX)         ; Load max physical health (BCD)
+    LD          A,L                                 ; Get low byte
+    SUB         C                                   ; Subtract low byte of decrease
+    DAA                                             ; Decimal adjust (BCD correction)
+    LD          L,A                                 ; Store result in low byte
+    LD          A,H                                 ; Get high byte
+    SBC         A,B                                 ; Subtract high byte with borrow
+    DAA                                             ; Decimal adjust (BCD correction)
+    LD          H,A                                 ; Store result in high byte
+    JP          C,PLAYER_DIES                       ; If carry (negative), player dies
+    LD          (PLAYER_PHYS_HEALTH_MAX),HL         ; Store reduced max physical health
+    LD          A,(PLAYER_SPRT_HEALTH_MAX)          ; Load max spiritual health
+    SUB         E                                   ; Subtract spiritual decrease
+    DAA                                             ; Decimal adjust (BCD correction)
+    JP          C,PLAYER_DIES                       ; If carry (negative), player dies
+    LD          (PLAYER_SPRT_HEALTH_MAX),A          ; Store reduced max spiritual health
+    RET                                             ; Return to caller
 PLAYER_DIES:
-    LD          HL,COLRAM_VIEWPORT_IDX
-    LD          BC,RECT(24,24)								;  24 x 24 rectangle
-    LD          A,COLOR(BLK,BLK)
-    CALL        FILL_CHRCOL_RECT
-    LD          HL,CHRRAM_YOU_DIED_IDX
-    LD          DE,YOU_DIED_TXT
-    LD          A,(INPUT_HOLDER)
-    LD          (COMBAT_BUSY_FLAG),A
-    RLCA
-    RLCA
-    RLCA
-    RLCA
-    LD          B,A
-    CALL        GFX_DRAW
-    LD          HL,0x0
-    LD          (PLAYER_PHYS_HEALTH),HL
-    XOR         A
-    LD          (PLAYER_SPRT_HEALTH),A
-    LD          (INPUT_HOLDER),A
-    CALL        REDRAW_STATS
-    LD          A,$32
-    LD          (RAM_AD),A
-    CALL        SUB_ram_cdd3
-    CALL        SLEEP_ZERO								;  byte SLEEP_ZERO(void)
-    JP          SCREEN_SAVER_FULL_SCREEN
+    LD          HL,COLRAM_VIEWPORT_IDX              ; Point to viewport color RAM
+    LD          BC,RECT(24,24)                      ; 24x24 rectangle size
+    LD          A,COLOR(BLK,BLK)                    ; Black on black color
+    CALL        FILL_CHRCOL_RECT                    ; Fill viewport with black
+    LD          HL,CHRRAM_YOU_DIED_IDX              ; Point to "YOU DIED" screen position
+    LD          DE,YOU_DIED_TXT                     ; Point to "YOU DIED" text data
+    LD          A,(INPUT_HOLDER)                    ; Load input state
+    LD          (COMBAT_BUSY_FLAG),A                ; Store to combat flag
+    RLCA                                            ; Rotate left 4 times
+    RLCA                                            ; to move high nibble
+    RLCA                                            ; to low nibble
+    RLCA                                            ; (shift upper 4 bits)
+    LD          B,A                                 ; Store graphics index in B
+    CALL        GFX_DRAW                            ; Draw "YOU DIED" text
+    LD          HL,0x0                              ; Zero value
+    LD          (PLAYER_PHYS_HEALTH),HL             ; Set physical health to 0
+    XOR         A                                   ; A = 0
+    LD          (PLAYER_SPRT_HEALTH),A              ; Set spiritual health to 0
+    LD          (INPUT_HOLDER),A                    ; Clear input holder
+    CALL        REDRAW_STATS                        ; Update stats display
+    LD          A,$32                               ; Value $32
+    LD          (RAM_AD),A                          ; Store to RAM_AD
+    CALL        SUB_ram_cdd3                        ; Call subroutine
+    CALL        SLEEP_ZERO                          ; Wait/delay function
+    JP          SCREEN_SAVER_FULL_SCREEN            ; Jump to screen saver
 
 DO_USE_PHYS_POTION:
     CALL        PLAY_USE_PHYS_POTION_SOUND
