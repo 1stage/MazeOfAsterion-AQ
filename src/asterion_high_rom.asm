@@ -83,6 +83,37 @@ PSG_MIXER_RESET:
     OUT         (C),A                               ; Write PSG configuration
     LD          B,0x6                               ; B = color fill value for COLRAM (palette constant)
 
+;==============================================================================
+; CLEAR_COLRAM_DEFAULT - Initialize color RAM and draw title screen
+;==============================================================================
+; Clears entire color RAM to default cyan background, prepares item graphics
+; state, draws the title screen, and transfers control to input debounce.
+; This is typically called during game initialization after PSG setup.
+;
+; Flow:
+; 1. Fill all 1024 bytes of COLRAM with BLK on CYN ($06)
+; 2. Call CHK_ITEM to initialize item graphics lookup state
+; 3. Draw complete title screen (CHR + COLRAM)
+; 4. Jump to INPUT_DEBOUNCE (does not return)
+;
+; Output:
+;   COLRAM filled with COLOR(BLK,CYN)
+;   Title screen graphics displayed
+;   Control transferred to INPUT_DEBOUNCE
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   B  = COLOR(BLK,CYN) fill value
+;   HL = COLRAM base ($3400)
+;   Used by FILL_FULL_1024, CHK_ITEM, DRAW_TITLE, INPUT_DEBOUNCE
+; ---  End  ---
+;   Does not return (jumps to INPUT_DEBOUNCE)
+;
+; Memory Modified: COLRAM ($3400-$37FF), CHRRAM via DRAW_TITLE
+; Calls: FILL_FULL_1024, CHK_ITEM, DRAW_TITLE, INPUT_DEBOUNCE (jump)
+;==============================================================================
 CLEAR_COLRAM_DEFAULT:
     LD          B,COLOR(BLK,CYN)                    ; B = BLK on CYN (0x06) uniform background color
     LD          HL,COLRAM                           ; HL = start of color RAM ($3400)
@@ -288,6 +319,38 @@ DO_MOVE_FW_CHK_WALLS:
     JP          Z,FW_WALLS_CLEAR_CHK_MONSTER        ; If clear, check for monster
     BIT         0x2,A                               ; Test bit 2 (closed door flag)
     JP          Z,NO_ACTION_TAKEN                   ; If wall/closed door, block movement
+;==============================================================================
+; FW_WALLS_CLEAR_CHK_MONSTER - Validate monster not blocking F1 position
+;==============================================================================
+; Entry point when F0 wall check passes. Tests F1 position for monster presence
+; ($7A and above indicates monster). If clear, updates player position with
+; direction vector and saves previous state for potential backtracking.
+;
+; Input:
+;   ITEM_F1 - Item/monster code at F1 position
+;   DIR_FACING_HI - Direction vector (vertical/horizontal offsets)
+;   DIR_FACING_SHORT - Facing direction byte (1-4)
+;   PLAYER_MAP_POS - Current player map position
+;
+; Output:
+;   PREV_DIR_VECTOR - Saved direction for backtracking
+;   PREV_DIR_FACING - Saved facing for backtracking
+;   PLAYER_PREV_MAP_LOC - Saved position for backtracking
+;   PLAYER_MAP_POS - Updated to new position if movement valid
+;   Control to UPDATE_VIEWPORT or NO_ACTION_TAKEN
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = ITEM_F1 + 2, then comparisons, then position calculations
+;   BC = DIR_FACING_HI (direction vector)
+; ---  End  ---
+;   Control transfers (no return)
+;
+; Memory Modified: PREV_DIR_VECTOR, PREV_DIR_FACING, PLAYER_PREV_MAP_LOC, PLAYER_MAP_POS
+; Calls: UPDATE_VIEWPORT, NO_ACTION_TAKEN (via JP)
+;==============================================================================
 FW_WALLS_CLEAR_CHK_MONSTER:
     LD          A,(ITEM_F1)                         ; Load F1 item/monster code
     INC         A                                   ; Adjust for offset
@@ -807,6 +870,31 @@ SET_MINIMAP_NO_WALLS:
 SET_MINIMAP_NW_WALLS:
     LD          A,$b7                               ; Load character $b7 (north and west walls)
     JP          DRAW_MINIMAP_WALL                   ; Draw corner wall character
+;==============================================================================
+; LAB_ram_e2d6 - Reload wall state and check for west wall
+;==============================================================================
+; Continuation point after north+west wall check. Reloads wall flags from (DE)
+; and masks upper nybble to check west wall bit. If set, draws north+west
+; corner, otherwise falls through to west-only wall character.
+;
+; Input:
+;   DE = Pointer to wall state data
+;
+; Output:
+;   A = Wall character code ($b7 if north+west, $b5 if west only)
+;   Falls through to SET_MINIMAP_W_WALL or jumps to SET_MINIMAP_NW_WALLS
+;
+; Registers:
+; --- Start ---
+;   DE = Wall state pointer
+; --- In Process ---
+;   A  = Wall state byte, then masked upper nybble
+; ---  End  ---
+;   A  = Test result or wall character code
+;
+; Memory Modified: None
+; Calls: SET_MINIMAP_NW_WALLS (via JP)
+;==============================================================================
 LAB_ram_e2d6:
     LD          A,(DE)                              ; Reload wall flags
     AND         $f0                                 ; Mask upper nybble (west wall flag)
@@ -3000,6 +3088,40 @@ LAB_ram_e7c0:
     LD          (WEAPON_PHYS),HL                    ; Store 0 to WEAPON_PHYS (2 bytes)
     LD          (WEAPON_SPRT),A                     ; Store 0 to WEAPON_SPRT
     JP          LAB_ram_e7aa                        ; Jump to recalc/redraw weapon stats
+
+;==============================================================================
+; DO_PICK_UP - Handle item pickup from dungeon floor
+;==============================================================================
+; Validates that player is adjacent to (not on) an item, then routes to
+; appropriate pickup handler based on item type. Distinguishes between
+; equipment (Ring/Helmet/Armor), consumables (Food/Arrows), and Map.
+;
+; Flow:
+; 1. Check if player is adjacent to item (not on same square)
+; 2. Validate item type via ITEM_MAP_CHECK
+; 3. Route to PROCESS_RHA (equipment), CHECK_FOOD_ARROWS (consumables), or special handlers
+;
+; Input:
+;   ITEM_HOLDER - Map position of item to pickup
+;   PLAYER_MAP_POS - Current player map position
+;
+; Output:
+;   Item removed from map and added to inventory
+;   Stats/UI updated as appropriate for item type
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = Player position, item position comparisons, item type code
+;   B  = Item position temp storage
+;   HL = Inventory slot pointers
+; ---  End  ---
+;   Varies by item type handler
+;
+; Memory Modified: Inventory slots, equipment stats (varies by item type)
+; Calls: ITEM_MAP_CHECK, PICK_UP_F0_ITEM, CHECK_FOOD_ARROWS, PROCESS_RHA
+;==============================================================================
 DO_PICK_UP:
     LD          A,(ITEM_HOLDER)                     ; Load item's map position
     LD          B,A                                 ; Store item position in B
@@ -3016,6 +3138,39 @@ DO_PICK_UP:
     JP          C,CHECK_FOOD_ARROWS                 ; If < RING (items 0-3), check food/arrows
     CP          $10                                 ; Compare to PAVISE (item code $10)
     JP          NC,CHECK_FOOD_ARROWS                ; If >= PAVISE, check food/arrows
+
+;==============================================================================
+; PROCESS_RHA - Process Ring/Helmet/Armor pickup
+;==============================================================================
+; Handles pickup of equipment items (Ring, Helmet, Armor). Determines which
+; inventory slot to update based on item code, then calls equipment stat
+; recalculation routines.
+;
+; Flow:
+; 1. Remove item from map (PICK_UP_F0_ITEM)
+; 2. Point to appropriate inventory slot (Armor/Helmet/Ring)
+; 3. Store item in slot and update stats
+;
+; Input:
+;   A = Item code (4=Ring, 5=Helmet, 6=Armor after initial offset)
+;   ITEM_HOLDER contains item position
+;
+; Output:
+;   Item stored in appropriate inventory slot
+;   Equipment stats recalculated
+;
+; Registers:
+; --- Start ---
+;   A  = Equipment item code
+; --- In Process ---
+;   HL = Inventory slot pointer (ARMOR_INV_SLOT, HELMET_INV_SLOT, or RING_INV_SLOT)
+;   A  = Decremented for item type testing
+; ---  End  ---
+;   Varies by equipment handler
+;
+; Memory Modified: ARMOR_INV_SLOT, HELMET_INV_SLOT, or RING_INV_SLOT
+; Calls: PICK_UP_F0_ITEM, equipment stat handlers
+;==============================================================================
 PROCESS_RHA:
     CALL        PICK_UP_F0_ITEM                     ; Remove item from map, increment D
     LD          HL,ARMOR_INV_SLOT                   ; Point HL to armor inventory slot
@@ -3090,6 +3245,45 @@ CHECK_FOOD_ARROWS:
     POP         DE                                  ; Restore DE
     CALL        PICK_UP_FOOD                        ; Add food to inventory (second portion)
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
+
+;==============================================================================
+; PICK_UP_FOOD - Add food to player inventory with overflow handling
+;==============================================================================
+; Adds the quantity in D register to the food inventory count. Handles BCD
+; overflow (max $99) by recursively reducing the amount added until it fits.
+; Also updates a cumulative food statistics counter using BCD arithmetic.
+;
+; Flow:
+; 1. Add D (quantity) to FOOD_INV
+; 2. If overflow occurs (carry set), reduce quantity and retry
+; 3. If no overflow, store result and update statistics counter
+; 4. Return to caller
+;
+; Input:
+;   D = Food quantity to add (BCD)
+;   FOOD_INV = Current food count (BCD)
+;   BYTE_ram_3aa9 = Food statistics counter (16-bit BCD)
+;
+; Output:
+;   FOOD_INV = Updated food count (BCD, clamped to valid range)
+;   BYTE_ram_3aa9 = Updated statistics counter (16-bit BCD)
+;   D = May be reduced if overflow handling triggered
+;
+; Registers:
+; --- Start ---
+;   D = Quantity to add
+; --- In Process ---
+;   A  = FOOD_INV value, arithmetic operations
+;   C  = Overflow amount (if needed)
+;   HL = BYTE_ram_3aa9 statistics counter
+;   D  = May be reduced during overflow handling
+; ---  End  ---
+;   A  = H after final DAA (high byte of counter)
+;   HL = Updated BYTE_ram_3aa9 value
+;
+; Memory Modified: FOOD_INV, BYTE_ram_3aa9
+; Calls: Self (recursive on overflow)
+;==============================================================================
 PICK_UP_FOOD:
     LD          A,(FOOD_INV)                        ; Load current food inventory count
     ADD         A,D                                 ; Add food quantity from D
@@ -3113,6 +3307,40 @@ LAB_ram_e872:
     LD          H,A                                 ; Store updated high byte
     LD          (BYTE_ram_3aa9),HL                  ; Save updated food statistics counter
     RET                                             ; Return to caller
+
+;==============================================================================
+; PICK_UP_ARROWS - Add arrows to player inventory with max cap
+;==============================================================================
+; Adds the quantity in D register to the arrow inventory count. Enforces a
+; maximum arrow count of 50 ($32 BCD). If the addition would exceed 50,
+; clamps the result to exactly 50.
+;
+; Flow:
+; 1. Add D (quantity) to ARROW_INV
+; 2. Compare result to $33 (51 decimal)
+; 3. If >= 51, set to $32 (50 decimal - max arrows)
+; 4. Store result and jump to CHECK_MAP_NECKLACE_CHARMS
+;
+; Input:
+;   D = Arrow quantity to add (BCD)
+;   ARROW_INV = Current arrow count (BCD)
+;
+; Output:
+;   ARROW_INV = Updated arrow count (BCD, clamped to max $32)
+;   Control transferred to CHECK_MAP_NECKLACE_CHARMS
+;
+; Registers:
+; --- Start ---
+;   D = Quantity to add
+; --- In Process ---
+;   A = ARROW_INV value, comparison result, possibly clamped to $32
+; ---  End  ---
+;   A = Final arrow count stored
+;   Jumps to CHECK_MAP_NECKLACE_CHARMS (does not return)
+;
+; Memory Modified: ARROW_INV
+; Calls: CHECK_MAP_NECKLACE_CHARMS (jump)
+;==============================================================================
 PICK_UP_ARROWS:
     LD          A,(ARROW_INV)                       ; Load current arrow inventory count
     ADD         A,D                                 ; Add arrow quantity from D
@@ -3665,6 +3893,43 @@ LAB_ram_e9ec:
     LD          A,$fe                               ; Load $FE marker value
     LD          (BC),A                              ; Store $FE at BC-1 location
     RET                                             ; Return to caller
+
+;==============================================================================
+; DO_ROTATE_PACK - Rotate inventory pack items forward one slot
+;==============================================================================
+; Rotates all six inventory pack slots forward by one position. Slot 1 wraps
+; around to slot 6, creating a circular rotation. Uses both memory swaps and
+; screen graphics copies to update both data and display.
+;
+; Flow:
+; 1. Save slot 1 to temporary buffer
+; 2. Move slot 2 -> slot 1, slot 3 -> slot 2, etc.
+; 3. Move saved slot 1 (from buffer) -> slot 6
+; 4. Copy screen graphics for each slot forward
+; 5. Return to input loop after brief delay
+;
+; Input:
+;   INV_ITEM_SLOT_1..6 - Current inventory item codes
+;   Screen graphics for each slot
+;
+; Output:
+;   All inventory slots rotated forward one position
+;   Screen graphics updated to reflect new arrangement
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   HL = Inventory slot pointers
+;   BC = Destination pointers for swaps
+;   DE = Graphics source/destination pointers
+;   E  = Loop counter for slots 3-6
+; ---  End  ---
+;   Returns via WAIT_A_TICK to WAIT_FOR_INPUT
+;
+; Memory Modified: INV_ITEM_SLOT_1..6, ITEM_MOVE_COL_BUFFER, screen graphics
+; Calls: SUB_ram_ea62, COPY_GFX_SCRN_2_SCRN, COPY_GFX_FROM_BUFFER, WAIT_A_TICK
+;==============================================================================
 DO_ROTATE_PACK:
     LD          HL,INV_ITEM_SLOT_1                  ; Point to inventory slot 1
     LD          BC,ITEM_MOVE_COL_BUFFER             ; Point to temporary buffer
@@ -3708,6 +3973,39 @@ LAB_ram_ea0c:
     LD          DE,CHHRAM_INV_6_IDX                 ; Point to inv slot 6 graphics
     CALL        COPY_GFX_FROM_BUFFER                ; Copy buffer to slot 6 (complete rotation)
     JP          WAIT_A_TICK                         ; Jump to delay routine (will RET to WAIT_FOR_INPUT)
+
+;==============================================================================
+; SUB_ram_ea62 - Swap byte values between two memory locations
+;==============================================================================
+; Swaps the byte value at (HL) with the byte value at (BC). Uses D register
+; as temporary storage. This is a utility routine called during inventory
+; rotation operations.
+;
+; Input:
+;   HL = Pointer to first memory location
+;   BC = Pointer to second memory location
+;
+; Output:
+;   Values at (HL) and (BC) swapped
+;   D = Original value from (HL)
+;   A = Original value from (HL) after swap
+;
+; Registers:
+; --- Start ---
+;   BC = Second location pointer
+;   HL = First location pointer
+; --- In Process ---
+;   A  = Value from (BC), then value from D
+;   D  = Temporary storage for value from (HL)
+; ---  End  ---
+;   A  = Original value from (HL)
+;   D  = Original value from (HL)
+;   BC = Unchanged (still points to second location)
+;   HL = Unchanged (still points to first location)
+;
+; Memory Modified: (HL) and (BC) - values swapped
+; Calls: None
+;==============================================================================
 SUB_ram_ea62:
     LD          D,(HL)                              ; Load value from (HL) into D
     LD          A,(BC)                              ; Load value from (BC) into A
@@ -3715,6 +4013,45 @@ SUB_ram_ea62:
     LD          A,D                                 ; Load saved (HL) value from D
     LD          (BC),A                              ; Store to (BC)
     RET                                              ; Return (values swapped)
+
+;==============================================================================
+; DO_SWAP_PACK - Swap inventory slot 1 with right-hand item
+;==============================================================================
+; Swaps the item in inventory slot 1 with the current right-hand item. Updates
+; both the item codes in memory and the graphics on screen. Recalculates weapon
+; stats if the new right-hand item is a weapon.
+;
+; Flow:
+; 1. Swap INV_ITEM_SLOT_1 with RIGHT_HAND_ITEM in memory
+; 2. Copy right-hand graphics to buffer (save current)
+; 3. Copy inv slot 1 graphics to right-hand position
+; 4. Copy buffer (old right-hand) to inv slot 1 position
+; 5. Recalculate stats for new right-hand item
+; 6. Return to input loop after brief delay
+;
+; Input:
+;   INV_ITEM_SLOT_1 - Item code in inventory slot 1
+;   RIGHT_HAND_ITEM - Current right-hand item code
+;   Screen graphics for both positions
+;
+; Output:
+;   INV_ITEM_SLOT_1 and RIGHT_HAND_ITEM swapped
+;   Screen graphics updated
+;   Weapon stats recalculated if applicable
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   HL = Memory and graphics pointers
+;   BC = Memory pointer for swap
+;   DE = Graphics destination pointers
+; ---  End  ---
+;   Returns via WAIT_A_TICK to WAIT_FOR_INPUT
+;
+; Memory Modified: INV_ITEM_SLOT_1, RIGHT_HAND_ITEM, ITEM_MOVE_CHR_BUFFER, screen graphics
+; Calls: SUB_ram_ea62, COPY_GFX_2_BUFFER, COPY_GFX_SCRN_2_SCRN, COPY_GFX_FROM_BUFFER, NEW_RIGHT_HAND_ITEM, WAIT_A_TICK
+;==============================================================================
 DO_SWAP_PACK:
     LD          HL,INV_ITEM_SLOT_1                  ; Point to inventory slot 1
     LD          BC,RIGHT_HAND_ITEM                  ; Point to right-hand item slot
@@ -4089,6 +4426,45 @@ ENABLE_JOY_04:
     LD          A,(HL)                              ; Load second HC input byte
     INC         A                                   ; Increment (test if $FF: no input)
     JP          Z,TITLE_CHK_FOR_HC_INPUT            ; If $FF, check first byte instead
+
+;==============================================================================
+; HC_LEVEL_SELECT_LOOP - Handcontroller-based difficulty selection
+;==============================================================================
+; Processes handcontroller button input on the title screen to select game
+; difficulty level. Maps specific button values to difficulty settings 1-4.
+; This is part of the title screen input handling sequence.
+;
+; Button Mapping:
+; - $60 (K3): Difficulty 1 (easiest)
+; - $7C: Difficulty 2
+; - $7E: Difficulty 3
+; - $7F: Difficulty 4 (hardest)
+; - Other: Re-initialize game (GAMEINIT)
+;
+; Flow:
+; 1. Compare handcontroller input value to known button codes
+; 2. Branch to appropriate difficulty setting routine
+; 3. If no match, restart game initialization
+;
+; Input:
+;   A = Handcontroller button value from input read
+;   HC input already validated as not $FF
+;
+; Output:
+;   Game difficulty set based on button press
+;   Branches to difficulty handler or GAMEINIT
+;
+; Registers:
+; --- Start ---
+;   A = HC button value
+; --- In Process ---
+;   A = Comparison operations
+; ---  End  ---
+;   Jumps to difficulty handler (does not return)
+;
+; Memory Modified: None directly (handlers modify game state)
+; Calls: SET_DIFFICULTY_1/2/3, GAMEINIT (jumps)
+;==============================================================================
 HC_LEVEL_SELECT_LOOP:
     CP          $60                                 ; Compare to K3 button ($60)
     JP          Z,SET_DIFFICULTY_1                  ; If K3, set difficulty 1
@@ -4112,6 +4488,45 @@ TITLE_CHK_FOR_HC_INPUT:
 ;   A  = Output value to speaker
 ;   BC = Sleep delay parameter
 ;
+
+;==============================================================================
+; PLAY_DESCENDING_SOUND - Play short descending tone sequence
+;==============================================================================
+; Plays a brief descending pitch sound effect, typically used for negative
+; feedback or denial actions. Resets all timers and outputs a series of tones
+; to the speaker port to create an audible "beep" effect.
+;
+; Flow:
+; 1. Reset TIMER_A, TIMER_B, TIMER_C to 0
+; 2. Output 0 to speaker (initialize low state)
+; 3. Loop 6 times:
+;    a. Delay (SLEEP)
+;    b. Toggle speaker output (create tone)
+;    c. Delay again
+; 4. Return after sequence complete
+;
+; Input:
+;   None
+;
+; Output:
+;   Brief descending/clicking tone played
+;   All timers reset to 0
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = 0, then speaker values
+;   BC = SLEEP parameter ($100 cycles)
+;   B  = Loop counter (6 iterations)
+; ---  End  ---
+;   A  = Last speaker output
+;   B  = 0 (exhausted counter)
+;   Timers reset
+;
+; Memory Modified: TIMER_A, TIMER_B, TIMER_C
+; Calls: SLEEP
+;==============================================================================
 PLAY_DESCENDING_SOUND:
     XOR         A                                   ; Clear A (A = 0)
     LD          (TIMER_A),A                         ; Reset TIMER_A
@@ -4144,6 +4559,53 @@ LAB_ram_ec52:
     LD          HL,KEY_INPUT_COL0                   ; Point to key input buffer start
     LD          BC,0xfeff                           ; C=$FF (port), B=$FE (column 0 mask)
     LD          D,0x8                               ; Set counter to 8 (8 columns to scan)
+
+;==============================================================================
+; SELECT_DIFFICULTY_LOOP - Scan keyboard and select difficulty level
+;==============================================================================
+; Scans all 8 keyboard columns and stores results in buffer, then checks for
+; specific key presses to set game difficulty (1-3) or default (4). Handles
+; both title screen input and in-game reinitialization.
+;
+; Key Mapping:
+; - Key 3: Difficulty 1 (easier)
+; - Key 2: Difficulty 2 (medium)
+; - Key 1: Difficulty 3 (hard)
+; - Key A: Show author credits (title screen only)
+; - Other: Difficulty 4 (default/hardest)
+;
+; Flow:
+; 1. Scan 8 keyboard columns, store to KEY_INPUT_COL0..7
+; 2. Check if previous input exists (INPUT_HOLDER)
+; 3. If in dungeon (DUNGEON_LEVEL != 0), reinitialize
+; 4. Check keys 3/2/1/A and branch to appropriate handler
+; 5. Default to difficulty 4 if no specific key pressed
+;
+; Input:
+;   BC = $FEFF (port $FF, column mask $FE)
+;   D = 8 (column counter)
+;   HL = KEY_INPUT_COL0 buffer pointer
+;
+; Output:
+;   KEY_INPUT_COL0..7 filled with keyboard state
+;   Difficulty set (0-3) and game started
+;
+; Registers:
+; --- Start ---
+;   BC = Port and column mask
+;   D  = Column counter
+;   HL = Buffer pointer
+; --- In Process ---
+;   A  = Port reads, comparisons, difficulty values
+;   B  = Column mask (rotated left each iteration)
+;   D  = Decremented counter
+;   HL = Advanced through buffer
+; ---  End  ---
+;   Jumps to difficulty handler or GAMEINIT
+;
+; Memory Modified: KEY_INPUT_COL0..7, INPUT_HOLDER, GAME_BOOLEANS
+; Calls: BLANK_SCRN, GAMEINIT, SHOW_AUTHOR (jumps)
+;==============================================================================
 SELECT_DIFFICULTY_LOOP:
     IN          A,(C)                               ; Read current keyboard column
     LD          (HL),A                              ; Store column data to buffer
@@ -4186,6 +4648,47 @@ SET_DIFFICULTY_2:
 SET_DIFFICULTY_3:
     LD          A,0x3                               ; Set difficulty to 3 (hardest)
     JP          GOTO_GAME_START                     ; Jump to game start sequence
+
+;==============================================================================
+; CHK_ITEM - Decode item code into graphics pointer and color base
+;==============================================================================
+; Decodes a packed item code into a graphics table pointer (HL) and color
+; base value (B). Item codes encode both type and color group through bit
+; manipulation. Returns early if item code is $FE (empty slot).
+;
+; Flow:
+; 1. Check for $FE (empty) and return if found
+; 2. Extract color group via bit shifts (yellow/white vs red/magenta)
+; 3. Calculate graphics table offset (item code * 3 + offset)
+; 4. Return HL pointing to graphics table, B containing color base
+;
+; Input:
+;   A = Item code to decode ($00-$FE, $FE=empty)
+;   B = Initial offset/color value
+;
+; Output:
+;   HL = Pointer to graphics table entry ($FF00 + offset)
+;   B  = Color base value ($10/$30/$50/$70 depending on color group)
+;   Z flag = Set if item was $FE (empty)
+;
+; Registers:
+; --- Start ---
+;   A = Item code
+;   B = Offset value
+; --- In Process ---
+;   A = Shifted and calculated values
+;   D = Color base accumulator ($10, $30, $50, $70)
+;   E = Temporary item code storage
+; ---  End  ---
+;   HL = Graphics pointer ($FF00 + calculated offset)
+;   B  = Final color base
+;   D  = Color base
+;   E  = Modified item code
+;   Z flag indicates empty item
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 CHK_ITEM:
     CP          $fe                                 ; Compare A to $FE (no item marker)
     RET         Z                                   ; If A == $FE, return (no item present)
@@ -4218,6 +4721,42 @@ ITEM_NOT_RD_YL:
     LD          H,A                                 ; Store in H
     LD          L,C                                 ; Store C in L
     JP          GFX_DRAW                            ; Jump to graphics drawing routine
+
+;==============================================================================
+; DO_OPEN_CLOSE - Handle opening/closing doors and chests
+;==============================================================================
+; Processes player action to open or close doors, or open treasure chests.
+; For chests (BOX items), generates random loot based on chest level. For
+; doors, toggles door state (open/closed) based on current wall configuration.
+;
+; Flow:
+; 1. Extract item code and level from ITEM_F0
+; 2. Check if item is BOX ($11 after bit shifts)
+; 3. If BOX: Calculate random item based on chest level and R register
+; 4. If door: Route to door open/close handler based on facing direction
+;
+; Input:
+;   ITEM_F0 - Item at F0 position (door or chest code)
+;   DIR_FACING_SHORT - Player facing direction (1=N, 2=E, 3=S, 4=W)
+;
+; Output:
+;   For chests: Random item placed at F0, chest replaced with magic effect
+;   For doors: Door state toggled (open <-> closed)
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = Item code, level calculations, random values
+;   C  = Item level (chest difficulty)
+;   B  = Bit rotation temporary
+;   HL = Graphics pointers
+; ---  End  ---
+;   Varies by door vs chest handler
+;
+; Memory Modified: ITEM_F0 (chest items), wall states (doors)
+; Calls: UPDATE_SCR_SAVER_TIMER, PICK_UP_F0_ITEM, door handlers
+;==============================================================================
 DO_OPEN_CLOSE:
     LD          A,(ITEM_F0)                         ; Load item at F0 position
     LD          C,0x0                               ; Clear C (will hold item level)
@@ -4240,9 +4779,89 @@ LAB_ram_ecf6:
     JP          NC,LAB_ram_ecf6                     ; Loop while no carry (A >= C)
     ADD         A,C                                 ; Add C back (A now = A mod C)
     LD          C,A                                 ; Store remainder in C
+
+;==============================================================================
+; DO_OPEN_BOX - Generate random treasure item from chest
+;==============================================================================
+; Opens a treasure chest and generates a random item based on the semi-random
+; R register value. Uses the R register (refresh counter) as entropy source,
+; masks to 0-7 range, then maps to specific item codes.
+;
+; Flow:
+; 1. Read R register (semi-random hardware value)
+; 2. Mask to 0-7 range (AND $07)
+; 3. Call PICK_RANDOM_ITEM to normalize to 0-6 and map to item code
+; 4. Apply chest level multiplier through bit rotations
+; 5. Place generated item on map at current position
+; 6. Update viewport to show new item
+;
+; Input:
+;   C = Chest level (0-3, affects item quality)
+;   PLAYER_MAP_POS = Current player position
+;   R register = Hardware refresh counter (entropy source)
+;
+; Output:
+;   Random item placed at current map position
+;   ITEM_F0 updated with new item code
+;   Viewport redrawn
+;
+; Registers:
+; --- Start ---
+;   C = Chest level
+; --- In Process ---
+;   A  = R value, masked value, item code calculations
+;   B  = Bit rotation temporary
+;   BC = Map position pointer
+;   AF'= Preserved item code
+; ---  End  ---
+;   Jumps to UPDATE_VIEWPORT (does not return)
+;
+; Memory Modified: Map item data at player position
+; Calls: PICK_RANDOM_ITEM, ITEM_MAP_CHECK, UPDATE_VIEWPORT (jump)
+;==============================================================================
 DO_OPEN_BOX:
     LD          A,R                                 ; Load semi-random value from R register
     AND         0x7                                 ; Mask to 0-7 range
+
+;==============================================================================
+; PICK_RANDOM_ITEM - Normalize random value and map to item code range
+;==============================================================================
+; Takes a value in range 0-7 and normalizes it to 0-6 through repeated
+; subtraction, then maps to treasure item code range ($1D-$23). Applies
+; chest level multiplier through bit rotation operations.
+;
+; Algorithm:
+; 1. Subtract 7 repeatedly until result < 7 (normalize to 0-6)
+; 2. Add $1D to map to item code base range
+; 3. Apply chest level multiplier:
+;    - Rotate chest level (C) right through carry
+;    - Rotate item code left to multiply by level
+; 4. Result is level-adjusted random treasure item
+;
+; Input:
+;   A = Random value (0-7 from R register mask)
+;   B = Temporary for rotations
+;   C = Chest level (0-3)
+;
+; Output:
+;   A = Item code in range $1D-$23, adjusted for chest level
+;   B/C modified by bit rotations
+;
+; Registers:
+; --- Start ---
+;   A = Random 0-7
+;   C = Chest level
+; --- In Process ---
+;   A = Decremented, then offset, then rotated
+;   B = Bit rotation carry
+;   C = Bit rotation (level / 8)
+; ---  End  ---
+;   A = Final item code
+;   B/C modified
+;
+; Memory Modified: None
+; Calls: None (inline loop)
+;==============================================================================
 PICK_RANDOM_ITEM:
     SUB         0x7                                 ; Subtract 7
     JP          NC,PICK_RANDOM_ITEM                 ; Loop until carry (result 0-6)
@@ -4274,6 +4893,40 @@ LAB_ram_ed1b:
     ADD         A,$10                               ; Add $10 (shift to south neighbor)
     LD          L,A                                 ; Update L (now pointing to south cell)
                                                     ; Then process as north door
+
+;==============================================================================
+; NORTH_OPEN_CLOSE_DOOR - Toggle north-facing door state
+;==============================================================================
+; Handles opening or closing a door to the north of the player's position.
+; Checks map data for door presence, tests door type (normal vs hidden), and
+; toggles the appropriate door state bits. Routes to door animation routines.
+;
+; Flow:
+; 1. Check if north wall exists (bit 6)
+; 2. Check for hidden door (bit 5) vs normal door
+; 3. Set appropriate door mask ($44 for hidden, $22 for normal)
+; 4. Test door state (bit 7) and toggle (open <-> closed)
+; 5. Route to door opening or closing animation
+;
+; Input:
+;   HL = Map position to check (already adjusted for direction)
+;
+; Output:
+;   Map data updated (door state bit toggled)
+;   WALL_F0_STATE updated (bit 2 = passability)
+;   Routes to door animation (SET_F0_DOOR_OPEN or CLOSE_N_DOOR)
+;
+; Registers:
+; --- Start ---
+;   HL = Map position north of player
+; --- In Process ---
+;   A  = Door mask ($44 or $22), bit test results
+; ---  End  ---
+;   Jumps to door animation routines (does not return)
+;
+; Memory Modified: Map door bits, WALL_F0_STATE
+; Calls: NO_ACTION_TAKEN (conditional), SET_F0_DOOR_OPEN or CLOSE_N_DOOR
+;==============================================================================
 NORTH_OPEN_CLOSE_DOOR:
     BIT         0x6,(HL)                            ; Test bit 6 (north wall present)
     JP          Z,NO_ACTION_TAKEN                   ; If no wall, no action
@@ -4288,6 +4941,42 @@ OPEN_N_CHECK:
     JP          NZ,CLOSE_N_DOOR                     ; If door open, close it
     SET         0x7,(HL)                            ; Set bit 7 (mark door as closed on map)
     JP          SET_F0_DOOR_OPEN                    ; Jump to open door animation
+
+;==============================================================================
+; SHIFT_EAST_OPEN_CLOSE_DOOR - Toggle east-facing door (as west from east cell)
+;==============================================================================
+; Handles opening or closing a door to the east by shifting to the eastern
+; map cell and processing it as a west-facing door. This allows east doors
+; to be handled by the west door logic with a simple position adjustment.
+;
+; Flow:
+; 1. Increment L (shift east one cell)
+; 2. Check if west wall exists in that cell (bit 1)
+; 3. Check for hidden door (bit 0) vs normal door
+; 4. Set appropriate door mask ($44 for hidden, $22 for normal)
+; 5. Test door state (bit 2) and toggle
+; 6. Route to door opening or closing animation
+;
+; Input:
+;   HL = Player's current map position
+;
+; Output:
+;   Map data updated (door state bit toggled)
+;   WALL_F0_STATE updated (bit 2 = passability)
+;   Routes to door animation
+;
+; Registers:
+; --- Start ---
+;   HL = Current map position
+; --- In Process ---
+;   A  = Door mask ($44 or $22), bit test results
+;   HL = Map position east of player (L incremented)
+; ---  End  ---
+;   Jumps to door animation routines
+;
+; Memory Modified: Map door bits (eastern cell), WALL_F0_STATE
+; Calls: NO_ACTION_TAKEN (conditional), SET_F0_DOOR_OPEN or CLOSE_W_DOOR
+;==============================================================================
 SHIFT_EAST_OPEN_CLOSE_DOOR:
     INC         L                                   ; Increment L (shift east, process as west)
 LAB_ram_ed4b:
@@ -4303,10 +4992,63 @@ LAB_ram_ed5c:
     BIT         0x2,(HL)                            ; Test bit 2 (west door open)
     JP          NZ,CLOSE_W_DOOR                     ; If door open, close it
     SET         0x2,(HL)                            ; Set bit 2 (mark door as closed on map)
+
+;==============================================================================
+; SET_F0_DOOR_OPEN - Initialize and animate door opening sequence
+;==============================================================================
+; Marks the F0 position as passable, waits for VSYNC, then performs an animated
+; door opening sequence with synchronized graphics updates and rising pitch sound.
+; Uses 12-step animation copying graphics data progressively to screen.
+;
+; Flow:
+; 1. Mark WALL_F0_STATE bit 2 (F0 passable)
+; 2. Wait for VSYNC signal
+; 3. Draw initial door state at F0
+; 4. Check and draw item at F1 position
+; 5. Copy door graphics to buffer
+; 6. Setup sound parameters
+; 7. Execute 12-frame animation loop:
+;    - Play rising pitch sound
+;    - Copy 8 bytes of graphics
+;    - Adjust pointers for next frame
+; 8. Return to input loop when complete
+;
+; Input:
+;   AF' = Door mask from caller (preserved)
+;   WALL_F0_STATE = Current F0 wall state
+;   ITEM_F1 = Item code at F1 position
+;
+; Output:
+;   WALL_F0_STATE bit 2 set (passable)
+;   Door opening animation displayed
+;   Sound effects played
+;
+; Registers:
+; --- Start ---
+;   AF' = Door mask (preserved through animation)
+; --- In Process ---
+;   A  = VSYNC reads, color value, loop counter, graphics data
+;   BC = CHK_ITEM parameters, LDIR count, offset calculations
+;   DE = Graphics destination pointers
+;   HL = WALL_F0_STATE, graphics source pointers
+;   EXX = Alternates between sound/graphics contexts
+; ---  End  ---
+;   Jumps to WAIT_FOR_INPUT (does not return)
+;
+; Memory Modified: WALL_F0_STATE, COLRAM_F0_DOOR_IDX area, screen graphics
+; Calls: DRAW_DOOR_F0, CHK_ITEM, SUB_ram_edaf, SETUP_OPEN_DOOR_SOUND, LO_HI_PITCH_SOUND, WAIT_FOR_INPUT (jump)
+;==============================================================================
 SET_F0_DOOR_OPEN:
     LD          HL,WALL_F0_STATE                    ; Point to F0 wall state
     SET         0x2,(HL)                            ; Set bit 2 (mark F0 as passable)
     EX          AF,AF'                              ; Save mask state in alternate A
+
+;==============================================================================
+; WAIT_TO_REDRAW_F0_DOOR - Synchronize to VSYNC before redrawing door
+;==============================================================================
+; Waits for the vertical blanking interval (VSYNC) signal before proceeding
+; with door redraw operations, ensuring flicker-free animation by timing
+; graphics updates to the CRT beam retrace period.\n;\n; Input:\n;   AF' = Door mask (preserved)\n;\n; Output:\n;   Falls through to door redraw after VSYNC detected\n;\n; Registers:\n; --- Start ---\n;   AF' = Door mask (preserved)\n; --- In Process ---\n;   A  = VSYNC port reads ($FF during retrace, $00 otherwise)\n; ---  End  ---\n;   A  = $00 (VSYNC detected)\n;   F  = Z flag set from INC A after VSYNC detected\n;\n; Memory Modified: None\n; Calls: None (polling loop)\n;==============================================================================
 WAIT_TO_REDRAW_F0_DOOR:
     IN          A,(VSYNC)                           ; Read VSYNC port
     INC         A                                   ; Increment (test if $FF)
@@ -4325,6 +5067,12 @@ WAIT_TO_REDRAW_F0_DOOR:
     LD          HL,BYTE_ram_3a58                    ; Point to source graphics data
     LD          DE,DAT_ram_3728                     ; Point to destination screen location
     LD          A,0xc                               ; Set loop counter to 12 (animation steps)
+
+;==============================================================================
+; LAB_ram_ed91 - Door opening animation loop
+;==============================================================================
+; Performs a 12-step progressive door opening animation by copying 8-byte chunks
+; of graphics data to the screen while playing synchronized rising pitch sound.\n; Uses complex pointer arithmetic to step through source and destination buffers,\n; advancing row-by-row down the door graphic.\n;\n; Pointer Navigation:\n; - Copy 8 bytes forward (LDIR)\n; - Move source back 16 bytes (to next animation frame offset)\n; - Move destination back 48 bytes (to adjust for row stride)\n; - Repeat for 12 rows\n;\n; Input:\n;   A  = Loop counter (12)\n;   HL = Source graphics pointer (BYTE_ram_3a58)\n;   DE = Destination screen pointer (DAT_ram_3728)\n;   AF' = Door mask (preserved through loop)\n;   Sound parameters initialized by SETUP_OPEN_DOOR_SOUND\n;\n; Output:\n;   Door opening graphics displayed progressively\n;   Rising pitch sound played for each row\n;   Jumps to WAIT_FOR_INPUT when complete\n;\n; Registers:\n; --- Start ---\n;   A  = 12 (loop counter)\n;   HL = Graphics source\n;   DE = Screen destination\n;   AF' = Door mask\n; --- In Process ---\n;   A  = Loop counter (alternates to AF')\n;   BC = $08 (LDIR count), $10 (HL offset), $30 (DE offset)\n;   DE,HL = Swap during pointer adjustments\n; ---  End  ---\n;   A  = 0 (loop complete)\n;   F  = Z flag set from DEC A\n;   Jumps to WAIT_FOR_INPUT (does not return)\n;\n; Memory Modified: Screen graphics at destination\n; Calls: LO_HI_PITCH_SOUND, WAIT_FOR_INPUT (jump when complete)\n;==============================================================================
 LAB_ram_ed91:
     EX          AF,AF'                              ; Save loop counter to alternate A
     EXX                                             ; Switch to main register set
@@ -4342,6 +5090,46 @@ LAB_ram_ed91:
     DEC         A                                   ; Decrement loop counter
     JP          Z,WAIT_FOR_INPUT                    ; If counter = 0, done
     JP          LAB_ram_ed91                        ; Loop for next animation step
+
+;==============================================================================
+; SUB_ram_edaf - Copy 12 rows of 8 bytes with row stride
+;==============================================================================
+; Copies a 12-row by 8-column block of graphics data from source to destination.
+; Advances source pointer by full screen row width (40 bytes) between each
+; 8-byte row copy. Used for door graphics operations during open/close animations.
+;
+; Row Layout:
+; - Each logical row is 8 bytes wide
+; - Screen rows are 40 bytes wide ($28 hex)
+; - After copying 8 bytes, add $20 (32) to skip remaining 32 bytes to next row
+;
+; Input:
+;   HL = Source graphics address (screen memory)
+;   DE = Destination buffer address
+;
+; Output:
+;   12 rows of 8 bytes copied (96 bytes total)
+;   HL advanced through source
+;   DE advanced 96 bytes
+;   Door drawn at F0 position
+;
+; Registers:
+; --- Start ---
+;   HL = Source address
+;   DE = Destination address
+; --- In Process ---
+;   A  = Row counter (12 → 0)
+;   BC = Copy count (8 bytes) then row offset ($20)
+;   HL = Source pointer (advances with row stride)
+;   DE = Destination pointer (sequential)
+; ---  End  ---
+;   A  = 0 (exhausted row counter)
+;   AF'= Door mask from caller
+;   Jumps to DRAW_DOOR_F0 (does not return)
+;
+; Memory Modified: 96 bytes at destination buffer
+; Calls: DRAW_DOOR_F0 (jump)
+;==============================================================================
 SUB_ram_edaf:
     LD          A,0xc                               ; Set loop counter to 12 rows
 LAB_ram_edb1:
@@ -4353,11 +5141,105 @@ LAB_ram_edb1:
     JP          NZ,LAB_ram_edb1                     ; Loop until all 12 rows copied
     EX          AF,AF'                              ; Restore mask from alternate A
     JP          DRAW_DOOR_F0                        ; Draw door and return
+
+;==============================================================================
+; CLOSE_N_DOOR - Mark north door as open on map and start close animation
+;==============================================================================
+; Clears the north door closed bit (bit 7) in the map data, marking the door
+; as open, then jumps to the door closing animation sequence.
+;
+; Input:
+;   HL = Map position containing door
+;   AF' = Door mask
+;
+; Output:
+;   Map bit 7 cleared (north door open)
+;   Jumps to START_DOOR_CLOSE_ANIM
+;
+; Registers:
+; --- Start ---
+;   HL = Map position
+; ---  End  ---
+;   Jumps to START_DOOR_CLOSE_ANIM (does not return)
+;
+; Memory Modified: Map door bit 7
+; Calls: START_DOOR_CLOSE_ANIM (jump)
+;==============================================================================
 CLOSE_N_DOOR:
     RES         0x7,(HL)                            ; Clear bit 7 (mark north door as open on map)
     JP          START_DOOR_CLOSE_ANIM               ; Jump to door closing animation
+
+;==============================================================================
+; CLOSE_W_DOOR - Mark west door as open on map and start close animation
+;==============================================================================
+; Clears the west door closed bit (bit 2) in the map data, marking the door
+; as open, then falls through to the door closing animation sequence.
+;
+; Input:
+;   HL = Map position containing door
+;   AF' = Door mask
+;
+; Output:
+;   Map bit 2 cleared (west door open)
+;   Falls through to START_DOOR_CLOSE_ANIM
+;
+; Registers:
+; --- Start ---
+;   HL = Map position
+; ---  End  ---
+;   Falls through to START_DOOR_CLOSE_ANIM
+;
+; Memory Modified: Map door bit 2
+; Calls: Falls through to START_DOOR_CLOSE_ANIM
+;==============================================================================
 CLOSE_W_DOOR:
     RES         0x2,(HL)                            ; Clear bit 2 (mark west door as open on map)
+
+;==============================================================================
+; START_DOOR_CLOSE_ANIM - Initialize and animate door closing sequence
+;==============================================================================
+; Marks F0 position as blocked, saves player position, and performs animated
+; door closing sequence with synchronized color changes and descending pitch sound.
+; Uses 12-row animation painting door color mask progressively across screen.
+;
+; Flow:
+; 1. Clear WALL_F0_STATE bit 2 (F0 blocked)
+; 2. Save current player position to PLAYER_PREV_MAP_LOC
+; 3. Setup closing sound parameters
+; 4. Switch to alternate registers and prepare color mask
+; 5. Execute 12-row animation loop:
+;    - Fill 8 columns of current row with door color
+;    - Play descending pitch sound
+;    - Advance to next row
+; 6. Clear monster stats and return to input loop
+;
+; Input:
+;   AF' = Door mask from caller
+;   WALL_F0_STATE = Current F0 wall state
+;   PLAYER_MAP_POS = Current player position
+;
+; Output:
+;   WALL_F0_STATE bit 2 cleared (blocked)
+;   PLAYER_PREV_MAP_LOC updated
+;   Door closing animation displayed
+;   Sound effects played
+;   Monster stats cleared
+;
+; Registers:
+; --- Start ---
+;   AF' = Door mask
+; --- In Process ---
+;   A  = Player position, door mask, color fills
+;   BC = $C08 (B=12 rows, C=8 cols), then row offset
+;   DE = $20 (row stride)
+;   HL = WALL_F0_STATE, PLAYER_MAP_POS, COLRAM_F0_DOOR_IDX
+;   EXX = Alternates between color/sound contexts
+; ---  End  ---
+;   Jumps to WAIT_FOR_INPUT (does not return)
+;
+; Memory Modified: WALL_F0_STATE, PLAYER_PREV_MAP_LOC, COLRAM_F0_DOOR_IDX area, monster stats
+; Calls: SETUP_CLOSE_DOOR_SOUND, HI_LO_PITCH_SOUND, CLEAR_MONSTER_STATS, WAIT_FOR_INPUT (jump)
+;==============================================================================
 START_DOOR_CLOSE_ANIM:
     LD          HL,WALL_F0_STATE                    ; Point to F0 wall state
     RES         0x2,(HL)                            ; Clear bit 2 (mark F0 as blocked)
@@ -4370,6 +5252,11 @@ START_DOOR_CLOSE_ANIM:
     LD          HL,COLRAM_F0_DOOR_IDX               ; Point to F0 door color RAM
     LD          DE,$20                              ; Set row offset ($20 = 32)
     LD          BC,$c08                             ; B = 12 rows, C = 8 columns
+
+;==============================================================================
+; DOOR_CLOSE_ANIM_LOOP - Progressive door closing color fill animation
+;==============================================================================
+; Fills the door area with color mask row-by-row (12 rows × 8 columns) while\n; playing synchronized descending pitch sound. Alternates between register sets\n; to maintain both graphics state and sound parameters simultaneously.\n;\n; Animation Pattern:\n; - Fill 8 columns of current row with door color mask\n; - Play descending pitch sound\n; - Advance to next row (+$20 bytes)\n; - Repeat for 12 rows\n;\n; Input:\n;   A  = Door color mask\n;   BC = $C08 (B=12 row counter, C=8 column counter)\n;   DE = $20 (row stride offset)\n;   HL = COLRAM_F0_DOOR_IDX (starting color RAM position)\n;   AF' = Color mask preserved in alternate set\n;\n; Output:\n;   Door area filled with color mask\n;   Descending pitch sound played for each row\n;   Monster stats cleared\n;   Jumps to WAIT_FOR_INPUT\n;\n; Registers:\n; --- Start ---\n;   A  = Color mask\n;   BC = $C08 (12 rows, 8 cols)\n;   DE = $20 (row offset)\n;   HL = Color RAM start\n; --- In Process ---\n;   L  = Incremented for each column\n;   C  = Decremented per column (reset to 8 per row)\n;   B  = Decremented per row (DJNZ)\n;   EXX/EX AF,AF' = Alternates between color and sound contexts\n; ---  End  ---\n;   B  = 0 (all rows complete)\n;   Jumps to WAIT_FOR_INPUT (does not return)\n;\n; Memory Modified: COLRAM_F0_DOOR_IDX area (12 rows × 8 columns), monster stats\n; Calls: HI_LO_PITCH_SOUND, CLEAR_MONSTER_STATS, WAIT_FOR_INPUT (jump)\n;==============================================================================
 DOOR_CLOSE_ANIM_LOOP:
     LD          (HL),A                              ; Write color mask to color RAM
     INC         L                                   ; Move to next column
@@ -4391,39 +5278,239 @@ DOOR_CLOSE_ANIM_LOOP:
 ;    LD          BC,$1600                           ; Load delay count ($1600 = 5632)
 ;    JP          SLEEP                              ; Jump to SLEEP routine
 
+;==============================================================================
+; DO_TURN_LEFT - Rotate player facing 90 degrees counterclockwise
+;==============================================================================
+; Turns the player left (counterclockwise) by one cardinal direction if not
+; in combat, then updates the viewport to reflect the new facing direction.
+;
+; Direction Rotation: North(1) → West(4) → South(3) → East(2) → North(1)
+;
+; Flow:
+; 1. Check if in combat (COMBAT_BUSY_FLAG)
+; 2. If in combat, abort with NO_ACTION_TAKEN
+; 3. Push UPDATE_VIEWPORT as return address
+; 4. Call ROTATE_FACING_LEFT to decrement facing
+; 5. Return to UPDATE_VIEWPORT to refresh display
+;
+; Input:
+;   COMBAT_BUSY_FLAG = Combat state (0=free, non-zero=busy)
+;   DIR_FACING_SHORT = Current direction (1=N, 2=E, 3=S, 4=W)
+;
+; Output:
+;   DIR_FACING_SHORT decremented with wraparound
+;   Viewport updated to show new facing
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = Combat flag, then facing direction
+;   HL = UPDATE_VIEWPORT address
+; ---  End  ---
+;   Returns to UPDATE_VIEWPORT via stack
+;
+; Memory Modified: DIR_FACING_SHORT
+; Calls: NO_ACTION_TAKEN (if in combat), ROTATE_FACING_LEFT, UPDATE_VIEWPORT (via stack return)
+;==============================================================================
 DO_TURN_LEFT:
     LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
     AND         A                                   ; Test if zero (not in combat)
     JP          NZ,NO_ACTION_TAKEN                  ; If in combat, no action
     LD          HL,UPDATE_VIEWPORT                  ; Load return address
     PUSH        HL                                  ; Push to stack (will return to update viewport)
-ROTATE_FACING_LEFT:                                 ; Decrement DIR_FACING_SHORT (1-4 wraps to 4)
-                                                    ; Called by DO_TURN_LEFT and DO_GLANCE_LEFT
-                                                    ; Effects: Updates DIR_FACING_SHORT (4->3->2->1->4)
+
+;==============================================================================
+; ROTATE_FACING_LEFT - Decrement facing direction with wraparound
+;==============================================================================
+; Decrements DIR_FACING_SHORT (1-4) with wraparound from 1→4. Used by both
+; DO_TURN_LEFT (permanent turn) and DO_GLANCE_LEFT (temporary peek).
+;
+; Direction Values: 1=North, 2=East, 3=South, 4=West
+; Rotation: 4→3→2→1→4 (counterclockwise)
+;
+; Input:
+;   DIR_FACING_SHORT = Current direction (1-4)
+;
+; Output:
+;   DIR_FACING_SHORT = New direction (decremented with wrap)
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = Facing direction value
+; ---  End  ---
+;   A  = New facing direction
+;   F  = Z flag clear (from JP NZ or after load)
+;
+; Memory Modified: DIR_FACING_SHORT
+; Calls: None
+;==============================================================================
+ROTATE_FACING_LEFT:
     LD          A,(DIR_FACING_SHORT)                ; Load current facing direction (1-4)
     DEC         A                                   ; Decrement direction
     JP          NZ,STORE_LEFT_FACING                ; If not zero, store new direction
     LD          A,0x4                               ; Wrap: 1 decremented becomes 4 (west)
+
+;==============================================================================
+; STORE_LEFT_FACING - Store new leftward facing direction
+;==============================================================================
+; Stores the computed leftward facing direction to DIR_FACING_SHORT.
+;
+; Input:
+;   A = New facing direction (1-4)
+;
+; Output:
+;   DIR_FACING_SHORT updated
+;
+; Registers:
+; --- Start ---
+;   A  = New facing direction
+; ---  End  ---
+;   A  = New facing direction (preserved)
+;
+; Memory Modified: DIR_FACING_SHORT
+; Calls: None
+;==============================================================================
 STORE_LEFT_FACING:
     LD          (DIR_FACING_SHORT),A                ; Store new facing direction
     RET                                             ; Return (to UPDATE_VIEWPORT if from turn)
+
+;==============================================================================
+; DO_TURN_RIGHT - Rotate player facing 90 degrees clockwise
+;==============================================================================
+; Turns the player right (clockwise) by one cardinal direction if not in
+; combat, then updates the viewport to reflect the new facing direction.
+;
+; Direction Rotation: North(1) → East(2) → South(3) → West(4) → North(1)
+;
+; Flow:
+; 1. Check if in combat (COMBAT_BUSY_FLAG)
+; 2. If in combat, abort with NO_ACTION_TAKEN
+; 3. Push UPDATE_VIEWPORT as return address
+; 4. Call ROTATE_FACING_RIGHT to increment facing
+; 5. Return to UPDATE_VIEWPORT to refresh display
+;
+; Input:
+;   COMBAT_BUSY_FLAG = Combat state (0=free, non-zero=busy)
+;   DIR_FACING_SHORT = Current direction (1=N, 2=E, 3=S, 4=W)
+;
+; Output:
+;   DIR_FACING_SHORT incremented with wraparound
+;   Viewport updated to show new facing
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = Combat flag, then facing direction
+;   HL = UPDATE_VIEWPORT address
+; ---  End  ---
+;   Returns to UPDATE_VIEWPORT via stack
+;
+; Memory Modified: DIR_FACING_SHORT
+; Calls: NO_ACTION_TAKEN (if in combat), ROTATE_FACING_RIGHT, UPDATE_VIEWPORT (via stack return)
+;==============================================================================
 DO_TURN_RIGHT:
     LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
     AND         A                                   ; Test if zero (not in combat)
     JP          NZ,NO_ACTION_TAKEN                  ; If in combat, no action
     LD          HL,UPDATE_VIEWPORT                  ; Load return address
     PUSH        HL                                  ; Push to stack (will return to update viewport)
-ROTATE_FACING_RIGHT:                                ; Increment DIR_FACING_SHORT (4 wraps to 1)
-                                                    ; Called by DO_TURN_RIGHT and DO_GLANCE_RIGHT
-                                                    ; Effects: Updates DIR_FACING_SHORT (1->2->3->4->1)
+
+;==============================================================================
+; ROTATE_FACING_RIGHT - Increment facing direction with wraparound
+;==============================================================================
+; Increments DIR_FACING_SHORT (1-4) with wraparound from 4→1. Used by both
+; DO_TURN_RIGHT (permanent turn) and DO_GLANCE_RIGHT (temporary peek).
+;
+; Direction Values: 1=North, 2=East, 3=South, 4=West
+; Rotation: 1→2→3→4→1 (clockwise)
+;
+; Input:
+;   DIR_FACING_SHORT = Current direction (1-4)
+;
+; Output:
+;   DIR_FACING_SHORT = New direction (incremented with wrap)
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = Facing direction value
+; ---  End  ---
+;   A  = New facing direction
+;   F  = Z flag state from comparison
+;
+; Memory Modified: DIR_FACING_SHORT
+; Calls: None
+;==============================================================================
+ROTATE_FACING_RIGHT:
     LD          A,(DIR_FACING_SHORT)                ; Load current facing direction (1-4)
     INC         A                                   ; Increment direction
     CP          0x5                                 ; Compare to 5 (beyond max)
     JP          NZ,STORE_RIGHT_FACING               ; If not 5, store new direction
     LD          A,0x1                               ; Wrap: 5 becomes 1 (north)
+
+;==============================================================================
+; STORE_RIGHT_FACING - Store new rightward facing direction
+;==============================================================================
+; Stores the computed rightward facing direction to DIR_FACING_SHORT.
+;
+; Input:
+;   A = New facing direction (1-4)
+;
+; Output:
+;   DIR_FACING_SHORT updated
+;
+; Registers:
+; --- Start ---
+;   A  = New facing direction
+; ---  End  ---
+;   A  = New facing direction (preserved)
+;
+; Memory Modified: DIR_FACING_SHORT
+; Calls: None
+;==============================================================================
 STORE_RIGHT_FACING:
     LD          (DIR_FACING_SHORT),A                ; Store new facing direction
     RET                                             ; Return (to UPDATE_VIEWPORT if from turn)
+
+;==============================================================================
+; DO_GLANCE_RIGHT - Temporarily peek 90 degrees right then return
+;==============================================================================
+; Provides a quick peek to the right by rotating facing clockwise, rendering
+; the view, pausing briefly, then rotating back to original facing. Blocked
+; during combat.
+;
+; Flow:
+; 1. Check if in combat (abort if yes)
+; 2. Rotate facing right (clockwise)
+; 3. Redraw UI elements
+; 4. Redraw viewport (right view)
+; 5. Brief delay
+; 6. Turn back left to restore original facing
+;
+; Input:
+;   COMBAT_BUSY_FLAG = Combat state
+;   DIR_FACING_SHORT = Current direction
+;
+; Output:
+;   DIR_FACING_SHORT restored to original value
+;   Brief view of right side displayed
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = Combat flag
+; ---  End  ---
+;   Jumps to DO_TURN_LEFT (does not return)
+;
+; Memory Modified: DIR_FACING_SHORT (temporarily changed, then restored)
+; Calls: NO_ACTION_TAKEN, ROTATE_FACING_RIGHT, REDRAW_START, REDRAW_VIEWPORT, SLEEP_ZERO, DO_TURN_LEFT (jump)
+;==============================================================================
 DO_GLANCE_RIGHT:
     LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
     AND         A                                   ; Test if zero (not in combat)
@@ -4433,6 +5520,41 @@ DO_GLANCE_RIGHT:
     CALL        REDRAW_VIEWPORT                     ; Render 3D maze view (right view)
     CALL        SLEEP_ZERO                          ; Brief delay
     JP          DO_TURN_LEFT                        ; Turn back left (return to original facing)
+
+;==============================================================================
+; DO_GLANCE_LEFT - Temporarily peek 90 degrees left then return
+;==============================================================================
+; Provides a quick peek to the left by rotating facing counterclockwise,
+; rendering the view, pausing briefly, then rotating back to original facing.
+; Blocked during combat.
+;
+; Flow:
+; 1. Check if in combat (abort if yes)
+; 2. Rotate facing left (counterclockwise)
+; 3. Redraw UI elements
+; 4. Redraw viewport (left view)
+; 5. Brief delay
+; 6. Turn back right to restore original facing
+;
+; Input:
+;   COMBAT_BUSY_FLAG = Combat state
+;   DIR_FACING_SHORT = Current direction
+;
+; Output:
+;   DIR_FACING_SHORT restored to original value
+;   Brief view of left side displayed
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = Combat flag
+; ---  End  ---
+;   Jumps to DO_TURN_RIGHT (does not return)
+;
+; Memory Modified: DIR_FACING_SHORT (temporarily changed, then restored)
+; Calls: NO_ACTION_TAKEN, ROTATE_FACING_LEFT, REDRAW_START, REDRAW_VIEWPORT, SLEEP_ZERO, DO_TURN_RIGHT (jump)
+;==============================================================================
 DO_GLANCE_LEFT:
     LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
     AND         A                                   ; Test if zero (not in combat)
@@ -4442,6 +5564,47 @@ DO_GLANCE_LEFT:
     CALL        REDRAW_VIEWPORT                     ; Render 3D maze view (left view)
     CALL        SLEEP_ZERO                          ; Brief delay
     JP          DO_TURN_RIGHT                       ; Turn back right (return to original facing)
+
+;==============================================================================
+; DO_USE_ATTACK - Parse and dispatch right-hand item usage
+;==============================================================================
+; Examines the right-hand item and routes to appropriate handler based on
+; item type. Extracts item type and level from the encoded item code using
+; bit shifting operations.
+;
+; Item Encoding: Item code = (Type << 2) | Level
+; - Bits 0-1: Level (0-3)
+; - Bits 2-7: Type (KEY=$16, PHYS=$19, SPRT=$1A, CHAOS=$1C, etc.)
+;
+; Flow:
+; 1. Load right-hand item code
+; 2. Extract level bits (0-1) into B register
+; 3. Extract type bits (2-7) into A register
+; 4. Compare type to known consumables:
+;    - KEY ($16) → DO_USE_KEY
+;    - PHYS POTION ($19) → DO_USE_PHYS_POTION
+;    - SPRT POTION ($1A) → DO_USE_SPRT_POTION
+;    - CHAOS POTION ($1C) → DO_USE_CHAOS_POTION
+; 5. If none match, check USE_SOMETHING_ELSE
+;
+; Input:
+;   RIGHT_HAND_ITEM = Item code (encoded as (type<<2)|level)
+;
+; Output:
+;   Jumps to appropriate item handler
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = Item code, then type after shifts
+;   B  = Level bits (0-3) extracted from item code
+; ---  End  ---
+;   Jumps to handler (does not return here)
+;
+; Memory Modified: None directly (handlers modify state)
+; Calls: DO_USE_KEY, DO_USE_PHYS_POTION, DO_USE_SPRT_POTION, DO_USE_CHAOS_POTION, or USE_SOMETHING_ELSE (jumps)
+;==============================================================================
 DO_USE_ATTACK:
     LD          A,(RIGHT_HAND_ITEM)                 ; Load right-hand item code
     LD          B,0x0                               ; Clear B (will hold level bits)
@@ -4466,6 +5629,35 @@ DO_USE_ATTACK:
     CP          $1c                                 ; Compare to CHAOS POTION
                                                     ; ($70-$73 after 2 SRL = $1C)
     JP          NZ,USE_SOMETHING_ELSE               ; If not chaos potion, check other items
+
+;==============================================================================
+; DO_USE_CHAOS_POTION - Process chaos (large) potion with random effects
+;==============================================================================
+; Handles large chaos potion consumption. Routes to color-specific effects:
+; - Red (level 0): Full heal (phys + sprt)
+; - Yellow (level 1): +10 phys health
+; - Purple (level 2): +6 sprt health
+; - White (level 3): Random effect (4 possibilities)
+;
+; Input:
+;   B = Potion level (0=red, 1=yellow, 2=purple, 3=white)
+;
+; Output:
+;   Health modified based on level
+;   Potion consumed (right hand cleared)
+;   Stats display updated
+;
+; Registers:
+; --- Start ---
+;   B  = Potion level
+; --- In Process ---
+;   A,BC,DE,HL = Used by health calculation routines
+; ---  End  ---
+;   Varies by called routine
+;
+; Memory Modified: Health values, stats display, right-hand item
+; Calls: PLAY_USE_PHYS_POTION_SOUND, TOTAL_HEAL, CHECK_YELLOW_L_POTION (fall-through)
+;==============================================================================
 DO_USE_CHAOS_POTION:
     CALL        PLAY_USE_PHYS_POTION_SOUND          ; Play potion use sound effect
     INC         B                                   ; Increment B
@@ -4473,20 +5665,95 @@ DO_USE_CHAOS_POTION:
     JP          NZ,CHECK_YELLOW_L_POTION            ; If not zero, handle other potion colors
                                                     ; If zero, large potion is red (full heal)
     CALL        TOTAL_HEAL                          ; Restore all health (phys + sprt)
+
+;==============================================================================
+; PROCESS_POTION_UPDATES - Finalize potion consumption and update display
+;==============================================================================
+; Common exit point for all potion handlers. Updates stats display and
+; determines whether to enter combat animation or return to input loop.
+;
+; Input:
+;   COMBAT_BUSY_FLAG = Combat state
+;   Health values updated by potion handler
+;
+; Output:
+;   Stats display refreshed
+;   Jumps to combat animation or input debounce
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = Combat flag
+; ---  End  ---
+;   Jumps to INIT_MELEE_ANIM or INPUT_DEBOUNCE (does not return)
+;
+; Memory Modified: Screen stats area
+; Calls: REDRAW_STATS, INIT_MELEE_ANIM or INPUT_DEBOUNCE (jumps)
+;==============================================================================
 PROCESS_POTION_UPDATES:
     CALL        REDRAW_STATS                        ; Update health display on screen
     LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
     AND         A                                   ; Test if zero (not in combat)
     JP          NZ,INIT_MELEE_ANIM                  ; If in combat, init animation
     JP          INPUT_DEBOUNCE                      ; Otherwise, return to input loop
+
+;==============================================================================
+; PLAY_USE_PHYS_POTION_SOUND - Play potion consumption sound effect
+;==============================================================================
+; Produces a triple sound effect for potion usage, then clears the right-hand
+; item slot. Uses alternate register set to preserve main state.
+;
+; Sound Pattern: SOUND_03 played three times in sequence
+;
+; Input:
+;   None
+;
+; Output:
+;   Sound effect played
+;   Right-hand item cleared ($FE)
+;   Poof animation drawn
+;
+; Registers:
+; --- Start ---
+;   Main registers preserved via EXX
+; --- In Process ---
+;   Alternate registers used for sound calls
+; ---  End  ---
+;   Main registers restored
+;
+; Memory Modified: RIGHT_HAND_ITEM, right-hand graphics area
+; Calls: EXX (SWAP_TO_ALT_REGS), SOUND_03 (3x), CLEAR_RIGHT_HAND
+;==============================================================================
 PLAY_USE_PHYS_POTION_SOUND:
     EXX                                             ; Switch to alternate register set
     CALL        SOUND_03                            ; Play sound effect (step 1)
     CALL        SOUND_03                            ; Play sound effect (step 2)
     CALL        SOUND_03                            ; Play sound effect (step 3)
     JP          CLEAR_RIGHT_HAND                    ; Clear right-hand item and return
-SWAP_TO_ALT_REGS:                                   ; Swap to alternate register set (EXX)
-                                                    ; Preserves main register state before clearing
+
+;==============================================================================
+; SWAP_TO_ALT_REGS - Switch to alternate register set
+;==============================================================================
+; Preserves main register state by swapping to alternate register set.
+; Falls through to CLEAR_RIGHT_HAND.
+;
+; Input:
+;   Main register set active
+;
+; Output:
+;   Alternate register set active
+;
+; Registers:
+; --- Start ---
+;   BC,DE,HL in main set
+; ---  End  ---
+;   BC',DE',HL' now active
+;
+; Memory Modified: None
+; Calls: Falls through to CLEAR_RIGHT_HAND
+;==============================================================================
+SWAP_TO_ALT_REGS:
     EXX                                             ; Switch to alternate register set
 CLEAR_RIGHT_HAND:                                   ; Clear right-hand item and draw empty sprite
                                                     ; Effects: Sets RIGHT_HAND_ITEM to $FE (empty)
@@ -4499,6 +5766,41 @@ CLEAR_RIGHT_HAND:                                   ; Clear right-hand item and 
     CALL        GFX_DRAW                            ; Draw poof graphics
     EXX                                             ; Switch back to main register set
     RET                                             ; Return to caller
+
+;==============================================================================
+; TOTAL_HEAL - Restore all health to maximum values
+;==============================================================================
+; Performs a complete health restoration by setting both physical and spiritual
+; health to their respective maximum values. Used by red chaos potions and
+; certain white chaos potion random effects.
+;
+; Flow:
+; 1. Load PLAYER_PHYS_HEALTH_MAX (2-byte BCD)
+; 2. Store to PLAYER_PHYS_HEALTH (full physical restore)
+; 3. Load PLAYER_SPRT_HEALTH_MAX (1-byte BCD)
+; 4. Store to PLAYER_SPRT_HEALTH (full spiritual restore)
+;
+; Input:
+;   PLAYER_PHYS_HEALTH_MAX = Maximum physical health (2 bytes BCD)
+;   PLAYER_SPRT_HEALTH_MAX = Maximum spiritual health (1 byte BCD)
+;
+; Output:
+;   PLAYER_PHYS_HEALTH = PLAYER_PHYS_HEALTH_MAX
+;   PLAYER_SPRT_HEALTH = PLAYER_SPRT_HEALTH_MAX
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = Max health value (phys)
+;   A  = Max health value (sprt)
+; ---  End  ---
+;   A  = Spiritual max value
+;   HL = Physical max value
+;
+; Memory Modified: PLAYER_PHYS_HEALTH, PLAYER_SPRT_HEALTH
+; Calls: None
+;==============================================================================
 TOTAL_HEAL:
     LD          HL,(PLAYER_PHYS_HEALTH_MAX)         ; Load max physical health (2 bytes)
     LD          (PLAYER_PHYS_HEALTH),HL             ; Store to current physical health (full heal)
@@ -4521,21 +5823,121 @@ TOTAL_HEAL:
 ;    LD          B,0x1                               ; 1 byte (BCD format)
 ;    JP          RECALC_AND_REDRAW_BCD               ; Recalculate and redraw spiritual health
 
+;==============================================================================
+; CHECK_YELLOW_L_POTION - Process yellow large potion (+10 phys health)
+;==============================================================================
+; Handles yellow chaos potion (level 1) which grants +10 physical health.
+; Falls through to PROCESS_LARGE_POTION with BC=$10 (10 BCD), E=0.
+;
+; Input:
+;   B = Potion level (decremented once from original, so 0 for yellow)
+;
+; Output:
+;   BC = $10 (10 physical health increase)
+;   E = 0 (no spiritual increase)
+;   Falls through to PROCESS_LARGE_POTION
+;
+; Registers:
+; --- Start ---
+;   B  = 0 after DEC (yellow level)
+; ---  End  ---
+;   BC = $10, E = 0
+;
+; Memory Modified: None directly (PROCESS_LARGE_POTION handles updates)
+; Calls: CHECK_PURPLE_L_POTION (if not yellow), PROCESS_LARGE_POTION (fall-through)
+;==============================================================================
 CHECK_YELLOW_L_POTION:
     DEC         B                                   ; Decrement level (B=0 for yellow large)
     JP          NZ,CHECK_PURPLE_L_POTION            ; If not zero, check purple
     LD          BC,$10                              ; BC = 10 physical health increase
     LD          E,0x0                               ; E = 0 spiritual health increase
+
+;==============================================================================
+; PROCESS_LARGE_POTION - Apply large potion health increases
+;==============================================================================
+; Common handler for large chaos potion health modifications. Adds BC to
+; physical health and E to spiritual health, updating maximums if new highs.
+;
+; Input:
+;   BC = Physical health increase (BCD)
+;   E  = Spiritual health increase (BCD)
+;
+; Output:
+;   Health values updated
+;   Maximums updated if increased
+;   Jumps to PROCESS_POTION_UPDATES
+;
+; Registers:
+; --- Start ---
+;   BC = Phys increase
+;   E  = Sprt increase
+; ---  End  ---
+;   Jumps to PROCESS_POTION_UPDATES (does not return)
+;
+; Memory Modified: PLAYER_PHYS_HEALTH, PLAYER_SPRT_HEALTH, possibly max values
+; Calls: CALC_CURR_PHYS_HEALTH, CALC_MAX_PHYS_HEALTH, PROCESS_POTION_UPDATES (jump)
+;==============================================================================
 PROCESS_LARGE_POTION:
     CALL        CALC_CURR_PHYS_HEALTH               ; Add BC to current physical health
     CALL        CALC_MAX_PHYS_HEALTH                ; Update max health if increased
     JP          PROCESS_POTION_UPDATES              ; Continue with updates
+
+;==============================================================================
+; CHECK_PURPLE_L_POTION - Process purple large potion (+6 sprt health)
+;==============================================================================
+; Handles purple chaos potion (level 2) which grants +6 spiritual health.
+; Jumps to PROCESS_LARGE_POTION with BC=0, E=$06.
+;
+; Input:
+;   B = Potion level (decremented twice from original, so 0 for purple)
+;
+; Output:
+;   BC = 0 (no physical increase)
+;   E = $06 (6 spiritual health increase)
+;   Jumps to PROCESS_LARGE_POTION
+;
+; Registers:
+; --- Start ---
+;   B  = 0 after second DEC (purple level)
+; ---  End  ---
+;   BC = 0, E = $06
+;
+; Memory Modified: None directly (PROCESS_LARGE_POTION handles updates)
+; Calls: CHECK_WHITE_L_POTION (if not purple), PROCESS_LARGE_POTION (jump)
+;==============================================================================
 CHECK_PURPLE_L_POTION:
     DEC         B                                   ; Decrement level (B=0 for purple large)
     JP          NZ,CHECK_WHITE_L_POTION             ; If not zero, check white
     LD          BC,0x0                              ; BC = 0 physical health increase
     LD          E,0x6                               ; E = 6 spiritual health increase
     JP          PROCESS_LARGE_POTION                ; Process the large potion
+
+;==============================================================================
+; CHECK_WHITE_L_POTION - Process white large potion (random effect)
+;==============================================================================
+; Handles white chaos potion (level 3) which has one of four random effects:
+; Case 0: +20 physical health
+; Case 1: +12 spiritual health
+; Case 2: Full heal + 10 phys + 6 sprt bonus
+; Case 3: Cursed (-30/-15 phys, -15/-7 sprt current/max)
+;
+; Input:
+;   None (uses MAKE_RANDOM_BYTE)
+;
+; Output:
+;   Random health modification applied
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = Random value (0-3 after mask)
+; ---  End  ---
+;   Jumps to PROCESS_LARGE_POTION or continues to case 3
+;
+; Memory Modified: Health values (varies by case)
+; Calls: MAKE_RANDOM_BYTE, PROCESS_LARGE_POTION (cases 0-2), TOTAL_HEAL (case 2), health reduction routines (case 3)
+;==============================================================================
 CHECK_WHITE_L_POTION:
     CALL        MAKE_RANDOM_BYTE                    ; Get semi-random number in A
     AND         0x3                                 ; Mask to 0-3 for 4 cases
@@ -4544,12 +5946,61 @@ CHECK_WHITE_L_POTION:
     LD          E,0x0                               ; Case 0: E = 0 spiritual increase
     LD          BC,$20                              ; BC = 20 physical increase (BCD)
     JP          PROCESS_LARGE_POTION                ; Process with these values
+
+;==============================================================================
+; LAB_ram_ef08 - White potion case 1: +12 spiritual health
+;==============================================================================
+; Handles white chaos potion random case 1 which grants +12 spiritual health
+; with no physical health increase.
+;
+; Input:
+;   A = Random case value (decremented once, so 0 for case 1)
+;
+; Output:
+;   BC = 0 (no physical increase)
+;   E = $12 (12 spiritual health increase)
+;   Jumps to PROCESS_LARGE_POTION
+;
+; Registers:
+; --- Start ---
+;   A  = 0 after DEC (case 1)
+; ---  End  ---
+;   BC = 0, E = $12
+;
+; Memory Modified: None directly (PROCESS_LARGE_POTION handles updates)
+; Calls: LAB_ram_ef12 (if not case 1), PROCESS_LARGE_POTION (jump)
+;==============================================================================
 LAB_ram_ef08:
     DEC         A                                   ; Test for case 1
     JP          NZ,LAB_ram_ef12                     ; If not case 1, check case 2
     LD          BC,0x0                              ; Case 1: BC = 0 physical increase
     LD          E,$12                               ; E = 12 spiritual increase (BCD)
     JP          PROCESS_LARGE_POTION                ; Process with these values
+
+;==============================================================================
+; LAB_ram_ef12 - White potion case 2: Full heal + bonus
+;==============================================================================
+; Handles white chaos potion random case 2 which performs a full heal then
+; grants additional +10 physical and +6 spiritual health bonus.
+;
+; Input:
+;   A = Random case value (decremented twice, so 0 for case 2)
+;
+; Output:
+;   Full health restoration
+;   BC = $10 (10 physical bonus)
+;   E = $06 (6 spiritual bonus)
+;   Jumps to PROCESS_LARGE_POTION
+;
+; Registers:
+; --- Start ---
+;   A  = 0 after second DEC (case 2)
+; ---  End  ---
+;   BC = $10, E = $06
+;
+; Memory Modified: PLAYER_PHYS_HEALTH, PLAYER_SPRT_HEALTH (via TOTAL_HEAL)
+; Calls: CHECK_CASE_3_WL_POTION (if not case 2), TOTAL_HEAL, PROCESS_LARGE_POTION (jump)
+;==============================================================================
 LAB_ram_ef12:
     DEC         A                                   ; Test for case 2
     JP          NZ,CHECK_CASE_3_WL_POTION           ; If not case 2, must be case 3
@@ -4557,6 +6008,37 @@ LAB_ram_ef12:
     LD          BC,$10                              ; BC = 10 additional physical (BCD)
     LD          E,0x6                               ; E = 6 additional spiritual (BCD)
     JP          PROCESS_LARGE_POTION                ; Process bonus increases
+
+;==============================================================================
+; CHECK_CASE_3_WL_POTION - White potion case 3: Cursed (health reduction)
+;==============================================================================
+; Handles white chaos potion random case 3 which is cursed. Reduces both
+; current health (-30 phys, -15 sprt) and maximum health (-15 phys, -7 sprt).
+;
+; Health Reductions:
+; Current: -30 physical (BCD), -15 spiritual (BCD)
+; Maximum: -15 physical (BCD), -7 spiritual (BCD)
+;
+; Input:
+;   None (case 3 is default fall-through)
+;
+; Output:
+;   Health reduced (may cause death)
+;   Max health reduced
+;   Jumps to PROCESS_POTION_UPDATES
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   BC = $30, then $15 (health decreases)
+;   E  = $15, then $07 (health decreases)
+; ---  End  ---
+;   Jumps to PROCESS_POTION_UPDATES
+;
+; Memory Modified: All health values (current and max)
+; Calls: REDUCE_HEALTH_BIG, REDUCE_HEALTH_SMALL, PROCESS_POTION_UPDATES (jump), possibly PLAYER_DIES
+;==============================================================================
 CHECK_CASE_3_WL_POTION:
     LD          BC,$30                              ; Case 3: BC = 30 physical decrease (BCD)
     LD          E,$15                               ; E = 15 spiritual decrease (BCD)
@@ -4565,6 +6047,49 @@ CHECK_CASE_3_WL_POTION:
     LD          E,0x7                               ; E = 7 spiritual max decrease (BCD)
     CALL        REDUCE_HEALTH_SMALL                 ; Reduce max health
     JP          PROCESS_POTION_UPDATES              ; Continue with updates
+
+;==============================================================================
+; CALC_CURR_PHYS_HEALTH - Add BCD value to current physical and spiritual health
+;==============================================================================
+; Performs BCD addition to increase both physical and spiritual health with
+; overflow capping. Physical health capped at 199 BCD, spiritual at 99 BCD.
+;
+; BCD Format:
+; Physical: 2 bytes (HL) = 0000-0199 (max)
+; Spiritual: 1 byte (A) = 00-99 (max)
+;
+; Flow:
+; 1. Add BC to physical health (2-byte BCD with DAA)
+; 2. Cap physical at 199 if overflow
+; 3. Add E to spiritual health (1-byte BCD with DAA)
+; 4. Cap spiritual at 99 if overflow
+; 5. Store updated values
+;
+; Input:
+;   BC = Physical health increase (BCD, 2 bytes)
+;   E  = Spiritual health increase (BCD, 1 byte)
+;   PLAYER_PHYS_HEALTH = Current physical health
+;   PLAYER_SPRT_HEALTH = Current spiritual health
+;
+; Output:
+;   PLAYER_PHYS_HEALTH = Updated (capped at 199 BCD)
+;   PLAYER_SPRT_HEALTH = Updated (capped at 99 BCD)
+;
+; Registers:
+; --- Start ---
+;   BC = Phys increase
+;   E  = Sprt increase
+; --- In Process ---
+;   HL = Physical health value
+;   A  = Low/high bytes during calc, then spiritual health
+; ---  End  ---
+;   HL = New physical health
+;   A  = New spiritual health
+;   F  = Carry clear if no sprt overflow
+;
+; Memory Modified: PLAYER_PHYS_HEALTH, PLAYER_SPRT_HEALTH
+; Calls: UPDATE_HEALTH_VALUES (fall-through)
+;==============================================================================
 CALC_CURR_PHYS_HEALTH:
     LD          HL,(PLAYER_PHYS_HEALTH)             ; Load current physical health (BCD)
     LD          A,L                                 ; Get low byte (1000s & 100s)
@@ -4579,6 +6104,35 @@ CALC_CURR_PHYS_HEALTH:
     JP          NZ,UPDATE_HEALTH_VALUES             ; If < 200, continue
     LD          H,0x1                               ; Cap at 199 (high byte)
     LD          L,$99                               ; Cap at 199 (low byte = 99 BCD)
+
+;==============================================================================
+; UPDATE_HEALTH_VALUES - Store updated health values with spiritual capping
+;==============================================================================
+; Stores the calculated physical health to memory and adds spiritual health
+; increase with overflow capping at 99 BCD.
+;
+; Input:
+;   HL = New physical health value (already capped at 199)
+;   E  = Spiritual health increase (BCD)
+;   PLAYER_SPRT_HEALTH = Current spiritual health
+;
+; Output:
+;   PLAYER_PHYS_HEALTH = HL stored
+;   PLAYER_SPRT_HEALTH = Updated with E, capped at 99
+;
+; Registers:
+; --- Start ---
+;   HL = New phys health
+;   E  = Sprt increase
+; --- In Process ---
+;   A  = Spiritual health calculation
+; ---  End  ---
+;   A  = New spiritual health (possibly capped)
+;   F  = Carry if overflow occurred
+;
+; Memory Modified: PLAYER_PHYS_HEALTH, PLAYER_SPRT_HEALTH
+; Calls: None
+;==============================================================================
 UPDATE_HEALTH_VALUES:
     LD          (PLAYER_PHYS_HEALTH),HL             ; Store updated physical health
     LD          A,(PLAYER_SPRT_HEALTH)              ; Load current spiritual health (BCD)
@@ -4589,6 +6143,40 @@ UPDATE_HEALTH_VALUES:
     LD          A,$99                               ; Cap spiritual at 99 (BCD)
     LD          (PLAYER_SPRT_HEALTH),A              ; Store capped value
     RET                                             ; Return to caller
+
+;==============================================================================
+; CALC_MAX_PHYS_HEALTH - Update max physical health if current exceeds it
+;==============================================================================
+; Compares current physical health to maximum. If current is higher, updates
+; the maximum to match current (player has gained permanent health increase).
+;
+; Comparison Logic:
+; - Compare high bytes first
+; - If equal, compare low bytes
+; - Update max if current >= max
+;
+; Input:
+;   PLAYER_PHYS_HEALTH = Current physical health (2 bytes BCD)
+;   PLAYER_PHYS_HEALTH_MAX = Maximum physical health (2 bytes BCD)
+;
+; Output:
+;   PLAYER_PHYS_HEALTH_MAX = Updated if current was higher
+;   Falls through to CALC_MAX_SPRT_HEALTH
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = Current physical health
+;   BC = Max physical health
+;   A  = Comparison bytes
+; ---  End  ---
+;   HL = Current health (may be stored to max)
+;   Falls through to CALC_MAX_SPRT_HEALTH
+;
+; Memory Modified: PLAYER_PHYS_HEALTH_MAX (if current exceeds it)
+; Calls: CALC_MAX_SPRT_HEALTH (fall-through)
+;==============================================================================
 CALC_MAX_PHYS_HEALTH:
     LD          HL,(PLAYER_PHYS_HEALTH)             ; Load current physical health
     LD          BC,(PLAYER_PHYS_HEALTH_MAX)         ; Load max physical health
@@ -4599,6 +6187,33 @@ CALC_MAX_PHYS_HEALTH:
     CP          C                                   ; Current vs max low byte
     JP          C,CALC_MAX_SPRT_HEALTH              ; If current < max, skip update
     LD          (PLAYER_PHYS_HEALTH_MAX),HL         ; Update max to current (new high)
+
+;==============================================================================
+; CALC_MAX_SPRT_HEALTH - Update max spiritual health if current exceeds it
+;==============================================================================
+; Compares current spiritual health to maximum. If current is higher, updates
+; the maximum to match current (player has gained permanent health increase).
+;
+; Input:
+;   PLAYER_SPRT_HEALTH = Current spiritual health (1 byte BCD)
+;   PLAYER_SPRT_HEALTH_MAX = Maximum spiritual health (1 byte BCD)
+;
+; Output:
+;   PLAYER_SPRT_HEALTH_MAX = Updated if current was higher
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = Pointer to max spiritual health
+;   A  = Current spiritual health
+; ---  End  ---
+;   A  = Current spiritual health
+;   F  = Carry if current < max
+;
+; Memory Modified: PLAYER_SPRT_HEALTH_MAX (if current exceeds it)
+; Calls: None
+;==============================================================================
 CALC_MAX_SPRT_HEALTH:
     LD          HL,PLAYER_SPRT_HEALTH_MAX           ; Point to max spiritual health
     LD          A,(PLAYER_SPRT_HEALTH)              ; Load current spiritual health
@@ -4606,6 +6221,40 @@ CALC_MAX_SPRT_HEALTH:
     RET         C                                   ; Return if current < max
     LD          (HL),A                              ; Update max to current (new high)
     RET                                             ; Return to caller
+
+;==============================================================================
+; REDUCE_HEALTH_BIG - Subtract BCD values from current health (may cause death)
+;==============================================================================
+; Performs BCD subtraction to reduce both physical and spiritual health.
+; If either value goes negative (carry set), triggers PLAYER_DIES sequence.
+;
+; Used by cursed white chaos potion (case 3) to reduce current health.
+;
+; Input:
+;   BC = Physical health decrease (BCD, 2 bytes)
+;   E  = Spiritual health decrease (BCD, 1 byte)
+;   PLAYER_PHYS_HEALTH = Current physical health
+;   PLAYER_SPRT_HEALTH = Current spiritual health
+;
+; Output:
+;   PLAYER_PHYS_HEALTH = Reduced by BC (or death)
+;   PLAYER_SPRT_HEALTH = Reduced by E (or death)
+;
+; Registers:
+; --- Start ---
+;   BC = Phys decrease
+;   E  = Sprt decrease
+; --- In Process ---
+;   HL = Physical health value
+;   A  = Low/high bytes during calc, then spiritual health
+; ---  End  ---
+;   HL = New physical health (if survived)
+;   A  = New spiritual health (if survived)
+;   Jumps to PLAYER_DIES if health < 0
+;
+; Memory Modified: PLAYER_PHYS_HEALTH, PLAYER_SPRT_HEALTH (or triggers death)
+; Calls: PLAYER_DIES (jump if health goes negative)
+;==============================================================================
 REDUCE_HEALTH_BIG:
     LD          HL,(PLAYER_PHYS_HEALTH)             ; Load current physical health (BCD)
     LD          A,L                                 ; Get low byte
@@ -4624,6 +6273,40 @@ REDUCE_HEALTH_BIG:
     JP          C,PLAYER_DIES                       ; If carry (negative), player dies
     LD          (PLAYER_SPRT_HEALTH),A              ; Store reduced spiritual health
     RET                                             ; Return to caller
+
+;==============================================================================
+; REDUCE_HEALTH_SMALL - Subtract BCD values from max health (may cause death)
+;==============================================================================
+; Performs BCD subtraction to reduce maximum physical and spiritual health.
+; If either max value goes negative (carry set), triggers PLAYER_DIES sequence.
+;
+; Used by cursed white chaos potion (case 3) to reduce maximum health.
+;
+; Input:
+;   BC = Physical max health decrease (BCD, 2 bytes)
+;   E  = Spiritual max health decrease (BCD, 1 byte)
+;   PLAYER_PHYS_HEALTH_MAX = Maximum physical health
+;   PLAYER_SPRT_HEALTH_MAX = Maximum spiritual health
+;
+; Output:
+;   PLAYER_PHYS_HEALTH_MAX = Reduced by BC (or death)
+;   PLAYER_SPRT_HEALTH_MAX = Reduced by E (or death)
+;
+; Registers:
+; --- Start ---
+;   BC = Phys max decrease
+;   E  = Sprt max decrease
+; --- In Process ---
+;   HL = Max physical health value
+;   A  = Low/high bytes during calc, then max spiritual health
+; ---  End  ---
+;   HL = New max physical health (if survived)
+;   A  = New max spiritual health (if survived)
+;   Jumps to PLAYER_DIES if max health < 0
+;
+; Memory Modified: PLAYER_PHYS_HEALTH_MAX, PLAYER_SPRT_HEALTH_MAX (or triggers death)
+; Calls: PLAYER_DIES (jump if max health goes negative)
+;==============================================================================
 REDUCE_HEALTH_SMALL:
     LD          HL,(PLAYER_PHYS_HEALTH_MAX)         ; Load max physical health (BCD)
     LD          A,L                                 ; Get low byte
@@ -4642,6 +6325,46 @@ REDUCE_HEALTH_SMALL:
     JP          C,PLAYER_DIES                       ; If carry (negative), player dies
     LD          (PLAYER_SPRT_HEALTH_MAX),A          ; Store reduced max spiritual health
     RET                                             ; Return to caller
+
+;==============================================================================
+; PLAYER_DIES - Handle player death sequence
+;==============================================================================
+; Triggered when player health drops to zero or below. Displays death screen,
+; clears health values, and transitions to screen saver mode.
+;
+; Death Sequence:
+; 1. Black out viewport (24×24)
+; 2. Display "YOU DIED" text
+; 3. Zero all health values
+; 4. Update stats display
+; 5. Call cleanup subroutine
+; 6. Brief delay
+; 7. Enter screen saver mode
+;
+; Input:
+;   INPUT_HOLDER = Input state (copied to COMBAT_BUSY_FLAG)
+;
+; Output:
+;   Viewport blacked out
+;   "YOU DIED" text displayed
+;   All health zeroed
+;   Jumps to SCREEN_SAVER_FULL_SCREEN
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = Screen/color RAM addresses, health values
+;   BC = Rectangle size
+;   DE = Text data pointer
+;   A  = Color values, input state, health zeros
+;   B  = Graphics index
+; ---  End  ---
+;   Jumps to SCREEN_SAVER_FULL_SCREEN (does not return)
+;
+; Memory Modified: Viewport colors, CHRRAM_YOU_DIED_IDX, COMBAT_BUSY_FLAG, all health values, INPUT_HOLDER, RAM_AD
+; Calls: FILL_CHRCOL_RECT, GFX_DRAW, REDRAW_STATS, SUB_ram_cdd3, SLEEP_ZERO, SCREEN_SAVER_FULL_SCREEN (jump)
+;==============================================================================
 PLAYER_DIES:
     LD          HL,COLRAM_VIEWPORT_IDX              ; Point to viewport color RAM
     LD          BC,RECT(24,24)                      ; 24x24 rectangle size
@@ -4669,6 +6392,40 @@ PLAYER_DIES:
     CALL        SLEEP_ZERO                          ; Wait/delay function
     JP          SCREEN_SAVER_FULL_SCREEN            ; Jump to screen saver
 
+;==============================================================================
+; DO_USE_PHYS_POTION - Consume small physical potion (visual color effect)
+;==============================================================================
+; Handles small physical potion consumption by playing sound and changing
+; health stat display colors to indicate potion level. Does not modify health
+; values, only visual presentation.
+;
+; Color Mapping:
+; Level 0 (red) → Color 1
+; Level 1 (yellow) → Color 2
+; Level 2 (purple) → Color 3
+; Level 3 (white) → Color 4
+;
+; Input:
+;   B = Potion level (0-3)
+;
+; Output:
+;   Potion sound played
+;   Physical health display colors set to potion level color
+;   Spiritual health display colors set to dark green
+;   Jumps to PROCESS_POTION_UPDATES
+;
+; Registers:
+; --- Start ---
+;   B  = Potion level (0-3)
+; --- In Process ---
+;   H,L = Color values
+;   B  = Level+1 (color value 1-4)
+; ---  End  ---
+;   Jumps to PROCESS_POTION_UPDATES
+;
+; Memory Modified: COLRAM_PHYS_STATS_1000, COLRAM_PHYS_STATS_10, COLRAM_SPRT_STATS_10, COLRAM_SPRT_STATS_1
+; Calls: PLAY_USE_PHYS_POTION_SOUND, PROCESS_POTION_UPDATES (jump)
+;==============================================================================
 DO_USE_PHYS_POTION:
     CALL        PLAY_USE_PHYS_POTION_SOUND          ; Play potion usage sound (3x SOUND_03)
     INC         B                                   ; Convert level (0-3) to color value (1-4)
@@ -4681,6 +6438,41 @@ DO_USE_PHYS_POTION:
     LD          (COLRAM_SPRT_STATS_10),HL           ; Set sprt health color (10s) to dark green
     LD          (COLRAM_SPRT_STATS_1),HL            ; Set sprt health color (1s) to dark green
     JP          PROCESS_POTION_UPDATES              ; Continue with potion processing
+
+;==============================================================================
+; DO_USE_SPRT_POTION - Consume small spiritual potion (visual color effect)
+;==============================================================================
+; Handles small spiritual potion consumption by playing sound and changing
+; health stat display colors to indicate potion level. Does not modify health
+; values, only visual presentation.
+;
+; Color Mapping:
+; Level 0 (red) → Color 1
+; Level 1 (yellow) → Color 2
+; Level 2 (purple) → Color 3
+; Level 3 (white) → Color 4
+;
+; Input:
+;   B = Potion level (0-3)
+;
+; Output:
+;   Potion sound played
+;   Spiritual health display colors set to potion level color
+;   Physical health display colors set to dark green
+;   Jumps to PROCESS_POTION_UPDATES
+;
+; Registers:
+; --- Start ---
+;   B  = Potion level (0-3)
+; --- In Process ---
+;   H,L = Color values
+;   B  = Level+1 (color value 1-4)
+; ---  End  ---
+;   Jumps to PROCESS_POTION_UPDATES
+;
+; Memory Modified: COLRAM_SPRT_STATS_10, COLRAM_SPRT_STATS_1, COLRAM_PHYS_STATS_1000, COLRAM_PHYS_STATS_10
+; Calls: PLAY_USE_PHYS_POTION_SOUND, PROCESS_POTION_UPDATES (jump)
+;==============================================================================
 DO_USE_SPRT_POTION:
     CALL        PLAY_USE_PHYS_POTION_SOUND          ; Play potion usage sound (3x SOUND_03)
     INC         B                                   ; Convert level (0-3) to color value (1-4)
@@ -4693,6 +6485,56 @@ DO_USE_SPRT_POTION:
     LD          (COLRAM_PHYS_STATS_1000),HL         ; Set phys health color (1000s/100s) to dark green
     LD          (COLRAM_PHYS_STATS_10),HL           ; Set phys health color (10s/1s) to dark green
     JP          PROCESS_POTION_UPDATES              ; Continue with potion processing
+
+;==============================================================================
+; DO_USE_KEY - Use key to unlock door and generate treasure
+;==============================================================================
+; Handles key item usage on doors. Validates key level against door level,
+; then generates random treasure item to replace the door on the map.
+;
+; Door Code Validation:
+; - Extract door type and level from ITEM_F0
+; - Must be door type ($14 base code)
+; - Key level must be >= door level
+;
+; Treasure Generation:
+; - Uses R register for randomness
+; - Generates item code from range $1D-$23 (plus adjustments)
+; - Special case: Level 4 doors give chaos potion instead of key
+; - Level adjustment algorithm for lower-level doors
+;
+; Flow:
+; 1. Extract door type and level from ITEM_F0
+; 2. Validate it's a door (type $14)
+; 3. Check key level >= door level
+; 4. Calculate random item type
+; 5. Encode item with level bits
+; 6. Place item on map at player position
+; 7. Update viewport or init combat animation
+;
+; Input:
+;   B = Key level (from DO_USE_ATTACK)
+;   ITEM_F0 = Door code at player position
+;   PLAYER_MAP_POS = Current player map position
+;
+; Output:
+;   Door replaced with treasure item on map
+;   Viewport updated or combat animation started
+;
+; Registers:
+; --- Start ---
+;   B  = Key level
+; --- In Process ---
+;   A  = Door code, type, level calculations, random values, final item code
+;   BC = Item map address (from ITEM_MAP_CHECK)
+;   C  = Door level, loop counter
+;   AF' = Item code (saved during map lookup)
+; ---  End  ---
+;   Jumps to INIT_MELEE_ANIM or UPDATE_VIEWPORT (does not return)
+;
+; Memory Modified: Map item at PLAYER_MAP_POS
+; Calls: NO_ACTION_TAKEN (if invalid), UPDATE_SCR_SAVER_TIMER, ITEM_MAP_CHECK, INIT_MELEE_ANIM or UPDATE_VIEWPORT (jumps)
+;==============================================================================
 DO_USE_KEY:
     LD          A,(ITEM_F0)                         ; Load item at current position
     LD          C,0x0                               ; Initialize C = 0
@@ -4712,20 +6554,169 @@ DO_USE_KEY:
     JP          Z,LAB_ram_f048                      ; If level 0, skip loop
     CALL        UPDATE_SCR_SAVER_TIMER              ; Reset screen saver timer
     INC         C                                   ; C = door level + 1
+
+;==============================================================================
+; LAB_ram_f043 - Level adjustment normalization loop
+;==============================================================================
+; Repeatedly subtracts (door_level + 1) from door level until underflow,
+; then adds back to get normalized remainder. Part of treasure item level
+; calculation for unlocked doors.
+;
+; Input:
+;   A = Door level
+;   C = Door level + 1
+;
+; Output:
+;   A = Normalized level value (remainder)
+;   B = Normalized level (from A)
+;
+; Registers:
+; --- Start ---
+;   A  = Door level
+;   C  = Door level + 1
+; --- In Process ---
+;   A  = Iteratively reduced
+; ---  End  ---
+;   A  = Remainder after normalization
+;   F  = Carry set from final subtraction
+;
+; Memory Modified: None
+; Calls: Falls through to LAB_ram_f048
+;==============================================================================
 LAB_ram_f043:
     SUB         C                                   ; Subtract (door level + 1)
     JP          NC,LAB_ram_f043                     ; Loop while no borrow
     ADD         A,C                                 ; Add back to get remainder
     LD          B,A                                 ; B = adjusted level
+
+;==============================================================================
+; LAB_ram_f048 - Generate random treasure item type
+;==============================================================================
+; Uses R register (memory refresh) for semi-random number generation to
+; determine which treasure item to place. Normalizes random value to 0-6
+; range, then adds base offset $1D for item type.
+;
+; Random Value Processing:
+; - Get R register (0-127, semi-random)
+; - Mask to 0-7
+; - Normalize to 0-6 range via subtraction loop
+; - Add $1D base offset for item type
+;
+; Input:
+;   B = Adjusted door level (from normalization or original)
+;   C = Door level data
+;
+; Output:
+;   A = Random item type offset ($1D-$23 range)
+;   Falls through to LAB_ram_f054 for encoding
+;
+; Registers:
+; --- Start ---
+;   B  = Door level
+;   C  = Door level data
+; --- In Process ---
+;   A  = R register, masked, normalized
+; ---  End  ---
+;   A  = Item type base + random offset
+;
+; Memory Modified: None
+; Calls: LAB_ram_f04c, LAB_ram_f071 (special cases), LAB_ram_f054 (fall-through)
+;==============================================================================
 LAB_ram_f048:
     LD          A,R                                 ; Get semi-random value from refresh register
     AND         0x7                                 ; Mask to 0-7
+
+;==============================================================================
+; LAB_ram_f04c - Random value zero check and normalization
+;==============================================================================
+; Checks if random value is zero (special case), otherwise normalizes to
+; 0-6 range by subtracting 7 until underflow.
+;
+; Input:
+;   A = Random value (0-7)
+;
+; Output:
+;   A = Normalized value or handled special case
+;
+; Registers:
+; --- Start ---
+;   A  = Random (0-7)
+; ---  End  ---
+;   A  = Normalized (0-6) + $1D offset, or jumps to special handler
+;
+; Memory Modified: None
+; Calls: LAB_ram_f071 (if zero), LAB_ram_f050 (normalization loop), LAB_ram_f054 (fall-through)
+;==============================================================================
 LAB_ram_f04c:
     JP          Z,LAB_ram_f071                      ; If 0, handle special case
     SUB         0x7                                 ; Subtract 7
+
+;==============================================================================
+; LAB_ram_f050 - Normalize random value to 0-6 range
+;==============================================================================
+; Repeatedly subtracts 7 until underflow, ensuring value is in 0-6 range.
+; Then adds $1D base offset for item type codes.
+;
+; Input:
+;   A = Random value (initially negative after first SUB 7)
+;
+; Output:
+;   A = Normalized value + $1D offset
+;   Falls through to LAB_ram_f054
+;
+; Registers:
+; --- Start ---
+;   A  = Random value
+; ---  End  ---
+;   A  = Item type ($1D-$23)
+;
+; Memory Modified: None
+; Calls: LAB_ram_f054 (fall-through)
+;==============================================================================
 LAB_ram_f050:
     JP          NC,LAB_ram_f04c                     ; Loop while >= 7 (normalize to 0-6)
     ADD         A,$1d                               ; Add $1D base offset
+
+;==============================================================================
+; LAB_ram_f054 - Encode item code with level and place on map
+;==============================================================================
+; Encodes the final item code by combining item type (in A) with level bits
+; (in B) using bit rotation operations, then places the encoded item on the
+; map at the player's current position.
+;
+; Item Encoding Formula: (Type << 2) | Level
+; - Type in bits 7-2
+; - Level in bits 1-0
+;
+; Bit Manipulation:
+; 1. Extract level bits from B via RR operations
+; 2. Shift type left via RLA operations
+; 3. Combine via rotations through carry flag
+;
+; Input:
+;   A = Item type ($1D-$23 or $16 for key, $1C for chaos potion)
+;   B = Item level (0-3)
+;   PLAYER_MAP_POS = Player's current map position
+;
+; Output:
+;   Encoded item placed on map
+;   Viewport updated or combat animation initialized
+;
+; Registers:
+; --- Start ---
+;   A  = Item type
+;   B  = Item level
+; --- In Process ---
+;   A  = Encoded item (type<<2 | level)
+;   BC = Map address (from ITEM_MAP_CHECK)
+;   C  = Temporary for bit rotations
+;   AF' = Encoded item (preserved during map lookup)
+; ---  End  ---
+;   Jumps to INIT_MELEE_ANIM or UPDATE_VIEWPORT (does not return)
+;
+; Memory Modified: Map item at player position
+; Calls: ITEM_MAP_CHECK, INIT_MELEE_ANIM or UPDATE_VIEWPORT (jumps)
+;==============================================================================
 LAB_ram_f054:
     RR          B                                   ; Rotate B right (level bits)
     RR          C                                   ; Rotate C right
@@ -4742,6 +6733,37 @@ LAB_ram_f054:
     AND         A                                   ; Test if in combat
     JP          NZ,INIT_MELEE_ANIM                  ; If in combat, init animation
     JP          UPDATE_VIEWPORT                     ; Otherwise update viewport
+
+;==============================================================================
+; LAB_ram_f071 - Special case: Random 0 gives key or chaos potion
+;==============================================================================
+; Handles special treasure case when random value is 0. Generates either a
+; key (for doors level 0-3) or chaos potion (for level 4 doors).
+;
+; Door Level Mapping:
+; - Level 0-3: Generate key of same level
+; - Level 4: Generate level 3 chaos potion instead
+;
+; Input:
+;   C = Door level (from earlier extraction)
+;
+; Output:
+;   A = Item type ($16 for key, $1C for chaos potion)
+;   B = Item level (door level or 3 for chaos)
+;   Jumps to LAB_ram_f054 for encoding
+;
+; Registers:
+; --- Start ---
+;   C  = Door level
+; --- In Process ---
+;   A  = Door level comparison, then item type
+;   B  = Item level
+; ---  End  ---
+;   Jumps to LAB_ram_f054 (does not return)
+;
+; Memory Modified: None directly (LAB_ram_f054 handles map update)
+; Calls: LAB_ram_f07c (if level 4), LAB_ram_f054 (jump)
+;==============================================================================
 LAB_ram_f071:
     LD          A,C                                 ; A = door level from C
     CP          0x4                                 ; Compare to 4
@@ -4749,10 +6771,77 @@ LAB_ram_f071:
     LD          B,A                                 ; B = door level
     LD          A,$16                               ; A = $16 (key item base)
     JP          LAB_ram_f054                        ; Jump to encode and place item
+
+;==============================================================================
+; LAB_ram_f07c - Level 4 door gives chaos potion
+;==============================================================================
+; Special handler for level 4 doors when random treasure is key slot.
+; Gives level 3 chaos potion instead of a level 4 key.
+;
+; Input:
+;   None (triggered by level 4 check)
+;
+; Output:
+;   A = $1C (chaos potion item type)
+;   B = 3 (level 3)
+;   Jumps to LAB_ram_f054 for encoding
+;
+; Registers:
+; --- Start ---
+;   None specific
+; ---  End  ---
+;   A  = $1C
+;   B  = 3
+;   Jumps to LAB_ram_f054
+;
+; Memory Modified: None directly (LAB_ram_f054 handles map update)
+; Calls: LAB_ram_f054 (jump)
+;==============================================================================
 LAB_ram_f07c:
     LD          B,0x3                               ; B = 3 (level 3)
     LD          A,$1c                               ; A = $1C (chaos potion base)
     JP          LAB_ram_f054                        ; Jump to encode and place item
+
+;==============================================================================
+; USE_SOMETHING_ELSE - Handle non-potion/non-key item usage
+;==============================================================================
+; Dispatcher for weapons and special items (bow, scroll, staff, crossbow,
+; melee weapons, ladder, door). Validates usage context (wall state, target
+; presence) before routing to appropriate handler.
+;
+; Item Categories:
+; - Ranged weapons: Bow (6), Crossbow ($0C)
+; - Magic: Scroll (7), Staff ($0B)
+; - Melee: Sword/Axe/Mace (8-$A)
+; - Special: Ladder ($10-$11), Door ($14)
+;
+; Flow:
+; 1. Check wall/target state at F0/F1
+; 2. Validate target exists (monster or end marker)
+; 3. Route to weapon-specific handler
+; 4. Handle item breakage if applicable
+; 5. Setup combat animation
+;
+; Input:
+;   AF' = Right-hand item type (from DO_USE_ATTACK)
+;   WALL_F0_STATE = Wall state at player position
+;   ITEM_F1 = Target at F1 position
+;
+; Output:
+;   Weapon fired/used or NO_ACTION_TAKEN
+;   Combat animation initialized if valid target
+;
+; Registers:
+; --- Start ---
+;   AF' = Item type from DO_USE_ATTACK
+; --- In Process ---
+;   A  = Wall state, item checks, comparisons
+; ---  End  ---
+;   Jumps to various handlers (does not return)
+;
+; Memory Modified: Varies by weapon handler
+; Calls: CHECK_FOR_NON_ITEMS, CHECK_FOR_END_ITEM, CHECK_IF_BOW_XBOW, etc.
+;==============================================================================
 USE_SOMETHING_ELSE:
     EX          AF,AF'                              ; Swap to alternate AF register
     LD          A,(WALL_F0_STATE)                   ; Load wall state at position F0
@@ -4760,21 +6849,133 @@ USE_SOMETHING_ELSE:
     JP          Z,CHECK_FOR_NON_ITEMS               ; If no wall, check for items/monsters
     BIT         0x2,A                               ; Test bit 2 of wall state
     JP          Z,CHECK_FOR_END_ITEM                ; If bit 2 clear, check end item
+
+;==============================================================================
+; CHECK_FOR_NON_ITEMS - Validate target exists at F1 (monster or item)
+;==============================================================================
+; Checks if there's a valid target at position F1 for weapon usage.
+; Distinguishes between empty space, items, and monsters.
+;
+; Input:
+;   ITEM_F1 = Item/monster code at F1
+;   AF' = Right-hand weapon type
+;
+; Output:
+;   Jumps to CHECK_FOR_END_ITEM (if empty) or CHECK_IF_BOW_XBOW (if monster)
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = ITEM_F1 value
+; ---  End  ---
+;   Jumps to next handler
+;
+; Memory Modified: None
+; Calls: CHECK_FOR_END_ITEM or CHECK_IF_BOW_XBOW (jumps)
+;==============================================================================
 CHECK_FOR_NON_ITEMS:
     LD          A,(ITEM_F1)                         ; Load item at position F1
     CP          $fe                                 ; Compare to $FE (empty)
     JP          Z,CHECK_FOR_END_ITEM                ; If empty, check end item
     CP          $78                                 ; Compare to $78 (monster base)
     JP          NC,CHECK_IF_BOW_XBOW                ; If >= $78 (monster), check weapon
+
+;==============================================================================
+; CHECK_FOR_END_ITEM - Validate end marker for special item usage
+;==============================================================================
+; Checks if right-hand item is the end marker ($FF), which is valid for
+; ladder/door usage during combat. Falls through to weapon checks if not.
+;
+; Input:
+;   AF' = Right-hand item type
+;
+; Output:
+;   NO_ACTION_TAKEN if not end marker
+;   Falls through to CHECK_IF_BOW_XBOW otherwise
+;
+; Registers:
+; --- Start ---
+;   AF' = Item type
+; --- In Process ---
+;   A  = Item type (swapped from AF')
+; ---  End  ---
+;   Jumps to NO_ACTION_TAKEN or falls through
+;
+; Memory Modified: None
+; Calls: NO_ACTION_TAKEN (if not $FF), CHECK_IF_BOW_XBOW (fall-through)
+;==============================================================================
 CHECK_FOR_END_ITEM:
     EX          AF,AF'                              ; Swap back to main AF register
     CP          $ff                                 ; Compare to $FF (end marker)
     JP          NZ,NO_ACTION_TAKEN                  ; If not end marker, no action
     EX          AF,AF'                              ; Swap to alternate AF again
+
+;==============================================================================
+; CHECK_IF_BOW_XBOW - Route to bow/crossbow handler if item type matches
+;==============================================================================
+; Checks if right-hand item is a bow (type 6). If so, routes to bow/crossbow
+; usage handler. Otherwise checks for scroll/staff.
+;
+; Input:
+;   AF' = Right-hand item type (in main AF after swap)
+;
+; Output:
+;   Jumps to USE_BOW_XBOW or CHECK_IF_SCROLL_STAFF
+;
+; Registers:
+; --- Start ---
+;   AF' swapped, A = item type
+; --- In Process ---
+;   A  = Item type comparison
+; ---  End  ---
+;   Jumps to handler
+;
+; Memory Modified: None
+; Calls: USE_BOW_XBOW or CHECK_IF_SCROLL_STAFF (jumps)
+;==============================================================================
 CHECK_IF_BOW_XBOW:
     EX          AF,AF'                              ; Swap back to main AF register
     CP          0x6                                 ; Compare to 6 (bow item type)
     JP          NZ,CHECK_IF_SCROLL_STAFF            ; If not bow, check scroll/staff
+
+;==============================================================================
+; USE_BOW_XBOW - Fire bow or crossbow (consumes arrow, may break)
+;==============================================================================
+; Handles bow/crossbow usage by consuming an arrow from inventory and
+; checking for weapon breakage. Sets up arrow animation for combat.
+;
+; Requirements:
+; - At least 1 arrow in ARROW_INV
+; - Valid target at F1 (checked by caller)
+;
+; Breakage:
+; - CHK_ITEM_BREAK determines if weapon breaks
+; - If broken, clear right hand ($FE)
+;
+; Input:
+;   BC = Item level (from DO_USE_ATTACK)
+;   ARROW_INV = Arrow count
+;
+; Output:
+;   ARROW_INV decremented
+;   RIGHT_HAND_ITEM cleared if weapon broke
+;   D = 5 (bow/arrow animation type)
+;   Jumps to LAB_ram_f0e9 for animation setup
+;
+; Registers:
+; --- Start ---
+;   BC = Item level
+; --- In Process ---
+;   A  = Arrow count
+;   BC = Saved/restored around CHK_ITEM_BREAK
+; ---  End  ---
+;   D  = 5
+;   Jumps to LAB_ram_f0e9
+;
+; Memory Modified: ARROW_INV, possibly RIGHT_HAND_ITEM
+; Calls: NO_ACTION_TAKEN (if no arrows), CHK_ITEM_BREAK, LAB_ram_f0e9 (jump)
+;==============================================================================
 USE_BOW_XBOW:
     PUSH        BC                                  ; Save BC (item level)
     LD          A,(ARROW_INV)                       ; Load arrow inventory count
@@ -4786,12 +6987,86 @@ USE_BOW_XBOW:
     JP          NC,BOW_XBOW_NO_BREAK                ; If no break, continue
     LD          A,$fe                               ; A = $FE (empty item marker)
     LD          (RIGHT_HAND_ITEM),A                 ; Clear right hand (bow broke)
+
+;==============================================================================
+; BOW_XBOW_NO_BREAK - Setup arrow animation
+;==============================================================================
+; Sets animation type to 5 (arrow/bolt) and jumps to animation setup.
+;
+; Input:
+;   BC = Item level
+;
+; Output:
+;   D = 5 (arrow animation type)
+;   Jumps to LAB_ram_f0e9
+;
+; Registers:
+; ---  End  ---
+;   D  = 5
+;
+; Memory Modified: None
+; Calls: LAB_ram_f0e9 (jump)
+;==============================================================================
 BOW_XBOW_NO_BREAK:
     LD          D,0x5                               ; D = 5 (bow/arrow animation type)
     JP          LAB_ram_f0e9                        ; Jump to setup animation
+
+;==============================================================================
+; CHECK_IF_SCROLL_STAFF - Route to scroll/staff handler if type matches
+;==============================================================================
+; Checks if right-hand item is a scroll (type 7). If so, routes to
+; scroll/staff usage handler. Otherwise checks other weapon types.
+;
+; Input:
+;   A = Right-hand item type
+;
+; Output:
+;   Jumps to USE_SCROLL_STAFF or CHECK_OTHERS
+;
+; Registers:
+; --- In Process ---
+;   A  = Item type comparison
+; ---  End  ---
+;   Jumps to handler
+;
+; Memory Modified: None
+; Calls: USE_SCROLL_STAFF or CHECK_OTHERS (jumps)
+;==============================================================================
 CHECK_IF_SCROLL_STAFF:
     CP          0x7                                 ; Compare to 7 (scroll item type)
     JP          NZ,CHECK_OTHERS                     ; If not scroll, check other items
+
+;==============================================================================
+; USE_SCROLL_STAFF - Cast fireball spell (may break scroll/staff)
+;==============================================================================
+; Handles scroll/staff usage by checking for item breakage and setting up
+; fireball animation for combat.
+;
+; Breakage:
+; - CHK_ITEM_BREAK determines if scroll/staff breaks
+; - If broken, clear right hand ($FE)
+;
+; Input:
+;   BC = Item level
+;
+; Output:
+;   RIGHT_HAND_ITEM cleared if item broke
+;   D = 9 (fireball animation type)
+;   Jumps to LAB_ram_f0e9 for animation setup
+;
+; Registers:
+; --- Start ---
+;   BC = Item level
+; --- In Process ---
+;   A  = $FE if broke
+;   BC = Saved/restored around CHK_ITEM_BREAK
+; ---  End  ---
+;   D  = 9
+;   Jumps to LAB_ram_f0e9
+;
+; Memory Modified: Possibly RIGHT_HAND_ITEM
+; Calls: CHK_ITEM_BREAK, LAB_ram_f0e9 (jump)
+;==============================================================================
 USE_SCROLL_STAFF:
     PUSH        BC                                  ; Save BC (item level)
     CALL        CHK_ITEM_BREAK                      ; Check if scroll/staff breaks
@@ -4799,9 +7074,59 @@ USE_SCROLL_STAFF:
     JP          NC,SCROLL_STAFF_NO_BREAK            ; If no break, continue
     LD          A,$fe                               ; A = $FE (empty item marker)
     LD          (RIGHT_HAND_ITEM),A                 ; Clear right hand (scroll/staff broke)
+
+;==============================================================================
+; SCROLL_STAFF_NO_BREAK - Setup fireball animation
+;==============================================================================
+; Sets animation type to 9 (fireball) and jumps to animation setup.
+;
+; Input:
+;   BC = Item level
+;
+; Output:
+;   D = 9 (fireball animation type)
+;   Jumps to LAB_ram_f0e9
+;
+; Registers:
+; ---  End  ---
+;   D  = 9
+;
+; Memory Modified: None
+; Calls: LAB_ram_f0e9 (jump)
+;==============================================================================
 SCROLL_STAFF_NO_BREAK:
     LD          D,0x9                               ; D = 9 (fireball animation type)
     JP          LAB_ram_f0e9                        ; Jump to setup animation
+
+;==============================================================================
+; CHECK_OTHERS - Route staff/crossbow/melee/special items
+;==============================================================================
+; Handles remaining item types by checking for staff ($0B), crossbow ($0C),
+; melee weapons (6-$F), or special items (ladder $10-$11, door $14).
+;
+; Item Type Routing:
+; - $0B (staff) → USE_SCROLL_STAFF
+; - $0C (crossbow) → USE_BOW_XBOW
+; - 6-$F (melee) → Animation setup with item type as D
+; - $10-$14 (special) → LAB_ram_f113 handler
+;
+; Input:
+;   A = Right-hand item type
+;   B = Item level
+;
+; Output:
+;   Routes to appropriate handler
+;
+; Registers:
+; --- In Process ---
+;   A  = Item type comparisons
+;   D  = Item type (for animation)
+; ---  End  ---
+;   Jumps to various handlers
+;
+; Memory Modified: None directly
+; Calls: USE_SCROLL_STAFF, USE_BOW_XBOW, LAB_ram_f0e9, LAB_ram_f113, NO_ACTION_TAKEN (jumps)
+;==============================================================================
 CHECK_OTHERS:
     CP          0xb                                 ; Compare to $0B (staff item type)
     JP          Z,USE_SCROLL_STAFF                  ; If staff, use as scroll/staff
@@ -4813,11 +7138,105 @@ CHECK_OTHERS:
     JP          NC,LAB_ram_f113                     ; If >= $10, jump to special handler
     LD          D,A                                 ; D = item type (for animation)
     CALL        SWAP_TO_ALT_REGS                    ; Swap to alternate registers
+
+;==============================================================================
+; LAB_ram_f0e9 - Setup item animation and initialize combat
+;==============================================================================
+; Common entry point for weapon usage. Sets up item animation parameters
+; and initializes monster combat sequence.
+;
+; Input:
+;   D = Item animation type (5=arrow, 9=fireball, 8-$A=melee, etc.)
+;   B = Item level (0-3)
+;
+; Output:
+;   Animation configured
+;   Combat initialized
+;
+; Registers:
+; --- Start ---
+;   D  = Animation type
+;   B  = Item level
+; ---  End  ---
+;   Jumps to INIT_MONSTER_COMBAT
+;
+; Memory Modified: Animation state variables
+; Calls: SETUP_ITEM_ANIMATION, INIT_MONSTER_COMBAT (jump)
+;==============================================================================
 LAB_ram_f0e9:
     CALL        SETUP_ITEM_ANIMATION                ; Setup item animation parameters
     JP          INIT_MONSTER_COMBAT                 ; Initialize monster combat
+
+;==============================================================================
+; CLEAR_RIGHT_ITEM_AND_SETUP_ANIM - Clear right hand and setup animation
+;==============================================================================
+; Entry point for ladder/door usage during combat. Swaps to alternate
+; registers then falls through to setup item animation.
+;
+; Input:
+;   D = Item type (ladder or door)
+;   B = Item level
+;
+; Output:
+;   Falls through to SETUP_ITEM_ANIMATION
+;
+; Registers:
+; --- Start ---
+;   Main registers preserved
+; ---  End  ---
+;   Alternate registers active
+;
+; Memory Modified: None directly
+; Calls: SWAP_TO_ALT_REGS, SETUP_ITEM_ANIMATION (fall-through)
+;==============================================================================
 CLEAR_RIGHT_ITEM_AND_SETUP_ANIM:
     CALL        SWAP_TO_ALT_REGS                    ; Swap to alternate register set
+
+;==============================================================================
+; SETUP_ITEM_ANIMATION - Configure item sprite animation parameters
+;==============================================================================
+; Initializes all animation state variables for weapon/item usage animation.
+; Calculates sprite index from item type and level, sets loop count, and
+; configures graphics memory pointers.
+;
+; Sprite Index Calculation: (Type * 4) + Level
+; - Types: 5=arrow, 6=sword, 7=axe, 8=mace, 9=fireball, etc.
+; - Levels: 0-3
+; - Result: Sprite frames 0-63
+;
+; Flow:
+; 1. Set animation state to 3 (active)
+; 2. Calculate sprite index: (D << 2) | B
+; 3. Set loop count to $203 (515 iterations)
+; 4. Set graphics pointer to right-hand area
+; 5. Store low byte to RAM_AD
+; 6. Jump to copy first frame
+;
+; Input:
+;   D = Item type (animation type)
+;   B = Item level (0-3)
+;
+; Output:
+;   ITEM_ANIM_STATE = 3
+;   ITEM_SPRITE_INDEX = (Type*4) + Level
+;   ITEM_ANIM_LOOP_COUNT = $203
+;   ITEM_ANIM_CHRRAM_PTR = CHRRAM_RIGHT_HD_GFX_IDX
+;   RAM_AD = Low byte of CHRRAM pointer
+;   Jumps to COPY_RH_ITEM_FRAME_GFX
+;
+; Registers:
+; --- Start ---
+;   D  = Item type
+;   B  = Item level
+; --- In Process ---
+;   A  = State value, sprite calculation
+;   HL = Loop count, graphics pointer
+; ---  End  ---
+;   Jumps to COPY_RH_ITEM_FRAME_GFX
+;
+; Memory Modified: ITEM_ANIM_STATE, ITEM_SPRITE_INDEX, ITEM_ANIM_LOOP_COUNT, ITEM_ANIM_CHRRAM_PTR, RAM_AD
+; Calls: COPY_RH_ITEM_FRAME_GFX (jump)
+;==============================================================================
 SETUP_ITEM_ANIMATION:
     LD          A,0x3                               ; A = 3 (animation state)
     LD          (ITEM_ANIM_STATE),A                 ; Store animation state
@@ -4833,13 +7252,94 @@ SETUP_ITEM_ANIMATION:
     LD          A,L                                 ; A = low byte of CHRRAM pointer
     LD          (RAM_AD),A                          ; Store to RAM_AD
     JP          COPY_RH_ITEM_FRAME_GFX              ; Copy frame graphics and return
+
+;==============================================================================
+; LAB_ram_f113 - Check for ladder or door special items
+;==============================================================================
+; Validates special item types (ladder $10-$11, door $14) for combat-only
+; usage. Routes to appropriate handler.
+;
+; Input:
+;   A = Item type ($10 or higher from CHECK_OTHERS)
+;
+; Output:
+;   Jumps to LAB_ram_f11e (ladder) or LAB_ram_f119 (door check)
+;
+; Registers:
+; --- In Process ---
+;   A  = Item type comparison
+; ---  End  ---
+;   Jumps to handler
+;
+; Memory Modified: None
+; Calls: LAB_ram_f119 or LAB_ram_f11e (jumps)
+;==============================================================================
 LAB_ram_f113:
     CP          $11                                 ; Compare to $11 (ladder up/down)
     JP          NZ,LAB_ram_f119                     ; If not ladder, check next
     JP          LAB_ram_f11e                        ; If ladder, jump to handler
+
+;==============================================================================
+; LAB_ram_f119 - Check for door item
+;==============================================================================
+; Validates door item type ($14) for combat-only usage.
+;
+; Input:
+;   A = Item type (not ladder)
+;
+; Output:
+;   Jumps to LAB_ram_f11e (if door) or NO_ACTION_TAKEN
+;
+; Registers:
+; --- In Process ---
+;   A  = Item type comparison
+; ---  End  ---
+;   Jumps to handler
+;
+; Memory Modified: None
+; Calls: NO_ACTION_TAKEN or LAB_ram_f11e (jumps)
+;==============================================================================
 LAB_ram_f119:
     CP          $14                                 ; Compare to $14 (door)
     JP          NZ,NO_ACTION_TAKEN                  ; If not door, no action
+
+;==============================================================================
+; LAB_ram_f11e - Use ladder/door to escape combat
+;==============================================================================
+; Handles ladder and door usage during combat. These items allow escape from
+; combat by clearing combat flag and setting up escape animation.
+;
+; Requirements:
+; - Must be in combat (COMBAT_BUSY_FLAG != 0)
+; - Item must be ladder ($10-$11) or door ($14)
+;
+; Flow:
+; 1. Verify in combat state
+; 2. Clear combat flag (allows movement)
+; 3. Setup escape animation
+; 4. Return to input loop
+;
+; Input:
+;   A = Item type (ladder or door)
+;   COMBAT_BUSY_FLAG = Combat state
+;
+; Output:
+;   COMBAT_BUSY_FLAG = 0 (combat ended)
+;   Escape animation configured
+;   Jumps to WAIT_FOR_INPUT
+;
+; Registers:
+; --- Start ---
+;   A  = Item type
+; --- In Process ---
+;   D  = Item type (saved)
+;   A  = Combat flag, then 0
+; ---  End  ---
+;   Jumps to WAIT_FOR_INPUT
+;
+; Memory Modified: COMBAT_BUSY_FLAG, animation state
+; Calls: NO_ACTION_TAKEN (if not in combat), CLEAR_RIGHT_ITEM_AND_SETUP_ANIM, WAIT_FOR_INPUT (jump)
+;==============================================================================
 LAB_ram_f11e:
     LD          D,A                                 ; D = item type (ladder or door)
     LD          A,(COMBAT_BUSY_FLAG)                ; Load combat state flag
@@ -4849,6 +7349,57 @@ LAB_ram_f11e:
     LD          (COMBAT_BUSY_FLAG),A                ; Clear combat busy flag
     CALL        CLEAR_RIGHT_ITEM_AND_SETUP_ANIM     ; Setup animation for item
     JP          WAIT_FOR_INPUT                      ; Return to input wait
+
+;==============================================================================
+; INIT_MONSTER_COMBAT - Initialize combat with monster at F1
+;==============================================================================
+; Sets up combat state by extracting monster type and level from ITEM_F1,
+; then calculates monster health based on dungeon level and monster stats.
+;
+; Monster Code Extraction:
+; - Bits 0-1: Monster level (0-3)
+; - Bits 2-7: Monster type
+;
+; Health Calculation:
+; - Uses dungeon level (BCD) from DUNGEON_LEVEL
+; - Extracts low nibble, performs digit rotation (RLD)
+; - Adds adjustments based on bit patterns
+; - Complex BCD manipulation for final health value
+;
+; Flow:
+; 1. Check if already in combat (if yes, just animate)
+; 2. Set COMBAT_BUSY_FLAG = 1
+; 3. Extract monster level from ITEM_F1 (bits 0-1 to B)
+; 4. Extract monster type from ITEM_F1 (bits 2-7 to A)
+; 5. Get dungeon level and calculate health modifiers
+; 6. Continue to health calculation (falls through to LAB_ram_f157)
+;
+; Input:
+;   ITEM_F1 = Monster code (type<<2 | level)
+;   COMBAT_BUSY_FLAG = Combat state
+;   DUNGEON_LEVEL = Current dungeon level (BCD)
+;
+; Output:
+;   COMBAT_BUSY_FLAG = 1
+;   B = Monster level (0-3)
+;   AF' = Monster type
+;   D, E = Dungeon level digit components
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = Combat flag, monster code, level digits
+;   B  = Monster level extraction, then final level
+;   D,E = Level digit components
+;   HL = DUNGEON_LEVEL pointer
+;   AF' = Monster type (saved)
+; ---  End  ---
+;   Falls through to LAB_ram_f157 or jumps to INIT_MELEE_ANIM
+;
+; Memory Modified: COMBAT_BUSY_FLAG
+; Calls: INIT_MELEE_ANIM (if already in combat), falls through to LAB_ram_f157
+;==============================================================================
 INIT_MONSTER_COMBAT:
     LD          A,(COMBAT_BUSY_FLAG)                ; Check if already in combat
     AND         A                                   ; Test combat flag
@@ -4870,6 +7421,35 @@ INIT_MONSTER_COMBAT:
     SRL         A                                   ; Shift right
     JP          NC,LAB_ram_f157                     ; If no carry, skip adjustment
     ADD         A,$50                               ; Add $50 BCD adjustment
+
+;==============================================================================
+; LAB_ram_f157 - Continue monster health calculation
+;==============================================================================
+; Continues complex BCD-based health calculation for monster, processing
+; additional dungeon level digits and performing more adjustments.
+;
+; Input:
+;   A = Adjusted level digit
+;   D = Level digit component
+;   E = Shifted level value
+;   B = Monster level
+;   AF' = Monster type
+;   HL = DUNGEON_LEVEL (after RLD operations)
+;
+; Output:
+;   Continues health calculation processing
+;
+; Registers:
+; --- In Process ---
+;   A  = Level digits and calculations
+;   D  = Level components
+;   E  = Accumulated values
+; ---  End  ---
+;   Continues processing
+;
+; Memory Modified: None directly
+; Calls: Continues to next calculation stage
+;==============================================================================
 LAB_ram_f157:
     RLCA                                            ; Rotate left 4 times
     RLCA                                            ; to move low nibble
@@ -4888,6 +7468,35 @@ LAB_ram_f157:
     RLD                                             ; Rotate left digit (restore)
     EX          AF,AF'                              ; Restore monster type from alternate
 
+;==============================================================================
+; CHK_FOR_SKELETON - Check if monster type is Skeleton ($1E)
+;==============================================================================
+; Tests if the current monster type code matches Skeleton ($1E). If match,
+; sets Skeleton-specific stats: base damage 7, HP 3/4 (SPRT/PHYS BCD),
+; spiritual sprite type (purple), then seeds HP/attack values.
+;
+; Input:
+;   A  = Monster type code - $1E (already subtracted in calling code)
+;   B  = Monster level (0-3)
+;
+; Output:
+;   If Skeleton: D=7 (damage), HL=$304 (HP), sprite set, jumps to seed
+;   If not: falls through to CHK_FOR_SNAKE
+;
+; Registers:
+; --- Start ---
+;   A  = Monster type - $1E
+;   B  = Monster level (0-3)
+; --- In Process ---
+;   D  = Base damage (7)
+;   HL = Base HP ($304 = 3 SPRT, 4 PHYS BCD)
+;   A  = Sprite calculation ($3C + level)
+; ---  End  ---
+;   Control transfers to SEED_MONSTER_HP_AND_ATTACK or CHK_FOR_SNAKE
+;
+; Memory Modified: MONSTER_SPRITE_FRAME (if Skeleton)
+; Calls: SEED_MONSTER_HP_AND_ATTACK (if Skeleton)
+;==============================================================================
 CHK_FOR_SKELETON:
     SUB         $1e                                 ; Subtract $1E (first monster code)
     JP          NZ,CHK_FOR_SNAKE                    ; If not $1E, check next monster
@@ -5031,10 +7640,69 @@ REDRAW_MONSTER_HEALTH:
     LD          HL,CURR_MONSTER_SPRT                ; Point to current monster spiritual HP
     LD          B,0x1                               ; 1 byte (BCD format)
     JP          RECALC_AND_REDRAW_BCD               ; Recalculate and redraw spiritual HP
+;==============================================================================
+; GET_RANDOM_0_TO_7 - Generate random value 0-7 for HP variance
+;==============================================================================
+; Uses the screen saver timer to generate a random value in range 0-7,
+; which is used as a reduction factor for monster HP randomization.
+;
+; Input:
+;   None (uses timer state)
+;
+; Output:
+;   E = Random value 0-7
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = Raw random value from timer, then masked
+; ---  End  ---
+;   E  = Random value 0-7
+;   A  = Random value 0-7 (same as E)
+;
+; Memory Modified: TIMER_D, TIMER_E (by UPDATE_SCR_SAVER_TIMER)
+; Calls: UPDATE_SCR_SAVER_TIMER
+;==============================================================================
 GET_RANDOM_0_TO_7:
     CALL        UPDATE_SCR_SAVER_TIMER              ; Update screen saver timer (returns random in A)
     AND         0x7                                 ; Mask to 0-7
     LD          E,A                                 ; E = random value 0-7
+;==============================================================================
+; CALC_WEAPON_VALUE - Calculate final weapon/monster damage value with randomization
+;==============================================================================
+; Calculates final damage value using BCD multiplication: base_damage * (level+1),
+; then subtracts random reduction (0-7 from E), adds dungeon bonus (C), all with
+; BCD decimal adjustment. Prevents negative results by adding back if borrow occurs.
+;
+; Formula: ((base_damage * (level+1)) - random_0_to_7 + dungeon_bonus) in BCD
+;
+; Input:
+;   D  = Base damage value (BCD)
+;   B  = Weapon/monster level (0-3)
+;   E  = Random reduction value (0-7)
+;   C  = Dungeon level bonus (BCD)
+;
+; Output:
+;   A  = Final damage value (BCD)
+;
+; Registers:
+; --- Start ---
+;   D  = Base damage
+;   B  = Level (0-3)
+;   E  = Random reduction
+;   C  = Dungeon bonus
+; --- In Process ---
+;   BC = Pushed/popped for preservation
+;   A  = Accumulator for BCD multiplication and adjustments
+; ---  End  ---
+;   A  = Final damage value (BCD)
+;   BC = Restored
+;   F  = Flags from final DAA
+;
+; Memory Modified: None
+; Calls: None (inline BCD math loop)
+;==============================================================================
 CALC_WEAPON_VALUE:
     PUSH        BC                                  ; Save BC (weapon level)
     INC         B                                   ; B = weapon level + 1 (1-4)
@@ -5055,6 +7723,38 @@ LAB_ram_f294:
     DAA                                             ; Decimal adjust (BCD correction)
     POP         BC                                  ; Restore BC (weapon level)
     RET                                             ; Return with final value in A
+;==============================================================================
+; WRITE_HP_TRIPLET - Write 3-byte HP data structure (value, doubled, carry)
+;==============================================================================
+; Stores a 3-byte HP triplet used for monster health tracking. First byte is
+; the original HP value (BCD), second byte is HP*2 (BCD with DAA), third byte
+; captures the carry bit from the doubling operation for extended precision.
+;
+; Triplet Format: [HP_base][HP_base*2][carry_from_doubling]
+;
+; Input:
+;   A  = HP base value (BCD)
+;   HL = Pointer to 3-byte storage area
+;
+; Output:
+;   3-byte HP triplet written to memory
+;   HL = Points to byte after triplet
+;
+; Registers:
+; --- Start ---
+;   A  = HP base value (BCD)
+;   HL = Triplet storage pointer
+; --- In Process ---
+;   A  = HP*2 (BCD), then carry bit
+;   HL = Incremented through triplet
+; ---  End  ---
+;   A  = Carry bit (0 or 1)
+;   HL = Original HL + 3
+;   F  = Flags from RLA
+;
+; Memory Modified: (HL), (HL+1), (HL+2)
+; Calls: None
+;==============================================================================
 WRITE_HP_TRIPLET:
     LD          (HL),A                              ; Store original HP value
     INC         HL                                  ; Point to next byte
@@ -5066,6 +7766,34 @@ WRITE_HP_TRIPLET:
     RLA                                             ; Rotate carry left into A
     LD          (HL),A                              ; Store carry from doubling
     RET                                             ; Return to caller
+;==============================================================================
+; DO_USE_LADDER - Advance to next dungeon level via ladder
+;==============================================================================
+; Checks for ladder at player position ($42), verifies not in combat, then
+; advances to next dungeon level by regenerating map and incrementing level.
+; Stores previous position for potential return mechanics.
+;
+; Input:
+;   COMBAT_BUSY_FLAG - Must be 0 (not in combat)
+;   ITEM_F0 - Item at current position (must be $42 ladder)
+;
+; Output:
+;   New dungeon level generated
+;   Dungeon level incremented and displayed
+;   Player map position reset
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = Combat flag, item check, map position
+;   All registers modified by BUILD_MAP and display routines
+; ---  End  ---
+;   Control transfers to RESET_SHIFT_MODE
+;
+; Memory Modified: PLAYER_PREV_MAP_LOC, DUNGEON_LEVEL, entire map space
+; Calls: BUILD_MAP, SUB_ram_cdbf, SUB_ram_f2c4, RESET_SHIFT_MODE
+;==============================================================================
 DO_USE_LADDER:
     LD          A,(COMBAT_BUSY_FLAG)                ; Check if in combat
     AND         A                                   ; Test combat flag
@@ -5079,6 +7807,35 @@ DO_USE_LADDER:
     CALL        SUB_ram_cdbf                        ; Call subroutine
     CALL        SUB_ram_f2c4                        ; Update dungeon level display
     JP          RESET_SHIFT_MODE                    ; Reset shift mode and return
+;==============================================================================
+; SUB_ram_f2c4 - Increment and display dungeon level
+;==============================================================================
+; Increments the dungeon level by 1 (BCD arithmetic), updates the display,
+; and redraws start screen elements. If level exceeds 99, displays "loop"
+; notice indicating the dungeon wraps around, then resets to bottom line char.
+;
+; Input:
+;   DUNGEON_LEVEL - Current level (BCD)
+;
+; Output:
+;   DUNGEON_LEVEL incremented by 1
+;   Level display updated on screen
+;   If level > 99: loop notice shown, level reset to CHAR_BOTTOM_LINE
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = Increment value (1), new level, then display characters
+;   HL = DUNGEON_LEVEL pointer
+;   DE = Display address ($3002), then text pointers
+;   B  = BCD byte count (1), color values, delay counter
+; ---  End  ---
+;   All registers modified by display routines
+;
+; Memory Modified: DUNGEON_LEVEL, CHRRAM level display area
+; Calls: RECALC_AND_REDRAW_BCD, REDRAW_START, REDRAW_VIEWPORT, DRAW_BKGD, GFX_DRAW, SLEEP_ZERO
+;==============================================================================
 SUB_ram_f2c4:
     LD          DE,$3002                            ; DE = display address for level
     LD          HL,DUNGEON_LEVEL                    ; Point to current dungeon level (BCD)
@@ -5086,12 +7843,74 @@ SUB_ram_f2c4:
     ADD         A,(HL)                              ; Add 1 to dungeon level
     DAA                                             ; Decimal adjust (BCD correction)
     JP          C,DRAW_99_LOOP_NOTICE               ; If overflow (>99), show loop notice
+
+;==============================================================================
+; LAB_ram_f2d0 - Store new level and update display
+;==============================================================================
+; Stores the incremented dungeon level value, updates the display with BCD
+; formatting, redraws start screen elements, and refreshes viewport. Normal
+; path after level increment (non-overflow case).
+;
+; Input:
+;   A  = New dungeon level (BCD, ≤ 99)
+;   HL = DUNGEON_LEVEL pointer
+;   DE = $3002 (display address)
+;
+; Output:
+;   Dungeon level updated and displayed
+;   Start screen and viewport redrawn
+;
+; Registers:
+; --- Start ---
+;   A  = New level value
+;   HL = DUNGEON_LEVEL
+;   DE = Display address
+; --- In Process ---
+;   B  = 1 (BCD byte count)
+;   All registers modified by display routines
+; ---  End  ---
+;   Control transfers to REDRAW_VIEWPORT
+;
+; Memory Modified: DUNGEON_LEVEL, CHRRAM display area
+; Calls: RECALC_AND_REDRAW_BCD, REDRAW_START, REDRAW_VIEWPORT
+;==============================================================================
 LAB_ram_f2d0:
     LD          (HL),A                              ; Store new dungeon level
     LD          B,0x1                               ; 1 byte (BCD format)
     CALL        RECALC_AND_REDRAW_BCD               ; Recalculate and redraw level
     CALL        REDRAW_START                        ; Redraw start screen elements
     JP          REDRAW_VIEWPORT                     ; Redraw viewport and return
+
+;==============================================================================
+; DRAW_99_LOOP_NOTICE - Display dungeon loop message
+;==============================================================================
+; Shows "Looks like this dungeon loops..." message when player reaches level
+; 100 (overflow from BCD 99+1). Displays message for ~30 VSYNC cycles, then
+; resets level display to CHAR_BOTTOM_LINE and continues normal flow.
+;
+; Input:
+;   None (called when DUNGEON_LEVEL + 1 causes BCD overflow)
+;
+; Output:
+;   Loop notice displayed briefly
+;   Level reset to CHAR_BOTTOM_LINE
+;   Display updated and game continues
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   HL = Screen positions, DUNGEON_LEVEL pointer
+;   DE = Text pointer, display address
+;   B  = Color ($F0), delay counter (30)
+;   A  = CHAR_BOTTOM_LINE
+;   EXX switches register sets for delay
+; ---  End  ---
+;   Control transfers to LAB_ram_f2d0 via JP
+;
+; Memory Modified: CHRRAM (full screen), DUNGEON_LEVEL
+; Calls: DRAW_BKGD, GFX_DRAW, SLEEP_ZERO (via EXX alternate set)
+;==============================================================================
 DRAW_99_LOOP_NOTICE:
     CALL        DRAW_BKGD                           ; Draw background
     LD          HL,DAT_ram_3051                     ; Point to screen position
@@ -5099,6 +7918,34 @@ DRAW_99_LOOP_NOTICE:
     LD          B,$f0                               ; B = color (white on black)
     CALL        GFX_DRAW                            ; Draw notice text
     LD          B,$1e                               ; B = 30 (delay loop count)
+
+;==============================================================================
+; LAB_ram_f2ec - Delay loop for level 99 notice display
+;==============================================================================
+; Executes 30 VSYNC-synchronized delays to display the level loop notice for
+; approximately 0.5 seconds (30 frames at 60Hz). Uses alternate register set
+; to preserve main registers.
+;
+; Input:
+;   B  = 30 (delay iteration count)
+;
+; Output:
+;   ~30 frame delay completed
+;
+; Registers:
+; --- Start ---
+;   B  = 30
+; --- In Process ---
+;   EXX switches to alternate set
+;   Alternate registers modified by SLEEP_ZERO
+;   B  = Decremented each iteration
+; ---  End  ---
+;   B  = 0
+;   Main registers preserved via EXX
+;
+; Memory Modified: None directly (SLEEP_ZERO may modify alternate set memory)
+; Calls: SLEEP_ZERO (in alternate register set)
+;==============================================================================
 LAB_ram_f2ec:
     EXX                                             ; Switch to alternate registers
     CALL        SLEEP_ZERO                          ; Delay/wait function
@@ -5108,6 +7955,42 @@ LAB_ram_f2ec:
     LD          HL,DUNGEON_LEVEL                    ; Point to dungeon level
     LD          DE,CHHRAM_LVL_IDX                   ; Point to level display address
     JP          LAB_ram_f2d0                        ; Jump to update level display
+;==============================================================================
+; RECALC_AND_REDRAW_BCD - Convert BCD value to ASCII and render on screen
+;==============================================================================
+; Converts multi-byte BCD value to ASCII string with leading zero suppression,
+; then renders to screen. Each BCD byte becomes 2 ASCII digits. Conversion
+; happens right-to-left in temp buffer, then copied left-to-right to display
+; with leading zeros replaced by spaces.
+;
+; Input:
+;   HL = Pointer to BCD value (low byte first)
+;   DE = Screen position (CHRRAM address)
+;   B  = Byte count (1-2, determines digits: 1→2 chars, 2→4 chars)
+;
+; Output:
+;   BCD value rendered as ASCII digits on screen
+;   Leading zeros replaced with spaces
+;
+; Registers:
+; --- Start ---
+;   HL = BCD source pointer
+;   DE = Screen destination
+;   B  = Byte count
+; --- In Process ---
+;   A  = BCD bytes, nibble extractions, ASCII conversions
+;   DE = Temp buffer $3a50, then reverts to screen dest
+;   HL = Screen write pointer (from original DE)
+;   B  = Character count for display loop
+;   AF'= Character count storage
+; ---  End  ---
+;   HL = Screen position + character count
+;   A  = Last digit character written
+;   F  = Flags from final store
+;
+; Memory Modified: $3a50 temp buffer, CHRRAM at original DE
+; Calls: None
+;==============================================================================
 RECALC_AND_REDRAW_BCD:
     PUSH        DE                                  ; Save DE (display address)
     LD          DE,$3a50                            ; DE = temp buffer for BCD conversion
@@ -5115,6 +7998,41 @@ RECALC_AND_REDRAW_BCD:
     SLA         A                                   ; Shift left (multiply by 2)
     DEC         A                                   ; Decrement (2*B - 1)
     EX          AF,AF'                              ; Save to alternate AF
+
+;==============================================================================
+; LAB_ram_f306 - Convert BCD bytes to ASCII digits
+;==============================================================================
+; Converts each BCD byte into two ASCII characters (tens and ones) and stores
+; them in the temp buffer at $3a50. Processes from low to high byte, storing
+; digits in reverse order (right-to-left) for later display reversal.
+;
+; Input:
+;   HL = Pointer to BCD value (low byte first)
+;   DE = $3a50 temp buffer
+;   B  = Byte count (number of BCD bytes to convert)
+;
+; Output:
+;   ASCII digits stored in temp buffer
+;   Pointers advanced past converted data
+;
+; Registers:
+; --- Start ---
+;   HL = BCD source
+;   DE = Temp buffer
+;   B  = Byte count
+; --- In Process ---
+;   A  = BCD byte, nibble extractions, ASCII conversions
+;   HL = Incremented through BCD bytes
+;   DE = Incremented through temp buffer (2 chars per BCD byte)
+;   B  = Decremented
+; ---  End  ---
+;   HL = Past last BCD byte
+;   DE = Past last ASCII character
+;   B  = 0
+;
+; Memory Modified: Temp buffer at $3a50
+; Calls: None
+;==============================================================================
 LAB_ram_f306:
     LD          A,(HL)                              ; Load BCD byte
     AND         0xf                                 ; Mask lower nibble (ones digit)
@@ -5136,6 +8054,39 @@ LAB_ram_f306:
     POP         HL                                  ; Restore HL (display address)
     EX          AF,AF'                              ; Restore count from alternate AF
     LD          B,A                                 ; B = character count (2*bytes - 1)
+
+;==============================================================================
+; LAB_ram_f31f - Suppress leading zeros with spaces
+;==============================================================================
+; Copies digits from temp buffer to display, replacing leading zeros with
+; spaces for clean numeric display. Processes right-to-left from temp buffer,
+; left-to-right to display. Stops at first non-zero digit.
+;
+; Input:
+;   DE = Points to last character in temp buffer (high-order digit)
+;   HL = Display address (CHRRAM)
+;   B  = Character count (2 * byte_count - 1)
+;
+; Output:
+;   Leading zeros replaced with spaces in display
+;   Falls through to LAB_ram_f32d when non-zero found
+;
+; Registers:
+; --- Start ---
+;   DE = End of temp buffer
+;   HL = Display start
+;   B  = Character count
+; --- In Process ---
+;   A  = Character from buffer
+;   HL = Incremented (left-to-right in display)
+;   DE = Decremented (right-to-left in buffer)
+;   B  = Decremented
+; ---  End  ---
+;   Falls through to LAB_ram_f32d or jumps to LAB_ram_f333 if all zeros
+;
+; Memory Modified: CHRRAM display area (spaces written)
+; Calls: None
+;==============================================================================
 LAB_ram_f31f:
     LD          A,(DE)                              ; Load character from buffer
     CP          $30                                 ; Compare to '0' ASCII
@@ -5146,12 +8097,77 @@ LAB_ram_f31f:
     DJNZ        LAB_ram_f31f                        ; Loop while B > 0
     LD          A,(DE)                              ; Load final character
     JP          LAB_ram_f333                        ; Jump to store and return
+
+;==============================================================================
+; LAB_ram_f32d - Copy non-zero digits to display
+;==============================================================================
+; Copies remaining significant digits from temp buffer to display after
+; leading zero suppression completes. Continues copying until all characters
+; processed, then stores final character via LAB_ram_f333.
+;
+; Input:
+;   A  = First non-zero digit (already loaded)
+;   DE = Points to current position in temp buffer
+;   HL = Current display position
+;   B  = Remaining character count
+;
+; Output:
+;   All remaining digits copied to display
+;   Final character stored
+;
+; Registers:
+; --- Start ---
+;   A  = First non-zero digit
+;   DE = Temp buffer position
+;   HL = Display position
+;   B  = Character count
+; --- In Process ---
+;   A  = Characters from buffer
+;   HL = Incremented
+;   DE = Decremented
+;   B  = Decremented
+; ---  End  ---
+;   B  = 0
+;   Falls through to LAB_ram_f333
+;
+; Memory Modified: CHRRAM display area
+; Calls: None
+;==============================================================================
 LAB_ram_f32d:
     LD          (HL),A                              ; Store character to display
     INC         HL                                  ; Move forward in display
     DEC         DE                                  ; Move backward in buffer (big-endian)
     LD          A,(DE)                              ; Load next character
     DJNZ        LAB_ram_f32d                        ; Loop while B > 0
+
+;==============================================================================
+; LAB_ram_f333 - Store final character and return
+;==============================================================================
+; Stores the last digit character to display and completes the BCD to ASCII
+; conversion and rendering process. Reached when loop counter exhausted or
+; all characters were leading zeros.
+;
+; Input:
+;   A  = Final character to store
+;   HL = Display position for final character
+;
+; Output:
+;   Final character written to display
+;   RECALC_AND_REDRAW_BCD complete
+;
+; Registers:
+; --- Start ---
+;   A  = Final character
+;   HL = Display position
+; --- In Process ---
+;   None
+; ---  End  ---
+;   A  = Unchanged
+;   HL = Unchanged
+;
+; Memory Modified: (HL) = final character
+; Calls: None
+;==============================================================================
 LAB_ram_f333:
     LD          (HL),A                              ; Store final character
     RET                                             ; Return to caller
@@ -5493,6 +8509,42 @@ LAB_ram_f482:
     LD          DE,TEMP_MAP                         ; DE = temp map buffer for filtering
     LD          HL,MAP_LADDER_OFFSET                ; HL = source map (with ladder)
     LD          B,0x0                               ; B = 0 (item counter)
+
+;==============================================================================
+; LAB_ram_f49d - Filter duplicate items from generated table
+;==============================================================================
+; Iterates through raw generated item table, checks each position for duplicates
+; using SUB_ram_f4d4, and copies non-duplicate entries to TEMP_MAP buffer.
+; Handles special $FE markers (empty slots) by removing them from final table.
+;
+; Input:
+;   HL = MAP_LADDER_OFFSET (raw item table pointer)
+;   DE = TEMP_MAP (filtered output buffer)
+;   B  = 0 (item counter)
+;
+; Output:
+;   TEMP_MAP populated with filtered items (no duplicates)
+;   B  = Final item count
+;
+; Registers:
+; --- Start ---
+;   HL = MAP_LADDER_OFFSET
+;   DE = TEMP_MAP
+;   B  = 0
+; --- In Process ---
+;   A  = Item positions and codes
+;   HL = Source table pointer (advancing)
+;   DE = Destination buffer pointer (advancing)
+;   B  = Item counter (incrementing/decrementing)
+;   EXX switches between main and alternate register sets
+; ---  End  ---
+;   HL = Points past $FF terminator in source
+;   DE = Points past last filtered item in TEMP_MAP
+;   B  = Final filtered item count
+;
+; Memory Modified: TEMP_MAP (filled with filtered items)
+; Calls: SUB_ram_f4d4 (duplicate checker)
+;==============================================================================
 LAB_ram_f49d:
     LD          A,(HL)                              ; Load item code from map
     CP          $ff                                 ; Compare to $FF (terminator)
@@ -5512,6 +8564,36 @@ LAB_ram_f49d:
     INC         DE                                  ; Move to next temp position
     INC         HL                                  ; Move to next source entry
     JP          LAB_ram_f49d                        ; Continue loop
+
+;==============================================================================
+; LAB_ram_f4b7 - Skip duplicate item entry
+;==============================================================================
+; Advances source pointer past a duplicate item entry (position + code = 2 bytes)
+; and decrements item counter to account for removed duplicate.
+;
+; Input:
+;   HL = Points to duplicate item position byte
+;   B  = Current item count (includes duplicate)
+;
+; Output:
+;   HL advanced by 2 bytes (past duplicate entry)
+;   B  decremented (duplicate removed from count)
+;   Control returns to LAB_ram_f49d loop
+;
+; Registers:
+; --- Start ---
+;   HL = Duplicate item position
+;   B  = Item count
+; --- In Process ---
+;   HL = Incremented twice
+;   B  = Decremented once
+; ---  End  ---
+;   HL = Past duplicate entry
+;   B  = Updated count
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 LAB_ram_f4b7:
     INC         HL                                  ; Skip position byte
     INC         HL                                  ; Skip item code byte
@@ -5522,21 +8604,150 @@ LAB_ram_f4bc:
     DEC         DE                                  ; Back up (don't store $FE)
     DEC         B                                   ; Decrement counter
     JP          LAB_ram_f49d                        ; Continue loop
+
+;==============================================================================
+; SETUP_MAP_COPY - Initialize pointers for filtered item copy
+;==============================================================================
+; Resets source and destination pointers to copy filtered items from TEMP_MAP
+; back to final MAP_LADDER_OFFSET table. Tests item count for early exit if
+; filtering removed all items.
+;
+; Input:
+;   B  = Filtered item count
+;
+; Output:
+;   DE = TEMP_MAP (source)
+;   HL = MAP_LADDER_OFFSET (destination)
+;   If B=0: jumps to MAP_DONE
+;   If B>0: falls through to COPY_TEMP_MAP_TO_REAL_MAP
+;
+; Registers:
+; --- Start ---
+;   B  = Item count
+; --- In Process ---
+;   DE = Set to TEMP_MAP
+;   HL = Set to MAP_LADDER_OFFSET
+;   B  = Tested via INC/DEC (preserves value)
+; ---  End  ---
+;   DE = TEMP_MAP
+;   HL = MAP_LADDER_OFFSET
+;   B  = Unchanged
+;   F  = Zero flag set if B was 0
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 SETUP_MAP_COPY:
     LD          DE,TEMP_MAP                         ; DE = temp map (filtered)
     LD          HL,MAP_LADDER_OFFSET                ; HL = destination (real map)
     INC         B                                   ; Increment counter
     DEC         B                                   ; Test if zero
     JP          Z,MAP_DONE                          ; If no items, skip copy
+
+;==============================================================================
+; COPY_TEMP_MAP_TO_REAL_MAP - Copy filtered items to final item table
+;==============================================================================
+; Copies B bytes from TEMP_MAP (filtered items with no duplicates) to
+; MAP_LADDER_OFFSET (final item table). Simple byte-by-byte transfer.
+;
+; Input:
+;   DE = TEMP_MAP (source buffer with filtered items)
+;   HL = MAP_LADDER_OFFSET (destination table)
+;   B  = Byte count (filtered item count)
+;
+; Output:
+;   Filtered items copied to final table
+;   Pointers advanced past copied data
+;
+; Registers:
+; --- Start ---
+;   DE = TEMP_MAP
+;   HL = MAP_LADDER_OFFSET
+;   B  = Byte count
+; --- In Process ---
+;   A  = Transfer byte
+;   DE = Incremented
+;   HL = Incremented
+;   B  = Decremented
+; ---  End  ---
+;   DE = TEMP_MAP + byte count
+;   HL = MAP_LADDER_OFFSET + byte count
+;   B  = 0
+;
+; Memory Modified: MAP_LADDER_OFFSET (B bytes written)
+; Calls: None
+;==============================================================================
 COPY_TEMP_MAP_TO_REAL_MAP:
     LD          A,(DE)                              ; Load byte from temp map
     LD          (HL),A                              ; Store to real map
     INC         HL                                  ; Move to next destination
     INC         DE                                  ; Move to next source
     DJNZ        COPY_TEMP_MAP_TO_REAL_MAP           ; Loop for all items
+
+;==============================================================================
+; MAP_DONE - Finalize item table with terminator
+;==============================================================================
+; Writes $FF terminator byte to end of item table and returns to caller.
+; Marks completion of BUILD_MAP routine.
+;
+; Input:
+;   HL = Points to byte after last item in table
+;
+; Output:
+;   $FF terminator written
+;   BUILD_MAP complete
+;
+; Registers:
+; --- Start ---
+;   HL = End of item table
+; --- In Process ---
+;   None
+; ---  End  ---
+;   HL = Unchanged
+;
+; Memory Modified: (HL) = $FF
+; Calls: None
+;==============================================================================
 MAP_DONE:
     LD          (HL),$ff                            ; Store $FF terminator
     RET                                             ; Return to caller
+
+;==============================================================================
+; SUB_ram_f4d4 - Check for duplicate position in filtered items
+;==============================================================================
+; Searches TEMP_MAP for an item at the same position as the current item being
+; processed. Uses alternate register set to preserve main registers. Returns
+; with Z flag set if duplicate found, clear if position is unique.
+;
+; Algorithm:
+;   - Transfers BC to alternate set via stack
+;   - Searches TEMP_MAP comparing positions (every 2 bytes: pos, code)
+;   - Returns Z set if match found, Z clear if unique
+;
+; Input:
+;   A  = Position to check for duplicates
+;   BC = Item counter in main register set
+;
+; Output:
+;   Z flag = Set if duplicate found, clear if unique
+;   BC in alternate set = Item counter
+;
+; Registers:
+; --- Start ---
+;   A  = Position to check
+;   BC = Main set item counter (preserved via stack)
+; --- In Process ---
+;   Main: BC pushed/available for EXX transfer
+;   Alt:  BC = Item counter, HL = TEMP_MAP scanner
+; ---  End  ---
+;   A  = Position (preserved)
+;   F  = Z flag indicates duplicate status
+;   Main registers preserved
+;   Alt: BC = Updated counter, HL = Scan position or TEMP_MAP
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 SUB_ram_f4d4:
     PUSH        BC                                  ; Save BC to stack
     EXX                                             ; Switch to alternate registers
@@ -5544,6 +8755,40 @@ SUB_ram_f4d4:
     DEC         B                                   ; Decrement counter
     JP          Z,LAB_ram_f4e4                      ; If zero, no items to check
     LD          HL,TEMP_MAP                         ; Point to temp map
+
+;==============================================================================
+; LAB_ram_f4dd - Search loop for duplicate positions
+;==============================================================================
+; Iterates through TEMP_MAP entries (position, code pairs) comparing each
+; position byte to the target position in A. Returns immediately with Z set
+; if match found.
+;
+; Input:
+;   A  = Target position to search for
+;   HL = TEMP_MAP (start of filtered items)
+;   B  = Item count
+;
+; Output:
+;   If match: Returns with Z set, HL points to matching position
+;   If no match: Falls through to LAB_ram_f4e4
+;
+; Registers:
+; --- Start ---
+;   A  = Target position
+;   HL = TEMP_MAP
+;   B  = Item count
+; --- In Process ---
+;   HL = Incremented by 2 each iteration (position + code)
+;   B  = Decremented each iteration
+; ---  End  ---
+;   A  = Unchanged
+;   HL = Points to matching position or past last checked item
+;   B  = 0 if exhausted, >0 if match found early
+;   F  = Z set if match, cleared by DJNZ if no match
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 LAB_ram_f4dd:
     CP          (HL)                                ; Compare position to temp map entry
     RET         Z                                   ; If match (duplicate), return with Z set
@@ -5551,9 +8796,76 @@ LAB_ram_f4dd:
     INC         HL                                  ; Skip position byte
     INC         HL                                  ; Skip item code byte
     DJNZ        LAB_ram_f4dd                        ; Loop for all items
+
+;==============================================================================
+; LAB_ram_f4e4 - Return with Z clear (no duplicate)
+;==============================================================================
+; Called when no items exist to check or search loop exhausted without finding
+; a match. Executes DEC B to clear the Z flag, signaling unique position.
+;
+; Input:
+;   B  = 0 (counter exhausted or no items)
+;
+; Output:
+;   Z flag cleared
+;   Returns to caller
+;
+; Registers:
+; --- Start ---
+;   B  = 0
+; --- In Process ---
+;   B  = Decremented (becomes $FF)
+; ---  End  ---
+;   B  = $FF
+;   F  = Z clear
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 LAB_ram_f4e4:
     DEC         B                                   ; Clear Z flag (no duplicate found)
     RET                                             ; Return with Z clear
+
+;==============================================================================
+; REDRAW_START - Calculate wall states and dispatch to direction handler
+;==============================================================================
+; Main entry point for recalculating all wall states based on player position
+; and facing direction. Sets up return address (CALC_ITEMS) on stack, then
+; dispatches to direction-specific wall calculation routines (FACING_NORTH/
+; EAST/SOUTH/WEST). Each direction handler will RET through CALC_ITEMS.
+;
+; Flow:
+;   1. Push CALC_ITEMS address on stack (for RET after compass redraw)
+;   2. Load player position and convert to MAPSPACE_WALLS address
+;   3. Initialize wall state pointers and step value
+;   4. Dispatch to direction-specific handler based on DIR_FACING_SHORT
+;
+; Input:
+;   PLAYER_MAP_POS - Current player position (0-255)
+;   DIR_FACING_SHORT - Facing direction (1=N, 2=E, 3=S, 4=W)
+;
+; Output:
+;   HL = CALC_ITEMS pushed on stack (return address)
+;   DE = Player position in MAPSPACE_WALLS ($3800 + position)
+;   HL = WALL_F0_STATE pointer ($33e8)
+;   C  = 5 (step value for CALC_HALF_WALLS)
+;   Control transfers to direction handler
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   HL = CALC_ITEMS, then PLAYER_MAP_POS, then WALL_F0_STATE
+;   E  = Player position
+;   D  = $38 (MAPSPACE_WALLS high byte)
+;   C  = 5 (step value)
+;   A  = DIR_FACING_SHORT, decremented for tests
+; ---  End  ---
+;   Control transfers to FACING_* routine (no return)
+;
+; Memory Modified: Stack (CALC_ITEMS address pushed)
+; Calls: FACING_NORTH, FACING_EAST, FACING_SOUTH, or FACING_WEST
+;==============================================================================
 REDRAW_START:
     LD          HL,CALC_ITEMS                       ; Save CALC_ITEMS function address
     PUSH        HL                                  ; PUSH it onto the stack for RET value after COMPASS redraw
@@ -6185,6 +9497,31 @@ CALC_ITEMS:
     ADD         A,E                                 ; Move right by E (directly behind player)
     CALL        ITEM_MAP_CHECK                      ; Check for item at position (IX+7)
     LD          (IX+7),A                            ; Store result in eighth item slot
+
+;==============================================================================
+; LAB_ram_f7f0 - Return empty position marker
+;==============================================================================
+; Returns $FE to indicate no item/monster found at searched position. Called
+; by ITEM_MAP_CHECK when table search reaches $FF terminator without finding
+; a match. Also serves as fallback return point.
+;
+; Input:
+;   None (reached via JP from ITEM_MAP_CHECK)
+;
+; Output:
+;   A = $FE (empty position marker)
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = Set to $FE
+; ---  End  ---
+;   A  = $FE
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 LAB_ram_f7f0:
     LD          A,$fe                               ; Return $FE (empty space marker)
     RET
@@ -6309,6 +9646,34 @@ REDRAW_VIEWPORT:
 F0_NO_HD_WALL_OPEN:
     CALL        DRAW_WALL_F0_AND_OPEN_DOOR          ; Draw wall with open door
     JP          LAB_ram_f986                        ; Jump to F1 item check
+;==============================================================================
+; F0_NO_HD - Process F0 wall when no hidden door present
+;==============================================================================
+; Handles F0 wall rendering when bit 0 (hidden door flag) is clear. Tests
+; bit 1 for wall existence and bit 2 for door state (open/closed). Branches
+; to appropriate draw routine or continues to F1 processing.
+;
+; Input:
+;   A = F0 wall state after one RRCA (bit 0 already tested)
+;   BC = ITEM_F2 pointer
+;   DE = WALL_F0_STATE pointer
+;
+; Output:
+;   Wall/door drawn if present
+;   Control to F1 wall check or LAB_ram_f986
+;
+; Registers:
+; --- Start ---
+;   A  = F0 state rotated once right
+; --- In Process ---
+;   A  = Further rotated for bit testing (RRCA sequences)
+;   AF'= Saved during draw calls
+; ---  End  ---
+;   Control transfers to draw routine or next section
+;
+; Memory Modified: CHRRAM/COLRAM via draw calls
+; Calls: DRAW_F0_WALL_AND_CLOSED_DOOR, DRAW_WALL_F0_AND_OPEN_DOOR
+;==============================================================================
 F0_NO_HD:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          NC,F0_NO_HD_NO_WALL                 ; If no wall, check F1
@@ -6316,6 +9681,31 @@ F0_NO_HD:
     JP          C,F0_NO_HD_WALL_OPEN                ; If door open, draw open door
     CALL        DRAW_F0_WALL_AND_CLOSED_DOOR        ; Draw wall with closed door
     JP          F0_HD_NO_WALL                       ; Continue to L1/R1 walls
+;==============================================================================
+; F0_NO_HD_NO_WALL - Continue to F1 when F0 has no wall
+;==============================================================================
+; Entry point when F0 position has no wall present (bit 1 clear). Advances
+; DE to F1_WALL_STATE and continues F1 wall rendering logic.
+;
+; Input:
+;   DE = WALL_F0_STATE pointer
+;
+; Output:
+;   DE = WALL_F1_STATE pointer
+;   A = F1 wall state loaded
+;
+; Registers:
+; --- Start ---
+;   DE = WALL_F0_STATE
+; --- In Process ---
+;   DE = Incremented to F1
+;   A  = F1 wall state
+; ---  End  ---
+;   Control to F1 hidden door check
+;
+; Memory Modified: None
+; Calls: None (continues inline to F1 logic)
+;==============================================================================
 F0_NO_HD_NO_WALL:
     INC         DE                                  ; Move to F1 wall state
     LD          A,(DE)                              ; Load F1 wall state
@@ -6331,6 +9721,33 @@ F0_NO_HD_NO_WALL:
 F1_NO_HD_WALL_OPEN:
     CALL        DRAW_WALL_F1_AND_OPEN_DOOR          ; Draw wall with open door
     JP          LAB_ram_f8b7                        ; Jump to F2 item check
+;==============================================================================
+; F1_NO_HD - Process F1 wall when no hidden door present
+;==============================================================================
+; Handles F1 wall rendering when bit 0 (hidden door flag) is clear. Tests
+; bit 1 for wall existence and bit 2 for door state. Mirrors F0_NO_HD logic
+; for F1 depth position.
+;
+; Input:
+;   A = F1 wall state after one RRCA
+;   DE = WALL_F1_STATE pointer
+;
+; Output:
+;   Wall/door drawn if present
+;   Control to F2 check or L1/R1 walls
+;
+; Registers:
+; --- Start ---
+;   A  = F1 state rotated once
+; --- In Process ---
+;   A  = Further rotated for bit tests
+;   AF'= Saved during draw calls
+; ---  End  ---
+;   Control transfers to next section
+;
+; Memory Modified: CHRRAM/COLRAM via draw calls
+; Calls: DRAW_WALL_F1_AND_CLOSED_DOOR, DRAW_WALL_F1_AND_OPEN_DOOR
+;==============================================================================
 F1_NO_HD:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          NC,LAB_ram_f85a                     ; If no wall, check F2
@@ -6346,6 +9763,32 @@ LAB_ram_f85a:
 F2_WALL:
     CALL        DRAW_WALL_F2                        ; Draw F2 wall
     JP          LAB_ram_f86d                        ; Continue to L2 walls
+;==============================================================================
+; CHECK_WALL_F2 - Test F2 wall existence (bit 1) when no hidden door
+;==============================================================================
+; After confirming no hidden door at F2 (bit 0 clear), tests bit 1 to
+; determine if a wall exists. Draws wall if present, or empty space if not.
+; Simpler than F0/F1 logic since F2 uses simplified rendering.
+;
+; Input:
+;   A = F2 wall state after one RRCA (bit 0 tested)
+;   DE = WALL_F2_STATE pointer
+;
+; Output:
+;   F2 wall or empty space drawn
+;   Control to L2 walls (LAB_ram_f86d)
+;
+; Registers:
+; --- Start ---
+;   A  = F2 state rotated once
+; --- In Process ---
+;   A  = Rotated again to test bit 1
+; ---  End  ---
+;   Control to L2 wall processing
+;
+; Memory Modified: CHRRAM/COLRAM via DRAW_WALL_F2 or DRAW_WALL_F2_EMPTY
+; Calls: DRAW_WALL_F2, DRAW_WALL_F2_EMPTY
+;==============================================================================
 CHECK_WALL_F2:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          C,F2_WALL                           ; If wall exists, draw it
@@ -6563,6 +10006,32 @@ LAB_ram_f9de:
     CALL        DRAW_DOOR_L1_HIDDEN                 ; Draw hidden door on L1
     CALL        SUB_ram_f9e7                        ; Check and draw FL1 item
     JP          LAB_ram_fa19                        ; Continue to R0 walls
+;==============================================================================
+; SUB_ram_f9e7 - Check and draw item at FL1 position
+;==============================================================================
+; Helper subroutine called from multiple FL1 wall rendering paths. Loads the
+; item code at ITEM_FL1 and dispatches to CHK_ITEM with FL1-specific distance
+; and size parameters ($4d0).
+;
+; Input:
+;   ITEM_FL1 - Item/monster code at FL1 position
+;
+; Output:
+;   Item sprite drawn at FL1 if present
+;   Control to CHK_ITEM (which returns to caller)
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = ITEM_FL1 value
+;   BC = $4d0 (distance/size for FL1)
+; ---  End  ---
+;   Modified by CHK_ITEM
+;
+; Memory Modified: CHRRAM/COLRAM if item drawn
+; Calls: CHK_ITEM
+;==============================================================================
 SUB_ram_f9e7:
     LD          A,(ITEM_FL1)                        ; Load item at FL1 position
     LD          BC,$4d0                             ; BC = distance/size parameters
@@ -6618,6 +10087,32 @@ LAB_ram_fa42:
 LAB_ram_fa48:
     CALL        DRAW_WALL_FR0                       ; Draw FR0 wall
     JP          LAB_ram_faa3                        ; Jump to F0 item check
+;==============================================================================
+; SUB_ram_fa4e - Check and draw item at FR1 position
+;==============================================================================
+; Helper subroutine for FR1 wall rendering paths. Loads item code at ITEM_FR1
+; and dispatches to CHK_ITEM with FR1-specific distance/size parameters ($4e4).
+; Mirror of SUB_ram_f9e7 for right side.
+;
+; Input:
+;   ITEM_FR1 - Item/monster code at FR1 position
+;
+; Output:
+;   Item sprite drawn at FR1 if present
+;   Control to CHK_ITEM (returns to caller)
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = ITEM_FR1 value
+;   BC = $4e4 (distance/size for FR1)
+; ---  End  ---
+;   Modified by CHK_ITEM
+;
+; Memory Modified: CHRRAM/COLRAM if item drawn
+; Calls: CHK_ITEM
+;==============================================================================
 SUB_ram_fa4e:
     LD          A,(ITEM_FR1)                        ; Load item at FR1 position
     LD          BC,$4e4                             ; BC = distance/size parameters
@@ -6666,6 +10161,42 @@ LAB_ram_faa3:
     LD          A,(ITEM_F0)                         ; Load item at F0 position
     LD          BC,$8a                              ; BC = distance/size parameters
     JP          CHK_ITEM                            ; Check and draw F0 item
+;==============================================================================
+; MAKE_RANDOM_BYTE - Generate pseudo-random byte using 16-bit LFSR
+;==============================================================================
+; Generates a pseudo-random byte using a 16-bit Linear Feedback Shift Register
+; (LFSR) with XOR taps. Runs 5 iterations of shift-and-XOR to produce quality
+; randomness. Seeds from RNDHOLD_AA which must be initialized at startup.
+;
+; Algorithm: For each iteration:
+;   1. Shift HL left (L << 1, H << 1 with carry)
+;   2. If carry: HL = HL (entropy from overflow)
+;   3. If no carry: L ^= $87, H ^= $1D (polynomial taps)
+;
+; Input:
+;   RNDHOLD_AA - 16-bit random seed (must be non-zero initially)
+;
+; Output:
+;   A = Pseudo-random byte (0-255)
+;   RNDHOLD_AA updated for next call
+;
+; Registers:
+; --- Start ---
+;   BC = Pushed for preservation
+;   HL = Pushed for preservation
+; --- In Process ---
+;   B  = Loop counter (5 iterations)
+;   HL = LFSR state from RNDHOLD_AA
+;   A  = XOR masks ($87, $1D) during computation
+; ---  End  ---
+;   A  = Random byte (H from final LFSR state)
+;   BC = Restored
+;   HL = Restored
+;   F  = Flags from final POP
+;
+; Memory Modified: RNDHOLD_AA (updated seed)
+; Calls: None
+;==============================================================================
 MAKE_RANDOM_BYTE:
     PUSH        BC                                  ; Preserve BC register
     PUSH        HL                                  ; Preserve HL register
@@ -6688,6 +10219,46 @@ FINISH_BYTE_LOOP:
     POP         HL                                  ; Restore HL register
     POP         BC                                  ; Restore BC register
     RET                                             ; Return with random byte in A
+;==============================================================================
+; UPDATE_SCR_SAVER_TIMER - Update screen saver timer with polynomial feedback
+;==============================================================================
+; Updates a 16-bit timer using polynomial multiplication and XOR feedback to
+; generate pseudo-random values. Formula: timer = (timer * 9) + $13, then
+; returns H XOR L as a pseudo-random byte in TIMER_D.
+;
+; Algorithm:
+;   1. BC = timer * 4 (shift left twice)
+;   2. timer = timer + BC (timer *= 5)
+;   3. TIMER_D = H XOR L (random output)
+;   4. BC = timer * 4 (second shift sequence)
+;   5. timer = timer + BC (timer *= 9 from original)
+;   6. timer = timer + $13
+;
+; Input:
+;   TIMER_E - 16-bit timer value
+;
+; Output:
+;   TIMER_E updated with new value
+;   TIMER_D = H XOR L (pseudo-random byte)
+;   A = TIMER_D value
+;
+; Registers:
+; --- Start ---
+;   BC = Pushed for preservation
+;   HL = Pushed for preservation
+; --- In Process ---
+;   HL = TIMER_E value
+;   BC = Multiplication intermediates (HL * 4)
+;   A  = H XOR L result
+; ---  End  ---
+;   A  = Pseudo-random byte from TIMER_D
+;   BC = Restored
+;   HL = Restored
+;   F  = Flags from final POP
+;
+; Memory Modified: TIMER_E, TIMER_D
+; Calls: None
+;==============================================================================
 UPDATE_SCR_SAVER_TIMER:
     PUSH        BC                                  ; Preserve BC register
     PUSH        HL                                  ; Preserve HL register
@@ -6715,6 +10286,37 @@ UPDATE_SCR_SAVER_TIMER:
     POP         HL                                  ; Restore HL register
     POP         BC                                  ; Restore BC register
     RET                                             ; Return with pseudo-random in TIMER_D
+;==============================================================================
+; MINOTAUR_DEAD - Victory sequence when Minotaur is defeated
+;==============================================================================
+; Displays "THE END" screen with Minotaur sprite, fully heals player, plays
+; victory sound sequence, then transitions to screen saver. Marks successful
+; completion of the game.
+;
+; Input:
+;   INPUT_HOLDER - Used for random color calculation
+;
+; Output:
+;   Victory screen displayed
+;   Player fully healed
+;   Stats updated
+;   Victory sound played
+;   Control transfers to screen saver
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = Random values, rotated INPUT_HOLDER
+;   B  = Color values, sound loop counter
+;   DE = Text pointers, sprite data pointer
+;   HL = Screen positions
+; ---  End  ---
+;   Control transfers to SCREEN_SAVER_FULL_SCREEN (no return)
+;
+; Memory Modified: INPUT_HOLDER (cleared), CHRRAM/COLRAM (full screen), player stats
+; Calls: DRAW_BKGD, GFX_DRAW, MAKE_RANDOM_BYTE, TOTAL_HEAL, REDRAW_STATS, SUB_ram_cd5f, END_OF_GAME_SOUND, SCREEN_SAVER_FULL_SCREEN
+;==============================================================================
 MINOTAUR_DEAD:
     CALL        DRAW_BKGD                           ; Draw background
     LD          HL,DAT_ram_3050                     ; HL = first text data address
@@ -6748,6 +10350,44 @@ MINOTAUR_DEAD_SOUND_LOOP:
     EXX                                             ; Switch back to main registers
     DJNZ        MINOTAUR_DEAD_SOUND_LOOP            ; Loop B times
     JP          SCREEN_SAVER_FULL_SCREEN            ; Jump to screen saver
+;==============================================================================
+; DO_REST - Rest to recover health by consuming food
+;==============================================================================
+; Allows player to rest and recover health (physical and spiritual) by consuming
+; food from inventory. Each point of health costs 1 food. Cannot rest during
+; combat. Continues until fully healed or food exhausted.
+;
+; Healing Order:
+;   1. Physical health to max
+;   2. Spiritual health to max
+;   3. Cycles between phys/sprt if both partially damaged
+;
+; Input:
+;   COMBAT_BUSY_FLAG - Must be 0 (not in combat)
+;   PLAYER_PHYS_HEALTH, PLAYER_PHYS_HEALTH_MAX
+;   PLAYER_SPRT_HEALTH, PLAYER_SPRT_HEALTH_MAX
+;   FOOD_INV - Food inventory (BCD)
+;   BYTE_ram_3aa9 - Rest counter/timer
+;
+; Output:
+;   Health restored (up to available food)
+;   Food inventory decremented
+;   Stats display updated
+;
+; Registers:
+; --- Start ---
+;   A = Combat flag check
+; --- In Process ---
+;   A  = Health comparisons, inventory checks
+;   HL = Health values, food pointer, rest counter
+;   DE = Health deltas, increment values
+;   C  = Max health comparison values
+; ---  End  ---
+;   Control transfers to INPUT_DEBOUNCE or CHK_NEEDS_HEALING loop
+;
+; Memory Modified: PLAYER_PHYS_HEALTH, PLAYER_SPRT_HEALTH, FOOD_INV, BYTE_ram_3aa9
+; Calls: RECALC_PHYS_HEALTH, ADD_BCD_HL_DE, REDRAW_STATS, INPUT_DEBOUNCE
+;==============================================================================
 DO_REST:
     LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
     AND         A                                   ; Test if zero
@@ -6795,6 +10435,43 @@ HEAL_PLAYER_SPRT_HEALTH:
     LD          (PLAYER_SPRT_HEALTH),A              ; Store updated spiritual health
     CALL        REDRAW_STATS                        ; Update stats display
     JP          CHK_NEEDS_HEALING                   ; Check if more healing needed
+;==============================================================================
+; KEY_COMPARE - Scan keyboard matrix and dispatch to action handlers
+;==============================================================================
+; Scans all 8 keyboard columns (64 keys total) and dispatches to appropriate
+; action handlers based on key states. Each column contains 6 rows tested with
+; CP instructions. Key matrix uses active-low encoding ($FE-$DF for rows 0-5).
+;
+; Keyboard Layout (by column):
+;   Col 0: =, BKSP, :, RET, ; (glance R), . (turn R)
+;   Col 1: -, /, 0, P, L (move fwd), , (jump back)
+;   Col 2: 9, O, K (move fwd), M (turn L), N (use/attack), J (glance L)
+;   Col 3: 8, I, 7, U, H (open/close), B
+;   Col 4: 6, Y (map), G, V, C (count arrows), F (rest)
+;   Col 5: 5, T (teleport), 4, R (swap pack), D (ladder), X (count food)
+;   Col 6: 3, E (swap hands), S (rotate pack), Z (wipe walls), SPC, A
+;   Col 7: 2, W (pick up), 1, Q (max stats), SHFT, CTRL
+;
+; Input:
+;   RAM_AE - Keyboard scan flag ($31 = key pressed)
+;   KEY_INPUT_COL0-COL7 - Keyboard column states (active-low)
+;
+; Output:
+;   Control transfers to action handler or NO_ACTION_TAKEN
+;
+; Registers:
+; --- Start ---
+;   A = RAM_AE scan flag
+; --- In Process ---
+;   A  = Column states, row comparisons
+;   HL = KEY_INPUT_COL0, incremented through columns
+;   L  = Column offset (INC L for next column)
+; ---  End  ---
+;   Control transfers (no return)
+;
+; Memory Modified: None directly (action handlers modify game state)
+; Calls: Various action handlers (DO_*, USE_*, etc.)
+;==============================================================================
 KEY_COMPARE:
     LD          A,(RAM_AE)                          ; Load keyboard scan flag
     CP          $31                                 ; Compare to "1" (key pressed?)
@@ -7111,7 +10788,7 @@ CHECK_RING:
 ;==============================================================================
 ; Reads the helmet inventory slot level, converts it to a color value using
 ; LEVEL_TO_COLRAM_FIX, and updates the helmet icon color in COLRAM. Preserves
-; the A register across the operation.
+; the A register across the operation. Mirrors CHECK_RING logic for helmet.
 ;
 ; Flow:
 ; 1. Preserve A register
