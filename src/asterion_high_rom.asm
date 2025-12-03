@@ -6796,133 +6796,133 @@ HEAL_PLAYER_SPRT_HEALTH:
     CALL        REDRAW_STATS                        ; Update stats display
     JP          CHK_NEEDS_HEALING                   ; Check if more healing needed
 KEY_COMPARE:
-    LD          A,(RAM_AE)
-    CP          $31								;  Compare to "1" db?
-    JP          NZ,WAIT_FOR_INPUT
+    LD          A,(RAM_AE)                          ; Load keyboard scan flag
+    CP          $31                                 ; Compare to "1" (key pressed?)
+    JP          NZ,WAIT_FOR_INPUT                   ; If no key, wait for input
 KEY_COL_0:
-    LD          HL,KEY_INPUT_COL0
-    LD          A,(HL)								;  A = Key Column 0
-    CP          $fe								;  If Key Row = 0 "="
-    JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "BKSP"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $fb								;  If Key Row = 2 ":"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $f7								;  If Key Row = 3 "RET"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $ef								;  If Key Row = 4 ";"
-    JP          Z,DO_GLANCE_RIGHT
-    CP          $df								;  If Key Row = 5 "."
-    JP          Z,DO_TURN_RIGHT
+    LD          HL,KEY_INPUT_COL0                   ; HL = keyboard column 0 address
+    LD          A,(HL)                              ; A = key column 0 state
+    CP          $fe                                 ; Test row 0 "="
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $fd                                 ; Test row 1 "BKSP"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $fb                                 ; Test row 2 ":"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $f7                                 ; Test row 3 "RET"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $ef                                 ; Test row 4 ";"
+    JP          Z,DO_GLANCE_RIGHT                   ; If pressed, glance right
+    CP          $df                                 ; Test row 5 "."
+    JP          Z,DO_TURN_RIGHT                     ; If pressed, turn right
 KEY_COL_1:
-    INC         L
-    LD          A,(HL)								;  A = Key Column 1
-    CP          $fe								;  If Key Row = 0 "-"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "/"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $fb								;  If Key Row = 2 "0"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $f7								;  If Key Row = 3 "P"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $ef								;  If Key Row = 4 "L"
-    JP          Z,DO_MOVE_FW_CHK_WALLS
-    CP          $df								;  If Key Row = 5 ","
-    JP          Z,DO_JUMP_BACK
+    INC         L                                   ; Move to column 1
+    LD          A,(HL)                              ; A = key column 1 state
+    CP          $fe                                 ; Test row 0 "-"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $fd                                 ; Test row 1 "/"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $fb                                 ; Test row 2 "0"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $f7                                 ; Test row 3 "P"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $ef                                 ; Test row 4 "L"
+    JP          Z,DO_MOVE_FW_CHK_WALLS              ; If pressed, move forward
+    CP          $df                                 ; Test row 5 ","
+    JP          Z,DO_JUMP_BACK                      ; If pressed, jump back
 KEY_COL_2:
-    INC         L
-    LD          A,(HL)								;  A = Key Column 2
-    CP          $fe								;  If Key Row = 0 "9"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "O"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $fb								;  If Key Row = 2 "K"
-    JP          Z,DO_MOVE_FW_CHK_WALLS
-    CP          $f7								;  If Key Row = 3 "M"
-    JP          Z,DO_TURN_LEFT
-    CP          $ef								;  If Key Row = 4 "N"
-    JP          Z,DO_USE_ATTACK
-    CP          $df								;  If Key Row = 5 "J"
-    JP          Z,DO_GLANCE_LEFT
+    INC         L                                   ; Move to column 2
+    LD          A,(HL)                              ; A = key column 2 state
+    CP          $fe                                 ; Test row 0 "9"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $fd                                 ; Test row 1 "O"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $fb                                 ; Test row 2 "K"
+    JP          Z,DO_MOVE_FW_CHK_WALLS              ; If pressed, move forward
+    CP          $f7                                 ; Test row 3 "M"
+    JP          Z,DO_TURN_LEFT                      ; If pressed, turn left
+    CP          $ef                                 ; Test row 4 "N"
+    JP          Z,DO_USE_ATTACK                     ; If pressed, use attack
+    CP          $df                                 ; Test row 5 "J"
+    JP          Z,DO_GLANCE_LEFT                    ; If pressed, glance left
 KEY_COL_3:
-    INC         L
-    LD          A,(HL)								;  A = Key Column 3
-    CP          $fe								;  If Key Row = 0 "8"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "I"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $fb								;  If Key Row = 2 "7"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $f7								;  If Key Row = 3 "U"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $ef								;  If Key Row = 4 "H"
-    JP          Z,DO_OPEN_CLOSE
-    CP          $df								;  If Key Row = 5 "B"
-    JP          Z,NO_ACTION_TAKEN
+    INC         L                                   ; Move to column 3
+    LD          A,(HL)                              ; A = key column 3 state
+    CP          $fe                                 ; Test row 0 "8"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $fd                                 ; Test row 1 "I"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $fb                                 ; Test row 2 "7"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $f7                                 ; Test row 3 "U"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $ef                                 ; Test row 4 "H"
+    JP          Z,DO_OPEN_CLOSE                     ; If pressed, open/close door
+    CP          $df                                 ; Test row 5 "B"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
 KEY_COL_4:
-    INC         L
-    LD          A,(HL)								;  A = Key Column 4
-    CP          $fe								;  If Key Row = 0 "6"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "Y"
-    JP          Z,USE_MAP
-    CP          $fb								;  If Key Row = 2 "G"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $f7								;  If Key Row = 3 "V"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $ef								;  If Key Row = 4 "C"
+    INC         L                                   ; Move to column 4
+    LD          A,(HL)                              ; A = key column 4 state
+    CP          $fe                                 ; Test row 0 "6"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $fd                                 ; Test row 1 "Y"
+    JP          Z,USE_MAP                           ; If pressed, use map
+    CP          $fb                                 ; Test row 2 "G"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $f7                                 ; Test row 3 "V"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $ef                                 ; Test row 4 "C"
     ; JP          Z,DO_COUNT_ARROWS
-    JP          Z,NO_ACTION_TAKEN
-    CP          $df								;  If Key Row = 5 "F"
-    JP          Z,DO_REST
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore (was count arrows)
+    CP          $df                                 ; Test row 5 "F"
+    JP          Z,DO_REST                           ; If pressed, rest
 KEY_COL_5:
-    INC         L
-    LD          A,(HL)								;  A = Key Column 5
-    CP          $fe								;  If Key Row = 0 "5"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "T"
-    JP          Z,DO_TELEPORT
-    CP          $fb								;  If Key Row = 2 "4"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $f7								;  If Key Row = 3 "R"
-    JP          Z,DO_SWAP_PACK
-    CP          $ef								;  If Key Row = 4 "D"
-    JP          Z,DO_USE_LADDER
-    CP          $df								;  If Key Row = 5 "X"
+    INC         L                                   ; Move to column 5
+    LD          A,(HL)                              ; A = key column 5 state
+    CP          $fe                                 ; Test row 0 "5"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $fd                                 ; Test row 1 "T"
+    JP          Z,DO_TELEPORT                       ; If pressed, teleport
+    CP          $fb                                 ; Test row 2 "4"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $f7                                 ; Test row 3 "R"
+    JP          Z,DO_SWAP_PACK                      ; If pressed, swap pack
+    CP          $ef                                 ; Test row 4 "D"
+    JP          Z,DO_USE_LADDER                     ; If pressed, use ladder
+    CP          $df                                 ; Test row 5 "X"
     ; JP          Z,DO_COUNT_FOOD
-    JP          Z,NO_ACTION_TAKEN
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore (was count food)
 
 KEY_COL_6:
-    INC         L
-    LD          A,(HL)								;  A = Key Column 6
-    CP          $fe								;  If Key Row = 0 "3"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "E"
-    JP          Z,DO_SWAP_HANDS
-    CP          $fb								;  If Key Row = 2 "S"
-    JP          Z,DO_ROTATE_PACK
-    CP          $f7								;  If Key Row = 3 "Z"
-    JP          Z,WIPE_WALLS
-    CP          $ef								;  If Key Row = 4 "SPC"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $df								;  If Key Row = 5 "A"
-    JP          Z,NO_ACTION_TAKEN
+    INC         L                                   ; Move to column 6
+    LD          A,(HL)                              ; A = key column 6 state
+    CP          $fe                                 ; Test row 0 "3"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $fd                                 ; Test row 1 "E"
+    JP          Z,DO_SWAP_HANDS                     ; If pressed, swap hands
+    CP          $fb                                 ; Test row 2 "S"
+    JP          Z,DO_ROTATE_PACK                    ; If pressed, rotate pack
+    CP          $f7                                 ; Test row 3 "Z"
+    JP          Z,WIPE_WALLS                        ; If pressed, wipe walls (debug?)
+    CP          $ef                                 ; Test row 4 "SPC"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $df                                 ; Test row 5 "A"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
 KEY_COL_7:
-    INC         L
-    LD          A,(HL)								;  A = Key Column 7
-    CP          $fe								;  If Key Row = 0 "2"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $fd								;  If Key Row = 1 "W"
-    JP          Z,DO_PICK_UP
-    CP          $fb								;  If Key Row = 2 "1"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $f7								;  If Key Row = 3 "Q"
-    JP          Z,MAX_HEALTH_ARROWS_FOOD
-    CP          $ef								;  If Key Row = 4 "SHFT"
-    JP          Z,NO_ACTION_TAKEN
-    CP          $df								;  If Key Row = 5 "CTRL"
-    JP          Z,NO_ACTION_TAKEN
-    JP          NO_ACTION_TAKEN
+    INC         L                                   ; Move to column 7
+    LD          A,(HL)                              ; A = key column 7 state
+    CP          $fe                                 ; Test row 0 "2"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $fd                                 ; Test row 1 "W"
+    JP          Z,DO_PICK_UP                        ; If pressed, pick up item
+    CP          $fb                                 ; Test row 2 "1"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $f7                                 ; Test row 3 "Q"
+    JP          Z,MAX_HEALTH_ARROWS_FOOD            ; If pressed, max stats (cheat?)
+    CP          $ef                                 ; Test row 4 "SHFT"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    CP          $df                                 ; Test row 5 "CTRL"
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    JP          NO_ACTION_TAKEN                     ; No valid key, ignore
 MAX_HEALTH_ARROWS_FOOD:
     LD          HL,PLAYER_PHYS_HEALTH
     LD          A,$99
