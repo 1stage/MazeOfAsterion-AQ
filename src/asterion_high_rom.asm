@@ -2107,137 +2107,545 @@ FINISH_AND_APPLY_DAMAGE:
     LD          A,(WEAPON_VALUE_HOLDER)         ; Load base weapon damage value
     LD          L,A                             ; L = base damage (low byte)
     JP          ACCUM_DAMAGE_LOOP               ; Jump into damage calculation loop
+
+;==============================================================================
+; ACCUM_DAMAGE_STEP — BCD Damage Accumulation Loop Body
+;==============================================================================
+; Inner loop step that accumulates damage using BCD arithmetic. Multiplies
+; base weapon damage by the iteration count through repeated addition.
+;
+; Flow:
+; 1. Add base damage (L) to accumulator (A)
+; 2. Apply BCD correction (DAA)
+; 3. Decrement counter and repeat or continue
+;
+; Inputs:
+;   A  = Current damage accumulator
+;   L  = Base weapon damage value
+;   B  = Remaining iteration count
+;
+; Outputs:
+;   A  = Updated damage accumulator
+;   B  = Decremented (via DJNZ in ACCUM_DAMAGE_LOOP)
+;   F  = Flags per BCD addition
+;
+; Registers:
+; --- Start ---
+;   A  = Accumulated damage so far
+;   L  = Base damage value (constant)
+;   B  = Loop counter
+; --- In Process ---
+;   A  = A + L with DAA correction
+; ---  End  ---
+;   A  = Updated accumulator
+;   F  = Flags from DAA
+;
+; Memory Modified: None
+; Calls: None (called by ACCUM_DAMAGE_LOOP)
+;==============================================================================
 ACCUM_DAMAGE_STEP:
     ADD         A,L                             ; A = A + L (accumulate damage)
-    DAA                                         ; Decimal adjust (BCD arithmetic)
+    DAA                                         ; Decimal adjust for BCD arithmetic
+
+;==============================================================================
+; ACCUM_DAMAGE_LOOP — Damage Multiplication Entry Point
+;==============================================================================
+; Entry point for damage accumulation loop. Multiplies base damage by count
+; through repeated BCD addition. Enters mid-loop to handle B iterations.
+;
+; Flow:
+; 1. DJNZ decrements B and loops to ACCUM_DAMAGE_STEP if B != 0
+; 2. When B reaches 0, falls through with final damage in A
+;
+; Inputs:
+;   A  = Initial value (0 or partial accumulation)
+;   L  = Base weapon damage
+;   B  = Number of iterations (damage multiplier)
+;
+; Outputs:
+;   A  = Final accumulated damage (base × count)
+;   L  = Unchanged base damage
+;   B  = 0
+;
+; Registers:
+; --- Start ---
+;   B  = Iteration count
+;   A  = Initial accumulator
+;   L  = Base damage
+; --- In Process ---
+;   B  = Decremented each iteration
+;   A  = Accumulated via ADD/DAA
+; ---  End  ---
+;   B  = 0
+;   A  = Total damage
+;   F  = Flags from last operation
+;
+; Memory Modified: None
+; Calls: ACCUM_DAMAGE_STEP (loops back)
+;==============================================================================
 ACCUM_DAMAGE_LOOP:
-    DJNZ        ACCUM_DAMAGE_STEP               ; Loop B times to multiply damage
+    DJNZ        ACCUM_DAMAGE_STEP               ; Loop B times: B--, if B != 0 jump to step
     LD          L,A                             ; L = total calculated damage
-    LD          A,(MONSTER_SPRITE_FRAME)        ; Load target identifier
+    LD          A,(MONSTER_SPRITE_FRAME)        ; Load target identifier (sprite frame code)
     AND         $fc                             ; Mask to sprite family ($24-$27 → $24)
     CP          $24                             ; Check if player is target ($24-$27 range)
     JP          NZ,MONSTER_PHYS_BRANCH          ; If not player target, jump to monster damage
     
-    ; Player takes damage - calculate shield defense
-    LD          A,(SHIELD_SPRT)                 ; Load player's shield value
-    LD          E,A                             ; E = shield defense value
-    CALL        DIVIDE_BCD_HL_BY_2              ; Calculate random shield effectiveness
-    LD          D,L                             ; D = shield roll result
-    CALL        RANDOMIZE_BCD_NYBBLES           ; Generate random damage variance
-    LD          A,L                             ; A = random variance
+    ; Player is target - calculate spiritual shield effectiveness
+    LD          A,(SHIELD_SPRT)                 ; Load player's spiritual shield value
+    LD          E,A                             ; E = shield defense value (saved for later)
+    CALL        DIVIDE_BCD_HL_BY_2              ; HL = damage / 2; result in L (shield effectiveness roll)
+    LD          D,L                             ; D = shield roll result (half damage)
+    CALL        RANDOMIZE_BCD_NYBBLES           ; Randomize L nybbles for variance
+    LD          A,L                             ; A = random variance value
     ADD         A,D                             ; A = shield roll + variance
-    DAA                                         ; Decimal adjust
+    DAA                                         ; Decimal adjust for BCD
     SUB         E                               ; A = (shield roll + variance) - shield value
-    DAA                                         ; Decimal adjust
-    JP          C,LAB_ram_e68a                  ; If negative (shield blocked), reduce damage
-    LD          E,A                             ; E = final damage to apply
-PLAYER_TAKES_SPRT_DAMAGE:
-    LD          A,(PLAYER_SPRT_HEALTH)          ; Load player's spirit health
-    SUB         E                               ; A = health - damage
-    DAA                                         ; Decimal adjust
-    JP          C,PLAYER_DIES                   ; If negative, player dies
-    JP          Z,PLAYER_DIES                   ; If zero, player dies
-    LD          (PLAYER_SPRT_HEALTH),A          ; Store new health
-    CALL        REDRAW_STATS                    ; Update stats display
-    JP          REDRAW_SCREEN_AFTER_DAMAGE      ; Jump to finish animation
-LAB_ram_e68a:
-    LD          HL,0x2                          ; Shield blocked - reduce damage to 2
-    CALL        RANDOMIZE_BCD_NYBBLES           ; Add random variance
-    LD          E,L                             ; E = reduced damage
-    JP          PLAYER_TAKES_SPRT_DAMAGE        ; Apply reduced damage to player
+    DAA                                         ; Decimal adjust for BCD
+    JP          C,SHIELD_BLOCKS_DAMAGE          ; If negative (shield blocked), reduce damage
+    LD          E,A                             ; E = final damage to apply (penetrated shield) (penetrated shield)
 
-    ; Monster takes damage - calculate physical damage with shield
+;==============================================================================
+; PLAYER_TAKES_SPRT_DAMAGE — Apply Spiritual Damage to Player
+;==============================================================================
+; Applies spiritual damage to the player's health. Checks for death conditions
+; (health <= 0) and updates the stats display if player survives.
+;
+; Flow:
+; 1. Load current player spiritual health
+; 2. Subtract damage value (E)
+; 3. Check for death (negative or zero)
+; 4. Update health and redraw stats if alive
+; 5. Continue to screen redraw
+;
+; Inputs:
+;   E  = Spiritual damage to apply (BCD)
+;   PLAYER_SPRT_HEALTH = Current player spiritual health
+;
+; Outputs:
+;   PLAYER_SPRT_HEALTH updated or player dies
+;   Stats display refreshed
+;   F  = Flags per BCD subtraction
+;
+; Registers:
+; --- Start ---
+;   E  = Damage value
+; --- In Process ---
+;   A  = Health calculations
+; ---  End  ---
+;   A  = New health value (if alive)
+;   F  = Flags from SUB/DAA
+;
+; Memory Modified: PLAYER_SPRT_HEALTH (if alive)
+; Calls: PLAYER_DIES, REDRAW_STATS, REDRAW_SCREEN_AFTER_DAMAGE
+;==============================================================================
+PLAYER_TAKES_SPRT_DAMAGE:
+    LD          A,(PLAYER_SPRT_HEALTH)          ; Load player's current spiritual health
+    SUB         E                               ; A = health - damage (BCD subtraction)
+    DAA                                         ; Decimal adjust for BCD
+    JP          C,PLAYER_DIES                   ; If negative (carry set), player dies
+    JP          Z,PLAYER_DIES                   ; If zero health, player dies
+    LD          (PLAYER_SPRT_HEALTH),A          ; Store new health value
+    CALL        REDRAW_STATS                    ; Update stats display on screen
+    JP          REDRAW_SCREEN_AFTER_DAMAGE      ; Jump to finish animation and redraw and redraw
+
+;==============================================================================
+; SHIELD_BLOCKS_DAMAGE — Shield Block Damage Reduction
+;==============================================================================
+; Handles case where player's spiritual shield successfully blocks most damage.
+; Reduces incoming damage to a small random value (0-2) and applies it.
+;
+; Flow:
+; 1. Set base reduced damage to 2
+; 2. Randomize to add variance (0-2 range)
+; 3. Apply reduced damage to player
+;
+; Inputs:
+;   None (shield blocked the attack)
+;
+; Outputs:
+;   E  = Reduced damage value (0-2)
+;   Flow to PLAYER_TAKES_SPRT_DAMAGE
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = Base value (2)
+;   L  = Randomized result
+; ---  End  ---
+;   E  = Reduced damage
+;   L  = Randomized value
+;
+; Memory Modified: None directly (via PLAYER_TAKES_SPRT_DAMAGE)
+; Calls: RANDOMIZE_BCD_NYBBLES, PLAYER_TAKES_SPRT_DAMAGE
+;==============================================================================
+SHIELD_BLOCKS_DAMAGE:
+    LD          HL,0x2                          ; Base reduced damage = 2
+    CALL        RANDOMIZE_BCD_NYBBLES           ; Randomize to 0-2 range
+    LD          E,L                             ; E = reduced damage value
+    JP          PLAYER_TAKES_SPRT_DAMAGE        ; Apply minimal damage to player
+
+;==============================================================================
+; MONSTER_PHYS_BRANCH — Monster Takes Physical Damage
+;==============================================================================
+; Handles physical damage application to monsters. Calculates final damage
+; by adding weapon value to accumulated damage with variance, then tests
+; against monster's physical defense.
+;
+; Flow:
+; 1. Randomize accumulated damage (HL) for variance
+; 2. Add base weapon damage to create final damage value
+; 3. Apply BCD corrections for 16-bit damage
+; 4. Load monster's physical shield/defense
+; 5. Calculate damage vs defense; boost if defense too low
+; 6. Continue to damage application
+;
+; Inputs:
+;   HL = Accumulated damage from loop (H=0, L=damage)
+;   WEAPON_VALUE_HOLDER = Base weapon damage
+;   SHIELD_PHYS = Monster's physical defense (16-bit BCD)
+;
+; Outputs:
+;   HL = Final damage after variance and weapon addition
+;   DE = Monster's defense value
+;   Flow to MONSTER_CALC_PHYS_DAMAGE or BOOST_MIN_DAMAGE
+;
+; Registers:
+; --- Start ---
+;   HL = Accumulated damage
+; --- In Process ---
+;   A  = Calculations for low/high bytes
+;   L  = Damage low byte with variance
+;   H  = Damage high byte with carry
+;   DE = Defense value
+; ---  End  ---
+;   HL = Final damage value
+;   DE = Defense value
+;   F  = Flags from RECALC_PHYS_HEALTH
+;
+; Memory Modified: None directly
+; Calls: RANDOMIZE_BCD_NYBBLES, RECALC_PHYS_HEALTH, MONSTER_CALC_PHYS_DAMAGE or BOOST_MIN_DAMAGE
+;==============================================================================
 MONSTER_PHYS_BRANCH:
-    CALL        RANDOMIZE_BCD_NYBBLES           ; Generate random damage variance
-    LD          A,(WEAPON_VALUE_HOLDER)         ; Load base weapon damage
+    CALL        RANDOMIZE_BCD_NYBBLES           ; Randomize L nybbles for damage variance
+    LD          A,(WEAPON_VALUE_HOLDER)         ; Load base weapon damage value
     ADD         A,L                             ; A = base damage + variance
-    DAA                                         ; Decimal adjust
+    DAA                                         ; Decimal adjust for BCD
     LD          L,A                             ; L = damage low byte
-    LD          A,H                             ; A = damage high byte
-    ADC         A,0x0                           ; Add carry to high byte
-    DAA                                         ; Decimal adjust
+    LD          A,H                             ; A = damage high byte (was 0)
+    ADC         A,0x0                           ; Add carry from low byte addition
+    DAA                                         ; Decimal adjust for BCD
     LD          H,A                             ; H = damage high byte
-    LD          DE,(SHIELD_PHYS)                ; DE = monster's physical defense/shield
-    CALL        RECALC_PHYS_HEALTH              ; Calculate damage vs defense
-    JP          C,LAB_ram_e6c4                  ; If defense too low, boost damage
+    LD          DE,(SHIELD_PHYS)                ; DE = monster's physical defense (16-bit BCD)
+    CALL        RECALC_PHYS_HEALTH              ; HL = HL - DE; carry if HL < DE
+    JP          C,BOOST_MIN_DAMAGE              ; If HL < DE (defense too strong), boost damage boost damage
+
+;==============================================================================
+; MONSTER_CALC_PHYS_DAMAGE — Apply Physical Damage to Monster
+;==============================================================================
+; Applies calculated physical damage to monster health. During melee combat,
+; monster health is temporarily stored in PLAYER_PHYS_HEALTH. Checks for
+; monster death conditions and updates display.
+;
+; Flow:
+; 1. Swap registers: DE = damage, HL = unused
+; 2. Load monster health from PLAYER_PHYS_HEALTH
+; 3. Subtract damage from health
+; 4. Check for death (negative or zero)
+; 5. Update health and stats if alive
+; 6. Continue to screen redraw
+;
+; Inputs:
+;   HL = Damage value (becomes DE after swap)
+;   PLAYER_PHYS_HEALTH = Monster's current health (during melee)
+;
+; Outputs:
+;   PLAYER_PHYS_HEALTH updated or monster dies
+;   Stats display refreshed
+;   F  = Flags per health calculation
+;
+; Registers:
+; --- Start ---
+;   HL = Damage value
+; --- In Process ---
+;   DE = Damage (after swap)
+;   HL = Monster health, then result
+;   A  = Health check
+; ---  End  ---
+;   HL = New health (if alive)
+;   F  = Flags from health calculation
+;
+; Memory Modified: PLAYER_PHYS_HEALTH (if alive)
+; Calls: RECALC_PHYS_HEALTH, PLAYER_DIES, REDRAW_STATS, REDRAW_SCREEN_AFTER_DAMAGE
+;==============================================================================
 MONSTER_CALC_PHYS_DAMAGE:
-    ; Context note:
-    ; During melee resolution, this routine applies PHYS damage to the monster.
-    ; The code path temporarily uses `PLAYER_PHYS_HEALTH` as a storage field for
-    ; the monster’s physical health value. This reuse is a space-saving approach
-    ; and differs from general combat where `CURR_MONSTER_PHYS` is used.
-    EX          DE,HL                           ; Swap: DE = damage, HL = trash
-    LD          HL,(PLAYER_PHYS_HEALTH)         ; Load monster's PHYS (stored in player field during melee)
-    CALL        RECALC_PHYS_HEALTH              ; Apply damage to monster health
-    JP          C,PLAYER_DIES                   ; If underflow, monster dies
-    OR          L                               ; Check if health is zero
-    JP          Z,PLAYER_DIES                   ; If zero, monster dies
-    LD          (PLAYER_PHYS_HEALTH),HL         ; Store monster's new health
-    CALL        REDRAW_STATS                    ; Update stats display
+    EX          DE,HL                           ; Swap: DE = damage, HL = unused
+    LD          HL,(PLAYER_PHYS_HEALTH)         ; Load monster's health (stored in player field during melee)
+    CALL        RECALC_PHYS_HEALTH              ; HL = HL - DE; carry if HL < DE
+    JP          C,PLAYER_DIES                   ; If underflow (health < 0), monster dies
+    OR          L                               ; A = A | L; check if low byte is zero
+    JP          Z,PLAYER_DIES                   ; If health = 0, monster dies
+    LD          (PLAYER_PHYS_HEALTH),HL         ; Store monster's new health value
+    CALL        REDRAW_STATS                    ; Update stats display on screen on screen
+
+;==============================================================================
+; REDRAW_SCREEN_AFTER_DAMAGE — Finalize Combat Round Visual Update
+;==============================================================================
+; Completes a combat round by preparing and executing a full viewport redraw.
+; This ensures any visual changes from the damage application are reflected.
+;
+; Flow:
+; 1. Prepare redraw context
+; 2. Execute full viewport redraw
+; 3. Return to main game loop
+;
+; Inputs:
+;   None (uses current game state)
+;
+; Outputs:
+;   Viewport fully redrawn
+;
+; Registers:
+; --- Start ---
+;   All per REDRAW_START requirements
+; --- In Process ---
+;   All modified by redraw routines
+; ---  End  ---
+;   All per REDRAW_VIEWPORT completion
+;
+; Memory Modified: CHRRAM/COLRAM via viewport redraw
+; Calls: REDRAW_START, REDRAW_VIEWPORT
+;==============================================================================
 REDRAW_SCREEN_AFTER_DAMAGE:
     CALL        REDRAW_START                    ; Prepare for viewport redraw
                                                 ; Viewport redraw occurs after damage is applied
                                                 ; to reflect any visual changes from the combat round.
-    JP          REDRAW_VIEWPORT                 ; Redraw viewport and return
-LAB_ram_e6c4:
-    LD          HL,0x3                          ; Defense too low - boost damage to 3
-    CALL        RANDOMIZE_BCD_NYBBLES           ; Add random variance
+    JP          REDRAW_VIEWPORT                 ; Redraw viewport and return to game loop
+
+;==============================================================================
+; BOOST_MIN_DAMAGE — Boost Damage When Defense Too Low
+;==============================================================================
+; Handles case where monster's physical defense is insufficient to reduce
+; damage meaningfully. Applies a minimum damage boost with variance.
+;
+; Flow:
+; 1. Set base boosted damage to 3
+; 2. Randomize for variance
+; 3. Continue to damage application
+;
+; Inputs:
+;   None (damage calculation failed normally)
+;
+; Outputs:
+;   HL = Boosted damage (0-3 range)
+;   Flow to MONSTER_CALC_PHYS_DAMAGE
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = Base damage (3)
+;   L  = Randomized result
+; ---  End  ---
+;   HL = Final boosted damage
+;
+; Memory Modified: None directly
+; Calls: RANDOMIZE_BCD_NYBBLES, MONSTER_CALC_PHYS_DAMAGE
+;==============================================================================
+BOOST_MIN_DAMAGE:
+    LD          HL,0x3                          ; Base boosted damage = 3
+    CALL        RANDOMIZE_BCD_NYBBLES           ; Randomize to 0-3 range
     JP          MONSTER_CALC_PHYS_DAMAGE        ; Apply boosted damage to monster
+
+;==============================================================================
+; DO_SWAP_HANDS — Swap Left and Right Hand Items
+;==============================================================================
+; Exchanges items between left and right hands, updating both the item codes
+; and their visual representations. Also recalculates shield values based on
+; the new equipment configuration.
+;
+; Flow:
+; 1. Swap item codes between LEFT_HAND_ITEM and RIGHT_HAND_ITEM
+; 2. Save right-hand graphics to buffer
+; 3. Copy left-hand graphics to right-hand position
+; 4. Copy buffered graphics to left-hand position
+; 5. Update right-hand item attributes
+; 6. Remove old right-hand item's shield bonuses
+; 7. Remove old left-hand item's shield bonuses
+; 8. Add new shield bonuses from swapped items
+;
+; Inputs:
+;   RIGHT_HAND_ITEM = Current right-hand item code
+;   LEFT_HAND_ITEM = Current left-hand item code
+;   CHRRAM_RIGHT_HD_GFX_IDX = Right-hand graphics area
+;   CHRRAM_LEFT_HD_GFX_IDX = Left-hand graphics area
+;   SHIELD_SPRT = Current spiritual shield value
+;   SHIELD_PHYS = Current physical shield value (16-bit)
+;
+; Outputs:
+;   Items and graphics swapped
+;   Shield values recalculated
+;   Flow to LAB_ram_e812 for shield bonus addition
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = Various pointers (item codes, graphics)
+;   DE = Graphics destination pointers
+;   BC = Item code pointers, then shield adjustment values
+;   A  = Item codes and shield calculations
+; ---  End  ---
+;   BC = Shield bonuses from new left-hand item
+;   All registers modified
+;
+; Memory Modified: RIGHT_HAND_ITEM, LEFT_HAND_ITEM, CHRRAM graphics areas,
+;                  SHIELD_SPRT, SHIELD_PHYS
+; Calls: SUB_ram_ea62, COPY_GFX_2_BUFFER, COPY_GFX_SCRN_2_SCRN,
+;        COPY_GFX_FROM_BUFFER, NEW_RIGHT_HAND_ITEM, GET_ITEM_SHIELD_BONUS, LAB_ram_e812
+;==============================================================================
 DO_SWAP_HANDS:
-    LD          HL,RIGHT_HAND_ITEM
-    LD          BC,LEFT_HAND_ITEM
-    CALL        SUB_ram_ea62
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
-    LD          DE,ITEM_MOVE_CHR_BUFFER
-    CALL        COPY_GFX_2_BUFFER
-    LD          HL,CHRRAM_LEFT_HD_GFX_IDX
-    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX
-    CALL        COPY_GFX_SCRN_2_SCRN
-    LD          HL,ITEM_MOVE_CHR_BUFFER
-    LD          DE,CHRRAM_LEFT_HD_GFX_IDX
-    CALL        COPY_GFX_FROM_BUFFER
-    CALL        NEW_RIGHT_HAND_ITEM
-    LD          BC,0x0
-    LD          HL,RIGHT_HAND_ITEM
-    CALL        SUB_ram_e720
-    LD          A,(SHIELD_SPRT)
-    SUB         C
-    DAA
-    LD          (SHIELD_SPRT),A
-    LD          A,(SHIELD_PHYS)
-    SUB         B
-    DAA
-    LD          (SHIELD_PHYS),A
-    LD          A,(SHIELD_PHYS+1)
-    SBC         A,0x0
-    LD          (SHIELD_PHYS+1),A
-    LD          BC,0x0
-    LD          HL,LEFT_HAND_ITEM
-    CALL        SUB_ram_e720
-    JP          LAB_ram_e812
-SUB_ram_e720:
-    LD          A,(HL)
-    CP          $14
-    RET         NC
-    CP          $10
-    JP          NC,LAB_ram_e72b
-    CP          0x4
-    RET         NC
-LAB_ram_e72b:
-    AND         0x3
-    INC         A
-    CALL        ITEM_ATTR_LOOKUP
-    LD          A,(HL)
-    AND         $fc
-    RET         NZ
-    LD          H,0x0
-    LD          L,B
-    CALL        DIVIDE_BCD_HL_BY_2
-    LD          B,L
-    LD          L,C
-    CALL        DIVIDE_BCD_HL_BY_2
-    LD          C,L
-    RET
+    LD          HL,RIGHT_HAND_ITEM              ; HL points to right-hand item code
+    LD          BC,LEFT_HAND_ITEM               ; BC points to left-hand item code
+    CALL        SUB_ram_ea62                    ; Swap the two item codes
+    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX      ; HL = right-hand graphics source
+    LD          DE,ITEM_MOVE_CHR_BUFFER         ; DE = temporary buffer destination
+    CALL        COPY_GFX_2_BUFFER               ; Save right-hand graphics to buffer
+    LD          HL,CHRRAM_LEFT_HD_GFX_IDX       ; HL = left-hand graphics source
+    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX      ; DE = right-hand graphics destination
+    CALL        COPY_GFX_SCRN_2_SCRN            ; Copy left-hand graphics to right-hand slot
+    LD          HL,ITEM_MOVE_CHR_BUFFER         ; HL = buffered graphics source
+    LD          DE,CHRRAM_LEFT_HD_GFX_IDX       ; DE = left-hand graphics destination
+    CALL        COPY_GFX_FROM_BUFFER            ; Copy buffered graphics to left-hand slot
+    CALL        NEW_RIGHT_HAND_ITEM             ; Update right-hand item attributes
+    LD          BC,0x0                          ; Clear BC (will hold shield bonuses)
+    LD          HL,RIGHT_HAND_ITEM              ; HL points to new right-hand item
+    CALL        GET_ITEM_SHIELD_BONUS           ; Get old right-hand item's shield bonuses into BC
+    LD          A,(SHIELD_SPRT)                 ; Load current spiritual shield
+    SUB         C                               ; Subtract old right-hand SPRT bonus
+    DAA                                         ; Decimal adjust for BCD
+    LD          (SHIELD_SPRT),A                 ; Store updated spiritual shield
+    LD          A,(SHIELD_PHYS)                 ; Load physical shield low byte
+    SUB         B                               ; Subtract old right-hand PHYS bonus
+    DAA                                         ; Decimal adjust for BCD
+    LD          (SHIELD_PHYS),A                 ; Store updated physical shield low byte
+    LD          A,(SHIELD_PHYS+1)               ; Load physical shield high byte
+    SBC         A,0x0                           ; Subtract borrow from high byte
+    LD          (SHIELD_PHYS+1),A               ; Store updated physical shield high byte
+    LD          BC,0x0                          ; Clear BC for next item's bonuses
+    LD          HL,LEFT_HAND_ITEM               ; HL points to new left-hand item
+    CALL        GET_ITEM_SHIELD_BONUS           ; Get old left-hand item's shield bonuses into BC
+    JP          LAB_ram_e812                    ; Jump to add new shield bonuses
+
+;==============================================================================
+; GET_ITEM_SHIELD_BONUS — Get Item Shield Bonuses
+;==============================================================================
+; Retrieves shield bonuses (physical and spiritual) from an item based on its
+; code. Only processes shield items ($00-$03, $10-$13) and returns halved
+; attribute values in BC.
+;
+; Item ranges:
+;   $00-$03: Basic shields (BUCKLER variants)
+;   $04-$0F: Non-shield items (skip)
+;   $10-$13: Advanced shields (SHIELD variants)
+;   $14+:    Non-shield items (skip)
+;
+; Flow:
+; 1. Check if item is in valid shield range
+; 2. Extract item level (0-3) from lower 2 bits
+; 3. Look up item attributes
+; 4. Check if attributes are valid (non-zero in upper bits)
+; 5. Halve attribute values and return in BC
+;
+; Inputs:
+;   HL = Pointer to item code
+;
+; Outputs:
+;   B  = Physical shield bonus (halved attribute)
+;   C  = Spiritual shield bonus (halved attribute)
+;   Returns early if item not a shield
+;
+; Registers:
+; --- Start ---
+;   HL = Item code pointer
+; --- In Process ---
+;   A  = Item code, level, attribute checks
+;   HL = Attribute pointer, then calculation temp
+;   B/C = Attribute values
+; ---  End  ---
+;   B  = PHYS bonus (or unchanged if not shield)
+;   C  = SPRT bonus (or unchanged if not shield)
+;   HL = Modified by calculations
+;
+; Memory Modified: None
+; Calls: ITEM_ATTR_LOOKUP, DIVIDE_BCD_HL_BY_2 (twice)
+;==============================================================================
+GET_ITEM_SHIELD_BONUS:
+    LD          A,(HL)                          ; Load item code from (HL)
+    CP          $14                             ; Compare to $14 (first non-shield advanced item)
+    RET         NC                              ; If >= $14, not a shield, return
+    CP          $10                             ; Compare to $10 (advanced shield start)
+    JP          NC,CALC_SHIELD_ATTRS            ; If >= $10, process as advanced shield
+    CP          0x4                             ; Compare to $04 (first non-shield basic item)
+    RET         NC                              ; If >= $04 and < $10, not a shield, return
+    ; Falls through for $00-$03 (basic shields)
+
+;==============================================================================
+; CALC_SHIELD_ATTRS — Extract and Halve Shield Attributes
+;==============================================================================
+; Processes shield items to extract attribute bonuses. Masks item code to get
+; level (0-3), looks up attributes, validates them, and returns halved values.
+;
+; Flow:
+; 1. Mask item code to level (AND $03)
+; 2. Increment to 1-4 range for lookup
+; 3. Call ITEM_ATTR_LOOKUP to get attribute pointer in HL
+; 4. Load attribute byte and check upper bits
+; 5. If upper bits clear, return (no valid attributes)
+; 6. Extract B/C from attribute data
+; 7. Halve B (physical) via DIVIDE_BCD_HL_BY_2
+; 8. Halve C (spiritual) via DIVIDE_BCD_HL_BY_2
+;
+; Inputs:
+;   A  = Item code (should be shield range)
+;   Original B/C contain previous attribute values (from ITEM_ATTR_LOOKUP)
+;
+; Outputs:
+;   B  = Physical shield bonus (halved)
+;   C  = Spiritual shield bonus (halved)
+;
+; Registers:
+; --- Start ---
+;   A  = Item code
+;   B/C = Attribute values from lookup
+; --- In Process ---
+;   A  = Level (0-3), then attribute validation
+;   HL = Used for division calculations
+;   L  = Temporary for halving operations
+; ---  End  ---
+;   B  = Halved physical bonus
+;   C  = Halved spiritual bonus
+;   HL/A modified
+;
+; Memory Modified: None
+; Calls: ITEM_ATTR_LOOKUP, DIVIDE_BCD_HL_BY_2 (twice)
+;==============================================================================
+CALC_SHIELD_ATTRS:
+    AND         0x3                             ; Mask to level bits (0-3)
+    INC         A                               ; Increment to 1-4 for lookup
+    CALL        ITEM_ATTR_LOOKUP                ; Get item attributes; returns HL = attr ptr, B/C set
+    LD          A,(HL)                          ; Load attribute byte
+    AND         $fc                             ; Mask upper 6 bits (check if attributes exist)
+    RET         NZ                              ; If non-zero, attributes invalid or special, return
+    LD          H,0x0                           ; Clear H for 16-bit division
+    LD          L,B                             ; L = physical attribute value
+    CALL        DIVIDE_BCD_HL_BY_2              ; Halve physical attribute
+    LD          B,L                             ; B = halved physical bonus
+    LD          L,C                             ; L = spiritual attribute value
+    CALL        DIVIDE_BCD_HL_BY_2              ; Halve spiritual attribute
+    LD          C,L                             ; C = halved spiritual bonus
+    RET                                         ; Return with B/C containing halved bonuses
 NEW_RIGHT_HAND_ITEM:
     LD          A,(RIGHT_HAND_ITEM)
     CP          $18								;  Less than RED Bow
