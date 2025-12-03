@@ -2646,234 +2646,511 @@ CALC_SHIELD_ATTRS:
     CALL        DIVIDE_BCD_HL_BY_2              ; Halve spiritual attribute
     LD          C,L                             ; C = halved spiritual bonus
     RET                                         ; Return with B/C containing halved bonuses
+ 
+;==============================================================================
+; NEW_RIGHT_HAND_ITEM — Recalculate Right-Hand Weapon Stats
+;==============================================================================
+; Derives weapon stats for the current right-hand item. For bow/crossbow
+; range ($18..$33), computes physical or spiritual weapon values depending
+; on subtype, then updates HUD counters for PHYS and SPRT weapons.
+;
+; Inputs:
+;   RIGHT_HAND_ITEM = Item code in right hand
+;
+; Outputs:
+;   WEAPON_PHYS (16-bit BCD) or WEAPON_SPRT (8-bit BCD) updated
+;   HUD weapon counters redrawn
+;   F  = flags per compare/arithmetic
+;
+; Registers:
+; --- Start ---
+;   A = RIGHT_HAND_ITEM
+; --- In Process ---
+;   D = damage scale selector; B/E used by rotates
+;   HL = temporary/result for PHYS value
+; ---  End  ---
+;   HL/A modified; flags set by DAA/CP
+;
+; Memory Modified: WEAPON_PHYS, WEAPON_SPRT
+; Calls: CALC_WEAPON_VALUE, RECALC_AND_REDRAW_BCD
+;==============================================================================
 NEW_RIGHT_HAND_ITEM:
-    LD          A,(RIGHT_HAND_ITEM)
-    CP          $18								;  Less than RED Bow
-    JP          C,LAB_ram_e7c0
-    CP          $34								;  Greater than WHITE Crossbow
-    JP          NC,LAB_ram_e7c0
-    LD          BC,0x0								;  C = 0
-    LD          E,0x0								;  E = 0
-    SRL         A								;  Div A by 2
-    RR          B
-    RRA
-    RL          B
-    RL          B
-    SUB         0x6
-    JP          NZ,LAB_ram_e763
-    LD          D,0x6
-    JP          LAB_ram_e78b
+    LD          A,(RIGHT_HAND_ITEM)             ; Load current right-hand item code into A
+    CP          $18                             ; Compare to $18 (RED Bow start)
+    JP          C,LAB_ram_e7c0                  ; If below range, clear weapon values
+    CP          $34                             ; Compare to $34 (one past WHITE Crossbow)
+    JP          NC,LAB_ram_e7c0                 ; If at/above, clear weapon values
+    LD          BC,0x0                          ; Clear BC (B/C used during bit rotations)
+    LD          E,0x0                           ; E = 0 (used by spiritual path later)
+    SRL         A                               ; Logical shift right: begin subtype decode
+    RR          B                               ; Rotate through carry into B (collect bits)
+    RRA                                         ; Rotate A right through carry (continue decode)
+    RL          B                               ; Rotate B left: accumulate subtype bits
+    RL          B                               ; Rotate B left again: finalize subtype accumulation
+    SUB         0x6                             ; Normalize subtype to tier base
+    JP          NZ,LAB_ram_e763                 ; If not zero, branch to tier handlers
+    LD          D,0x6                           ; D = base tier value for physical path
+    JP          LAB_ram_e78b                    ; Compute physical weapon value
+ 
+;==============================================================================
+; LAB_ram_e763 — Tier Branch (Spiritual Path Selector)
+;==============================================================================
+; Branch for decoded subtype tier. Selects base tier value in D and
+; jumps to spiritual weapon computation path when A decrements to zero.
+;
+; Inputs:
+;   A = subtype tier counter
+;
+; Outputs:
+;   D = tier value for spiritual computation
+;   Flow to LAB_ram_e79e
+;
+; Registers:
+; --- Start ---
+;   A = tier counter
+; --- In Process ---
+;   A decremented for decision; D loaded
+; ---  End  ---
+;   D set; branch taken
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 LAB_ram_e763:
-    DEC         A
-    JP          NZ,LAB_ram_e76a
-    LD          D,0x6
-    JP          LAB_ram_e79e
+    DEC         A                               ; Decrement tier counter
+    JP          NZ,LAB_ram_e76a                ; If not zero, continue to next branch
+    LD          D,0x6                           ; D = spiritual tier value
+    JP          LAB_ram_e79e                    ; Compute spiritual weapon value
+ 
+;==============================================================================
+; LAB_ram_e76a — Tier Branch (Physical Path Selector)
+;==============================================================================
+; Selects higher physical tier for weapon calculation and branches to
+; physical computation path when A reaches zero.
+;
+; Inputs:
+;   A = subtype tier counter
+;
+; Outputs:
+;   D = physical tier value
+;   Flow to LAB_ram_e78b
+;
+; Registers:
+; --- Start ---
+;   A = tier counter
+; --- In Process ---
+;   A decremented; D assigned
+; ---  End  ---
+;   D set; branch taken
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 LAB_ram_e76a:
-    DEC         A
-    JP          NZ,LAB_ram_e771
-    LD          D,$16
-    JP          LAB_ram_e78b
+    DEC         A                               ; Decrement tier counter
+    JP          NZ,LAB_ram_e771                ; If not zero, check next branch
+    LD          D,$16                           ; D = higher physical tier value
+    JP          LAB_ram_e78b                    ; Compute physical weapon value
+ 
+;==============================================================================
+; LAB_ram_e771 — Tier Branch (Spiritual Path Selector)
+;==============================================================================
+; Selects higher spiritual tier for weapon calculation and branches to
+; spiritual computation path when A reaches zero.
+;
+; Inputs:
+;   A = subtype tier counter
+;
+; Outputs:
+;   D = spiritual tier value
+;   Flow to LAB_ram_e79e
+;
+; Registers:
+; --- Start ---
+;   A = tier counter
+; --- In Process ---
+;   A decremented; D assigned
+; ---  End  ---
+;   D set; branch taken
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 LAB_ram_e771:
-    DEC         A
-    JP          NZ,LAB_ram_e778
-    LD          D,$20
-    JP          LAB_ram_e79e
+    DEC         A                               ; Decrement tier counter
+    JP          NZ,LAB_ram_e778                ; If not zero, check next branch
+    LD          D,$20                           ; D = higher spiritual tier value
+    JP          LAB_ram_e79e                    ; Compute spiritual weapon value
+ 
+;==============================================================================
+; LAB_ram_e778 — Tier Branch (Physical Path Selector)
+;==============================================================================
+; Selects higher physical tier for weapon calculation and branches to
+; physical computation path when A reaches zero.
+;
+; Inputs:
+;   A = subtype tier counter
+;
+; Outputs:
+;   D = physical tier value
+;   Flow to LAB_ram_e78b
+;
+; Registers:
+; --- Start ---
+;   A = tier counter
+; --- In Process ---
+;   A decremented; D assigned
+; ---  End  ---
+;   D set; branch taken
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 LAB_ram_e778:
-    DEC         A
-    JP          NZ,LAB_ram_e77f
-    LD          D,$24
-    JP          LAB_ram_e78b
+    DEC         A                               ; Decrement tier counter
+    JP          NZ,LAB_ram_e77f                ; If not zero, check next branch
+    LD          D,$24                           ; D = higher physical tier value
+    JP          LAB_ram_e78b                    ; Compute physical weapon value
+ 
+;==============================================================================
+; LAB_ram_e77f — Tier Branch (Spiritual Path Selector)
+;==============================================================================
+; Selects spiritual tier for weapon calculation and branches to
+; spiritual computation path when A reaches zero.
+;
+; Inputs:
+;   A = subtype tier counter
+;
+; Outputs:
+;   D = spiritual tier value
+;   Flow to LAB_ram_e79e
+;
+; Registers:
+; --- Start ---
+;   A = tier counter
+; --- In Process ---
+;   A decremented; D assigned
+; ---  End  ---
+;   D set; branch taken
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 LAB_ram_e77f:
-    DEC         A
-    JP          NZ,LAB_ram_e786
-    LD          D,$15
-    JP          LAB_ram_e79e
+    DEC         A                               ; Decrement tier counter
+    JP          NZ,LAB_ram_e786                ; If not zero, go to final physical tier
+    LD          D,$15                           ; D = spiritual tier value
+    JP          LAB_ram_e79e                    ; Compute spiritual weapon value
+ 
+;==============================================================================
+; LAB_ram_e786 — Final Tier (Physical Path)
+;==============================================================================
+; Final tier selection for physical weapon path. Sets D to last tier
+; value and falls through to physical weapon value computation.
+;
+; Inputs:
+;   A = final tier counter
+;
+; Outputs:
+;   D = physical tier value
+;   Flow to LAB_ram_e78b
+;
+; Registers:
+; --- Start ---
+;   A = counter
+; --- In Process ---
+;   A decremented
+; ---  End  ---
+;   D set
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 LAB_ram_e786:
-    DEC         A
-    LD          D,$18
+    DEC         A                               ; Final decrement on tier counter
+    LD          D,$18                           ; D = final physical tier value
+ 
+;==============================================================================
+; LAB_ram_e78b — Compute Physical Weapon Value
+;==============================================================================
+; Computes 16-bit BCD physical weapon value from tier D via CALC_WEAPON_VALUE,
+; doubles it, normalizes with DAA, stores into WEAPON_PHYS, and clears WEAPON_SPRT.
+;
+; Inputs:
+;   D = physical tier value
+;
+; Outputs:
+;   WEAPON_PHYS updated; WEAPON_SPRT cleared
+;   Flow to LAB_ram_e7aa (HUD redraw)
+;
+; Registers:
+; --- Start ---
+;   D = tier
+; --- In Process ---
+;   A = base value and doubled result; H/L = stored value
+; ---  End  ---
+;   HL/A updated; flags set by DAA
+;
+; Memory Modified: WEAPON_PHYS, WEAPON_SPRT
+; Calls: CALC_WEAPON_VALUE
+;==============================================================================
 LAB_ram_e78b:
-    CALL        CALC_WEAPON_VALUE
-    ADD         A,A
-    DAA								;  BCD Correction
-    LD          L,A
-    LD          A,0x0
-    RLA
-    LD          H,A
-    LD          (WEAPON_PHYS),HL
-    XOR         A
-    LD          (WEAPON_SPRT),A
-    JP          LAB_ram_e7aa
+    CALL        CALC_WEAPON_VALUE              ; A = base weapon value from tier D
+    ADD         A,A                            ; Double A for physical weighting
+    DAA                                        ; Decimal adjust to maintain BCD
+    LD          L,A                            ; L = low byte of PHYS value
+    LD          A,0x0                          ; Prepare zero for high byte computation
+    RLA                                         ; Rotate left: move carry into high nybble
+    LD          H,A                            ; H = high byte of PHYS value
+    LD          (WEAPON_PHYS),HL               ; Store 16-bit PHYS value
+    XOR         A                               ; A = 0
+    LD          (WEAPON_SPRT),A                ; Clear SPRT value
+    JP          LAB_ram_e7aa                   ; Redraw HUD weapon counters
+ 
+;==============================================================================
+; LAB_ram_e79e — Compute Spiritual Weapon Value
+;==============================================================================
+; Computes 8-bit BCD spiritual weapon value from tier D via CALC_WEAPON_VALUE,
+; stores into WEAPON_SPRT, and clears WEAPON_PHYS.
+;
+; Inputs:
+;   D = spiritual tier value
+;
+; Outputs:
+;   WEAPON_SPRT updated; WEAPON_PHYS cleared
+;   Flow to LAB_ram_e7aa (HUD redraw)
+;
+; Registers:
+; --- Start ---
+;   D = tier
+; --- In Process ---
+;   A = computed value; HL cleared
+; ---  End  ---
+;   A/HL updated
+;
+; Memory Modified: WEAPON_SPRT, WEAPON_PHYS
+; Calls: CALC_WEAPON_VALUE
+;==============================================================================
 LAB_ram_e79e:
-    CALL        CALC_WEAPON_VALUE
-    LD          (WEAPON_SPRT),A
-    LD          HL,0x0
-    LD          (WEAPON_PHYS),HL
+    CALL        CALC_WEAPON_VALUE              ; A = spiritual weapon value from tier D
+    LD          (WEAPON_SPRT),A                ; Store SPRT value (8-bit BCD)
+    LD          HL,0x0                         ; HL = 0
+    LD          (WEAPON_PHYS),HL               ; Clear PHYS value
+ 
+;==============================================================================
+; LAB_ram_e7aa — Redraw Weapon Values on HUD
+;==============================================================================
+; Recalculates and redraws HUD counters for PHYS and SPRT weapon values.
+; Writes PHYS (2 digits) and SPRT (1 digit) to their CHRRAM positions.
+;
+; Inputs:
+;   WEAPON_PHYS, WEAPON_SPRT
+;
+; Outputs:
+;   HUD counters updated
+;
+; Registers:
+; --- Start ---
+;   HL = value pointers; DE = CHRRAM indices; B = digit count
+; --- In Process ---
+;   Modified by RECALC_AND_REDRAW_BCD
+; ---  End  ---
+;   Updated HUD
+;
+; Memory Modified: CHRRAM_PHYS_WEAPON_IDX, CHRRAM_SPRT_WEAPON_IDX
+; Calls: RECALC_AND_REDRAW_BCD
+;==============================================================================
 LAB_ram_e7aa:
-    LD          DE,CHRRAM_PHYS_WEAPON_IDX
-    LD          HL,WEAPON_PHYS
-    LD          B,0x2
-    CALL        RECALC_AND_REDRAW_BCD
-    LD          DE,CHRRAM_SPRT_WEAPON_IDX
-    LD          HL,WEAPON_SPRT
-    LD          B,0x1
-    JP          RECALC_AND_REDRAW_BCD
+    LD          DE,CHRRAM_PHYS_WEAPON_IDX      ; DE = PHYS HUD counter CHRRAM address
+    LD          HL,WEAPON_PHYS                 ; HL = pointer to PHYS value
+    LD          B,0x2                          ; B = number of digits (2)
+    CALL        RECALC_AND_REDRAW_BCD          ; Recalculate and draw PHYS digits
+    LD          DE,CHRRAM_SPRT_WEAPON_IDX      ; DE = SPRT HUD counter CHRRAM address
+    LD          HL,WEAPON_SPRT                 ; HL = pointer to SPRT value
+    LD          B,0x1                          ; B = number of digits (1)
+    JP          RECALC_AND_REDRAW_BCD          ; Recalculate and draw SPRT digit
+ 
+;==============================================================================
+; LAB_ram_e7c0 — Clear Weapon Values Outside Range
+;==============================================================================
+; Handles items outside bow/crossbow range. Clears PHYS and SPRT weapon
+; values and triggers HUD redraw.
+;
+; Inputs:
+;   RIGHT_HAND_ITEM outside $18..$33
+;
+; Outputs:
+;   WEAPON_PHYS = 0; WEAPON_SPRT = 0
+;   Flow to LAB_ram_e7aa
+;
+; Registers:
+; --- Start ---
+;   HL cleared; A = 0
+; --- In Process ---
+;   Stores zeros
+; ---  End  ---
+;   Values cleared
+;
+; Memory Modified: WEAPON_PHYS, WEAPON_SPRT
+; Calls: RECALC_AND_REDRAW_BCD (via LAB_ram_e7aa)
+;==============================================================================
 LAB_ram_e7c0:
-    LD          HL,0x0								;  HL = 0
-    XOR         A								    ;  A  = 0
-    LD          (WEAPON_PHYS),HL
-    LD          (WEAPON_SPRT),A
-    JP          LAB_ram_e7aa
+    LD          HL,0x0                              ; Load HL with 0
+    XOR         A                                   ; Clear A (A = 0)
+    LD          (WEAPON_PHYS),HL                    ; Store 0 to WEAPON_PHYS (2 bytes)
+    LD          (WEAPON_SPRT),A                     ; Store 0 to WEAPON_SPRT
+    JP          LAB_ram_e7aa                        ; Jump to recalc/redraw weapon stats
 DO_PICK_UP:
-    LD          A,(ITEM_HOLDER)
-    LD          B,A
-    LD          A,(PLAYER_MAP_POS)
-    CP          B								    ;  Check difference between
-								                    ;  item and item location
-    JP          Z,NO_ACTION_TAKEN
-    INC         A
-    JP          Z,NO_ACTION_TAKEN
-    DEC         A
-    CALL        ITEM_MAP_CHECK
-    JP          Z,LAB_ram_e844
-    CP          0x4								    ;  Compare to RING (0x4)
-    JP          C,CHECK_FOOD_ARROWS					;  Jump if less than RING (C)
-    CP          $10								    ;  Compare to PAVISE ($10)
-    JP          NC,CHECK_FOOD_ARROWS				;  Jump if PAVISE or greater (NC)
+    LD          A,(ITEM_HOLDER)                     ; Load item's map position
+    LD          B,A                                 ; Store item position in B
+    LD          A,(PLAYER_MAP_POS)                  ; Load player's map position
+    CP          B                                   ; Compare player position to item position
+                                                    ; (check if player is on same square as item)
+    JP          Z,NO_ACTION_TAKEN                   ; If player on item square, no pickup
+    INC         A                                   ; Increment player position
+    JP          Z,NO_ACTION_TAKEN                   ; If result is 0 (was $FF), no pickup
+    DEC         A                                   ; Restore original player position
+    CALL        ITEM_MAP_CHECK                      ; Check item type and validity
+    JP          Z,LAB_ram_e844                      ; If Z flag set, handle special case
+    CP          0x4                                 ; Compare item to RING (item code 4)
+    JP          C,CHECK_FOOD_ARROWS                 ; If < RING (items 0-3), check food/arrows
+    CP          $10                                 ; Compare to PAVISE (item code $10)
+    JP          NC,CHECK_FOOD_ARROWS                ; If >= PAVISE, check food/arrows
 PROCESS_RHA:
-    CALL        PICK_UP_F0_ITEM
-    LD          HL,ARMOR_INV_SLOT					;  Start with ARMOR slot
-    DEC         A								    ;  Subtract 1 from A:
-								                    ;  - Armor
-    JP          NZ,NOT_ARMOR						;  Treat as NOT ARMOR
-    INC         HL								    ;  HL = HELMET_INV_SLOT
-    INC         HL								    ;  HL = RING_INV_SLOT
+    CALL        PICK_UP_F0_ITEM                     ; Remove item from map, increment D
+    LD          HL,ARMOR_INV_SLOT                   ; Point HL to armor inventory slot
+    DEC         A                                   ; Decrement item code (test if armor, code 4)
+                                                    ; After DEC: 4->3, 5->4, 6->5, etc.
+    JP          NZ,NOT_ARMOR                        ; If not zero, not armor
+    INC         HL                                  ; Point to helmet slot (armor was code 4)
+    INC         HL                                  ; Point to ring slot
 NOT_ARMOR:
-    DEC         A
-    JP          NZ,NOT_HELMET
-    INC         HL
+    DEC         A                                   ; Decrement again (test if helmet, code 5)
+    JP          NZ,NOT_HELMET                       ; If not zero, not helmet
+    INC         HL                                  ; Point to next slot (helmet was code 5)
 NOT_HELMET:
-    LD          A,(HL)
-    INC         D
-    CP          D
-    JP          NC,INPUT_DEBOUNCE
-    EX          AF,AF'
-    LD          A,D
-    LD          (HL),A
-    CALL        ITEM_ATTR_LOOKUP
-    LD          E,C
-    LD          D,B
-    EX          AF,AF'
-    CALL        ITEM_ATTR_LOOKUP
-    LD          A,E
-    SUB         C
-    DAA								                ;  BCD Correction
-    LD          C,A
-    LD          A,D
-    SUB         B
-    DAA								                ;  BCD Correction
-    LD          B,A
+    LD          A,(HL)                              ; Load current item code from inv slot
+    INC         D                                   ; Increment D (new item tier/level)
+    CP          D                                   ; Compare current item to new item
+    JP          NC,INPUT_DEBOUNCE                   ; If current >= new, don't swap (keep better)
+    EX          AF,AF'                              ; Save A and flags (old item code)
+    LD          A,D                                 ; Load new item code
+    LD          (HL),A                              ; Store new item in inventory slot
+    CALL        ITEM_ATTR_LOOKUP                    ; Get new item attributes (BC = phys/sprt)
+    LD          E,C                                 ; Save new SPRT in E
+    LD          D,B                                 ; Save new PHYS in D
+    EX          AF,AF'                              ; Restore old item code
+    CALL        ITEM_ATTR_LOOKUP                    ; Get old item attributes (BC = phys/sprt)
+    LD          A,E                                 ; Load new item SPRT
+    SUB         C                                   ; Subtract old item SPRT
+    DAA                                             ; BCD correction for subtraction
+    LD          C,A                                 ; Store SPRT delta in C
+    LD          A,D                                 ; Load new item PHYS
+    SUB         B                                   ; Subtract old item PHYS
+    DAA                                             ; BCD correction for subtraction
+    LD          B,A                                 ; Store PHYS delta in B
 LAB_ram_e812:
-    LD          A,(SHIELD_SPRT)
-    ADD         A,C
-    DAA								                ;  BCD Correction
-    LD          (SHIELD_SPRT),A
-    LD          A,(SHIELD_PHYS)
-    ADD         A,B
-    DAA								                ;  BCD Correction
-    LD          (SHIELD_PHYS),A
-    LD          A,(SHIELD_PHYS+1)
-    ADC         A,0x0
-    DAA								                ;  BCD Correction
-    LD          (SHIELD_PHYS+1),A
-    LD          HL,SHIELD_PHYS
-    LD          DE,CHRRAM_PHYS_SHIELD_IDX
-    LD          B,0x2
-    CALL        RECALC_AND_REDRAW_BCD
-    LD          HL,SHIELD_SPRT
-    LD          DE,CHRRAM_SPRT_SHIELD_IDX
-    LD          B,0x1
-    CALL        RECALC_AND_REDRAW_BCD
-    JP          RHA_REDRAW							;  Was JP AWAITING_INPUT
-								                    ;  (c3 9c ea)
+    LD          A,(SHIELD_SPRT)                     ; Load current shield SPRT stat
+    ADD         A,C                                 ; Add SPRT delta from item swap
+    DAA                                             ; BCD correction for addition
+    LD          (SHIELD_SPRT),A                     ; Store updated shield SPRT
+    LD          A,(SHIELD_PHYS)                     ; Load shield PHYS low byte
+    ADD         A,B                                 ; Add PHYS delta from item swap
+    DAA                                             ; BCD correction for addition
+    LD          (SHIELD_PHYS),A                     ; Store updated shield PHYS low byte
+    LD          A,(SHIELD_PHYS+1)                   ; Load shield PHYS high byte
+    ADC         A,0x0                               ; Add carry from previous addition
+    DAA                                             ; BCD correction for addition
+    LD          (SHIELD_PHYS+1),A                   ; Store updated shield PHYS high byte
+    LD          HL,SHIELD_PHYS                      ; Point to shield PHYS value
+    LD          DE,CHRRAM_PHYS_SHIELD_IDX           ; Point to screen location for PHYS
+    LD          B,0x2                               ; 2 bytes to display
+    CALL        RECALC_AND_REDRAW_BCD               ; Recalculate and redraw PHYS stat
+    LD          HL,SHIELD_SPRT                      ; Point to shield SPRT value
+    LD          DE,CHRRAM_SPRT_SHIELD_IDX           ; Point to screen location for SPRT
+    LD          B,0x1                               ; 1 byte to display
+    CALL        RECALC_AND_REDRAW_BCD               ; Recalculate and redraw SPRT stat
+    JP          RHA_REDRAW                          ; Jump to redraw ring/helmet/armor
+                                                    ; (was JP AWAITING_INPUT at c3 9c ea)
 LAB_ram_e844:
-    CALL        Z,SUB_ram_e9e1
+    CALL        Z,SUB_ram_e9e1                      ; If Z flag set, call special handler
 CHECK_FOOD_ARROWS:
-    CP          $48
-    JP          C,CHECK_MAP_NECKLACE_CHARMS			;  CHEST or lower
-    CP          $50
-    JP          NC,CHECK_MAP_NECKLACE_CHARMS		;  LOCKED CHEST or higher
-    CALL        PICK_UP_F0_ITEM
-    INC         D
-    RL          D
-    INC         D
-    CP          $12
-    JP          NZ,PICK_UP_ARROWS
-    PUSH        DE
-    CALL        PICK_UP_FOOD
-    POP         DE
-    CALL        PICK_UP_FOOD
-    JP          INPUT_DEBOUNCE
+    CP          $48                                 ; Compare to CHEST (item code $48)
+    JP          C,CHECK_MAP_NECKLACE_CHARMS         ; If < $48, check map/necklace/charms
+    CP          $50                                 ; Compare to LOCKED_CHEST (item code $50)
+    JP          NC,CHECK_MAP_NECKLACE_CHARMS        ; If >= $50, check map/necklace/charms
+    CALL        PICK_UP_F0_ITEM                     ; Remove item from map, increment D
+    INC         D                                   ; Increment D (item quantity/tier)
+    RL          D                                   ; Rotate left (multiply by 2, with carry)
+    INC         D                                   ; Increment D again
+    CP          $12                                 ; Compare to FOOD item code ($12)
+    JP          NZ,PICK_UP_ARROWS                   ; If not food, handle as arrows
+    PUSH        DE                                  ; Save DE (item data)
+    CALL        PICK_UP_FOOD                        ; Add food to inventory (first portion)
+    POP         DE                                  ; Restore DE
+    CALL        PICK_UP_FOOD                        ; Add food to inventory (second portion)
+    JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 PICK_UP_FOOD:
-    LD          A,(FOOD_INV)
-    ADD         A,D
-    JP          NC,LAB_ram_e872
-    INC         A
-    LD          C,A
-    LD          A,D
-    SUB         C
-    LD          D,A
-    JP          PICK_UP_FOOD
+    LD          A,(FOOD_INV)                        ; Load current food inventory count
+    ADD         A,D                                 ; Add food quantity from D
+    JP          NC,LAB_ram_e872                     ; If no carry (no overflow), store result
+    INC         A                                   ; Increment A (handle overflow)
+    LD          C,A                                 ; Store overflow amount in C
+    LD          A,D                                 ; Load original food quantity
+    SUB         C                                   ; Subtract overflow from quantity
+    LD          D,A                                 ; Store reduced quantity back to D
+    JP          PICK_UP_FOOD                        ; Try again with reduced quantity
 LAB_ram_e872:
-    LD          (FOOD_INV),A
-    LD          HL,(BYTE_ram_3aa9)
-    LD          A,D
-    ADD         A,L
-    DAA								                ;  BCD correct
-    LD          L,A
-    LD          A,H
-    ADC         A,0x0
-    DAA								                ;  BCD correct
-    LD          H,A
-    LD          (BYTE_ram_3aa9),HL
-    RET
+    LD          (FOOD_INV),A                        ; Store updated food inventory count
+    LD          HL,(BYTE_ram_3aa9)                  ; Load food statistics counter (BCD)
+    LD          A,D                                 ; Load food quantity added
+    ADD         A,L                                 ; Add to low byte of counter
+    DAA                                             ; BCD correction for addition
+    LD          L,A                                 ; Store updated low byte
+    LD          A,H                                 ; Load high byte of counter
+    ADC         A,0x0                               ; Add carry from previous addition
+    DAA                                             ; BCD correction for addition
+    LD          H,A                                 ; Store updated high byte
+    LD          (BYTE_ram_3aa9),HL                  ; Save updated food statistics counter
+    RET                                             ; Return to caller
 PICK_UP_ARROWS:
-    LD          A,(ARROW_INV)
-    ADD         A,D
-    CP          $33
-    JP          C,ADD_ARROWS_TO_INV
-    LD          A,$32
+    LD          A,(ARROW_INV)                       ; Load current arrow inventory count
+    ADD         A,D                                 ; Add arrow quantity from D
+    CP          $33                                 ; Compare to max arrows + 1 (51 decimal)
+    JP          C,ADD_ARROWS_TO_INV                 ; If < 51, add arrows to inventory
+    LD          A,$32                               ; Load max arrow count (50 decimal)
 ADD_ARROWS_TO_INV:
-    LD          (ARROW_INV),A
-    JP          INPUT_DEBOUNCE
+    LD          (ARROW_INV),A                       ; Store updated arrow inventory count
+    JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 CHECK_MAP_NECKLACE_CHARMS:
-    CP          $6c								    ;  Red MAP
-    JP          Z,PROCESS_MAP
-    CP          $6d								    ;  Yellow MAP
-    JP          Z,PROCESS_MAP
-    CP          $de								    ;  Purple MAP
-    JP          Z,PROCESS_MAP
-    CP          $df								    ;  White MAP
-    JP          Z,PROCESS_MAP
-    CP          $5c								    ;  WHITE KEY or lower
-    JP          C,PICK_UP_NON_TREASURE
-    CP          $64
-    JP          NC,PICK_UP_NON_TREASURE				;  WARRIOR POTION or higher
-    CALL        PICK_UP_F0_ITEM
-    JP          INPUT_DEBOUNCE
+    CP          $6c                                 ; Compare to RED MAP (item code $6C)
+    JP          Z,PROCESS_MAP                       ; If red map, process map pickup
+    CP          $6d                                 ; Compare to YELLOW MAP (item code $6D)
+    JP          Z,PROCESS_MAP                       ; If yellow map, process map pickup
+    CP          $de                                 ; Compare to PURPLE MAP (item code $DE)
+    JP          Z,PROCESS_MAP                       ; If purple map, process map pickup
+    CP          $df                                 ; Compare to WHITE MAP (item code $DF)
+    JP          Z,PROCESS_MAP                       ; If white map, process map pickup
+    CP          $5c                                 ; Compare to WHITE KEY (item code $5C)
+    JP          C,PICK_UP_NON_TREASURE              ; If < $5C, handle as non-treasure item
+    CP          $64                                 ; Compare to WARRIOR POTION (item code $64)
+    JP          NC,PICK_UP_NON_TREASURE             ; If >= $64, handle as non-treasure item
+    CALL        PICK_UP_F0_ITEM                     ; Remove item from map, increment D
+    JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 PROCESS_MAP:
-    PUSH        AF
-    LD          A,(GAME_BOOLEANS)
-    SET         0x2,A
-    LD          (GAME_BOOLEANS),A
-    POP         AF
-    CALL        PICK_UP_F0_ITEM
-    LD          (MAP_INV_SLOT),DE
-    PUSH        AF
-    LD          A,(MAP_INV_SLOT)
-    CALL        LEVEL_TO_COLRAM_FIX
-    LD          (COLRAM_MAP_IDX),A
-    POP         AF
-    JP          INPUT_DEBOUNCE
+    PUSH        AF                                  ; Save A (map item code)
+    LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
+    SET         0x2,A                               ; Set bit 2 (map acquired flag)
+    LD          (GAME_BOOLEANS),A                   ; Store updated boolean flags
+    POP         AF                                  ; Restore A (map item code)
+    CALL        PICK_UP_F0_ITEM                     ; Remove map from floor, get data in DE
+    LD          (MAP_INV_SLOT),DE                   ; Store map data to inventory slot
+    PUSH        AF                                  ; Save A (map item code)
+    LD          A,(MAP_INV_SLOT)                    ; Load map level/type from inventory
+    CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color RAM value
+    LD          (COLRAM_MAP_IDX),A                  ; Store color value for map display
+    POP         AF                                  ; Restore A (map item code)
+    JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 
 ;==============================================================================
 ; PICK_UP_NON_TREASURE
@@ -3389,72 +3666,72 @@ LAB_ram_e9ec:
     LD          (BC),A                          ; Store $FE at BC-1 location
     RET                                         ; Return to caller
 DO_ROTATE_PACK:
-    LD          HL,INV_ITEM_SLOT_1
-    LD          BC,ITEM_MOVE_COL_BUFFER
-    XOR         A
-    LD          (BC),A
-    CALL        SUB_ram_ea62
-    INC         HL
-    LD          BC,INV_ITEM_SLOT_1
-    CALL        SUB_ram_ea62
-    LD          E,0x4
+    LD          HL,INV_ITEM_SLOT_1                  ; Point to inventory slot 1
+    LD          BC,ITEM_MOVE_COL_BUFFER             ; Point to temporary buffer
+    XOR         A                                   ; Clear A (A = 0)
+    LD          (BC),A                              ; Store 0 to temporary buffer
+    CALL        SUB_ram_ea62                        ; Swap slot 1 with buffer (save slot 1)
+    INC         HL                                  ; Point to inventory slot 2
+    LD          BC,INV_ITEM_SLOT_1                  ; Point to inventory slot 1
+    CALL        SUB_ram_ea62                        ; Swap slot 2 with slot 1
+    LD          E,0x4                               ; Set counter to 4 (slots 3-6)
 LAB_ram_ea0c:
-    INC         HL
-    INC         BC
-    CALL        SUB_ram_ea62
-    DEC         E
-    JP          NZ,LAB_ram_ea0c
-    LD          HL,ITEM_MOVE_COL_BUFFER
-    INC         BC
-    CALL        SUB_ram_ea62
-    LD          HL,DAT_ram_31b4
-    LD          DE,ITEM_MOVE_CHR_BUFFER
-    CALL        COPY_GFX_2_BUFFER
-    LD          HL,DAT_ram_3111
-    LD          DE,DAT_ram_31b4
-    CALL        COPY_GFX_SCRN_2_SCRN
-    LD          HL,DAT_ram_310c
-    LD          DE,DAT_ram_3111
-    CALL        COPY_GFX_SCRN_2_SCRN
-    LD          HL,CHHRAM_INV_4_IDX
-    LD          DE,DAT_ram_310c
-    CALL        COPY_GFX_SCRN_2_SCRN
-    LD          HL,DAT_ram_324c
-    LD          DE,CHHRAM_INV_4_IDX
-    CALL        COPY_GFX_SCRN_2_SCRN
-    LD          HL,CHHRAM_INV_6_IDX
-    LD          DE,DAT_ram_324c
-    CALL        COPY_GFX_SCRN_2_SCRN
-    LD          HL,WAIT_FOR_INPUT								;   WAIT FOR INPUT label --- UNDO???
+    INC         HL                                  ; Point to next inventory slot
+    INC         BC                                  ; Point to previous slot
+    CALL        SUB_ram_ea62                        ; Swap current with previous
+    DEC         E                                   ; Decrement counter
+    JP          NZ,LAB_ram_ea0c                     ; Loop until all 4 swaps done
+    LD          HL,ITEM_MOVE_COL_BUFFER             ; Point to temporary buffer (saved slot 1)
+    INC         BC                                  ; Point to inventory slot 6
+    CALL        SUB_ram_ea62                        ; Swap buffer (old slot 1) to slot 6
+    LD          HL,DAT_ram_31b4                     ; Point to inv slot 1 graphics
+    LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer
+    CALL        COPY_GFX_2_BUFFER                   ; Copy slot 1 graphics to buffer
+    LD          HL,DAT_ram_3111                     ; Point to inv slot 2 graphics
+    LD          DE,DAT_ram_31b4                     ; Point to inv slot 1 graphics
+    CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 2 graphics to slot 1
+    LD          HL,DAT_ram_310c                     ; Point to inv slot 3 graphics
+    LD          DE,DAT_ram_3111                     ; Point to inv slot 2 graphics
+    CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 3 graphics to slot 2
+    LD          HL,CHHRAM_INV_4_IDX                 ; Point to inv slot 4 graphics
+    LD          DE,DAT_ram_310c                     ; Point to inv slot 3 graphics
+    CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 4 graphics to slot 3
+    LD          HL,DAT_ram_324c                     ; Point to inv slot 5 graphics
+    LD          DE,CHHRAM_INV_4_IDX                 ; Point to inv slot 4 graphics
+    CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 5 graphics to slot 4
+    LD          HL,CHHRAM_INV_6_IDX                 ; Point to inv slot 6 graphics
+    LD          DE,DAT_ram_324c                     ; Point to inv slot 5 graphics
+    CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 6 graphics to slot 5
+    LD          HL,WAIT_FOR_INPUT					; Stash WAIT_FOR_INPUT as a later return value
     PUSH        HL
-    LD          HL,ITEM_MOVE_CHR_BUFFER
-    LD          DE,CHHRAM_INV_6_IDX
-    CALL        COPY_GFX_FROM_BUFFER
-    JP          WAIT_A_TICK
+    LD          HL,ITEM_MOVE_CHR_BUFFER             ; Point to buffer (saved slot 1 graphics)
+    LD          DE,CHHRAM_INV_6_IDX                 ; Point to inv slot 6 graphics
+    CALL        COPY_GFX_FROM_BUFFER                ; Copy buffer to slot 6 (complete rotation)
+    JP          WAIT_A_TICK                         ; Jump to delay routine (will RET to WAIT_FOR_INPUT)
 SUB_ram_ea62:
-    LD          D,(HL)
-    LD          A,(BC)
-    LD          (HL),A
-    LD          A,D
-    LD          (BC),A
-    RET
+    LD          D,(HL)                              ; Load value from (HL) into D
+    LD          A,(BC)                              ; Load value from (BC) into A
+    LD          (HL),A                              ; Store A to (HL)
+    LD          A,D                                 ; Load saved (HL) value from D
+    LD          (BC),A                              ; Store to (BC)
+    RET                                             ; Return (values swapped)
 DO_SWAP_PACK:
-    LD          HL,INV_ITEM_SLOT_1
-    LD          BC,RIGHT_HAND_ITEM
-    CALL        SUB_ram_ea62
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX
-    LD          DE,ITEM_MOVE_CHR_BUFFER
-    CALL        COPY_GFX_2_BUFFER
-    LD          HL,DAT_ram_31b4
-    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX
-    CALL        COPY_GFX_SCRN_2_SCRN
-    LD          HL,WAIT_FOR_INPUT								;   WAIT FOR INPUT label --- UNDO???
-    PUSH        HL
-    LD          HL,ITEM_MOVE_CHR_BUFFER
-    LD          DE,DAT_ram_31b4
-    CALL        COPY_GFX_FROM_BUFFER
-    CALL        NEW_RIGHT_HAND_ITEM
-    JP          WAIT_A_TICK
+    LD          HL,INV_ITEM_SLOT_1                  ; Point to inventory slot 1
+    LD          BC,RIGHT_HAND_ITEM                  ; Point to right-hand item slot
+    CALL        SUB_ram_ea62                        ; Swap inv slot 1 with right-hand item
+    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics
+    LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer
+    CALL        COPY_GFX_2_BUFFER                   ; Copy right-hand graphics to buffer
+    LD          HL,DAT_ram_31b4                     ; Point to inv slot 1 graphics
+    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics
+    CALL        COPY_GFX_SCRN_2_SCRN                ; Copy inv slot 1 graphics to right-hand
+    LD          HL,WAIT_FOR_INPUT					; Stash WAIT_FOR_INPUT as a later return value
+    PUSH        HL                                  ; Push return address to stack
+    LD          HL,ITEM_MOVE_CHR_BUFFER             ; Point to buffer (saved right-hand graphics)
+    LD          DE,DAT_ram_31b4                     ; Point to inv slot 1 graphics
+    CALL        COPY_GFX_FROM_BUFFER                ; Copy buffer to inv slot 1 (complete swap)
+    CALL        NEW_RIGHT_HAND_ITEM                 ; Update weapon stats for new right-hand item
+    JP          WAIT_A_TICK                         ; Jump to delay routine (will RET to WAIT_FOR_INPUT)
 
 ;==============================================================================
 ; UPDATE_VIEWPORT - Redraw viewport and UI after position/state change
@@ -3569,14 +3846,14 @@ CHECK_INPUT_DURING_SCREEN_SAVER:
     LD          BC,$ff								; BC = keyboard port
     IN          A,(C)								; Read keyboard row
     INC         A									; Test for $FF (no key pressed)
-    JP          NZ,EXIT_SCREENSAVER						; If key pressed, exit screensaver
+    JP          NZ,EXIT_SCREENSAVER					; If key pressed, exit screensaver
     LD          C,$f7								; C = handcontroller port 1
     LD          A,0xf								; A = port enable mask
     OUT         (C),A								; Enable handcontroller port
     DEC         C									; C = $F6 (data port)
     IN          A,(C)								; Read handcontroller state
     INC         A									; Test for $FF (no input)
-    JP          NZ,EXIT_SCREENSAVER						; If input detected, exit screensaver
+    JP          NZ,EXIT_SCREENSAVER					; If input detected, exit screensaver
     INC         C									; C = $F7 (control port)
     LD          A,0xe								; A = disable mask
     OUT         (C),A								; Disable handcontroller port
@@ -3650,11 +3927,11 @@ LAB_ram_eb27:
 ; Monster/melee animation (UI already up-to-date or not needed)
 ;-------------------------------------------------------------------------------
 LAB_ram_eb40:
-    LD          HL,TIMER_A						; HL points to master tick counter
-    LD          A,(MONSTER_ANIM_TIMER_COPY)		; A = last processed monster-anim tick
-    CP          (HL)								; Has TIMER_A advanced for monster anim?
-    JP          NZ,WAIT_FOR_INPUT					; No → skip animation this frame
-    CALL        MELEE_RESTORE_BG_FROM_BUFFER		; Restore background under melee sprites
+    LD          HL,0x0                         ; HL = 0 (clear physical weapon value)
+    XOR         A                               ; A = 0 (clear spiritual weapon value)
+    LD          (WEAPON_PHYS),HL               ; Store PHYS = 0
+    LD          (WEAPON_SPRT),A                ; Store SPRT = 0
+    JP          LAB_ram_e7aa                   ; Redraw HUD counters
     CALL        MELEE_ANIM_LOOP					; Advance melee/monster animation frame(s)
     JP          WAIT_FOR_INPUT						; Back to main loop
 
@@ -3697,56 +3974,56 @@ LAB_ram_eb6f:
 ;   - On successful facing change, redraw viewport and possibly enter combat
 ;
 LAB_ram_eb7b:
-    LD          A,(TIMER_D)						; A = sub-tick timer (short interval)
-    CP          0x5								; Require TIMER_D < 5 to allow action
-    JP          NC,LAB_ram_ebd6					; Too soon → skip
-    CALL        MAKE_RANDOM_BYTE				; A = random 0..255
-    ADD         A,0x8							; 8/256 chance sets carry
-    JP          NC,LAB_ram_ebd6					; If no carry → abort action
-    DEC         B								; First case: B==1? (back)
-    JP          NZ,LAB_ram_eb9e
-    LD          A,(WALL_B0_STATE)
-    BIT         0x2,A
-    JP          NZ,LAB_ram_eb96
-    AND         A
-    JP          NZ,LAB_ram_ebd6
+    LD          A,(TIMER_D)                         ; Load sub-tick timer (short interval)
+    CP          0x5                                 ; Compare to threshold (5)
+    JP          NC,LAB_ram_ebd6                     ; If >= 5, too soon - skip monster action
+    CALL        MAKE_RANDOM_BYTE                    ; Generate random byte (0-255)
+    ADD         A,0x8                               ; Add 8 (sets carry ~3% of time: 8/256)
+    JP          NC,LAB_ram_ebd6                     ; If no carry, abort monster action
+    DEC         B                                   ; Decrement B (test if B was 1: back)
+    JP          NZ,LAB_ram_eb9e                     ; If not 1, check next case
+    LD          A,(WALL_B0_STATE)                   ; Load back wall state
+    BIT         0x2,A                               ; Test bit 2 (passable/door flag)
+    JP          NZ,LAB_ram_eb96                     ; If bit 2 set, back is passable
+    AND         A                                   ; Test if A is zero (clear/passable)
+    JP          NZ,LAB_ram_ebd6                     ; If not zero (blocked), abort action
 LAB_ram_eb96:
-    CALL        ROTATE_FACING_RIGHT
-    CALL        ROTATE_FACING_RIGHT
-    JP          LAB_ram_ebc0
+    CALL        ROTATE_FACING_RIGHT                 ; Turn right (90°)
+    CALL        ROTATE_FACING_RIGHT                 ; Turn right again (180° total - face back)
+    JP          LAB_ram_ebc0                        ; Jump to redraw and combat check
 LAB_ram_eb9e:
-    DEC         B
-    JP          NZ,LAB_ram_ebb0
-    LD          A,(WALL_L0_STATE)
-    BIT         0x2,A
-    JP          NZ,LAB_ram_ebab
-    AND         A
-    JP          NZ,LAB_ram_ebd6
+    DEC         B                                   ; Decrement B (test if B was 2: left)
+    JP          NZ,LAB_ram_ebb0                     ; If not 2, check next case
+    LD          A,(WALL_L0_STATE)                   ; Load left wall state
+    BIT         0x2,A                               ; Test bit 2 (passable/door flag)
+    JP          NZ,LAB_ram_ebab                     ; If bit 2 set, left is passable
+    AND         A                                   ; Test if A is zero (clear/passable)
+    JP          NZ,LAB_ram_ebd6                     ; If not zero (blocked), abort action
 LAB_ram_ebab:
-    CALL        ROTATE_FACING_LEFT
-    JP          LAB_ram_ebc0
+    CALL        ROTATE_FACING_LEFT                  ; Turn left (90°)
+    JP          LAB_ram_ebc0                        ; Jump to redraw and combat check
 LAB_ram_ebb0:
-    DEC         B
-    JP          NZ,LAB_ram_ebcc
-    LD          A,(WALL_R0_STATE)
-    BIT         0x2,A
-    JP          NZ,LAB_ram_ebbd
-    AND         A
-    JP          NZ,LAB_ram_ebd6
+    DEC         B                                   ; Decrement B (test if B was 3: right)
+    JP          NZ,LAB_ram_ebcc                     ; If not 3, check case 4 (forward)
+    LD          A,(WALL_R0_STATE)                   ; Load right wall state
+    BIT         0x2,A                               ; Test bit 2 (passable/door flag)
+    JP          NZ,LAB_ram_ebbd                     ; If bit 2 set, right is passable
+    AND         A                                   ; Test if A is zero (clear/passable)
+    JP          NZ,LAB_ram_ebd6                     ; If not zero (blocked), abort action
 LAB_ram_ebbd:
-    CALL        ROTATE_FACING_RIGHT
+    CALL        ROTATE_FACING_RIGHT                 ; Turn right (90°)
 LAB_ram_ebc0:
-    CALL        REDRAW_START
-    CALL        REDRAW_VIEWPORT
+    CALL        REDRAW_START                        ; Refresh non-viewport UI elements
+    CALL        REDRAW_VIEWPORT                     ; Render 3D maze view with new facing
 LAB_ram_ebc6:
-    CALL        SUB_ram_cd5f
-    JP          INIT_MONSTER_COMBAT
+    CALL        SUB_ram_cd5f                        ; Prepare combat state/encounter
+    JP          INIT_MONSTER_COMBAT                 ; Initialize combat sequence
 LAB_ram_ebcc:
-    LD          A,(WALL_F0_STATE)
-    BIT         0x2,A
-    JP          NZ,LAB_ram_ebc6
-    AND         A
-    JP          Z,LAB_ram_ebc6
+    LD          A,(WALL_F0_STATE)                   ; Load forward wall state (B was 4)
+    BIT         0x2,A                               ; Test bit 2 (passable/door flag)
+    JP          NZ,LAB_ram_ebc6                     ; If bit 2 set, forward passable - engage
+    AND         A                                   ; Test if A is zero (clear/passable)
+    JP          Z,LAB_ram_ebc6                      ; If zero (clear), engage combat
 
 ;==============================================================================
 ; LAB_ram_ebd6 - Input polling and title screen difficulty selection
@@ -3786,45 +4063,46 @@ LAB_ram_ebd6:
     INC         A									; $FF means no input
     JP          Z,WAIT_FOR_INPUT					; No input anywhere → continue loop
 LAB_ram_ebf7:
-    CALL        PLAY_DESCENDING_SOUND				; Acknowledge HC input with tone
-    LD          HL,HC_INPUT_HOLDER
+    CALL        PLAY_DESCENDING_SOUND               ; Acknowledge HC input with tone
+    LD          HL,HC_INPUT_HOLDER                  ; Point to HC input storage buffer
 DISABLE_JOY_04:
-    LD          C,$f7
-    LD          A,0xf
-    OUT         (C),A
-    DEC         C
-    IN          A,(C)
-    LD          (HL),A
-    INC         HL
-    INC         C
+    LD          C,$f7                               ; HC control port ($F7)
+    LD          A,0xf                               ; Command: disable joystick 4
+    OUT         (C),A                               ; Send command to control port
+    DEC         C                                   ; C = $F6 (HC data port)
+    IN          A,(C)                               ; Read HC input data (buttons 1-4)
+    LD          (HL),A                              ; Store first byte to buffer
+    INC         HL                                  ; Point to next buffer byte
+    INC         C                                   ; C = $F7 (HC control port)
 ENABLE_JOY_04:
-    LD          A,0xe
-    OUT         (C),A
-    DEC         C
-    IN          A,(C)
-    LD          (HL),A
-    LD          A,(INPUT_HOLDER)
-    AND         A
-    JP          NZ,HC_JOY_INPUT_COMPARE
-    LD          A,(DUNGEON_LEVEL)
-    AND         A
-    JP          NZ,GAMEINIT
-    LD          A,(HL)
-    INC         A
-    JP          Z,TITLE_CHK_FOR_HC_INPUT
+    LD          A,0xe                               ; Command: enable joystick 4
+    OUT         (C),A                               ; Send command to control port
+    DEC         C                                   ; C = $F6 (HC data port)
+    IN          A,(C)                               ; Read HC input data (additional buttons)
+    LD          (HL),A                              ; Store second byte to buffer
+    LD          A,(INPUT_HOLDER)                    ; Load previous input state
+    AND         A                                   ; Test if zero (no previous input)
+    JP          NZ,HC_JOY_INPUT_COMPARE             ; If not zero, compare with new input
+    LD          A,(DUNGEON_LEVEL)                   ; Load current dungeon level
+    AND         A                                   ; Test if zero (on title screen)
+    JP          NZ,GAMEINIT                         ; If in dungeon, initialize game
+    LD          A,(HL)                              ; Load second HC input byte
+    INC         A                                   ; Increment (test if $FF: no input)
+    JP          Z,TITLE_CHK_FOR_HC_INPUT            ; If $FF, check first byte instead
 HC_LEVEL_SELECT_LOOP:
-    CP          $60								;  K3 pressed on title screen
-    JP          Z,SET_DIFFICULTY_1
-    CP          $7c
-    JP          Z,SET_DIFFICULTY_2
-    CP          $c0
-    JP          Z,SET_DIFFICULTY_3
-    JP          SET_DIFFICULTY_4
+    CP          $60                                 ; Compare to K3 button ($60)
+    JP          Z,SET_DIFFICULTY_1                  ; If K3, set difficulty 1
+    CP          $7c                                 ; Compare to button value $7C
+    JP          Z,SET_DIFFICULTY_2                  ; If $7C, set difficulty 2
+    CP          $c0                                 ; Compare to button value $C0
+    JP          Z,SET_DIFFICULTY_3                  ; If $C0, set difficulty 3
+    JP          SET_DIFFICULTY_4                    ; Otherwise, set difficulty 4
 TITLE_CHK_FOR_HC_INPUT:
-    DEC         HL
-    LD          A,(HL)
-    INC         A
-    JP          HC_LEVEL_SELECT_LOOP
+    DEC         HL                                  ; Point back to first HC input byte
+    LD          A,(HL)                              ; Load first HC input byte
+    INC         A                                   ; Increment (test if $FF: no input)
+    JP          HC_LEVEL_SELECT_LOOP                ; Jump to check difficulty selection
+
 ;==============================================================================
 ; PLAY_DESCENDING_SOUND - Short two-step speaker chirp
 ;==============================================================================
@@ -3835,18 +4113,18 @@ TITLE_CHK_FOR_HC_INPUT:
 ;   BC = Sleep delay parameter
 ;
 PLAY_DESCENDING_SOUND:
-    XOR         A									; A = 0
-    LD          (TIMER_A),A						; Reset timers
-    LD          (TIMER_B),A
-    LD          (TIMER_C),A
-    OUT         (SPEAKER),A						; Speaker low
-    LD          BC,$f0								; Short delay
-    CALL        SLEEP								; Wait
-    INC         A									; A = 1
-    OUT         (SPEAKER),A						; Speaker high
-    LD          BC,$4c0								; Longer delay
-    CALL        SLEEP								; Wait
-    RET											; Done
+    XOR         A                                   ; Clear A (A = 0)
+    LD          (TIMER_A),A                         ; Reset TIMER_A
+    LD          (TIMER_B),A                         ; Reset TIMER_B
+    LD          (TIMER_C),A                         ; Reset TIMER_C
+    OUT         (SPEAKER),A                         ; Output 0 to speaker (low tone)
+    LD          BC,$f0                              ; Load delay count ($F0)
+    CALL        SLEEP                               ; Delay for BC cycles
+    INC         A                                   ; Increment A (A = 1)
+    OUT         (SPEAKER),A                         ; Output 1 to speaker (high tone)
+    LD          BC,$4c0                             ; Load delay count ($4C0)
+    CALL        SLEEP                               ; Delay for BC cycles
+    RET                                             ; Return to caller
 
 ;==============================================================================
 ; LAB_ram_ec52 - Keyboard title-screen scanning and difficulty selection
@@ -3862,251 +4140,251 @@ PLAY_DESCENDING_SOUND:
 ;   A  = Input value and comparisons
 ;
 LAB_ram_ec52:
-    CALL        PLAY_DESCENDING_SOUND				; Acknowledge key press
-    LD          HL,KEY_INPUT_COL0					; HL = start of key input buffer
-    LD          BC,0xfeff							; C=$FF port, B=$FE initial column mask
-    LD          D,0x8								; Scan 8 columns
+    CALL        PLAY_DESCENDING_SOUND               ; Acknowledge key press with sound
+    LD          HL,KEY_INPUT_COL0                   ; Point to key input buffer start
+    LD          BC,0xfeff                           ; C=$FF (port), B=$FE (column 0 mask)
+    LD          D,0x8                               ; Set counter to 8 (8 columns to scan)
 SELECT_DIFFICULTY_LOOP:
-    IN          A,(C)								; Read current column
-    LD          (HL),A								; Store into buffer
+    IN          A,(C)                               ; Read current keyboard column
+    LD          (HL),A                              ; Store column data to buffer
 
-    INC         L									; Advance buffer index
-    RLC         B									; Rotate mask to next column
-    DEC         D									; Decrement remaining columns
-    JP          NZ,SELECT_DIFFICULTY_LOOP			; Continue scan if not done
-    LD          A,(INPUT_HOLDER)
-    AND         A
-    JP          NZ,KEY_COMPARE								;  OLD = e12c								;   NEW = fbe0
-    LD          A,(DUNGEON_LEVEL)
-    AND         A
-    JP          NZ,GAMEINIT
-    LD          A,(KEY_INPUT_COL6)
-    CP          $fe
-    JP          Z,SET_DIFFICULTY_1								;  Key 3 pressed on Title Screen
-    CP          $df
-    JP          Z,SHOW_AUTHOR								;  Key A pressed (and held)
-								;  on title screen
-    LD          A,(KEY_INPUT_COL7)
-    CP          $fe
-    JP          Z,SET_DIFFICULTY_2								;  Key 2 pressed on Title Screen
-    CP          $fb
-    JP          Z,SET_DIFFICULTY_3								;  Key 1 pressed on Title Screen
+    INC         L                                   ; Advance to next buffer position
+    RLC         B                                   ; Rotate column mask left (next column)
+    DEC         D                                   ; Decrement column counter
+    JP          NZ,SELECT_DIFFICULTY_LOOP           ; Loop if more columns to scan
+    LD          A,(INPUT_HOLDER)                    ; Load previous input state
+    AND         A                                   ; Test if zero (no previous input)
+    JP          NZ,KEY_COMPARE                      ; If not zero, compare with new input
+    LD          A,(DUNGEON_LEVEL)                   ; Load current dungeon level
+    AND         A                                   ; Test if zero (on title screen)
+    JP          NZ,GAMEINIT                         ; If in dungeon, initialize game
+    LD          A,(KEY_INPUT_COL6)                  ; Load column 6 key data
+    CP          $fe                                 ; Compare to key 3 value ($FE)
+    JP          Z,SET_DIFFICULTY_1                  ; If key 3, set difficulty 1
+    CP          $df                                 ; Compare to key A value ($DF)
+    JP          Z,SHOW_AUTHOR                       ; If key A, show author credits
+                                                    ; (must be held on title screen)
+    LD          A,(KEY_INPUT_COL7)                  ; Load column 7 key data
+    CP          $fe                                 ; Compare to key 2 value ($FE)
+    JP          Z,SET_DIFFICULTY_2                  ; If key 2, set difficulty 2
+    CP          $fb                                 ; Compare to key 1 value ($FB)
+    JP          Z,SET_DIFFICULTY_3                  ; If key 1, set difficulty 3
 SET_DIFFICULTY_4:
-    LD          A,0x0								;  Some other key pressed on Title Screen
+    LD          A,0x0                               ; Set difficulty to 0 (easiest/default)
 GOTO_GAME_START:
-    LD          (INPUT_HOLDER),A
-    LD          A,(GAME_BOOLEANS)
-    SET         0x0,A
-    LD          (GAME_BOOLEANS),A
-    JP          BLANK_SCRN
+    LD          (INPUT_HOLDER),A                    ; Store difficulty level
+    LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
+    SET         0x0,A                               ; Set bit 0 (game start flag)
+    LD          (GAME_BOOLEANS),A                   ; Store updated flags
+    JP          BLANK_SCRN                          ; Jump to clear screen and start game
 SET_DIFFICULTY_1:
-    LD          A,0x1
-    JP          GOTO_GAME_START
+    LD          A,0x1                               ; Set difficulty to 1
+    JP          GOTO_GAME_START                     ; Jump to game start sequence
 SET_DIFFICULTY_2:
-    LD          A,0x2
-    JP          GOTO_GAME_START
+    LD          A,0x2                               ; Set difficulty to 2
+    JP          GOTO_GAME_START                     ; Jump to game start sequence
 SET_DIFFICULTY_3:
-    LD          A,0x3
-    JP          GOTO_GAME_START
+    LD          A,0x3                               ; Set difficulty to 3 (hardest)
+    JP          GOTO_GAME_START                     ; Jump to game start sequence
 CHK_ITEM:
-    CP          $fe								;   Compare A to $FE
-    RET         Z								;   If A == Z, exit ($FE = no item)
-    SRL         A								;   Shift A right logical, Bit 0 to C
-    LD          E,A								;   New value A into E
-    JP          C,ITEM_WAS_YL_WH								;   If C (ITEM was YEL or WHT), jump ahead
-    LD          D,$10								;   (ITEM was RED or MAG) D = $10
-    JP          ITEM_WAS_RD_MG								;   Jump ahead
+    CP          $fe                                 ; Compare A to $FE (no item marker)
+    RET         Z                                   ; If A == $FE, return (no item present)
+    SRL         A                                   ; Shift A right, bit 0 to carry
+    LD          E,A                                 ; Store shifted value in E
+    JP          C,ITEM_WAS_YL_WH                    ; If carry set, item was yellow/white
+    LD          D,$10                               ; Item was red/magenta, D = $10
+    JP          ITEM_WAS_RD_MG                      ; Jump ahead
 ITEM_WAS_YL_WH:
-    LD          D,$30								;   (ITEM was YEL or WHTD D = $30
+    LD          D,$30                               ; Item was yellow/white, D = $30
 ITEM_WAS_RD_MG:
-    SRL         A								;   Shift A right logical, Bit 0 to C
-    JP          NC,ITEM_NOT_RD_YL								;   If not C (ITEM was not RED or YEL), jump ahead
-    LD          A,$40								;   A = $40
-    ADD         A,D								;   Add D to A
-    LD          D,A								;   D = $40 + $10 (RD MG) or D = $40 + $30 (YL WH)
+    SRL         A                                   ; Shift A right again, bit 0 to carry
+    JP          NC,ITEM_NOT_RD_YL                   ; If no carry, item not red/yellow
+    LD          A,$40                               ; Load $40 into A
+    ADD         A,D                                 ; Add D to A
+    LD          D,A                                 ; D = $50 (red/mag) or $70 (yellow/white)
 ITEM_NOT_RD_YL:
-    RES         0x0,E								;   Set Bit 0 of E (old ITEM SRL)
-    LD          A,E								;   Save E back into A
-    SLA         A								;   Shift A right logical
-    ADD         A,E								;   Add E () to A
-    ADD         A,B								;   Add B (color?) to A
-    LD          B,D								;   Put D ($10, $30, or $40) into B
-    LD          L,A								;   Put A into L
-    LD          H,$ff								;   Put $FF into H
-    LD          E,(HL)								;   ITEM/MONSTER GFX_PTR, E = low byte
-    INC         HL								;   Increment HL
-    LD          D,(HL)								;   ITEM/MONSTER GFX_PTR, D = high byte
-    LD          A,(MON_FS)
-    LD          H,A
-    LD          L,C
-    JP          GFX_DRAW
+    RES         0x0,E                               ; Clear bit 0 of E
+    LD          A,E                                 ; Load E back to A
+    SLA         A                                   ; Shift A left (multiply by 2)
+    ADD         A,E                                 ; Add E (now A = E * 3)
+    ADD         A,B                                 ; Add B (color/offset) to A
+    LD          B,D                                 ; Store D in B (color base)
+    LD          L,A                                 ; Store result in L
+    LD          H,$ff                               ; Set H to $FF (graphics table high byte)
+    LD          E,(HL)                              ; Load graphics pointer low byte
+    INC         HL                                  ; Point to high byte
+    LD          D,(HL)                              ; Load graphics pointer high byte
+    LD          A,(MON_FS)                          ; Load monster/item frame state
+    LD          H,A                                 ; Store in H
+    LD          L,C                                 ; Store C in L
+    JP          GFX_DRAW                            ; Jump to graphics drawing routine
 DO_OPEN_CLOSE:
-    LD          A,(ITEM_F0)
-    LD          C,0x0								;  C  = 0
-    SRL         A								;  Move item LEVEL
-								;  into C
-    RR          C
-    SRL         A
-    RL          C
-    RL          C
-    CP          $11								;  Compare to BOX
-								;  44,45,46,47 2 @ SRL = 11
-    JP          NZ,LAB_ram_ed1b
-    LD          A,C								;  A = C (item level)
-    AND         A
-    JP          Z,DO_OPEN_BOX
-    CALL        UPDATE_SCR_SAVER_TIMER
-    INC         C
+    LD          A,(ITEM_F0)                         ; Load item at F0 position
+    LD          C,0x0                               ; Clear C (will hold item level)
+    SRL         A                                   ; Shift item code right (extract level bits)
+                                                    ; Move item level into C
+    RR          C                                   ; Rotate right through C (bit from A)
+    SRL         A                                   ; Shift A right again
+    RL          C                                   ; Rotate left through C
+    RL          C                                   ; Rotate left again (C now has level)
+    CP          $11                                 ; Compare to BOX code ($11)
+                                                    ; (codes $44-$47 become $11 after 2 SRL)
+    JP          NZ,LAB_ram_ed1b                     ; If not box, handle as door
+    LD          A,C                                 ; Load item level into A
+    AND         A                                   ; Test if zero (unlocked box)
+    JP          Z,DO_OPEN_BOX                       ; If level 0, open box immediately
+    CALL        UPDATE_SCR_SAVER_TIMER              ; Reset screensaver timer
+    INC         C                                   ; Increment C (level + 1)
 LAB_ram_ecf6:
-    SUB         C
-    JP          NC,LAB_ram_ecf6
-    ADD         A,C
-    LD          C,A
+    SUB         C                                   ; Subtract C from A
+    JP          NC,LAB_ram_ecf6                     ; Loop while no carry (A >= C)
+    ADD         A,C                                 ; Add C back (A now = A mod C)
+    LD          C,A                                 ; Store remainder in C
 DO_OPEN_BOX:
-    LD          A,R								;  Semi-random number into A
-    AND         0x7
+    LD          A,R                                 ; Load semi-random value from R register
+    AND         0x7                                 ; Mask to 0-7 range
 PICK_RANDOM_ITEM:
-    SUB         0x7
-    JP          NC,PICK_RANDOM_ITEM
-    ADD         A,$1d								;  $1d is +1 above range
-    RR          C
-    RR          B
-    RR          C								;  C = C/8
-    RLA
-    RL          B
-    RLA
-    EX          AF,AF'
-    LD          A,(PLAYER_MAP_POS)
-    CALL        ITEM_MAP_CHECK
-    EX          AF,AF'
-    LD          (BC),A
-    JP          UPDATE_VIEWPORT
+    SUB         0x7                                 ; Subtract 7
+    JP          NC,PICK_RANDOM_ITEM                 ; Loop until carry (result 0-6)
+    ADD         A,$1d                               ; Add $1D (result $1D-$23 range)
+    RR          C                                   ; Rotate C right through carry
+    RR          B                                   ; Rotate B right through carry
+    RR          C                                   ; Rotate C right again (C = C / 8)
+    RLA                                             ; Rotate A left through carry
+    RL          B                                   ; Rotate B left through carry
+    RLA                                             ; Rotate A left again
+    EX          AF,AF'                              ; Save A to alternate register
+    LD          A,(PLAYER_MAP_POS)                  ; Load player map position
+    CALL        ITEM_MAP_CHECK                      ; Check/update item on map
+    EX          AF,AF'                              ; Restore A from alternate register
+    LD          (BC),A                              ; Store new item at BC address
+    JP          UPDATE_VIEWPORT                     ; Update viewport and return
 LAB_ram_ed1b:
-    LD          A,(PLAYER_MAP_POS)
-    LD          H,$38
-    LD          L,A
-    LD          A,(DIR_FACING_SHORT)
-    DEC         A
-    JP          Z,NORTH_OPEN_CLOSE_DOOR								;  Is facing NORTH
-    DEC         A
-    JP          Z,SHIFT_EAST_OPEN_CLOSE_DOOR								;  Is facing EAST
-    DEC         A
-    JP          NZ,LAB_ram_ed4b								;  Is facing WEST
-    LD          A,L								;  Is facing SOUTH
-    ADD         A,$10
-    LD          L,A								;  Shift SOUTH and process as NORTH
+    LD          A,(PLAYER_MAP_POS)                  ; Load player's current map position
+    LD          H,$38                               ; Set H to $38 (wall map high byte)
+    LD          L,A                                 ; Set L to player position (HL = wall map addr)
+    LD          A,(DIR_FACING_SHORT)                ; Load player facing direction (1-4)
+    DEC         A                                   ; Decrement (test if 1: north)
+    JP          Z,NORTH_OPEN_CLOSE_DOOR             ; If facing north, process north door
+    DEC         A                                   ; Decrement (test if 2: east)
+    JP          Z,SHIFT_EAST_OPEN_CLOSE_DOOR        ; If facing east, shift and process as west
+    DEC         A                                   ; Decrement (test if 3: south)
+    JP          NZ,LAB_ram_ed4b                     ; If facing west (4), jump to west handler
+    LD          A,L                                 ; Facing south: load position into A
+    ADD         A,$10                               ; Add $10 (shift to south neighbor)
+    LD          L,A                                 ; Update L (now pointing to south cell)
+                                                    ; Then process as north door
 NORTH_OPEN_CLOSE_DOOR:
-    BIT         0x6,(HL)								;  N WALL check
-    JP          Z,NO_ACTION_TAKEN								;  ...if no N WALL
-    BIT         0x5,(HL)								;  N hidden DOOR check
-    JP          Z,SET_N_DOOR_MASK								;  ...if no N hidden DOOR
-    LD          A,$44								;  WALL mask
-    JP          OPEN_N_CHECK
+    BIT         0x6,(HL)                            ; Test bit 6 (north wall present)
+    JP          Z,NO_ACTION_TAKEN                   ; If no wall, no action
+    BIT         0x5,(HL)                            ; Test bit 5 (north hidden door)
+    JP          Z,SET_N_DOOR_MASK                   ; If no hidden door, use door mask
+    LD          A,$44                               ; Load wall mask ($44)
+    JP          OPEN_N_CHECK                        ; Jump to check if door open
 SET_N_DOOR_MASK:
-    LD          A,$22								;  DOOR mask
+    LD          A,$22                               ; Load door mask ($22)
 OPEN_N_CHECK:
-    BIT         0x7,(HL)								;  N DOOR-OPEN check
-    JP          NZ,CLOSE_N_DOOR								;  ...if N DOOR not OPEN
-    SET         0x7,(HL)								;  Set N door closed on wall map
-    JP          SET_F0_DOOR_OPEN
+    BIT         0x7,(HL)                            ; Test bit 7 (north door open)
+    JP          NZ,CLOSE_N_DOOR                     ; If door open, close it
+    SET         0x7,(HL)                            ; Set bit 7 (mark door as closed on map)
+    JP          SET_F0_DOOR_OPEN                    ; Jump to open door animation
 SHIFT_EAST_OPEN_CLOSE_DOOR:
-    INC         L								;  Shift EAST and process as WEST
+    INC         L                                   ; Increment L (shift east, process as west)
 LAB_ram_ed4b:
-    BIT         0x1,(HL)								;  W WALL check
-    JP          Z,NO_ACTION_TAKEN								;  ...if no W WALL
-    BIT         0x0,(HL)								;  W DOOR check
-    JP          Z,SET_W_DOOR_MASK								;  ...if no W DOOR
-    LD          A,$44								;  WALL mask
-    JP          LAB_ram_ed5c
+    BIT         0x1,(HL)                            ; Test bit 1 (west wall present)
+    JP          Z,NO_ACTION_TAKEN                   ; If no wall, no action
+    BIT         0x0,(HL)                            ; Test bit 0 (west hidden door)
+    JP          Z,SET_W_DOOR_MASK                   ; If no hidden door, use door mask
+    LD          A,$44                               ; Load wall mask ($44)
+    JP          LAB_ram_ed5c                        ; Jump to check if door open
 SET_W_DOOR_MASK:
-    LD          A,$22
+    LD          A,$22                               ; Load door mask ($22)
 LAB_ram_ed5c:
-    BIT         0x2,(HL)								;  DOOR-OPEN check
-    JP          NZ,CLOSE_W_DOOR								;  ...if DOOR-OPEN
-    SET         0x2,(HL)								;  Set W door closed on wall map
+    BIT         0x2,(HL)                            ; Test bit 2 (west door open)
+    JP          NZ,CLOSE_W_DOOR                     ; If door open, close it
+    SET         0x2,(HL)                            ; Set bit 2 (mark door as closed on map)
 SET_F0_DOOR_OPEN:
-    LD          HL,WALL_F0_STATE
-    SET         0x2,(HL)
-    EX          AF,AF'								;  Save MASK state from A
+    LD          HL,WALL_F0_STATE                    ; Point to F0 wall state
+    SET         0x2,(HL)                            ; Set bit 2 (mark F0 as passable)
+    EX          AF,AF'                              ; Save mask state in alternate A
 WAIT_TO_REDRAW_F0_DOOR:
-    IN          A,(VSYNC)
-    INC         A
-    JP          Z,WAIT_TO_REDRAW_F0_DOOR
-    LD          A,0x0								;  BLK on BLK
-								;  WAS BLU on BLU
-								;  WAS LD A,$bb
-    CALL        DRAW_DOOR_F0
-    LD          A,(ITEM_F1)
-    LD          BC,$28a
-    CALL        CHK_ITEM
-    LD          HL,COLRAM_F0_DOOR_IDX
-    LD          DE,ITEM_MOVE_CHR_BUFFER
-    CALL        SUB_ram_edaf
-    CALL        SETUP_OPEN_DOOR_SOUND
-    EXX
-    LD          HL,BYTE_ram_3a58
-    LD          DE,DAT_ram_3728
-    LD          A,0xc
+    IN          A,(VSYNC)                           ; Read VSYNC port
+    INC         A                                   ; Increment (test if $FF)
+    JP          Z,WAIT_TO_REDRAW_F0_DOOR            ; If $FF, wait for VSYNC
+    LD          A,0x0                               ; Load color (black on black)
+                                                    ; (was blue on blue, $BB)
+    CALL        DRAW_DOOR_F0                        ; Draw door at F0 position
+    LD          A,(ITEM_F1)                         ; Load item at F1 position
+    LD          BC,$28a                             ; Load BC with offset/color
+    CALL        CHK_ITEM                            ; Check and draw item
+    LD          HL,COLRAM_F0_DOOR_IDX               ; Point to F0 door color RAM
+    LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer
+    CALL        SUB_ram_edaf                        ; Copy door graphics to buffer
+    CALL        SETUP_OPEN_DOOR_SOUND               ; Initialize door opening sound parameters
+    EXX                                             ; Switch to alternate register set
+    LD          HL,BYTE_ram_3a58                    ; Point to source graphics data
+    LD          DE,DAT_ram_3728                     ; Point to destination screen location
+    LD          A,0xc                               ; Set loop counter to 12 (animation steps)
 LAB_ram_ed91:
-    EX          AF,AF'
-    EXX
-    CALL        LO_HI_PITCH_SOUND
-    EXX
-    LD          BC,0x8
-    LDIR
-    LD          BC,$10
-    SBC         HL,BC
-    EX          DE,HL
-    LD          BC,$30
-    SBC         HL,BC
-    EX          DE,HL
-    EX          AF,AF'
-    DEC         A
-    JP          Z,WAIT_FOR_INPUT
-    JP          LAB_ram_ed91
+    EX          AF,AF'                              ; Save loop counter to alternate A
+    EXX                                             ; Switch to main register set
+    CALL        LO_HI_PITCH_SOUND                   ; Play rising pitch sound effect
+    EXX                                             ; Switch to alternate register set
+    LD          BC,0x8                              ; Set byte count to 8
+    LDIR                                            ; Copy 8 bytes (HL) to (DE), inc HL/DE
+    LD          BC,$10                              ; Load $10 for offset calculation
+    SBC         HL,BC                               ; Move HL back 16 bytes
+    EX          DE,HL                               ; Swap DE and HL
+    LD          BC,$30                              ; Load $30 for offset calculation
+    SBC         HL,BC                               ; Move HL back 48 bytes
+    EX          DE,HL                               ; Swap DE and HL back
+    EX          AF,AF'                              ; Restore loop counter from alternate A
+    DEC         A                                   ; Decrement loop counter
+    JP          Z,WAIT_FOR_INPUT                    ; If counter = 0, done
+    JP          LAB_ram_ed91                        ; Loop for next animation step
 SUB_ram_edaf:
-    LD          A,0xc
+    LD          A,0xc                               ; Set loop counter to 12 rows
 LAB_ram_edb1:
-    LD          BC,0x8
-    LDIR
-    LD          BC,$20
-    ADD         HL,BC
-    DEC         A
-    JP          NZ,LAB_ram_edb1
-    EX          AF,AF'
-    JP          DRAW_DOOR_F0
+    LD          BC,0x8                              ; Set byte count to 8
+    LDIR                                            ; Copy 8 bytes from (HL) to (DE)
+    LD          BC,$20                              ; Load row offset ($20 = 32)
+    ADD         HL,BC                               ; Move HL to next row
+    DEC         A                                   ; Decrement row counter
+    JP          NZ,LAB_ram_edb1                     ; Loop until all 12 rows copied
+    EX          AF,AF'                              ; Restore mask from alternate A
+    JP          DRAW_DOOR_F0                        ; Draw door and return
 CLOSE_N_DOOR:
-    RES         0x7,(HL)								;  Set N Door map flag to closed
-    JP          START_DOOR_CLOSE_ANIM
+    RES         0x7,(HL)                            ; Clear bit 7 (mark north door as open on map)
+    JP          START_DOOR_CLOSE_ANIM               ; Jump to door closing animation
 CLOSE_W_DOOR:
-    RES         0x2,(HL)								;  Set W Door map flag to closed
+    RES         0x2,(HL)                            ; Clear bit 2 (mark west door as open on map)
 START_DOOR_CLOSE_ANIM:
-    LD          HL,WALL_F0_STATE
-    RES         0x2,(HL)
-    EX          AF,AF'
-    LD          A,(PLAYER_MAP_POS)
-    LD          (PLAYER_PREV_MAP_LOC),A
-    CALL        SETUP_CLOSE_DOOR_SOUND
-    EXX
-    EX          AF,AF'
-    LD          HL,COLRAM_F0_DOOR_IDX
-    LD          DE,$20
-    LD          BC,$c08
+    LD          HL,WALL_F0_STATE                    ; Point to F0 wall state
+    RES         0x2,(HL)                            ; Clear bit 2 (mark F0 as blocked)
+    EX          AF,AF'                              ; Save mask to alternate A
+    LD          A,(PLAYER_MAP_POS)                  ; Load current player position
+    LD          (PLAYER_PREV_MAP_LOC),A             ; Store as previous location
+    CALL        SETUP_CLOSE_DOOR_SOUND              ; Initialize door closing sound parameters
+    EXX                                             ; Switch to alternate register set
+    EX          AF,AF'                              ; Get mask from alternate A
+    LD          HL,COLRAM_F0_DOOR_IDX               ; Point to F0 door color RAM
+    LD          DE,$20                              ; Set row offset ($20 = 32)
+    LD          BC,$c08                             ; B = 12 rows, C = 8 columns
 DOOR_CLOSE_ANIM_LOOP:
-    LD          (HL),A
-    INC         L
-    DEC         C
-    JP          NZ,DOOR_CLOSE_ANIM_LOOP
-    EXX
-    EX          AF,AF'
-    CALL        HI_LO_PITCH_SOUND
-    EX          AF,AF'
-    EXX
-    LD          C,0x8
-    ADD         HL,DE
-    DJNZ        DOOR_CLOSE_ANIM_LOOP
-    CALL        CLEAR_MONSTER_STATS
-    JP          WAIT_FOR_INPUT
+    LD          (HL),A                              ; Write color mask to color RAM
+    INC         L                                   ; Move to next column
+    DEC         C                                   ; Decrement column counter
+    JP          NZ,DOOR_CLOSE_ANIM_LOOP             ; Loop until row complete (8 columns)
+    EXX                                             ; Switch to main register set
+    EX          AF,AF'                              ; Save color mask to alternate A
+    CALL        HI_LO_PITCH_SOUND                   ; Play descending pitch sound effect
+    EX          AF,AF'                              ; Restore color mask from alternate A
+    EXX                                             ; Switch to alternate register set
+    LD          C,0x8                               ; Reset column counter to 8
+    ADD         HL,DE                               ; Move HL to next row ($20 bytes)
+    DJNZ        DOOR_CLOSE_ANIM_LOOP                ; Loop until all 12 rows done
+    CALL        CLEAR_MONSTER_STATS                 ; Clear monster statistics
+    JP          WAIT_FOR_INPUT                      ; Return to main input loop
     LD          BC,$1600
     JP          SLEEP								;  byte SLEEP(short cycleCount)
 DO_TURN_LEFT:
