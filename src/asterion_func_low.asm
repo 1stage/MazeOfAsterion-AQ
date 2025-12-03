@@ -1362,21 +1362,7 @@ CLEAR_MAP_SPACE:
     LD          HL,$3a62
     LD          (NEXT_BLINK_CHECK),HL
     RET
-DRAW_WHITE_MAP:
-    LD          HL,$74
-    CALL        MAP_ITEM_MONSTER
-UPDATE_ITEM_CELLS:
-    JP          Z,DRAW_PURPLE_MAP
-    LD          A,(BC)
-    INC         C
-    INC         C
-    EXX
-    LD          D,$b6
-    CALL        UPDATE_COLRAM_FROM_OFFSET
-    EXX
-    CALL        FIND_NEXT_ITEM_MONSTER_LOOP
-    JP          UPDATE_ITEM_CELLS
-    JP          DRAW_PURPLE_MAP
+
 PLAY_POOF_ANIM:
     PUSH        HL								; Save HL register value
     LD          DE,POOF_1								; DE = Start of POOF animation graphic

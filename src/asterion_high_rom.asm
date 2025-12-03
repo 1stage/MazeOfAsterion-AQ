@@ -375,25 +375,129 @@ CANNOT_JUMP_BACK:
 ;     LD          A,(ARROW_INV)
 ;     JP          COUNT_INV
 
+;==============================================================================
+; NO_ACTION_TAKEN
+;==============================================================================
+; Plays a low-pitched "blocked" sound effect and returns to the input wait
+; loop. Called when the player attempts an invalid action (moving into a wall,
+; using an item they don't have, etc.).
+;
+; Flow:
+; 1. Set sound parameters (BC=$500 duration, DE=$20 pitch)
+; 2. Play sound loop
+; 3. Return to input polling
+;
+; Input:
+;   None (uses fixed sound parameters)
+;
+; Output:
+;   Sound played through speaker
+;   Returns to WAIT_FOR_INPUT
+;
+; Registers:
+; --- Start ---
+;   BC = $500 (delay duration)
+;   DE = $20 (pitch/frequency)
+; --- In Process ---
+;   All registers modified by PLAY_SOUND_LOOP
+; ---  End  ---
+;   Control passes to WAIT_FOR_INPUT
+;
+; Memory Modified: None
+; Calls: PLAY_SOUND_LOOP, WAIT_FOR_INPUT
+;==============================================================================
 NO_ACTION_TAKEN:
-    LD          BC,$500
-    LD          DE,$20
-    CALL        PLAY_SOUND_LOOP
-    JP          WAIT_FOR_INPUT
+    LD          BC,$500                         ; Set delay duration ($500)
+    LD          DE,$20                          ; Set sound pitch/frequency ($20)
+    CALL        PLAY_SOUND_LOOP                 ; Play the blocked action sound
+    JP          WAIT_FOR_INPUT                  ; Return to input polling loop
+
+
+;==============================================================================
+; PLAY_SOUND_LOOP
+;==============================================================================
+; Generates a repeating tone by toggling the speaker output at a specified
+; pitch (DE) for a specified number of cycles (BC). Creates a simple square
+; wave audio effect through direct speaker port manipulation.
+;
+; Flow:
+; 1. Decrement pitch counter (DE)
+; 2. If DE=0, exit (sound complete)
+; 3. Toggle speaker output (A alternates 0/1)
+; 4. Delay for BC iterations to control pitch
+; 5. Repeat from step 1
+;
+; Input:
+;   BC = Delay duration per pitch cycle (controls tone timbre)
+;   DE = Pitch counter (number of speaker toggles)
+;
+; Output:
+;   Audio tone played through speaker port
+;   DE decremented to zero
+;
+; Registers:
+; --- Start ---
+;   BC = Delay duration value
+;   DE = Pitch cycle count
+; --- In Process ---
+;   A  = Speaker toggle value (0 or non-zero)
+;   HL = Delay counter (copy of BC)
+;   DE = Decremented each cycle
+; ---  End  ---
+;   DE = 0 (pitch counter exhausted)
+;   BC = Original delay value (preserved)
+;   HL, A modified
+;
+; Memory Modified: None
+; Calls: LAB_ram_e244 (fall-through delay loop)
+;==============================================================================
 PLAY_SOUND_LOOP:
-    DEC         DE
-    LD          A,E
-    OR          D
-    RET         Z
-    OUT         (SPEAKER),A								;  Send sound to speaker
-    LD          H,B
-    LD          L,C
-LAB_ram_e244:
-    DEC         HL
-    LD          A,L
-    OR          H
-    JP          NZ,LAB_ram_e244
-    JP          PLAY_SOUND_LOOP
+    DEC         DE                              ; Decrement pitch counter
+    LD          A,E                             ; Load E into A
+    OR          D                               ; OR with D to test for zero
+    RET         Z                               ; If DE=0, sound complete, return
+    OUT         (SPEAKER),A                     ; Send toggle value to speaker port
+    LD          H,B                             ; Copy BC to HL for delay
+    LD          L,C                             ; HL = BC (delay duration)
+
+;==============================================================================
+; LAB_ram_e244
+;==============================================================================
+; Delay loop that counts down HL to zero, creating a timed pause to control
+; the pitch of the sound wave. Falls through from PLAY_SOUND_LOOP.
+;
+; Flow:
+; 1. Decrement HL
+; 2. Test if HL=0
+; 3. If not zero, repeat
+; 4. If zero, continue to next sound cycle
+;
+; Input:
+;   HL = Delay count (from BC in PLAY_SOUND_LOOP)
+;
+; Output:
+;   HL decremented to zero
+;   Time delay proportional to initial HL value
+;
+; Registers:
+; --- Start ---
+;   HL = Delay count
+; --- In Process ---
+;   HL = Decremented each iteration
+;   A  = L OR H (zero test)
+; ---  End  ---
+;   HL = 0
+;   A  = 0
+;
+; Memory Modified: None
+; Calls: PLAY_SOUND_LOOP (loops back)
+;==============================================================================
+SOUND_DELAY_LOOP:
+    DEC         HL                              ; Decrement delay counter
+    LD          A,L                             ; Load L into A
+    OR          H                               ; OR with H to test for zero
+    JP          NZ,SOUND_DELAY_LOOP             ; If HL≠0, continue delay loop
+    JP          PLAY_SOUND_LOOP                 ; Return to next sound cycle
 
 ;==============================================================================
 ; USE_MAP
@@ -442,35 +546,118 @@ LAB_ram_e244:
 ;==============================================================================
 USE_MAP:
     LD          A,(GAME_BOOLEANS)               ; Load game state flags
-    BIT         0x2,A								; Check bit 2 (map owned flag)
-    JP          Z,NO_ACTION_TAKEN                ; If not owned, exit without action
+    BIT         0x2,A							; Check bit 2 (map owned flag)
+    JP          Z,NO_ACTION_TAKEN               ; If not owned, exit without action
     LD          A,(MAP_INV_SLOT)                ; Load map quality level (0-4)
     AND         A                               ; Test if zero (no map)
-    JP          Z,INIT_MELEE_ANIM                ; If no map slot, exit to melee animation
-    EXX								                ; Swap to alternate register set
+    JP          Z,INIT_MELEE_ANIM               ; If no map slot, exit to melee animation
+    EXX								            ; Swap to alternate register set
 
-    LD          BC,RECT(24,24)						; Set dimensions: 24 wide x 24 high
-    LD          HL,CHRRAM_VIEWPORT_IDX           ; Point to viewport character RAM
-    LD          A,$20								; Load SPACE character ($20)
-    CALL        FILL_CHRCOL_RECT					; Clear viewport with spaces
-    CALL        SOUND_03                         ; Play map open sound
-    LD          BC,RECT(24,24)						; Set dimensions: 24 wide x 24 high
-    LD          HL,COLRAM_VIEWPORT_IDX           ; Point to viewport color RAM
-    LD          A,COLOR(DKBLU,BLK)					; Set color: dark blue on black
-    CALL        FILL_CHRCOL_RECT					; Fill viewport with map background color
+    LD          BC,RECT(24,24)					; Set dimensions: 24 wide x 24 high
+    LD          HL,CHRRAM_VIEWPORT_IDX          ; Point to viewport character RAM
+    LD          A,$20							; Load SPACE character ($20)
+    CALL        FILL_CHRCOL_RECT				; Clear viewport with spaces
+    CALL        SOUND_03                        ; Play map open sound
+    LD          BC,RECT(24,24)					; Set dimensions: 24 wide x 24 high
+    LD          HL,COLRAM_VIEWPORT_IDX          ; Point to viewport color RAM
+    LD          A,COLOR(DKBLU,BLK)				; Set color: dark blue on black
+    CALL        FILL_CHRCOL_RECT				; Fill viewport with map background color
 
-    EXX								                ; Swap back to main register set
+    EXX								            ; Swap back to main register set
     PUSH        AF                              ; Preserve A register
     LD          A,(MAP_INV_SLOT)                ; Load map quality level
     LD          B,A                             ; Copy to B for decrement testing
     POP         AF                              ; Restore A register
     DEC         B                               ; Test for level 1 (red map)
-    JP          Z,DRAW_RED_MAP						; Draw basic walls and player only
+    JP          Z,DRAW_RED_MAP					; Draw basic walls and player only
     DEC         B                               ; Test for level 2 (yellow map)
-    JP          Z,DRAW_YELLOW_MAP					; Draw walls, player, and ladder
+    JP          Z,DRAW_YELLOW_MAP				; Draw walls, player, and ladder
     DEC         B                               ; Test for level 3 (purple map)
-    JP          Z,DRAW_PURPLE_MAP					; Draw walls, player, ladder, and monsters
-    JP          DRAW_WHITE_MAP						; Draw all: walls, player, ladder, monsters, items
+    JP          Z,DRAW_PURPLE_MAP				; Draw walls, player, ladder, and monsters
+
+;==============================================================================
+; DRAW_WHITE_MAP
+;==============================================================================
+; Draws the highest-quality map (level 4), adding item locations on top of
+; walls, player position, ladder, and monsters. Iterates over the item list
+; and marks each item cell with a distinct color.
+;
+; Flow:
+; 1. Set item range for general items ($74..$78)
+; 2. Initialize item/monster list pointer (MAP_ITEM_MONSTER)
+; 3. Loop through entries; for each item in range, color its map cell
+; 4. When done, fall through to DRAW_PURPLE_MAP (monsters)
+;
+; Input:
+;   HL = $74xx..$78xx range selector for item codes
+;   MAP_LADDER_OFFSET list contains [offset][code] pairs, terminated by $FF
+;
+; Output:
+;   Item positions colored in COLRAM (distinct item color)
+;   Control passes to DRAW_PURPLE_MAP for monster coloring
+;
+; Registers:
+; --- Start ---
+;   HL = $74 (low bound in H, high bound set by loop)
+; --- In Process ---
+;   BC = List pointer through item entries
+;   A  = Position offset for current item
+;   D  = Item color value ($b6)
+; ---  End  ---
+;   BC advanced to end or next phase; Z indicates end-of-list
+;
+; Memory Modified: COLRAM_VIEWPORT_IDX (item positions)
+; Calls: MAP_ITEM_MONSTER, UPDATE_ITEM_CELLS
+;==============================================================================
+DRAW_WHITE_MAP:
+    LD          HL,$74                           ; Set item range lower bound ($74..$78)
+    CALL        MAP_ITEM_MONSTER                 ; Prepare list pointer (BC = MAP_LADDER_OFFSET)
+
+;==============================================================================
+; UPDATE_ITEM_CELLS
+;==============================================================================
+; Iterates the item list, coloring each matching item cell in the mini-map.
+; Each entry is [position_offset][item_code]; entries outside $74..$78 are
+; skipped by FIND_NEXT_ITEM_MONSTER_LOOP. Ends when $FF terminator reached.
+;
+; Flow:
+; 1. If end-of-list (Z), jump to DRAW_PURPLE_MAP
+; 2. Read position offset from (BC) and advance to code
+; 3. Skip over item code; swap registers to viewport bank
+; 4. Set item color and update COLRAM at position
+; 5. Swap back; find next matching item; repeat
+;
+; Input:
+;   BC = Current list pointer (from MAP_ITEM_MONSTER/FIND_NEXT_ITEM_MONSTER_LOOP)
+;   HL = Range bounds (H=min=$74, L=max=$78)
+;
+; Output:
+;   Item positions colored in COLRAM using D=$b6
+;   Control passes to DRAW_PURPLE_MAP after completion
+;
+; Registers:
+; --- Start ---
+;   BC = Pointer to [offset][code]
+; --- In Process ---
+;   A  = Position offset; D = item color ($b6)
+;   BC = Advanced through list entries
+; ---  End  ---
+;   Z flag indicates list end; falls through to DRAW_PURPLE_MAP
+;
+; Memory Modified: COLRAM_VIEWPORT_IDX (item positions)
+; Calls: UPDATE_COLRAM_FROM_OFFSET, FIND_NEXT_ITEM_MONSTER_LOOP, DRAW_PURPLE_MAP
+;==============================================================================
+UPDATE_ITEM_CELLS:
+    JP          Z,DRAW_PURPLE_MAP               ; If end of list, proceed to monster coloring
+    LD          A,(BC)                          ; Load item position offset
+    INC         C                               ; Advance pointer to item code
+    INC         C                               ; Skip past item code byte
+    EXX                                         ; Swap to alternate register set for COLRAM
+    LD          D,$b6                           ; Set item color (DKBLU on YEL-ish index $b6)
+    CALL        UPDATE_COLRAM_FROM_OFFSET       ; Color the cell at offset A with D
+    EXX                                         ; Swap back to main register set
+    CALL        FIND_NEXT_ITEM_MONSTER_LOOP     ; Find next matching item in range
+    JP          UPDATE_ITEM_CELLS               ; Repeat until list exhausted
 
 ;==============================================================================
 ; DRAW_PURPLE_MAP
@@ -509,19 +696,19 @@ USE_MAP:
 ; Calls: MAP_ITEM_MONSTER, UPDATE_COLRAM_FROM_OFFSET, FIND_NEXT_ITEM_MONSTER_LOOP
 ;==============================================================================
 DRAW_PURPLE_MAP:
-    LD          HL,$78a8							; Set item range for monsters ($78 to $a8)
+    LD          HL,$78a8						; Set item range for monsters ($78 to $a8)
     CALL        MAP_ITEM_MONSTER                ; Initialize monster search (BC = MAP_LADDER_OFFSET)
 UPDATE_MONSTER_CELLS_LOOP:
-    JP          Z,DRAW_YELLOW_MAP                ; If no more monsters, continue to yellow map
+    JP          Z,DRAW_YELLOW_MAP               ; If no more monsters, continue to yellow map
     LD          A,(BC)                          ; Load monster position offset
     INC         C                               ; Advance pointer past position
     INC         C                               ; Advance pointer past monster code
-    EXX								                ; Swap to alternate register set (viewport pointers)
-    LD          D,COLOR(DKBLU,RED)					; Set monster cell color: dark blue on red
-    CALL        UPDATE_COLRAM_FROM_OFFSET        ; Update color at monster position
-    EXX								                ; Swap back to main register set
-    CALL        FIND_NEXT_ITEM_MONSTER_LOOP      ; Find next monster in list
-    JP          UPDATE_MONSTER_CELLS_LOOP        ; Repeat for all monsters
+    EXX								            ; Swap to alternate register set (viewport pointers)
+    LD          D,COLOR(DKBLU,RED)				; Set monster cell color: dark blue on red
+    CALL        UPDATE_COLRAM_FROM_OFFSET       ; Update color at monster position
+    EXX								            ; Swap back to main register set
+    CALL        FIND_NEXT_ITEM_MONSTER_LOOP     ; Find next monster in list
+    JP          UPDATE_MONSTER_CELLS_LOOP       ; Repeat for all monsters
 
 ;==============================================================================
 ; DRAW_YELLOW_MAP
@@ -555,9 +742,9 @@ UPDATE_MONSTER_CELLS_LOOP:
 ; Calls: UPDATE_COLRAM_FROM_OFFSET, DRAW_RED_MAP
 ;==============================================================================
 DRAW_YELLOW_MAP:
-    LD          D,COLOR(DKBLU,MAG)					; Set ladder cell color: dark blue on magenta
-    LD          A,(ITEM_HOLDER)                  ; Load ladder position offset
-    CALL        UPDATE_COLRAM_FROM_OFFSET        ; Update color at ladder position
+    LD          D,COLOR(DKBLU,MAG)				; Set ladder cell color: dark blue on magenta
+    LD          A,(ITEM_HOLDER)                 ; Load ladder position offset
+    CALL        UPDATE_COLRAM_FROM_OFFSET       ; Update color at ladder position
 
 ;==============================================================================
 ; DRAW_RED_MAP
@@ -598,41 +785,41 @@ DRAW_YELLOW_MAP:
 ; Calls: SET_MINIMAP_PLAYER_LOC
 ;==============================================================================
 DRAW_RED_MAP:
-    LD          BC,RECT(16,24)                   ; Set dimensions: 16 wide, 24 high (B=16, C=24)
-    LD          DE,HC_LAST_INPUT                 ; Point to dungeon map data
-    LD          HL,CHRRAM_MINI_MAP_IDX           ; Point to mini-map character area
+    LD          BC,RECT(16,24)                  ; Set dimensions: 16 wide, 24 high (B=16, C=24)
+    LD          DE,HC_LAST_INPUT                ; Point to dungeon map data
+    LD          HL,CHRRAM_MINI_MAP_IDX          ; Point to mini-map character area
 CALC_MINIMAP_WALL:
     INC         DE                              ; Advance to next dungeon cell
     LD          A,D                             ; Check high byte of dungeon pointer
     CP          $39                             ; Compare to end of dungeon data ($39xx)
-    JP          Z,SET_MINIMAP_PLAYER_LOC         ; If at end, mark player position
+    JP          Z,SET_MINIMAP_PLAYER_LOC        ; If at end, mark player position
     LD          A,(DE)                          ; Load wall flags from current cell
     OR          A                               ; Test if any walls present
-    JP          Z,SET_MINIMAP_NO_WALLS           ; If no walls, draw empty cell
+    JP          Z,SET_MINIMAP_NO_WALLS          ; If no walls, draw empty cell
     AND         0xf                             ; Mask lower nibble (north wall flag)
-    JP          NZ,LAB_ram_e2d6                  ; If north wall set, check west wall
+    JP          NZ,LAB_ram_e2d6                 ; If north wall set, check west wall
 SET_MINIMAP_N_WALL:
-    LD          A,$a3								; Load character $a3 (north wall only)
-    JP          DRAW_MINIMAP_WALL                ; Draw wall character
+    LD          A,$a3							; Load character $a3 (north wall only)
+    JP          DRAW_MINIMAP_WALL               ; Draw wall character
 SET_MINIMAP_NO_WALLS:
-    LD          A,$a0								; Load character $a0 (no walls)
-    JP          DRAW_MINIMAP_WALL                ; Draw empty cell character
+    LD          A,$a0							; Load character $a0 (no walls)
+    JP          DRAW_MINIMAP_WALL               ; Draw empty cell character
 SET_MINIMAP_NW_WALLS:
-    LD          A,$b7								; Load character $b7 (north and west walls)
-    JP          DRAW_MINIMAP_WALL                ; Draw corner wall character
+    LD          A,$b7							; Load character $b7 (north and west walls)
+    JP          DRAW_MINIMAP_WALL               ; Draw corner wall character
 LAB_ram_e2d6:
     LD          A,(DE)                          ; Reload wall flags
     AND         $f0                             ; Mask upper nibble (west wall flag)
-    JP          NZ,SET_MINIMAP_NW_WALLS          ; If west wall set, draw north+west
+    JP          NZ,SET_MINIMAP_NW_WALLS         ; If west wall set, draw north+west
 SET_MINIMAP_W_WALL:
-    LD          A,$b5								; Load character $b5 (west wall only)
+    LD          A,$b5							; Load character $b5 (west wall only)
 DRAW_MINIMAP_WALL:
     LD          (HL),A                          ; Write wall character to mini-map
     INC         HL                              ; Advance to next mini-map cell
-    DJNZ        CALC_MINIMAP_WALL                ; Decrement B (column counter), repeat if not zero
+    DJNZ        CALC_MINIMAP_WALL               ; Decrement B (column counter), repeat if not zero
     ADD         HL,BC                           ; Advance HL to next row (skip remainder of 40-char line)
     LD          B,$10                           ; Reset column counter to 16
-    JP          CALC_MINIMAP_WALL                ; Continue to next row
+    JP          CALC_MINIMAP_WALL               ; Continue to next row
 
 ;==============================================================================
 ; SET_MINIMAP_PLAYER_LOC
@@ -672,16 +859,16 @@ DRAW_MINIMAP_WALL:
 ; Calls: UPDATE_COLRAM_FROM_OFFSET, WAIT_A_TICK, UPDATE_VIEWPORT
 ;==============================================================================
 SET_MINIMAP_PLAYER_LOC:
-    LD          A,(PLAYER_MAP_POS)               ; Load player position offset
-    LD          D,COLOR(DKBLU,WHT)					; Set player cell color: dark blue on white
-    CALL        UPDATE_COLRAM_FROM_OFFSET        ; Mark player position on map
-    CALL        WAIT_A_TICK                      ; Wait for display stability
+    LD          A,(PLAYER_MAP_POS)              ; Load player position offset
+    LD          D,COLOR(DKBLU,WHT)				; Set player cell color: dark blue on white
+    CALL        UPDATE_COLRAM_FROM_OFFSET       ; Mark player position on map
+    CALL        WAIT_A_TICK                     ; Wait for display stability
 
 READ_KEY:
     LD          BC,$ff                          ; Set BC to keyboard port ($ff)
     IN          A,(C)                           ; Read keyboard input
     INC         A                               ; Test for $FF (no key pressed)
-    JP          NZ,READ_KEY                      ; If key pressed, wait for release
+    JP          NZ,READ_KEY                     ; If key pressed, wait for release
 ENABLE_HC:
     LD          C,$f7                           ; Set port to hand controller 1 ($f7)
     LD          A,0xf                           ; Load hand controller enable value
@@ -690,7 +877,7 @@ ENABLE_HC:
 READ_HC:
     IN          A,(C)                           ; Read hand controller input
     INC         A                               ; Test for $FF (no input)
-    JP          NZ,READ_KEY                      ; If input detected, wait for release
+    JP          NZ,READ_KEY                     ; If input detected, wait for release
     INC         C                               ; Switch back to port $f7
     LD          A,0xe                           ; Load hand controller disable value
 DISABLE_HC:
@@ -698,8 +885,8 @@ DISABLE_HC:
     DEC         C                               ; Set port back to $f6
     IN          A,(C)                           ; Read hand controller input again
     INC         A                               ; Test for $FF (no input)
-    JP          NZ,READ_KEY                      ; If input detected, keep waiting
-    JP          UPDATE_VIEWPORT                  ; Close map and return to normal viewport
+    JP          NZ,READ_KEY                     ; If input detected, keep waiting
+    JP          UPDATE_VIEWPORT                 ; Close map and return to normal viewport
 
 ;==============================================================================
 ; MAP_ITEM_MONSTER
@@ -780,9 +967,9 @@ FIND_NEXT_ITEM_MONSTER_LOOP:
     LD          A,(BC)                          ; Load item code
     CP          H                               ; Compare to low bound (H)
     INC         BC                              ; Advance to next entry
-    JP          C,FIND_NEXT_ITEM_MONSTER_LOOP    ; If code < low bound, continue search
+    JP          C,FIND_NEXT_ITEM_MONSTER_LOOP   ; If code < low bound, continue search
     CP          L                               ; Compare to high bound (L)
-    JP          NC,FIND_NEXT_ITEM_MONSTER_LOOP   ; If code >= high bound, continue search
+    JP          NC,FIND_NEXT_ITEM_MONSTER_LOOP  ; If code >= high bound, continue search
     DEC         C                               ; Back up to item code byte
     DEC         BC                              ; Back up to position offset byte
     RET                                         ; Return with Z clear (match found)
@@ -845,6 +1032,7 @@ UPDATE_COLRAM_FROM_OFFSET:
     ADD         HL,BC                           ; Add (row * 32), total = row * 40
     LD          (HL),D                          ; Write color value D to COLRAM
     RET                                         ; Return to caller
+
 CHK_ITEM_BREAK:
     LD          A,B								;  A  = itemLevel (0-3)
     RLCA								;  A  = A * 2
