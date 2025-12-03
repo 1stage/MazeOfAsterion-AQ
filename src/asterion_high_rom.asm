@@ -1076,6 +1076,7 @@ CHK_ITEM_BREAK:
     JP          C,ITEM_POOFS_RH                 ; If overflow, item breaks immediately
     ADD         A,0x5                           ; Add small constant to increase chance
     RET         NC                              ; If still no carry, item survives
+    
 ITEM_POOFS_RH:
     SCF                                         ; Set carry to indicate break
     EX          AF,AF'                          ; Preserve flags/state in alternate set
@@ -1094,55 +1095,150 @@ FIX_RH_COLORS:
     POP         AF
     SCF                                         ; Keep carry set indicating break
     RET
-    
-SUB_ram_e39a:
-    CALL        SOUND_05
-    LD          A,(ITEM_ANIM_STATE)
-    LD          HL,(ITEM_ANIM_LOOP_COUNT)
-    DEC         A
-    JP          NZ,LAB_ram_e3cd
-    DEC         L
-    JP          NZ,LAB_ram_e3b6
-    DEC         H
-    JP          Z,LAB_ram_e45a
-    LD          A,$31
-    LD          (RAM_AC),A
-    LD          L,0x4
-LAB_ram_e3b6:
-    LD          A,0x4
-    LD          (ITEM_ANIM_STATE),A
-    LD          (ITEM_ANIM_LOOP_COUNT),HL
-    LD          HL,(ITEM_ANIM_CHRRAM_PTR)
-    LD          BC,$29
-    XOR         A
-    SBC         HL,BC
-    LD          (ITEM_ANIM_CHRRAM_PTR),HL
-    JP          LAB_ram_e3d7
-LAB_ram_e3cd:
-    LD          (ITEM_ANIM_STATE),A
-    LD          HL,(ITEM_ANIM_CHRRAM_PTR)
-    DEC         HL
-    LD          (ITEM_ANIM_CHRRAM_PTR),HL
-LAB_ram_e3d7:
-    LD          BC,$c8
-    XOR         A
-    SBC         HL,BC
-    PUSH        HL
-    ADD         HL,BC
-    LD          DE,ITEM_MOVE_CHR_BUFFER
-    CALL        COPY_GFX_2_BUFFER
-    POP         HL
-    LD          C,L
-    LD          A,(RAM_AC)
-    LD          (MON_FS),A
-    LD          A,(ITEM_SPRITE_INDEX)
-    CALL        CHK_ITEM
-    LD          A,$32
-    LD          (MON_FS),A
-    LD          A,(TIMER_A)
-    ADD         A,$ff
-    LD          (ITEM_ANIM_TIMER_COPY),A
-    RET
+
+;==============================================================================
+; ANIMATE_RH_ITEM_STEP — RH Item Animation Step
+;==============================================================================
+; Advances the right-hand item animation, manages loop counters, updates the
+; CHRRAM pointer for sprite frames, and copies character graphics into a
+; movement buffer. Also updates monster frame state and caches a timer copy.
+;
+; Flow:
+; 1. Play sound effect for item animation (SOUND_05)
+; 2. Decrement ITEM_ANIM_STATE; if non-zero, branch to ADVANCE_RH_ANIM_FRAME
+; 3. If state reached zero, decrement loop counters (L then H)
+; 4. If both reach zero, branch to LAB_ram_e45a (animation complete)
+; 5. Set RAM_AC=$31 and reset L=4; write state/loop back
+; 6. Adjust CHRRAM pointer by subtracting $29 for next frame
+; 7. Continue at COPY_RH_ITEM_FRAME_GFX to copy graphics and update runtime state
+;
+; Input:
+;   ITEM_ANIM_STATE - Current item animation state counter
+;   ITEM_ANIM_LOOP_COUNT - HL packed loop counts (H=outer, L=inner)
+;   ITEM_ANIM_CHRRAM_PTR - CHRRAM pointer for current item frame
+;
+; Output:
+;   ITEM_ANIM_STATE updated; ITEM_ANIM_LOOP_COUNT adjusted
+;   ITEM_ANIM_CHRRAM_PTR moved to next frame
+;   ITEM_MOVE_CHR_BUFFER populated for rendering step
+;   MON_FS updated from RAM_AC/constant
+;   ITEM_ANIM_TIMER_COPY set from TIMER_A-1
+;
+; Registers:
+; --- Start ---
+;   A = ITEM_ANIM_STATE
+;   HL = ITEM_ANIM_LOOP_COUNT
+; --- In Process ---
+;   HL = CHRRAM pointer arithmetic; BC used as delta ($29/$c8)
+;   DE = ITEM_MOVE_CHR_BUFFER
+;   A = RAM_AC, ITEM_SPRITE_INDEX, TIMER_A
+; ---  End  ---
+;   State/loop/pointers updated; flags used by SBC/ADD operations
+;
+; Memory Modified: ITEM_ANIM_STATE, ITEM_ANIM_LOOP_COUNT, ITEM_ANIM_CHRRAM_PTR,
+;                  ITEM_MOVE_CHR_BUFFER, MON_FS, ITEM_ANIM_TIMER_COPY
+; Calls: SOUND_05, COPY_GFX_2_BUFFER, CHK_ITEM, ADVANCE_RH_ANIM_FRAME, COPY_RH_ITEM_FRAME_GFX
+;==============================================================================
+ANIMATE_RH_ITEM_STEP:
+    CALL        SOUND_05                        ; Play animation sound 05
+    LD          A,(ITEM_ANIM_STATE)             ; Load item animation state
+    LD          HL,(ITEM_ANIM_LOOP_COUNT)       ; Load loop counters (HL)
+    DEC         A                               ; Decrement state
+    JP          NZ,ADVANCE_RH_ANIM_FRAME        ; If still non-zero, branch to frame step
+    DEC         L                               ; Decrement inner loop count
+    JP          NZ,RESET_RH_ANIM_STATE          ; If not zero, refresh state and continue
+    DEC         H                               ; Decrement outer loop count
+    JP          Z,LAB_ram_e45a                  ; If zero, animation complete
+    LD          A,$31                           ; Prepare monster frame state value
+    LD          (RAM_AC),A                      ; Store into RAM_AC
+    LD          L,0x4                           ; Reset inner loop count to 4
+RESET_RH_ANIM_STATE:
+    LD          A,0x4                           ; Reset animation state to 4
+    LD          (ITEM_ANIM_STATE),A             ; Write back state
+    LD          (ITEM_ANIM_LOOP_COUNT),HL       ; Write back loop counters
+    LD          HL,(ITEM_ANIM_CHRRAM_PTR)       ; Load CHRRAM pointer for frame
+    LD          BC,$29                          ; Per-frame pointer delta (41 bytes)
+    XOR         A                               ; Clear A for SBC
+    SBC         HL,BC                           ; Move pointer backwards by $29
+    LD          (ITEM_ANIM_CHRRAM_PTR),HL       ; Save updated pointer
+    JP          COPY_RH_ITEM_FRAME_GFX          ; Continue to graphics copy/update
+
+;==============================================================================
+; ADVANCE_RH_ANIM_FRAME — Animation Frame Step
+;==============================================================================
+; Handles the case where ITEM_ANIM_STATE is non-zero: update state and move
+; the CHRRAM pointer by one byte for the next subframe.
+;
+; Flow:
+; 1. Persist updated animation state
+; 2. Load and decrement CHRRAM pointer
+; 3. Continue at COPY_RH_ITEM_FRAME_GFX to process graphics
+;
+; Input:
+;   A = Updated ITEM_ANIM_STATE
+;   ITEM_ANIM_CHRRAM_PTR
+;
+; Output:
+;   ITEM_ANIM_STATE persisted; CHRRAM pointer decremented
+;
+; Registers: HL used for pointer; flags modified by DEC
+; Memory Modified: ITEM_ANIM_STATE, ITEM_ANIM_CHRRAM_PTR
+; Calls: COPY_RH_ITEM_FRAME_GFX (fall-through)
+;==============================================================================
+ADVANCE_RH_ANIM_FRAME:
+    LD          (ITEM_ANIM_STATE),A             ; Persist new animation state
+    LD          HL,(ITEM_ANIM_CHRRAM_PTR)       ; Load CHRRAM pointer
+    DEC         HL                              ; Move to previous byte
+    LD          (ITEM_ANIM_CHRRAM_PTR),HL       ; Save updated pointer
+
+;==============================================================================
+; COPY_RH_ITEM_FRAME_GFX — Copy Frame Graphics and Update State
+;==============================================================================
+; Copies character graphics for the current item frame into the movement
+; buffer, updates monster frame state (MON_FS), runs item check logic, and
+; caches the item animation timer value.
+;
+; Flow:
+; 1. Adjust HL by subtracting $c8, save then restore around buffer copy
+; 2. Copy CHR data into ITEM_MOVE_CHR_BUFFER via COPY_GFX_2_BUFFER
+; 3. Update MON_FS from RAM_AC, then CHK_ITEM with ITEM_SPRITE_INDEX
+; 4. Set MON_FS to constant $32 and store TIMER_A-1 into ITEM_ANIM_TIMER_COPY
+;
+; Input:
+;   HL = CHRRAM pointer (from prior step)
+;   BC = $c8 (delta for frame addressing)
+;   DE = ITEM_MOVE_CHR_BUFFER
+;   RAM_AC, ITEM_SPRITE_INDEX, TIMER_A
+;
+; Output:
+;   ITEM_MOVE_CHR_BUFFER filled for render
+;   MON_FS updated
+;   ITEM_ANIM_TIMER_COPY set
+;
+; Registers: HL/BC/DE used for copy; A for state updates
+; Memory Modified: ITEM_MOVE_CHR_BUFFER, MON_FS, ITEM_ANIM_TIMER_COPY
+; Calls: COPY_GFX_2_BUFFER, CHK_ITEM
+;==============================================================================
+COPY_RH_ITEM_FRAME_GFX:
+    LD          BC,$c8                          ; Frame addressing delta (200 bytes)
+    XOR         A                               ; Clear A for SBC
+    SBC         HL,BC                           ; HL = HL - $c8
+    PUSH        HL                              ; Save source pointer
+    ADD         HL,BC                           ; HL = HL + $c8 (restore for copy base)
+    LD          DE,ITEM_MOVE_CHR_BUFFER         ; Destination buffer for movement CHR
+    CALL        COPY_GFX_2_BUFFER               ; Copy frame graphics to buffer
+    POP         HL                              ; Restore source pointer
+    LD          C,L                             ; Save low byte of pointer into C
+    LD          A,(RAM_AC)                      ; Load accumulator for monster frame
+    LD          (MON_FS),A                      ; Update MON_FS from RAM_AC
+    LD          A,(ITEM_SPRITE_INDEX)           ; Load item sprite index
+    CALL        CHK_ITEM                        ; Run item check/update routine
+    LD          A,$32                           ; Set monster frame state constant
+    LD          (MON_FS),A                      ; Update MON_FS to $32
+    LD          A,(TIMER_A)                     ; Load timer A
+    ADD         A,$ff                           ; Decrement by 1
+    LD          (ITEM_ANIM_TIMER_COPY),A        ; Cache copy for animation timing
+    RET                                         ; Done
 SUB_ram_e401:
     LD          A,L
     AND         0xf
@@ -2745,7 +2841,7 @@ TIMER_UPDATED_CHECK_INPUT:
     CP          (HL)							; Has TIMER_A advanced since last item tick?
     JP          NZ,WAIT_FOR_INPUT				; No → nothing to animate this frame
     CALL        SUB_ram_e450					; Update item blink/phase bookkeeping
-    CALL        SUB_ram_e39a					; Redraw/update UI/icons for item state
+    CALL        ANIMATE_RH_ITEM_STEP			; Redraw/update UI/icons for item state
     JP          WAIT_FOR_INPUT					; Return to main input loop
 
 ;-------------------------------------------------------------------------------
@@ -2758,7 +2854,7 @@ LAB_ram_eb27:
     JP          NZ,WAIT_FOR_INPUT				; No → skip animation this frame
     CALL        MELEE_RESTORE_BG_FROM_BUFFER	; Restore background under melee sprites
     CALL        SUB_ram_e450					; Update blink/phase shared bookkeeping
-    CALL        SUB_ram_e39a					; Redraw any UI impacted by anim state
+    CALL        ANIMATE_RH_ITEM_STEP			; Redraw any UI impacted by anim state
     CALL        MELEE_ANIM_LOOP					; Advance melee/monster animation frame(s)
     JP          WAIT_FOR_INPUT					; Back to main loop
 
@@ -3678,7 +3774,7 @@ SETUP_ITEM_ANIMATION:								;   Configure item animation parameters.
     LD          (ITEM_ANIM_CHRRAM_PTR),HL
     LD          A,L
     LD          (RAM_AD),A
-    JP          LAB_ram_e3d7
+    JP          COPY_RH_ITEM_FRAME_GFX
 LAB_ram_f113:
     CP          $11
     JP          NZ,LAB_ram_f119
