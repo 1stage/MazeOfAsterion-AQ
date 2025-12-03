@@ -1107,7 +1107,7 @@ FIX_RH_COLORS:
 ; 1. Play sound effect for item animation (SOUND_05)
 ; 2. Decrement ITEM_ANIM_STATE; if non-zero, branch to ADVANCE_RH_ANIM_FRAME
 ; 3. If state reached zero, decrement loop counters (L then H)
-; 4. If both reach zero, branch to LAB_ram_e45a (animation complete)
+; 4. If both reach zero, branch to ITEM_COMBAT_DISPATCH (animation complete)
 ; 5. Set RAM_AC=$31 and reset L=4; write state/loop back
 ; 6. Adjust CHRRAM pointer by subtracting $29 for next frame
 ; 7. Continue at COPY_RH_ITEM_FRAME_GFX to copy graphics and update runtime state
@@ -1148,7 +1148,7 @@ ANIMATE_RH_ITEM_STEP:
     DEC         L                               ; Decrement inner loop count
     JP          NZ,RESET_RH_ANIM_STATE          ; If not zero, refresh state and continue
     DEC         H                               ; Decrement outer loop count
-    JP          Z,LAB_ram_e45a                  ; If zero, animation complete
+    JP          Z,ITEM_COMBAT_DISPATCH          ; If zero, animation complete
     LD          A,$31                           ; Prepare monster frame state value
     LD          (RAM_AC),A                      ; Store into RAM_AC
     LD          L,0x4                           ; Reset inner loop count to 4
@@ -1419,6 +1419,7 @@ RECALC_PHYS_HEALTH:
     DAA                                         ; Decimal adjust for BCD
     LD          H,A                             ; Store BCD result in H
     RET
+
 ;==============================================================================
 ; DIVIDE_BCD_HL_BY_2 — Divide BCD HL by 2 with Rounding
 ;==============================================================================
@@ -1467,208 +1468,436 @@ DIVIDE_ROUND_CHECK:                             ; Rounding adjustment
     SUB         0x3                             ; Subtract 3 for rounding
     LD          L,A                             ; Store adjusted value
     RET
-SUB_ram_e450:
-    LD          DE,(ITEM_ANIM_CHRRAM_PTR)
-    LD          HL,ITEM_MOVE_CHR_BUFFER
-    JP          COPY_GFX_FROM_BUFFER
-LAB_ram_e45a:
-    CALL        SUB_ram_e450
-    LD          A,$32
-    LD          (RAM_AC),A
-    LD          (RAM_AD),A
-    LD          A,(WEAPON_SPRT)
-    LD          E,A
-    LD          D,0x0
-    CP          0x0
-    JP          NZ,LAB_ram_e50f
-    LD          DE,(WEAPON_PHYS)
-    EXX
-    CALL        NEW_RIGHT_HAND_ITEM
-    EXX
-    LD          HL,(PLAYER_PHYS_HEALTH_MAX)
-    CALL        DIVIDE_BCD_HL_BY_2
-    CALL        RECALC_PHYS_HEALTH
-    JP          NC,LAB_ram_e487
-    LD          HL,0x0
-LAB_ram_e487:
-    CALL        RANDOMIZE_BCD_NYBBLES
-    LD          L,H
-    LD          H,A
-    CALL        RANDOMIZE_BCD_NYBBLES
-    LD          L,H
-    LD          H,A
-    EX          DE,HL
-    CALL        DIVIDE_BCD_HL_BY_2
-    EX          DE,HL
-    CALL        ADD_BCD_HL_DE
-    EX          DE,HL
-    CALL        RANDOMIZE_BCD_NYBBLES
-    CALL        ADD_BCD_HL_DE
-    LD          DE,(NEW_DAMAGE)
-    CALL        RECALC_PHYS_HEALTH
-    JP          C,LAB_ram_e4bb
+
+ 
+;==============================================================================
+; COPY_ITEM_GFX_TO_CHRRAM  
+;==============================================================================
+; Copy 4x4 item graphic from `ITEM_MOVE_CHR_BUFFER` into CHRRAM at
+; `(ITEM_ANIM_CHRRAM_PTR)`. Used to finalize the RH item animation frame.
+;
+; Inputs:
+;   DE = (ITEM_ANIM_CHRRAM_PTR) destination
+;   HL = ITEM_MOVE_CHR_BUFFER source
+;
+; Outputs:
+;   Writes 4 rows x 4 chars to CHRRAM at destination
+;   F  = flags per LDIR/flow
+;
+; Registers:
+; --- Start ---
+;   DE = dest CHRRAM ptr, HL = src buffer
+; --- In Process ---
+;   A/B/C used by copy helper; DE/HL advanced
+; ---  End  ---
+;   DE/HL at post-copy positions
+;   F  = per last operation
+;
+; Memory Modified: CHRRAM at `(ITEM_ANIM_CHRRAM_PTR)`
+; Calls: COPY_GFX_FROM_BUFFER
+;==============================================================================
+COPY_ITEM_GFX_TO_CHRRAM:
+    LD          DE,(ITEM_ANIM_CHRRAM_PTR)     ; Load destination CHRRAM pointer for item anim
+    LD          HL,ITEM_MOVE_CHR_BUFFER       ; Load source buffer containing 4x4 item gfx
+    JP          COPY_GFX_FROM_BUFFER          ; Copy buffer graphics to CHRRAM at DE
+    
+ 
+;==============================================================================
+; ITEM_COMBAT_DISPATCH  
+;==============================================================================
+; Finalize RH item after animation graphic copy; set status bytes, decode
+; weapon type (physical vs spiritual), and branch into the matching damage
+; pipeline.
+;
+; Inputs:
+;   WEAPON_SPRT = 0 for physical, non-zero for spiritual
+;   (WEAPON_PHYS) = physical damage pair
+;
+; Outputs:
+;   RAM_AC/RAM_AD = $32 status; sets up damage path
+;   F  = flags per comparisons/calls
+;
+; Registers:
+; --- Start ---
+;   A/E/D used for weapon type and DE load
+; --- In Process ---
+;   EXX around NEW_RIGHT_HAND_ITEM; HL used for player max health
+; ---  End  ---
+;   Branch to physical pipeline or spiritual path
+;
+; Memory Modified: CHRRAM via COPY_ITEM_GFX_TO_CHRRAM; RAM_AC/RAM_AD
+; Calls: COPY_ITEM_GFX_TO_CHRRAM, NEW_RIGHT_HAND_ITEM
+;==============================================================================
+ITEM_COMBAT_DISPATCH:
+    CALL        COPY_ITEM_GFX_TO_CHRRAM       ; Copy RH item gfx into CHRRAM
+    LD          A,$32                         ; Prepare status value $32
+    LD          (RAM_AC),A                    ; Store status into RAM_AC
+    LD          (RAM_AD),A                    ; Store status into RAM_AD
+    LD          A,(WEAPON_SPRT)               ; Load spiritual/physical weapon flag
+    LD          E,A                           ; Move flag into E for math
+    LD          D,0x0                         ; Clear D to form DE
+    CP          0x0                           ; Compare: physical (0) vs spiritual (≠0)
+    JP          NZ,CALC_SPRT_DAMAGE           ; If spiritual, branch to spiritual path
+    LD          DE,(WEAPON_PHYS)              ; Load physical weapon damage pair
+    EXX                                       ; Switch to alt regs for item setup
+    CALL        NEW_RIGHT_HAND_ITEM           ; Finalize right-hand item state
+    EXX                                       ; Restore primary regs
+    LD          HL,(PLAYER_PHYS_HEALTH_MAX)   ; Load player max physical health (BCD)
+    CALL        DIVIDE_BCD_HL_BY_2            ; Compute half of max health
+    CALL        RECALC_PHYS_HEALTH            ; Normalize/check health math state
+    JP          NC,APPLY_PHYS_DAMAGE          ; If no carry, proceed with physical mix/damage
+    LD          HL,0x0                        ; Else seed zero to proceed with fallback
+    
+ 
+;==============================================================================
+; APPLY_PHYS_DAMAGE  
+;==============================================================================
+; Physical damage seed build and application.
+; Mixes halves and weapon value via RANDOMIZE_BCD_NYBBLES and DIVIDE/ADD
+; helpers, computes NEW_DAMAGE, then applies to monster physical HP.
+;
+; Inputs:
+;   HL = half of player max physical health (pre-normalized)
+;   DE = working seed/weapon pair during mixing
+;
+; Outputs:
+;   NEW_DAMAGE updated; CURR_MONSTER_PHYS reduced and HUD redrawn if alive
+;   F  = flags per math/compare
+;
+; Registers:
+; --- Start ---
+;   HL = half-health seed
+; --- In Process ---
+;   A swaps with H; DE/HL exchanged; multiple calls to SUB_ram_e401/e439/e427
+; ---  End  ---
+;   HL/DE updated; branch to heavy-damage or death paths as needed
+;
+; Memory Modified: CURR_MONSTER_PHYS, NEW_DAMAGE
+; Calls: RANDOMIZE_BCD_NYBBLES (SUB_ram_e401), DIVIDE_BCD_HL_BY_2 (SUB_ram_e439), ADD_BCD_HL_DE (SUB_ram_e427), REDRAW_MONSTER_HEALTH
+;==============================================================================
+APPLY_PHYS_DAMAGE:
+    CALL        RANDOMIZE_BCD_NYBBLES         ; Randomize BCD nybbles (seed mix)
+    LD          L,H                           ; Move H into L for mixing
+    LD          H,A                           ; Move random A into H
+    CALL        RANDOMIZE_BCD_NYBBLES         ; Randomize again for variability
+    LD          L,H                           ; Shuffle H→L
+    LD          H,A                           ; Shuffle A→H
+    EX          DE,HL                         ; Swap seed with weapon value
+    CALL        DIVIDE_BCD_HL_BY_2            ; Halve the seed (normalize)
+    EX          DE,HL                         ; Restore HL=seed, DE=weapon
+    CALL        ADD_BCD_HL_DE                 ; HL += DE (seed + weapon)
+    EX          DE,HL                         ; Swap again for further mix
+    CALL        RANDOMIZE_BCD_NYBBLES         ; Randomize to perturb mix
+    CALL        ADD_BCD_HL_DE                 ; HL += DE (final mix value)
+    LD          DE,(NEW_DAMAGE)               ; Point DE to NEW_DAMAGE storage
+    CALL        RECALC_PHYS_HEALTH            ; Compute resulting damage value
+    JP          C,PHYS_FALLBACK_SEED          ; If carry, use heavy fallback path
 MONSTER_TAKES_PHYS_DAMAGE:
-    EX          DE,HL
-    LD          HL,(CURR_MONSTER_PHYS)
-    CALL        RECALC_PHYS_HEALTH
-    JP          C,LAB_ram_e4c3
-    OR          L
-    JP          Z,LAB_ram_e4c3
-    LD          (CURR_MONSTER_PHYS),HL
-    JP          REDRAW_MONSTER_HEALTH
-LAB_ram_e4bb:
-    LD          HL,0x6
-    CALL        RANDOMIZE_BCD_NYBBLES
-    JP          MONSTER_TAKES_PHYS_DAMAGE
-LAB_ram_e4c3:
-    EXX
-    LD          HL,0x0
-    LD          (CURR_MONSTER_PHYS),HL
-    CALL        REDRAW_MONSTER_HEALTH
-    EXX
-    INC         L
-    LD          A,$99
-    CP          H
-    JP          NZ,MONSTER_KILLED
-    LD          A,$61
-    CP          L
-    JP          NC,MONSTER_KILLED
-    LD          A,(COLRAM_PHYS_STATS_1000)
-    CALL        SUB_ram_e5ba
-    LD          HL,(PLAYER_PHYS_HEALTH_MAX)
-    CALL        DIVIDE_BCD_HL_BY_2
-    LD          A,L
-    CP          B
-    JP          NC,MONSTER_KILLED
-LAB_ram_e4ec:
-    CALL        UPDATE_SCR_SAVER_TIMER
-    SUB         $40
-    JP          C,INCREASE_MAX_PHYS_HEALTH
-    CP          C
-    JP          NC,MONSTER_KILLED
+    EX          DE,HL                         ; HL=NEW_DAMAGE, DE=monster phys
+    LD          HL,(CURR_MONSTER_PHYS)        ; Load monster physical HP (BCD)
+    CALL        RECALC_PHYS_HEALTH            ; Apply damage calculation to HL vs DE
+    JP          C,MONSTER_PHYS_DEATH          ; If carry/underflow, treat as death
+    OR          L                              ; Check if low byte is zero
+    JP          Z,MONSTER_PHYS_DEATH          ; If zero, monster dead
+    LD          (CURR_MONSTER_PHYS),HL        ; Store updated monster physical HP
+    JP          REDRAW_MONSTER_HEALTH         ; Refresh HUD with new HP
+
+ 
+;==============================================================================
+; PHYS_FALLBACK_SEED  
+;==============================================================================
+; Heavy physical damage fallback; randomize using constant 6 to ensure
+; non-trivial hit before resuming normal apply path.
+;
+; Inputs:
+;   HL = $0006
+;
+; Outputs:
+;   A/L/H updated by RANDOMIZE_BCD_NYBBLES; falls back to LAB_ram_e4a9
+;   F  = flags per helper
+;
+; Registers:
+; --- Start ---
+;   HL = $0006
+; --- In Process ---
+;   A/B/C used by randomize
+; ---  End  ---
+;   Seed prepared; flow continues
+;
+; Memory Modified: None
+; Calls: RANDOMIZE_BCD_NYBBLES
+;==============================================================================
+PHYS_FALLBACK_SEED:
+    LD          HL,0x6                        ; Seed HL with constant 6
+    CALL        RANDOMIZE_BCD_NYBBLES         ; Randomize seed for non-trivial hit
+    JP          MONSTER_TAKES_PHYS_DAMAGE     ; Continue with standard apply path
+    
+ 
+;==============================================================================
+; MONSTER_PHYS_DEATH  
+;==============================================================================
+; Monster physical death and stat threshold checks. Clears monster HP,
+; redraws HUD, then evaluates thresholds to decide on max physical health
+; increases or immediate kill conclusion.
+;
+; Inputs:
+;   CURR_MONSTER_PHYS current value to clear
+;   COLRAM_PHYS_STATS_1000, PLAYER_PHYS_HEALTH_MAX for thresholds
+;
+; Outputs:
+;   CURR_MONSTER_PHYS = 0; may branch to MONSTER_KILLED or loop
+;   F  = flags per compares
+;
+; Registers:
+; --- Start ---
+;   Alt set via EXX; HL used for clears and threshold halves
+; --- In Process ---
+;   A/B for compares; HL updated; calls EXPAND_STAT_THRESHOLDS for thresholds
+; ---  End  ---
+;   Branch per threshold outcomes
+;
+; Memory Modified: CURR_MONSTER_PHYS
+; Calls: REDRAW_MONSTER_HEALTH, EXPAND_STAT_THRESHOLDS, SUB_ram_e439, UPDATE_SCR_SAVER_TIMER
+;==============================================================================
+MONSTER_PHYS_DEATH:
+    EXX                                       ; Use alt regs for clear/HUD
+    LD          HL,0x0                        ; HL = 0
+    LD          (CURR_MONSTER_PHYS),HL        ; Clear monster physical HP
+    CALL        REDRAW_MONSTER_HEALTH         ; Redraw HUD after death
+    EXX                                       ; Restore primary regs
+    INC         L                             ; Increment local threshold counter
+    LD          A,$99                         ; Load high threshold constant
+    CP          H                             ; Compare against H
+    JP          NZ,MONSTER_KILLED             ; If mismatch, conclude kill
+    LD          A,$61                         ; Load low threshold constant
+    CP          L                             ; Compare against L
+    JP          NC,MONSTER_KILLED             ; If <=, conclude kill
+    LD          A,(COLRAM_PHYS_STATS_1000)    ; Read phys stats color/threshold byte
+    CALL        EXPAND_STAT_THRESHOLDS        ; Expand thresholds into B/C
+    LD          HL,(PLAYER_PHYS_HEALTH_MAX)   ; Load player max physical health
+    CALL        DIVIDE_BCD_HL_BY_2            ; Half the max health
+    LD          A,L                           ; A = low byte half
+    CP          B                             ; Compare with scaled threshold B
+    JP          NC,MONSTER_KILLED             ; If not above, conclude kill
+PHYS_THRESHOLD_LOOP:
+    CALL        UPDATE_SCR_SAVER_TIMER        ; Tick screen saver timer
+    SUB         $40                           ; Reduce local counter by 0x40
+    JP          C,INCREASE_MAX_PHYS_HEALTH    ; If underflow, increase max phys
+    CP          C                             ; Compare remaining against C threshold
+    JP          NC,MONSTER_KILLED             ; If <=, conclude kill
 INCREASE_MAX_PHYS_HEALTH:
-    LD          HL,(PLAYER_PHYS_HEALTH_MAX)
-    LD          A,L
-    ADD         A,0x1
-    DAA								;  Correct for BCD
-    LD          L,A
-    LD          A,H
-    ADC         A,0x0
-    LD          H,A
-    LD          (PLAYER_PHYS_HEALTH_MAX),HL
-    LD          A,C
-    SUB         $10
-    JP          C,MONSTER_KILLED
-    LD          C,A
-    JP          LAB_ram_e4ec
-LAB_ram_e50f:
-    LD          A,(PLAYER_SPRT_HEALTH_MAX)
-    LD          H,0x0
-    LD          L,A
-    EXX
-    CALL        NEW_RIGHT_HAND_ITEM
-    EXX
-    CALL        DIVIDE_BCD_HL_BY_2
-    LD          A,L
-    SUB         E
-    DAA
-    LD          L,A
-    JP          NC,LAB_ram_e525
-    LD          L,0x0
-LAB_ram_e525:
-    CALL        RANDOMIZE_BCD_NYBBLES
-    EX          DE,HL
-    CALL        DIVIDE_BCD_HL_BY_2
-    LD          A,L
-    ADD         A,E
-    DAA
-    LD          E,A
-    CALL        RANDOMIZE_BCD_NYBBLES
-    ADD         A,E
-    DAA
-    LD          L,A
-    LD          A,(BYTE_ram_3aa5)
-    LD          E,A
-    LD          A,L
-    SUB         E
-    DAA
-    JP          C,LAB_ram_e54f
-    LD          L,A
+    LD          HL,(PLAYER_PHYS_HEALTH_MAX)   ; Load current max phys health
+    LD          A,L                           ; A = low byte
+    ADD         A,0x1                         ; Increment by 1
+    DAA                                       ; Adjust to valid BCD
+    LD          L,A                           ; Store back to L
+    LD          A,H                           ; A = high byte
+    ADC         A,0x0                         ; Propagate carry into H
+    LD          H,A                           ; Store back to H
+    LD          (PLAYER_PHYS_HEALTH_MAX),HL   ; Save updated max phys health
+    LD          A,C                           ; A = C threshold
+    SUB         $10                           ; Reduce threshold step by 0x10
+    JP          C,MONSTER_KILLED              ; If underflow, conclude kill
+    LD          C,A                           ; Update C with reduced threshold
+    JP          PHYS_THRESHOLD_LOOP           ; Loop threshold processing
+CALC_SPRT_DAMAGE:
+    LD          A,(PLAYER_SPRT_HEALTH_MAX)    ; Load player max spiritual health
+    LD          H,0x0                         ; Clear high byte
+    LD          L,A                           ; HL = max sprt as BCD
+    EXX                                       ; Use alt regs for item setup
+    CALL        NEW_RIGHT_HAND_ITEM           ; Finalize right-hand item state
+    EXX                                       ; Restore primary regs
+    CALL        DIVIDE_BCD_HL_BY_2            ; Half the spiritual max
+    LD          A,L                           ; A = half value
+    SUB         E                             ; Subtract weapon sprt component
+    DAA                                       ; Normalize to BCD
+    LD          L,A                           ; L = adjusted half
+    JP          NC,SPRT_SEED_MIX              ; If no borrow, continue
+    LD          L,0x0                         ; If negative, clamp to 0
+SPRT_SEED_MIX:
+    CALL        RANDOMIZE_BCD_NYBBLES         ; Randomize seed
+    EX          DE,HL                         ; Swap seed with DE
+    CALL        DIVIDE_BCD_HL_BY_2            ; Halve seed
+    LD          A,L                           ; A = low byte seed
+    ADD         A,E                           ; Add weapon sprt value
+    DAA                                       ; Normalize to BCD
+    LD          E,A                           ; E = mixed value
+    CALL        RANDOMIZE_BCD_NYBBLES         ; Randomize again
+    ADD         A,E                           ; Add mixed value
+    DAA                                       ; Normalize to BCD
+    LD          L,A                           ; L = final seed
+    LD          A,(BYTE_ram_3aa5)             ; Load environment/bonus modifier
+    LD          E,A                           ; E = modifier
+    LD          A,L                           ; A = seed
+    SUB         E                             ; Subtract modifier to adjust
+    DAA                                       ; Normalize to BCD
+    JP          C,SPRT_FALLBACK_SEED          ; If negative, use fallback seed
+    LD          L,A                           ; L = adjusted seed
 MONSTER_TAKES_SPRT_DAMAGE:
-    LD          A,(CURR_MONSTER_SPRT)
-    SUB         L
-    DAA
-    JP          C,LAB_ram_e557
-    JP          Z,LAB_ram_e557
-    LD          (CURR_MONSTER_SPRT),A
-    JP          REDRAW_MONSTER_HEALTH
-LAB_ram_e54f:
-    LD          HL,0x3
-    CALL        RANDOMIZE_BCD_NYBBLES
-    JP          MONSTER_TAKES_SPRT_DAMAGE
-LAB_ram_e557:
-    PUSH        AF
-    XOR         A
-    LD          (CURR_MONSTER_SPRT),A
-    CALL        REDRAW_MONSTER_HEALTH
-    POP         AF
-    DEC         A
-    CP          $86
-    JP          C,ITEM_USED_UP
-    LD          A,(COLRAM_SPRT_STATS_10)
-    CALL        SUB_ram_e5ba
-    LD          A,(PLAYER_SPRT_HEALTH_MAX)
-    CP          B
-    JP          NC,ITEM_USED_UP
+    LD          A,(CURR_MONSTER_SPRT)         ; Load monster spiritual HP
+    SUB         L                             ; Apply damage L to A
+    DAA                                       ; Normalize to BCD
+    JP          C,MONSTER_SPRT_DEATH          ; If underflow, kill path
+    JP          Z,MONSTER_SPRT_DEATH          ; If zero, kill path
+    LD          (CURR_MONSTER_SPRT),A         ; Store updated spiritual HP
+    JP          REDRAW_MONSTER_HEALTH         ; Refresh HUD
+ 
+;==============================================================================
+; SPRT_FALLBACK_SEED  
+;==============================================================================
+; Spiritual damage fallback seed. Randomizes a small 3-value seed then
+; continues to apply spiritual damage to the monster.
+;
+; Inputs:
+;   HL = $0003 (seed initializer)
+;
+; Outputs:
+;   A/L/H updated by RANDOMIZE_BCD_NYBBLES as seed; falls through to damage path
+;   F  = flags per helper operations
+;
+; Registers:
+; --- Start ---
+;   HL = $0003
+; --- In Process ---
+;   A/B/C used by RANDOMIZE_BCD_NYBBLES; HL walked
+; ---  End  ---
+;   Seed state prepared; flow continues to MONSTER_TAKES_SPRT_DAMAGE
+;
+; Memory Modified: None
+; Calls: RANDOMIZE_BCD_NYBBLES, MONSTER_TAKES_SPRT_DAMAGE
+;==============================================================================
+SPRT_FALLBACK_SEED:
+    LD          HL,0x3                        ; Seed HL with small constant 3
+    CALL        RANDOMIZE_BCD_NYBBLES         ; Randomize seed for variability
+    JP          MONSTER_TAKES_SPRT_DAMAGE     ; Continue to apply spiritual damage
+ 
+;==============================================================================
+; MONSTER_SPRT_DEATH  
+;==============================================================================
+; Spiritual kill and max-SPRT handling. Clears monster spiritual HP,
+; redraws HUD, then checks thresholds to optionally increase player's
+; max spiritual health (in 0x10 steps) while reducing local counter by $30.
+;
+; Inputs:
+;   A  = last accumulator used for SPRT damage path
+;
+; Outputs:
+;   CURR_MONSTER_SPRT = 0 on kill; may update PLAYER_SPRT_HEALTH_MAX
+;   F  = flags per arithmetic and comparisons
+;
+; Registers:
+; --- Start ---
+;   A = recent SPRT accumulator
+; --- In Process ---
+;   A/B/C used for threshold math; HL/DE not used here
+; ---  End  ---
+;   A/B/C reflect final threshold state; flags set accordingly
+;
+; Memory Modified: CURR_MONSTER_SPRT, PLAYER_SPRT_HEALTH_MAX
+; Calls: REDRAW_MONSTER_HEALTH, EXPAND_STAT_THRESHOLDS, UPDATE_SCR_SAVER_TIMER
+;==============================================================================
+MONSTER_SPRT_DEATH:
+    PUSH        AF                            ; Preserve recent accumulator
+    XOR         A                             ; A = 0
+    LD          (CURR_MONSTER_SPRT),A         ; Clear monster spiritual HP
+    CALL        REDRAW_MONSTER_HEALTH         ; Update HUD
+    POP         AF                            ; Restore accumulator
+    DEC         A                             ; Decrement for threshold start
+    CP          $86                           ; Compare against constant $86
+    JP          C,ITEM_USED_UP                ; If below, item is used up
+    LD          A,(COLRAM_SPRT_STATS_10)      ; Load spiritual stats threshold byte
+    CALL        EXPAND_STAT_THRESHOLDS        ; Expand into B/C thresholds
+    LD          A,(PLAYER_SPRT_HEALTH_MAX)    ; Load player max spiritual health
+    CP          B                             ; Compare to threshold B
+    JP          NC,ITEM_USED_UP               ; If not greater, item used up
+ 
+;==============================================================================
+; REDUCE_ITEM_BY_30  
 REDUCE_ITEM_BY_30:
-    CALL        UPDATE_SCR_SAVER_TIMER
-    SUB         $30
-    JP          C,INCREASE_MAX_SPRT_HEALTH
-    CP          C
-    JP          NC,ITEM_USED_UP
+    CALL        UPDATE_SCR_SAVER_TIMER        ; Tick screen saver timer
+    SUB         $30                           ; Reduce local counter by 0x30
+    JP          C,INCREASE_MAX_SPRT_HEALTH    ; Underflow triggers max sprt increase
+    CP          C                             ; Compare remaining against C threshold
+    JP          NC,ITEM_USED_UP               ; If <=, item used up
+ 
+;==============================================================================
+; INCREASE_MAX_SPRT_HEALTH  
 INCREASE_MAX_SPRT_HEALTH:
-    LD          A,(PLAYER_SPRT_HEALTH_MAX)
-    ADD         A,0x1
-    DAA								;  Correct for BCD
-    LD          (PLAYER_SPRT_HEALTH_MAX),A
-    LD          A,C
-    SUB         $10
-    JP          C,ITEM_USED_UP
-    LD          C,A
-    JP          REDUCE_ITEM_BY_30
+    LD          A,(PLAYER_SPRT_HEALTH_MAX)    ; Load current max spiritual health
+    ADD         A,0x1                         ; Increment by 1
+    DAA                                       ; Adjust to valid BCD
+    LD          (PLAYER_SPRT_HEALTH_MAX),A    ; Store updated max sprt health
+    LD          A,C                           ; A = C threshold
+    SUB         $10                           ; Reduce threshold by 0x10 step
+    JP          C,ITEM_USED_UP                ; If underflow, end
+    LD          C,A                           ; Update C threshold
+    JP          REDUCE_ITEM_BY_30             ; Loop reduction/increase sequence
+ 
+;==============================================================================
+; ITEM_USED_UP  
 ITEM_USED_UP:
-    JP          MONSTER_KILLED
+    JP          MONSTER_KILLED                ; Conclude: monster killed, item consumed
+ 
+;==============================================================================
+; CLEAR_MONSTER_STATS  
 CLEAR_MONSTER_STATS:
-    XOR         A								;  A  = $fe on entry (usually)
-								;  A  = $00 after
-								;  Reset C & N, Set Z
-								;  
-    LD          (COMBAT_BUSY_FLAG),A								;  Clear combat busy flag
-    LD          BC,$403
-    LD          HL,CHRRAM_LEVEL_IDX
-    LD          A,$20
-    JP          FILL_CHRCOL_RECT
-SUB_ram_e5ba:
-    AND         0xf
-    INC         A
-    INC         A
-    LD          B,A
+    XOR         A                             ; A=0
+    LD          (COMBAT_BUSY_FLAG),A          ; Clear combat busy flag
+    LD          BC,$403                       ; BC = width/height for fill rect
+    LD          HL,CHRRAM_LEVEL_IDX           ; HL = CHRRAM start index
+    LD          A,$20                         ; A = fill color/code
+    JP          FILL_CHRCOL_RECT              ; Fill screen region to clear stats
+ 
+;==============================================================================
+; EXPAND_STAT_THRESHOLDS  
+;==============================================================================
+; Expand a 4-bit value in A into weighted B/C thresholds for stat checks.
+; Maps low nybble (A&0xF) into:
+;   B = scaled BCD (A*2 four times with DAA), C = A rotated by 4 (high nybble)
+; Used to evaluate whether to increase player max SPRT health.
+;
+; Inputs:
+;   A  = input value (only low nybble used)
+;
+; Outputs:
+;   B  = scaled BCD threshold
+;   C  = rotated nybble threshold
+;   F  = flags per arithmetic/DAA
+;
+; Registers:
+; --- Start ---
+;   A = input value (low nybble significant)
+; --- In Process ---
+;   A rotated; A doubled repeatedly with DAA; B/C loaded
+; ---  End  ---
+;   B = A doubled×4 (BCD normalized)
+;   C = A rotated left by 4
+;   F = set per last operation
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
+EXPAND_STAT_THRESHOLDS:
+    AND         0xf                           ; Mask to low nybble
+    INC         A                             ; Increment seed (x2 total)
+    INC         A                             ; Increment again
+    LD          B,A                           ; B = base seed
+    RLCA                                      ; Rotate left 4 times (×16)
     RLCA
     RLCA
     RLCA
-    RLCA
-    LD          C,A
-    LD          A,B
-    ADD         A,A
-    DAA
-    ADD         A,A
-    DAA
-    ADD         A,A
-    DAA
-    ADD         A,A
-    DAA
-    LD          B,A
-    RET
+    LD          C,A                           ; C = rotated high-nybble value
+    LD          A,B                           ; A = base seed
+    ADD         A,A                           ; ×2 scale in BCD
+    DAA                                       ; Normalize BCD
+    ADD         A,A                           ; ×4
+    DAA                                       ; Normalize
+    ADD         A,A                           ; ×8
+    DAA                                       ; Normalize
+    ADD         A,A                           ; ×16
+    DAA                                       ; Normalize
+    LD          B,A                           ; B = scaled threshold
+    RET                                       ; Return with B/C prepared
 
 ;==============================================================================
 ; MELEE_ANIM_LOOP
@@ -2991,7 +3220,7 @@ TIMER_UPDATED_CHECK_INPUT:
     LD          A,(ITEM_ANIM_TIMER_COPY)		; A = last processed item-anim tick
     CP          (HL)							; Has TIMER_A advanced since last item tick?
     JP          NZ,WAIT_FOR_INPUT				; No → nothing to animate this frame
-    CALL        SUB_ram_e450					; Update item blink/phase bookkeeping
+    CALL        COPY_ITEM_GFX_TO_CHRRAM			; Update item blink/phase bookkeeping
     CALL        ANIMATE_RH_ITEM_STEP			; Redraw/update UI/icons for item state
     JP          WAIT_FOR_INPUT					; Return to main input loop
 
@@ -3004,7 +3233,7 @@ LAB_ram_eb27:
     CP          (HL)							; Has TIMER_A advanced for monster anim?
     JP          NZ,WAIT_FOR_INPUT				; No → skip animation this frame
     CALL        MELEE_RESTORE_BG_FROM_BUFFER	; Restore background under melee sprites
-    CALL        SUB_ram_e450					; Update blink/phase shared bookkeeping
+    CALL        COPY_ITEM_GFX_TO_CHRRAM			; Update blink/phase shared bookkeeping
     CALL        ANIMATE_RH_ITEM_STEP			; Redraw any UI impacted by anim state
     CALL        MELEE_ANIM_LOOP					; Advance melee/monster animation frame(s)
     JP          WAIT_FOR_INPUT					; Back to main loop
