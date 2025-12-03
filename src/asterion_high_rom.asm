@@ -3927,13 +3927,13 @@ LAB_ram_eb27:
 ; Monster/melee animation (UI already up-to-date or not needed)
 ;-------------------------------------------------------------------------------
 LAB_ram_eb40:
-    LD          HL,0x0                         ; HL = 0 (clear physical weapon value)
-    XOR         A                               ; A = 0 (clear spiritual weapon value)
-    LD          (WEAPON_PHYS),HL               ; Store PHYS = 0
-    LD          (WEAPON_SPRT),A                ; Store SPRT = 0
-    JP          LAB_ram_e7aa                   ; Redraw HUD counters
-    CALL        MELEE_ANIM_LOOP					; Advance melee/monster animation frame(s)
-    JP          WAIT_FOR_INPUT						; Back to main loop
+    LD          HL,TIMER_A                     ; HL points to master tick counter
+    LD          A,(MONSTER_ANIM_TIMER_COPY)    ; A = last processed monster-anim tick
+    CP          (HL)                            ; Has TIMER_A advanced for monster anim?
+    JP          NZ,WAIT_FOR_INPUT               ; No → skip animation this frame
+    CALL        MELEE_RESTORE_BG_FROM_BUFFER    ; Restore background under melee sprites
+    CALL        MELEE_ANIM_LOOP                ; Advance melee/monster animation frame(s)
+    JP          WAIT_FOR_INPUT                 ; Back to main loop
 
 ;-------------------------------------------------------------------------------
 ; Idle branch when RAM_AD == $32 (screensaver timer + conditional AI)
