@@ -6293,258 +6293,257 @@ ITEM_SEARCH_LOOP:
 ;
 ;==============================================================================
 REDRAW_VIEWPORT:
-    CALL        DRAW_BKGD
-    LD          BC,ITEM_F2								;  BC = ITEM_F2
-    LD          DE,WALL_F0_STATE								;  DE = wallAheadTemp
-    LD          A,(DE)								;  A = (wallAheadTemp)
-    RRCA
-    JP          NC,F0_NO_HD								;  Jump if no hidden door
-    EX          AF,AF'
-    CALL        DRAW_F0_WALL
-    EX          AF,AF'
-    RRCA
-    JP          NC,F0_HD_NO_WALL								;  Jump if no wall
-    RRCA
-    JP          NC,F0_HD_NO_WALL								;  Jump if door closed
+    CALL        DRAW_BKGD                           ; Draw background
+    LD          BC,ITEM_F2                          ; BC = item at position F2
+    LD          DE,WALL_F0_STATE                    ; DE = wall state at position F0
+    LD          A,(DE)                              ; Load F0 wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,F0_NO_HD                         ; If no hidden door, check regular wall
+    EX          AF,AF'                              ; Save wall state to alternate
+    CALL        DRAW_F0_WALL                        ; Draw F0 wall
+    EX          AF,AF'                              ; Restore wall state
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,F0_HD_NO_WALL                    ; If no wall, continue
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          NC,F0_HD_NO_WALL                    ; If door closed, continue
 F0_NO_HD_WALL_OPEN:
-    CALL        DRAW_WALL_F0_AND_OPEN_DOOR
-    JP          LAB_ram_f986
+    CALL        DRAW_WALL_F0_AND_OPEN_DOOR          ; Draw wall with open door
+    JP          LAB_ram_f986                        ; Jump to F1 item check
 F0_NO_HD:
-    RRCA
-    JP          NC,F0_NO_HD_NO_WALL								;  Jump if no wall
-    RRCA
-    JP          C,F0_NO_HD_WALL_OPEN								;  Jump if door open
-    CALL        DRAW_F0_WALL_AND_CLOSED_DOOR
-    JP          F0_HD_NO_WALL
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,F0_NO_HD_NO_WALL                 ; If no wall, check F1
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          C,F0_NO_HD_WALL_OPEN                ; If door open, draw open door
+    CALL        DRAW_F0_WALL_AND_CLOSED_DOOR        ; Draw wall with closed door
+    JP          F0_HD_NO_WALL                       ; Continue to L1/R1 walls
 F0_NO_HD_NO_WALL:
-    INC         DE
-    LD          A,(DE)
-    RRCA
-    JP          NC,F1_NO_HD								;  Jump if no hidden door
-    EX          AF,AF'
-    CALL        DRAW_WALL_F1
-    EX          AF,AF'
-    RRCA
-    JP          NC,F1_HD_NO_WALL								;  Jump if no wall
-    RRCA
-    JP          NC,F1_HD_NO_WALL								;  Jump if door closed
+    INC         DE                                  ; Move to F1 wall state
+    LD          A,(DE)                              ; Load F1 wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,F1_NO_HD                         ; If no hidden door, check regular wall
+    EX          AF,AF'                              ; Save wall state to alternate
+    CALL        DRAW_WALL_F1                        ; Draw F1 wall
+    EX          AF,AF'                              ; Restore wall state
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,F1_HD_NO_WALL                    ; If no wall, continue to L1/R1
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          NC,F1_HD_NO_WALL                    ; If door closed, continue
 F1_NO_HD_WALL_OPEN:
-    CALL        DRAW_WALL_F1_AND_OPEN_DOOR
-    JP          LAB_ram_f8b7
+    CALL        DRAW_WALL_F1_AND_OPEN_DOOR          ; Draw wall with open door
+    JP          LAB_ram_f8b7                        ; Jump to F2 item check
 F1_NO_HD:
-    RRCA
-    JP          NC,LAB_ram_f85a
-    RRCA
-    JP          C,F1_NO_HD_WALL_OPEN
-    CALL        DRAW_WALL_F1_AND_CLOSED_DOOR
-    JP          F1_HD_NO_WALL
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_f85a                     ; If no wall, check F2
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          C,F1_NO_HD_WALL_OPEN                ; If door open, draw open door
+    CALL        DRAW_WALL_F1_AND_CLOSED_DOOR        ; Draw wall with closed door
+    JP          F1_HD_NO_WALL                       ; Continue to L1/R1 walls
 LAB_ram_f85a:
-    INC         DE
-    LD          A,(DE)
-    RRCA
-    JP          NC,CHECK_WALL_F2
+    INC         DE                                  ; Move to F2 wall state
+    LD          A,(DE)                              ; Load F2 wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,CHECK_WALL_F2                    ; If no hidden door, check bit 1
 F2_WALL:
-    CALL        DRAW_WALL_F2
-    JP          LAB_ram_f86d
+    CALL        DRAW_WALL_F2                        ; Draw F2 wall
+    JP          LAB_ram_f86d                        ; Continue to L2 walls
 CHECK_WALL_F2:
-    RRCA
-    JP          C,F2_WALL
-    CALL        DRAW_WALL_F2_EMPTY
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          C,F2_WALL                           ; If wall exists, draw it
+    CALL        DRAW_WALL_F2_EMPTY                  ; Draw empty F2 space
 LAB_ram_f86d:
-    LD          DE,WALL_L2_STATE
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_f87b
+    LD          DE,WALL_L2_STATE                    ; DE = left wall 2 state
+    LD          A,(DE)                              ; Load L2 wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_f87b                     ; If no hidden door, check bit 1
 LAB_ram_f875:
-    ; CALL        DRAW_WALL_FL2_EMPTY           ; Original?
-    CALL        DRAW_WALL_L2
-    JP          LAB_ram_f892
+    CALL        DRAW_WALL_L2                        ; Draw L2 wall
+    JP          LAB_ram_f892                        ; Continue to R2 walls
 LAB_ram_f87b:
-    RRCA
-    JP          C,LAB_ram_f875
-    INC         DE
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_f88b
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          C,LAB_ram_f875                      ; If wall exists, draw it
+    INC         DE                                  ; Move to L2 left wall state
+    LD          A,(DE)                              ; Load L2 left state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_f88b                     ; If no hidden door, check bit 1
 LAB_ram_f885:
-    CALL        DRAW_WALL_L2_LEFT
-    JP          LAB_ram_f892
+    CALL        DRAW_WALL_L2_LEFT                   ; Draw L2 left wall
+    JP          LAB_ram_f892                        ; Continue to R2 walls
 LAB_ram_f88b:
-    RRCA
-    JP          C,LAB_ram_f885
-    CALL        DRAW_WALL_L2_LEFT_EMPTY
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          C,LAB_ram_f885                      ; If wall exists, draw it
+    CALL        DRAW_WALL_L2_LEFT_EMPTY             ; Draw empty L2 left space
 LAB_ram_f892:
-    LD          DE,WALL_R2_STATE
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_f8a0
+    LD          DE,WALL_R2_STATE                    ; DE = right wall 2 state
+    LD          A,(DE)                              ; Load R2 wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_f8a0                     ; If no hidden door, check bit 1
 LAB_ram_f89a:
-    CALL        DRAW_WALL_R2
-    JP          LAB_ram_f8b7
+    CALL        DRAW_WALL_R2                        ; Draw R2 wall
+    JP          LAB_ram_f8b7                        ; Continue to F2 item check
 LAB_ram_f8a0:
-    RRCA
-    JP          C,LAB_ram_f89a
-    INC         DE
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_f8b0
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          C,LAB_ram_f89a                      ; If wall exists, draw it
+    INC         DE                                  ; Move to R2 right wall state
+    LD          A,(DE)                              ; Load R2 right state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_f8b0                     ; If no hidden door, check bit 1
 LAB_ram_f8aa:
-    CALL        SUB_ram_cd21
-    JP          LAB_ram_f8b7
+    CALL        SUB_ram_cd21                        ; Draw R2 right wall
+    JP          LAB_ram_f8b7                        ; Continue to F2 item check
 LAB_ram_f8b0:
-    RRCA
-    JP          C,LAB_ram_f8aa
-    CALL        SUB_ram_cd2c
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          C,LAB_ram_f8aa                      ; If wall exists, draw it
+    CALL        SUB_ram_cd2c                        ; Draw empty R2 right space
 LAB_ram_f8b7:
-    LD          A,(ITEM_F2)
-    LD          BC,$48a
-    CALL        CHK_ITEM
+    LD          A,(ITEM_F2)                         ; Load item at F2 position
+    LD          BC,$48a                             ; BC = distance/size parameters
+    CALL        CHK_ITEM                            ; Check and draw F2 item
 F1_HD_NO_WALL:
-    LD          DE,WALL_L1_STATE
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_f8db
-    EX          AF,AF'
-    CALL        DRAW_L1_WALL
-    EX          AF,AF'
-    RRCA
-    JP          NC,LAB_ram_f923
-    RRCA
-    JP          NC,LAB_ram_f923
+    LD          DE,WALL_L1_STATE                    ; DE = left wall 1 state
+    LD          A,(DE)                              ; Load L1 wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_f8db                     ; If no hidden door, check bit 1
+    EX          AF,AF'                              ; Save wall state to alternate
+    CALL        DRAW_L1_WALL                        ; Draw L1 wall
+    EX          AF,AF'                              ; Restore wall state
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_f923                     ; If no wall, continue
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          NC,LAB_ram_f923                     ; If door closed, continue
 LAB_ram_f8d5:
-    CALL        DRAW_FL1_DOOR
-    JP          LAB_ram_f923
+    CALL        DRAW_FL1_DOOR                       ; Draw FL1 door
+    JP          LAB_ram_f923                        ; Continue to R1 walls
 LAB_ram_f8db:
-    RRCA
-    JP          NC,LAB_ram_f8e9
-    RRCA
-    JP          C,LAB_ram_f8d5
-    CALL        DRAW_L1
-    JP          LAB_ram_f923
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_f8e9                     ; If no wall, check sub-wall
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          C,LAB_ram_f8d5                      ; If door open, draw door
+    CALL        DRAW_L1                             ; Draw L1 wall/door
+    JP          LAB_ram_f923                        ; Continue to R1 walls
 LAB_ram_f8e9:
-    INC         E
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_f902
-    EX          AF,AF'
-    CALL        DRAW_WALL_FL1_B
-    EX          AF,AF'
-    RRCA
-    JP          NC,LAB_ram_f923
-    RRCA
-    JP          NC,LAB_ram_f923
+    INC         E                                   ; Move to L1 back wall state
+    LD          A,(DE)                              ; Load L1 back wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_f902                     ; If no hidden door, check bit 1
+    EX          AF,AF'                              ; Save wall state to alternate
+    CALL        DRAW_WALL_FL1_B                     ; Draw FL1 back wall
+    EX          AF,AF'                              ; Restore wall state
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_f923                     ; If no wall, continue
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          NC,LAB_ram_f923                     ; If door closed, continue
 LAB_ram_f8fc:
-    CALL        DRAW_DOOR_FL1_B_HIDDEN
-    JP          LAB_ram_f923
+    CALL        DRAW_DOOR_FL1_B_HIDDEN              ; Draw hidden door on FL1 back
+    JP          LAB_ram_f923                        ; Continue to R1 walls
 LAB_ram_f902:
-    RRCA
-    JP          NC,LAB_ram_f910
-    RRCA
-    JP          C,LAB_ram_f8fc
-    CALL        DRAW_DOOR_FL1_B_NORMAL
-    JP          LAB_ram_f923
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_f910                     ; If no wall, check FL2
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          C,LAB_ram_f8fc                      ; If door open, draw door
+    CALL        DRAW_DOOR_FL1_B_NORMAL              ; Draw normal door on FL1 back
+    JP          LAB_ram_f923                        ; Continue to R1 walls
 LAB_ram_f910:
-    INC         E
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_f91c
+    INC         E                                   ; Move to FL2 wall state
+    LD          A,(DE)                              ; Load FL2 wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_f91c                     ; If no hidden door, check bit 1
 LAB_ram_f916:
-    CALL        DRAW_WALL_FL2
-    JP          LAB_ram_f923
+    CALL        DRAW_WALL_FL2                       ; Draw FL2 wall
+    JP          LAB_ram_f923                        ; Continue to R1 walls
 LAB_ram_f91c:
-    RRCA
-    JP          C,LAB_ram_f916
-    CALL        DRAW_WALL_FL2_EMPTY
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          C,LAB_ram_f916                      ; If wall exists, draw it
+    CALL        DRAW_WALL_FL2_EMPTY                 ; Draw empty FL2 space
 LAB_ram_f923:
-    LD          DE,WALL_R1_STATE
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_f93e
-    EX          AF,AF'
-    CALL        DRAW_WALL_R1
-    EX          AF,AF'
-    RRCA
-    JP          NC,LAB_ram_f986
-    RRCA
-    JP          NC,LAB_ram_f986
+    LD          DE,WALL_R1_STATE                    ; DE = right wall 1 state
+    LD          A,(DE)                              ; Load R1 wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_f93e                     ; If no hidden door, check bit 1
+    EX          AF,AF'                              ; Save wall state to alternate
+    CALL        DRAW_WALL_R1                        ; Draw R1 wall
+    EX          AF,AF'                              ; Restore wall state
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_f986                     ; If no wall, continue
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          NC,LAB_ram_f986                     ; If door closed, continue
 LAB_ram_f938:
-    CALL        DRAW_DOOR_R1_HIDDEN
-    JP          LAB_ram_f986
+    CALL        DRAW_DOOR_R1_HIDDEN                 ; Draw hidden door on R1
+    JP          LAB_ram_f986                        ; Continue to F1 item check
 LAB_ram_f93e:
-    RRCA
-    JP          NC,LAB_ram_f94c
-    RRCA
-    JP          C,LAB_ram_f938
-    CALL        DRAW_DOOR_R1_NORMAL
-    JP          LAB_ram_f986
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_f94c                     ; If no wall, check sub-wall
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          C,LAB_ram_f938                      ; If door open, draw door
+    CALL        DRAW_DOOR_R1_NORMAL                 ; Draw normal door on R1
+    JP          LAB_ram_f986                        ; Continue to F1 item check
 LAB_ram_f94c:
-    INC         E
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_f965
-    EX          AF,AF'
-    CALL        DRAW_WALL_FR1_A
-    EX          AF,AF'
-    RRCA
-    JP          NC,LAB_ram_f986
-    RRCA
-    JP          NC,LAB_ram_f986
+    INC         E                                   ; Move to FR1 wall state
+    LD          A,(DE)                              ; Load FR1 wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_f965                     ; If no hidden door, check bit 1
+    EX          AF,AF'                              ; Save wall state to alternate
+    CALL        DRAW_WALL_FR1_A                     ; Draw FR1 wall
+    EX          AF,AF'                              ; Restore wall state
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_f986                     ; If no wall, continue
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          NC,LAB_ram_f986                     ; If door closed, continue
 LAB_ram_f95f:
-    CALL        SUB_ram_ccaf
-    JP          LAB_ram_f986
+    CALL        SUB_ram_ccaf                        ; Draw hidden door on FR1
+    JP          LAB_ram_f986                        ; Continue to F1 item check
 LAB_ram_f965:
-    RRCA
-    JP          NC,LAB_ram_f973
-    RRCA
-    JP          C,LAB_ram_f95f
-    CALL        SUB_ram_ccb5
-    JP          LAB_ram_f986
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_f973                     ; If no wall, check FR2
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          C,LAB_ram_f95f                      ; If door open, draw door
+    CALL        SUB_ram_ccb5                        ; Draw normal door on FR1
+    JP          LAB_ram_f986                        ; Continue to F1 item check
 LAB_ram_f973:
-    INC         E
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_f97f
+    INC         E                                   ; Move to FR2 wall state
+    LD          A,(DE)                              ; Load FR2 wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_f97f                     ; If no hidden door, check bit 1
 LAB_ram_f979:
-    CALL        DRAW_WALL_FR2
-    JP          LAB_ram_f986
+    CALL        DRAW_WALL_FR2                       ; Draw FR2 wall
+    JP          LAB_ram_f986                        ; Continue to F1 item check
 LAB_ram_f97f:
-    RRCA
-    JP          C,LAB_ram_f979
-    CALL        DRAW_WALL_FR2_EMPTY
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          C,LAB_ram_f979                      ; If wall exists, draw it
+    CALL        DRAW_WALL_FR2_EMPTY                 ; Draw empty FR2 space
 LAB_ram_f986:
-    LD          A,(ITEM_F1)
-    LD          BC,$28a
-    CALL        CHK_ITEM
+    LD          A,(ITEM_F1)                         ; Load item at F1 position
+    LD          BC,$28a                             ; BC = distance/size parameters
+    CALL        CHK_ITEM                            ; Check and draw F1 item
 F0_HD_NO_WALL:
-    LD          DE,WALL_L0_STATE
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_f9aa
-    EX          AF,AF'
-    CALL        DRAW_WALL_L0
-    EX          AF,AF'
-    RRCA
-    JP          NC,LAB_ram_fa19
-    RRCA
-    JP          NC,LAB_ram_fa19
+    LD          DE,WALL_L0_STATE                    ; DE = left wall 0 state
+    LD          A,(DE)                              ; Load L0 wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_f9aa                     ; If no hidden door, check bit 1
+    EX          AF,AF'                              ; Save wall state to alternate
+    CALL        DRAW_WALL_L0                        ; Draw L0 wall
+    EX          AF,AF'                              ; Restore wall state
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_fa19                     ; If no wall, continue
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          NC,LAB_ram_fa19                     ; If door closed, continue
 LAB_ram_f9a4:
-    CALL        DRAW_DOOR_L0_HIDDEN
-    JP          LAB_ram_fa19
+    CALL        DRAW_DOOR_L0_HIDDEN                 ; Draw hidden door on L0
+    JP          LAB_ram_fa19                        ; Continue to R0 walls
 LAB_ram_f9aa:
-    RRCA
-    JP          NC,LAB_ram_f9b8
-    RRCA
-    JP          C,LAB_ram_f9a4
-    CALL        DRAW_DOOR_L0_NORMAL
-    JP          LAB_ram_fa19
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_f9b8                     ; If no wall, check sub-wall
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          C,LAB_ram_f9a4                      ; If door open, draw door
+    CALL        DRAW_DOOR_L0_NORMAL                 ; Draw normal door on L0
+    JP          LAB_ram_fa19                        ; Continue to R0 walls
 LAB_ram_f9b8:
-    INC         E
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_f9c4
+    INC         E                                   ; Move to FL0 wall state
+    LD          A,(DE)                              ; Load FL0 wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_f9c4                     ; If no hidden door, check bit 1
 LAB_ram_f9be:
-    CALL        DRAW_WALL_FL0
-    JP          LAB_ram_fa19
+    CALL        DRAW_WALL_FL0                       ; Draw FL0 wall
+    JP          LAB_ram_fa19                        ; Continue to R0 walls
 LAB_ram_f9c4:
     RRCA                                    ; Test current bit in A register
     JP          C,LAB_ram_f9be              ; If bit set, jump to wall draw routine
