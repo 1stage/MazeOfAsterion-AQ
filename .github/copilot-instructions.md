@@ -44,9 +44,45 @@ MazeOfAsterion-AQ is a character-based first-person dungeon crawler for the Aqua
       - describes the routine
       - includes a brief synopsis of the routine events
       - enumerates the start, in process, and end values of registers used
+      - Use the standardized header template below
     - Each line of code should have a brief comment after that describes the action being taken
   - Technical notes and architecture decisions in `docs/`
   - Update documentation when making major changes to subsystems
+
+### Standard Routine Header Template
+
+Use this exact structure for all routine headers:
+
+```
+; <LABEL_NAME>  
+;==============================================================================
+; <One-line description of routine purpose.>
+;
+; Inputs:
+;   <explicit registers/vars used on entry>
+;
+; Outputs:
+;   <registers/memory effects on exit>
+;   F  = <flags state/impact>
+;
+; Registers:
+; --- Start ---
+;   <registers at entry>
+; --- In Process ---
+;   <transient register usage/changes>
+; ---  End  ---
+;   <registers at exit>
+;   F  = <final flags>
+;
+; Memory Modified: <None or precise locations/ranges>
+; Calls: <called routines (not internal jumps)>
+;==============================================================================
+```
+
+Notes:
+- Keep Description ≤ 2 lines; move detail into Inputs/Outputs.
+- Prefer compact, specific lists over prose.
+- Use the exact `--- Start --- / --- In Process --- / ---  End  ---` block for Registers.
 
 ## Integration & Dependencies
 - No external libraries; all code is custom for Aquarius hardware

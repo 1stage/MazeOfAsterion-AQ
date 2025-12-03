@@ -496,7 +496,7 @@ SOUND_DELAY_LOOP:
     DEC         HL                              ; Decrement delay counter
     LD          A,L                             ; Load L into A
     OR          H                               ; OR with H to test for zero
-    JP          NZ,SOUND_DELAY_LOOP             ; If HL≠0, continue delay loop
+    JP          NZ,SOUND_DELAY_LOOP             ; If HL???0, continue delay loop
     JP          PLAY_SOUND_LOOP                 ; Return to next sound cycle
 
 ;==============================================================================
@@ -1097,7 +1097,7 @@ FIX_RH_COLORS:
     RET
 
 ;==============================================================================
-; ANIMATE_RH_ITEM_STEP — RH Item Animation Step
+; ANIMATE_RH_ITEM_STEP ??? RH Item Animation Step
 ;==============================================================================
 ; Advances the right-hand item animation, manages loop counters, updates the
 ; CHRRAM pointer for sprite frames, and copies character graphics into a
@@ -1164,7 +1164,7 @@ RESET_RH_ANIM_STATE:
     JP          COPY_RH_ITEM_FRAME_GFX          ; Continue to graphics copy/update
 
 ;==============================================================================
-; ADVANCE_RH_ANIM_FRAME — Animation Frame Step
+; ADVANCE_RH_ANIM_FRAME ??? Animation Frame Step
 ;==============================================================================
 ; Handles the case where ITEM_ANIM_STATE is non-zero: update state and move
 ; the CHRRAM pointer by one byte for the next subframe.
@@ -1192,7 +1192,7 @@ ADVANCE_RH_ANIM_FRAME:
     LD          (ITEM_ANIM_CHRRAM_PTR),HL       ; Save updated pointer
 
 ;==============================================================================
-; COPY_RH_ITEM_FRAME_GFX — Copy Frame Graphics and Update State
+; COPY_RH_ITEM_FRAME_GFX ??? Copy Frame Graphics and Update State
 ;==============================================================================
 ; Copies character graphics for the current item frame into the movement
 ; buffer, updates monster frame state (MON_FS), runs item check logic, and
@@ -1241,7 +1241,7 @@ COPY_RH_ITEM_FRAME_GFX:
     RET                                         ; Done
 
 ;==============================================================================
-; RANDOMIZE_BCD_NYBBLES — Randomize BCD nybbles in L
+; RANDOMIZE_BCD_NYBBLES ??? Randomize BCD nybbles in L
 ;==============================================================================
 ; Takes the value in L, extracts and randomizes each BCD nybble independently,
 ; then recombines them back into L. Uses modulo arithmetic to constrain the
@@ -1299,7 +1299,7 @@ RANDOMIZE_BCD_NYBBLES:
     LD          L,A                             ; Store combined result in L
     RET
 ;==============================================================================
-; RANDOM_MOD_B — Random Modulo
+; RANDOM_MOD_B ??? Random Modulo
 ;==============================================================================
 ; Returns a pseudo-random value modulo B. Uses UPDATE_SCR_SAVER_TIMER as a
 ; random source, then repeatedly subtracts B until result is in range [0,B-1].
@@ -1337,7 +1337,7 @@ RAND_MOD_LOOP:                                   ; Modulo loop
     RET                                         ; Return A in range [0, B-1]
 
 ;==============================================================================
-; ADD_BCD_HL_DE — Add BCD Values (HL += DE)
+; ADD_BCD_HL_DE ??? Add BCD Values (HL += DE)
 ;==============================================================================
 ; Adds two 16-bit BCD (Binary Coded Decimal) values. Uses DAA (Decimal Adjust
 ; Accumulator) after each byte addition to keep result in valid BCD format.
@@ -1379,7 +1379,7 @@ ADD_BCD_HL_DE:
     RET
 
 ;==============================================================================
-; RECALC_PHYS_HEALTH — Subtract BCD Values (HL -= DE)
+; RECALC_PHYS_HEALTH ??? Subtract BCD Values (HL -= DE)
 ;==============================================================================
 ; Subtracts two 16-bit BCD values, typically used to recalculate physical
 ; health after damage. Uses DAA after each byte subtraction to maintain BCD.
@@ -1420,7 +1420,7 @@ RECALC_PHYS_HEALTH:
     LD          H,A                             ; Store BCD result in H
     RET
 ;==============================================================================
-; DIVIDE_BCD_HL_BY_2 — Divide BCD HL by 2 with Rounding
+; DIVIDE_BCD_HL_BY_2 ??? Divide BCD HL by 2 with Rounding
 ;==============================================================================
 ; Divides a 16-bit BCD value in HL by 2 using right shifts. Applies BCD
 ; correction when shifting across nybble boundaries and rounds down if the
@@ -1718,10 +1718,10 @@ MELEE_ANIM_LOOP:
     CALL        SOUND_05                        ; Play attack sound blip
     LD          A,(MELEE_ANIM_STATE)            ; Load current animation state (1 or 3)
     LD          HL,(MONSTER_ATT_POS_COUNT)      ; Load position frame counter
-    DEC         A                               ; Decrement state: 1→0 or 3→2
-    JP          NZ,MELEE_MOVE_MONSTER_TO_PLAYER ; If state≠1, jump to increment position
+    DEC         A                               ; Decrement state: 1???0 or 3???2
+    JP          NZ,MELEE_MOVE_MONSTER_TO_PLAYER ; If state???1, jump to increment position
     DEC         L                               ; State=1: decrement low byte of counter
-    JP          NZ,MELEE_MOVE_PLAYER_TO_MONSTER ; If L≠0, continue animation
+    JP          NZ,MELEE_MOVE_PLAYER_TO_MONSTER ; If L???0, continue animation
     DEC         H                               ; L reached 0: decrement high byte
     JP          Z,FINISH_AND_APPLY_DAMAGE       ; If both bytes=0, animation done, apply damage
     LD          A,$32                           ; Reset some animation flag
@@ -1885,7 +1885,7 @@ ACCUM_DAMAGE_LOOP:
     DJNZ        ACCUM_DAMAGE_STEP               ; Loop B times to multiply damage
     LD          L,A                             ; L = total calculated damage
     LD          A,(MONSTER_SPRITE_FRAME)        ; Load target identifier
-    AND         $fc                             ; Mask to sprite family ($24-$27 → $24)
+    AND         $fc                             ; Mask to sprite family ($24-$27 ??? $24)
     CP          $24                             ; Check if player is target ($24-$27 range)
     JP          NZ,MONSTER_PHYS_BRANCH          ; If not player target, jump to monster damage
     
@@ -1935,7 +1935,7 @@ MONSTER_CALC_PHYS_DAMAGE:
     ; Context note:
     ; During melee resolution, this routine applies PHYS damage to the monster.
     ; The code path temporarily uses `PLAYER_PHYS_HEALTH` as a storage field for
-    ; the monster’s physical health value. This reuse is a space-saving approach
+    ; the monster???s physical health value. This reuse is a space-saving approach
     ; and differs from general combat where `CURR_MONSTER_PHYS` is used.
     EX          DE,HL                           ; Swap: DE = damage, HL = trash
     LD          HL,(PLAYER_PHYS_HEALTH)         ; Load monster's PHYS (stored in player field during melee)
@@ -1997,7 +1997,7 @@ SUB_ram_e720:
 LAB_ram_e72b:
     AND         0x3
     INC         A
-    CALL        ITEM_ATTR_LOOKUP
+    CALL        SUB_ram_e9c1
     LD          A,(HL)
     AND         $fc
     RET         NZ
@@ -2122,11 +2122,11 @@ NOT_HELMET:
     EX          AF,AF'
     LD          A,D
     LD          (HL),A
-    CALL        ITEM_ATTR_LOOKUP
+    CALL        SUB_ram_e9c1
     LD          E,C
     LD          D,B
     EX          AF,AF'
-    CALL        ITEM_ATTR_LOOKUP
+    CALL        SUB_ram_e9c1
     LD          A,E
     SUB         C
     DAA								                ;  BCD Correction
@@ -2477,11 +2477,11 @@ PICK_UP_F0_ITEM:
     LD          A,COLOR(BLK,DKGRY)              ; A = BLK on DKGRY (floor color scheme)
     CALL        UPDATE_F0_ITEM                  ; Clear F0 color graphics with floor colors (4x4 area)
     EX          AF,AF'                          ; Restore original item code to A register
-    RRA                                         ; Rotate A right: bit 0 → carry, bits 7-1 → bits 6-0
-    RR          D                               ; Rotate D right: carry → bit 7, bits 7-1 → bits 6-0
-    RRA                                         ; Rotate A right again: bit 0 → carry, bits 6-0 → bits 5-0
-    RL          D                               ; Rotate D left: carry → bit 0, bit 7 → carry
-    RL          D                               ; Rotate D left again: carry → bit 0, bit 7 → carry
+    RRA                                         ; Rotate A right: bit 0 ??? carry, bits 7-1 ??? bits 6-0
+    RR          D                               ; Rotate D right: carry ??? bit 7, bits 7-1 ??? bits 6-0
+    RRA                                         ; Rotate A right again: bit 0 ??? carry, bits 6-0 ??? bits 5-0
+    RL          D                               ; Rotate D left: carry ??? bit 0, bit 7 ??? carry
+    RL          D                               ; Rotate D left again: carry ??? bit 0, bit 7 ??? carry
                                                 ; Net effect: D = (original_item_code >> 2) & 0x03
                                                 ; D now contains item level (0-3) from bits 2-3
     RET                                         ; Return with level in D, floor cleared
@@ -2505,7 +2505,7 @@ PICK_UP_F0_ITEM:
 ;   DE = Destination address for 4x4 block (buffer)
 ;   A  = Row counter (will be set to 4)
 ; --- In Process ---
-;   A  = Row counter (4→3→2→1→0)
+;   A  = Row counter (4???3???2???1???0)
 ;   BC = Copy length (4 chars) and row skip offset ($24 = 36)
 ;   HL = Current source position advancing through screen rows
 ;   DE = Current destination position (auto-increments contiguously via LDIR)
@@ -2551,7 +2551,7 @@ COPY_GFX_2_BUF_MEMCHK:
 ;   DE = Destination address for 4x4 block (screen memory)
 ;   A  = Row counter (will be set to 4)
 ; --- In Process ---
-;   A  = Row counter (4→3→2→1→0)
+;   A  = Row counter (4???3???2???1???0)
 ;   BC = Copy length (4 chars) and row skip offset ($24 = 36)
 ;   HL = Current source position (auto-increments contiguously via LDIR)
 ;   DE = Current destination position advancing through screen rows
@@ -2602,7 +2602,7 @@ COPY_GFX_FROM_BUFF_MEMCHK:
 ;   DE = Destination address for 4x4 block
 ;   A  = Row counter (will be set to 4)
 ; --- In Process ---
-;   A  = Row counter (4→3→2→1→0)  
+;   A  = Row counter (4???3???2???1???0)  
 ;   BC = Copy length (4 chars) and row skip offset ($24 = 36)
 ;   HL = Current source position advancing through 4x4 area
 ;   DE = Current destination position advancing through 4x4 area
@@ -2641,53 +2641,61 @@ COPY_GFX_SCRN_2_SCRN_MEMCHK:
     JP          COPY_GFX_SCRN_2_SCRN            ; Recursive call to copy corresponding COLRAM areas
 
 ;==============================================================================
-; ITEM_ATTR_LOOKUP  
+; SUB_ram_e9c1  
 ;==============================================================================
-; Item attribute lookup. Implements a small switch by decrementing A through
-; successive cases and loading BC accordingly. Used to derive fixed attribute
-; pairs or pointer constants for subsequent item logic.
+; Item attribute lookup table function that returns different attribute values
+; based on item type or level input. This function implements a switch-like
+; structure that maps input values to specific attribute combinations stored
+; in the BC register pair.
 ;
-; Inputs:
-;   A  = Item/level index (0..3; 4+ → default)
+; Mapping Table (assumes A is pre-decremented before first call):
+; Input A=0: BC = $0501 (B=05, C=01) - Physical=5, Spirit=1
+; Input A=1: BC = $0804 (B=08, C=04) - Unknown attributes  
+; Input A=2: BC = LAB_ram_1208 ($1208) - Memory address reference
+; Input A=3: BC = BYTE_ram_2613 ($2613) - Memory address reference  
+; Input A=4+: BC = $0000 (B=00, C=00) - Default/null values
 ;
-; Outputs:
-;   BC = Selected attribute/pointer ($0501, $0804, LAB_ram_1208, BYTE_ram_2613; else $0000)
-;   F  = Flags reflect last comparison/JP NZ tests
+; Input:
+;   A = Item type or level index (0-4+, will be decremented in function)
+;
+; Output:
+;   BC = Attribute values or memory address based on input A
+;   Z flag set if A reached zero during decrementation
 ;
 ; Registers:
 ; --- Start ---
-;   A  = Index to test
+;   A = Item type/level index for lookup
 ; --- In Process ---
-;   A  = Decremented and compared; BC loaded per matched case
+;   A = Decremented value being tested against zero
 ; ---  End  ---
-;   A  = Final decremented value
-;   BC = Result value for the matched case or default
-;   F  = Condition codes per last compare/branch
+;   A = Final decremented value (may be negative)
+;   BC = Result attribute values or memory address
+;   Flags = Z flag reflects final comparison state
 ;
 ; Memory Modified: None
-; Calls: None
+; Calls: None (simple lookup table implementation)
 ;==============================================================================
-ITEM_ATTR_LOOKUP:
+SUB_ram_e9c1:
     DEC         A                               ; Decrement A and test for specific values
-    JP          NZ,ITEM_ATTR_0                  ; If A≠0, try next case
+    JP          NZ,LAB_ram_e9c8                ; If A???0, try next case
     LD          BC,$501                         ; Case A=0: Load PHYS=5, SPRT=1 attributes
     RET                                         ; Return with attribute values
-ITEM_ATTR_0:
-    DEC         A                               ; Decrement A again (now A-1 → A-2)
-    JP          NZ,ITEM_ATTR_1                  ; If A≠0, try next case  
+LAB_ram_e9c8:
+    DEC         A                               ; Decrement A again (now A-1 ??? A-2)
+    JP          NZ,LAB_ram_e9cf                ; If A???0, try next case  
     LD          BC,$804                         ; Case A=1: Load attributes $08,$04
     RET                                         ; Return with attribute values
-ITEM_ATTR_1:
-    DEC         A                               ; Decrement A again (now A-2 → A-3)
-    JP          NZ,ITEM_ATTR_2_PTR              ; If A≠0, try next case
+LAB_ram_e9cf:
+    DEC         A                               ; Decrement A again (now A-2 ??? A-3)
+    JP          NZ,LAB_ram_e9d6                ; If A???0, try next case
     LD          BC,LAB_ram_1208                 ; Case A=2: Load memory address reference
     RET                                         ; Return with address
-ITEM_ATTR_2_PTR:
-    DEC         A                               ; Decrement A again (now A-3 → A-4)
-    JP          NZ,ITEM_ATTR_DEFAULT_ZERO       ; If A≠0, use default case
+LAB_ram_e9d6:
+    DEC         A                               ; Decrement A again (now A-3 ??? A-4)
+    JP          NZ,LAB_ram_e9dd                ; If A???0, use default case
     LD          BC,BYTE_ram_2613                ; Case A=3: Load memory address reference
     RET                                         ; Return with address
-ITEM_ATTR_DEFAULT_ZERO:
+LAB_ram_e9dd:
     LD          BC,0x0                          ; Default case A=4+: Load null values
     RET                                         ; Return with zero values
 
@@ -2736,7 +2744,7 @@ ITEM_ATTR_DEFAULT_ZERO:
 SUB_ram_e9e1:
     LD          A,(RIGHT_HAND_ITEM)             ; Load current right-hand item
     CP          $fe                             ; Compare with $FE (empty item marker)
-    JP          NZ,LAB_ram_e9ec                 ; If item present, jump to memory update
+    JP          NZ,LAB_ram_e9ec                ; If item present, jump to memory update
     POP         HL                              ; Discard return address from stack
     JP          NO_ACTION_TAKEN                 ; Jump to no-action handler (abort operation)
 ; --- Memory update section (item present in right hand) ---
@@ -2983,14 +2991,14 @@ REVERSE_ROTATE_LOOP:
 TIMER_UPDATED_CHECK_INPUT:
     LD          A,(RAM_AD)						; Load animation state byte AD
     CP          $32								; Is state equal to $32? (branch set)
-    JP          Z,LAB_ram_eb53					; Yes → handle screensaver/idle branch
+    JP          Z,LAB_ram_eb53					; Yes ??? handle screensaver/idle branch
     LD          A,(RAM_AE)						; Load animation state byte AE
     CP          $31								; Compare with $31
-    JP          NZ,LAB_ram_eb27					; If not $31 → check monster/melee tick
+    JP          NZ,LAB_ram_eb27					; If not $31 ??? check monster/melee tick
     LD          HL,TIMER_A						; HL points to master tick counter
     LD          A,(ITEM_ANIM_TIMER_COPY)		; A = last processed item-anim tick
     CP          (HL)							; Has TIMER_A advanced since last item tick?
-    JP          NZ,WAIT_FOR_INPUT				; No → nothing to animate this frame
+    JP          NZ,WAIT_FOR_INPUT				; No ??? nothing to animate this frame
     CALL        SUB_ram_e450					; Update item blink/phase bookkeeping
     CALL        ANIMATE_RH_ITEM_STEP			; Redraw/update UI/icons for item state
     JP          WAIT_FOR_INPUT					; Return to main input loop
@@ -3002,7 +3010,7 @@ LAB_ram_eb27:
     LD          HL,TIMER_A						; HL points to master tick counter
     LD          A,(MONSTER_ANIM_TIMER_COPY)		; A = last processed monster-anim tick
     CP          (HL)							; Has TIMER_A advanced for monster anim?
-    JP          NZ,WAIT_FOR_INPUT				; No → skip animation this frame
+    JP          NZ,WAIT_FOR_INPUT				; No ??? skip animation this frame
     CALL        MELEE_RESTORE_BG_FROM_BUFFER	; Restore background under melee sprites
     CALL        SUB_ram_e450					; Update blink/phase shared bookkeeping
     CALL        ANIMATE_RH_ITEM_STEP			; Redraw any UI impacted by anim state
@@ -3016,7 +3024,7 @@ LAB_ram_eb40:
     LD          HL,TIMER_A						; HL points to master tick counter
     LD          A,(MONSTER_ANIM_TIMER_COPY)		; A = last processed monster-anim tick
     CP          (HL)								; Has TIMER_A advanced for monster anim?
-    JP          NZ,WAIT_FOR_INPUT					; No → skip animation this frame
+    JP          NZ,WAIT_FOR_INPUT					; No ??? skip animation this frame
     CALL        MELEE_RESTORE_BG_FROM_BUFFER		; Restore background under melee sprites
     CALL        MELEE_ANIM_LOOP					; Advance melee/monster animation frame(s)
     JP          WAIT_FOR_INPUT						; Back to main loop
@@ -3027,7 +3035,7 @@ LAB_ram_eb40:
 LAB_ram_eb53:
     LD          A,(RAM_AE)						; Read secondary state AE
     CP          $31								; If not $31, use simpler melee branch
-    JP          NZ,LAB_ram_eb40					; → Skip UI updates, just animate melee
+    JP          NZ,LAB_ram_eb40					; ??? Skip UI updates, just animate melee
     CALL        UPDATE_SCR_SAVER_TIMER				; Bump inactivity/screensaver counters
     LD          A,(COMBAT_BUSY_FLAG)				; Is combat currently running?
     AND         A								; Set flags from A
@@ -3039,33 +3047,33 @@ LAB_ram_eb53:
     INC         A								; (two INCs used consistently in this code)
     LD          HL,ITEM_FR1						; HL = pointer to FR1 (probing sequence)
 LAB_ram_eb6f:
-    CP          $7a								; >= $7A ⇒ monster/eligible target present
+    CP          $7a								; >= $7A ??? monster/eligible target present
     JP          NC,LAB_ram_eb7b					; If present, run AI/random action
     INC         HL								; Else move to next probe cell
     LD          A,(HL)							; A = next item/monster id
     INC         A								; Normalize/flag as above
     INC         A
     DJNZ        LAB_ram_eb6f						; Probe up to 4 positions
-    JP          LAB_ram_ebd6						; Nothing eligible → continue main loop
+    JP          LAB_ram_ebd6						; Nothing eligible ??? continue main loop
 
 ;-------------------------------------------------------------------------------
 ; LAB_ram_eb7b - Random AI nudge: occasional turn/advance + redraw/engage
 ;-------------------------------------------------------------------------------
 ;   - Low-probability trigger based on TIMER_D and a random carry test
 ;   - Chooses an action based on B (probe index):
-;       B==1 → consider back cell; turn 180° if passable
-;       B==2 → consider left cell; turn left if passable
-;       B==3 → consider right cell; turn right if passable
-;       B==4 → consider forward cell; if blocked, try engage
+;       B==1 ??? consider back cell; turn 180?? if passable
+;       B==2 ??? consider left cell; turn left if passable
+;       B==3 ??? consider right cell; turn right if passable
+;       B==4 ??? consider forward cell; if blocked, try engage
 ;   - On successful facing change, redraw viewport and possibly enter combat
 ;
 LAB_ram_eb7b:
     LD          A,(TIMER_D)						; A = sub-tick timer (short interval)
     CP          0x5								; Require TIMER_D < 5 to allow action
-    JP          NC,LAB_ram_ebd6					; Too soon → skip
+    JP          NC,LAB_ram_ebd6					; Too soon ??? skip
     CALL        MAKE_RANDOM_BYTE				; A = random 0..255
     ADD         A,0x8							; 8/256 chance sets carry
-    JP          NC,LAB_ram_ebd6					; If no carry → abort action
+    JP          NC,LAB_ram_ebd6					; If no carry ??? abort action
     DEC         B								; First case: B==1? (back)
     JP          NZ,LAB_ram_eb9e
     LD          A,(WALL_B0_STATE)
@@ -3133,7 +3141,7 @@ LAB_ram_ebd6:
     LD          BC,$ff								; BC = keyboard port
     IN          A,(C)								; Read keyboard row
     INC         A									; Test for $FF (no key pressed)
-    JP          NZ,LAB_ram_ec52					; Key pressed → handle keyboard input
+    JP          NZ,LAB_ram_ec52					; Key pressed ??? handle keyboard input
     LD          C,$f7								; C = HC control port
     LD          A,0xf								; A = enable mask
     OUT         (C),A								; Enable HC read
@@ -3147,7 +3155,7 @@ LAB_ram_ebd6:
     DEC         C									; C = $F6
     IN          A,(C)								; Read again (stabilize)
     INC         A									; $FF means no input
-    JP          Z,WAIT_FOR_INPUT					; No input anywhere → continue loop
+    JP          Z,WAIT_FOR_INPUT					; No input anywhere ??? continue loop
 LAB_ram_ebf7:
     CALL        PLAY_DESCENDING_SOUND				; Acknowledge HC input with tone
     LD          HL,HC_INPUT_HOLDER
@@ -3944,16 +3952,16 @@ LAB_ram_f11e:
     CALL        CLEAR_RIGHT_ITEM_AND_SETUP_ANIM
     JP          WAIT_FOR_INPUT
 INIT_MONSTER_COMBAT:								;   Monster combat round initializer.
-;   Preconditions: Right-hand item already decoded into B (weapon level) and ITEM_F1 holds
-;   monster/item code at player position. COMBAT_BUSY_FLAG must be 0 for a new round.
-;   Effects:
-;     - Sets COMBAT_BUSY_FLAG to 1 (gates movement / turning until resolution)
-;     - Extracts monster "color" (difficulty tier) & level bits from ITEM_F1
-;     - Derives additive damage component C from dungeon level (BCD math with RLD)
-;     - Selects monster base damage seed D and HP (HL) via branch table
-;     - Computes weapon value (via CALC_WEAPON_VALUE later) after random reductions
-;     - Stores monster sprite frame index into MONSTER_SPRITE_FRAME for draw routines
-;     - Seeds CURR_MONSTER_SPRT and BYTE_ram_3aa5 (physical/spiritual HP triplets)
+								;   Preconditions: Right-hand item already decoded into B (weapon level) and ITEM_F1 holds
+								;   monster/item code at player position. COMBAT_BUSY_FLAG must be 0 for a new round.
+								;   Effects:
+								;     - Sets COMBAT_BUSY_FLAG to 1 (gates movement / turning until resolution)
+								;     - Extracts monster "color" (difficulty tier) & level bits from ITEM_F1
+								;     - Derives additive damage component C from dungeon level (BCD math with RLD)
+								;     - Selects monster base damage seed D and HP (HL) via branch table
+								;     - Computes weapon value (via CALC_WEAPON_VALUE later) after random reductions
+								;     - Stores monster sprite frame index into MONSTER_SPRITE_FRAME for draw routines
+								;     - Seeds CURR_MONSTER_SPRT and BYTE_ram_3aa5 (physical/spiritual HP triplets)
     LD          A,(COMBAT_BUSY_FLAG)
     AND         A
     JP          NZ,INIT_MELEE_ANIM
@@ -3991,6 +3999,12 @@ LAB_ram_f157:
     LD          A,D
     RLD
     EX          AF,AF'
+								;   ===== MONSTER TYPE DISPATCH TABLE =====
+								;   Switches on monster code ($1E-$27) to set base damage D, HP (HL), and sprite frame base.
+								;   Each entry sets:
+								;     D = base damage seed (BCD)
+								;     HL = HP pair (H=spiritual HP, L=physical HP) - note: order reversed in some docs
+								;     MONSTER_SPRITE_FRAME = sprite base ($24=physical/red, $3C=spiritual/purple) + level (B=0-3)
     SUB         $1e								;   Monster codes start at $1E
     JP          NZ,LAB_ram_f17d
 								;   [$1E] Skeleton: D=7, HP=(3,4), Sprite=$3C+level (spiritual/purple)
@@ -4447,11 +4461,11 @@ GFX_SWAP_FG_BG:
 ;   B  = 0 (256 wall generation loop counter)
 ; --- In Process ---
 ;   A  = Random bytes, player position, item codes, level calculations
-;   B  = Loop counters (walls: 256→0, items: 128→0), item count tracker  
+;   B  = Loop counters (walls: 256???0, items: 128???0), item count tracker  
 ;   C  = Item positions, type calculations, level thresholds
 ;   D  = Item type base offsets, level scaling factors
 ;   E  = Random masking, position validation, temp values
-;   HL = Memory pointers (MAPSPACE_WALLS→ITEM_TABLE→TEMP_MAP)
+;   HL = Memory pointers (MAPSPACE_WALLS???ITEM_TABLE???TEMP_MAP)
 ;   AF'= Random number preservation during duplicate checking
 ; ---  End  ---
 ;   HL = MAP_LADDER_OFFSET + final item count + 1 ($FF terminator)
@@ -4462,7 +4476,7 @@ GFX_SWAP_FG_BG:
 ;==============================================================================
 BUILD_MAP:
     LD          HL,MAPSPACE_WALLS               ; Point to start of wall map ($3800)
-    LD          B,0x0                           ; B=0 for 256-byte loop (0→255)
+    LD          B,0x0                           ; B=0 for 256-byte loop (0???255)
 GENERATE_MAPWALLS_LOOP:
     CALL        MAKE_RANDOM_BYTE                ; Get first random byte
     LD          E,A                             ; Store in E for AND masking
@@ -4714,9 +4728,9 @@ REDRAW_START:
 ;   C  = Step value for CALC_HALF_WALLS jumps (5)
 ; --- In Process ---
 ;   A  = Wall data and map position calculations
-;   DE = Map cursor for navigation [S0→S1→S2→SL2→S2→SR2→SL1→S1→SR1→SL0→SL22→S0→SR0→SR1→SR2→SB]
-;   HL = Wall state variable pointer progression ($33e8→$33fd)
-;   C  = Incremented step value (5→6→7→8) for CALC_HALF_WALLS
+;   DE = Map cursor for navigation [S0???S1???S2???SL2???S2???SR2???SL1???S1???SR1???SL0???SL22???S0???SR0???SR1???SR2???SB]
+;   HL = Wall state variable pointer progression ($33e8???$33fd)
+;   C  = Incremented step value (5???6???7???8) for CALC_HALF_WALLS
 ; ---  End  ---
 ;   DE = WEST_TXT pointer for compass rendering
 ;   HL = Final wall state address (WALL_B0_STATE + 1)
@@ -4902,9 +4916,9 @@ CALC_HALF_WALLS:
 ;   C  = Step value for CALC_HALF_WALLS jumps (5)
 ; --- In Process ---
 ;   A  = Wall data and map position calculations
-;   DE = Map cursor for navigation [S0→S1→S2→SL2→S2→SR2→S1→SL1→S1→SR1→S0→SL0→SL22→SR0→SR22→SB]
-;   HL = Wall state variable pointer progression ($33e8→$33fd)
-;   C  = Incremented step value (5→6→7→8) for CALC_HALF_WALLS
+;   DE = Map cursor for navigation [S0???S1???S2???SL2???S2???SR2???S1???SL1???S1???SR1???S0???SL0???SL22???SR0???SR22???SB]
+;   HL = Wall state variable pointer progression ($33e8???$33fd)
+;   C  = Incremented step value (5???6???7???8) for CALC_HALF_WALLS
 ; ---  End  ---
 ;   DE = NORTH_TXT pointer for compass rendering
 ;   HL = Final wall state address (WALL_B0_STATE + 1)
@@ -5004,9 +5018,9 @@ FACING_NORTH:
 ;   C  = Step value for CALC_HALF_WALLS jumps (5)
 ; --- In Process ---
 ;   A  = Wall data and map position calculations
-;   DE = Map cursor for navigation [S0→S1→S2→(S2+1)→SL2→(SL2+1)→S2→(SR2+1)→SL1→SL2→S1→SR2→SL0→SL1→SL22→S0→SR1→SR2→S0]
-;   HL = Wall state variable pointer progression ($33e8→$33fd)
-;   C  = Incremented step value (5→6→7→8) for CALC_HALF_WALLS
+;   DE = Map cursor for navigation [S0???S1???S2???(S2+1)???SL2???(SL2+1)???S2???(SR2+1)???SL1???SL2???S1???SR2???SL0???SL1???SL22???S0???SR1???SR2???S0]
+;   HL = Wall state variable pointer progression ($33e8???$33fd)
+;   C  = Incremented step value (5???6???7???8) for CALC_HALF_WALLS
 ; ---  End  ---
 ;   DE = SOUTH_TXT pointer for compass rendering
 ;   HL = Final wall state address (WALL_B0_STATE + 1)
@@ -5129,9 +5143,9 @@ FACING_SOUTH:
 ;   C  = Step value for CALC_HALF_WALLS jumps (5)
 ; --- In Process ---
 ;   A  = Wall data and map position calculations
-;   DE = Map cursor for navigation [S0→S1→S2→(S2+1)→S2→(SL2+1)→SR2→(SR2+1)→S1→SL2→SR1→(SR2)→S0→SL1→(SL2)→SR0→(SR1)→SR22→S0]
-;   HL = Wall state variable pointer progression ($33e8→$33fd)
-;   C  = Incremented step value (5→6→7→8) for CALC_HALF_WALLS
+;   DE = Map cursor for navigation [S0???S1???S2???(S2+1)???S2???(SL2+1)???SR2???(SR2+1)???S1???SL2???SR1???(SR2)???S0???SL1???(SL2)???SR0???(SR1)???SR22???S0]
+;   HL = Wall state variable pointer progression ($33e8???$33fd)
+;   C  = Incremented step value (5???6???7???8) for CALC_HALF_WALLS
 ; ---  End  ---
 ;   DE = EAST_TXT pointer for compass rendering
 ;   HL = Final wall state address (WALL_B0_STATE + 1)
