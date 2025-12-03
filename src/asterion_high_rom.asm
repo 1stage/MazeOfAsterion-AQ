@@ -6545,256 +6545,256 @@ LAB_ram_f9be:
     CALL        DRAW_WALL_FL0                       ; Draw FL0 wall
     JP          LAB_ram_fa19                        ; Continue to R0 walls
 LAB_ram_f9c4:
-    RRCA                                    ; Test current bit in A register
-    JP          C,LAB_ram_f9be              ; If bit set, jump to wall draw routine
-    INC         E                           ; Move DE to next wall state byte
-    LD          A,(DE)                      ; *** LOAD WALL STATE BYTE INTO A *** 
-    RRCA                                    ; Test first bit of new wall state
-    JP          NC,LAB_ram_f9f0             ; If first bit clear, jump ahead
-    EX          AF,AF'                      ; Save A register (wall state bits)
-    CALL        DRAW_WALL_L1                ; Draw L1 wall routine
-    CALL        SUB_ram_f9e7                ; Item check routine (changes A)
-    EX          AF,AF'                      ; Restore A register (wall state bits)
-    RRCA                                    ; Test next bit in wall state
-    JP          NC,LAB_ram_fa19             ; If bit clear, jump to next section
-    RRCA                                    ; Test third bit in wall state
-    JP          NC,LAB_ram_fa19             ; If bit clear, jump to next section
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          C,LAB_ram_f9be                      ; If wall exists, draw it
+    INC         E                                   ; Move to next wall state byte
+    LD          A,(DE)                              ; Load wall state byte into A
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_f9f0                     ; If no hidden door, check bit 1
+    EX          AF,AF'                              ; Save wall state to alternate
+    CALL        DRAW_WALL_L1                        ; Draw L1 wall
+    CALL        SUB_ram_f9e7                        ; Check and draw FL1 item
+    EX          AF,AF'                              ; Restore wall state
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_fa19                     ; If no wall, continue to R0
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          NC,LAB_ram_fa19                     ; If door closed, continue to R0
 LAB_ram_f9de:
-    CALL        DRAW_DOOR_L1_HIDDEN         ; Draw door L1 hidden
-    CALL        SUB_ram_f9e7                ; Item check routine
-    JP          LAB_ram_fa19                ; Jump to next wall section
+    CALL        DRAW_DOOR_L1_HIDDEN                 ; Draw hidden door on L1
+    CALL        SUB_ram_f9e7                        ; Check and draw FL1 item
+    JP          LAB_ram_fa19                        ; Continue to R0 walls
 SUB_ram_f9e7:
-    LD          A,(ITEM_FL1)                ; Load item state (overwrites A!)
-    LD          BC,$4d0                     ; Set item parameters
-    JP          CHK_ITEM                    ; Check item routine
+    LD          A,(ITEM_FL1)                        ; Load item at FL1 position
+    LD          BC,$4d0                             ; BC = distance/size parameters
+    JP          CHK_ITEM                            ; Check and draw FL1 item
 LAB_ram_f9f0:
-    RRCA                                    ; Continue testing bits in wall state
-    JP          NC,LAB_ram_fa01             ; If bit clear, jump to next wall
-    RRCA                                    ; Test next bit
-    JP          C,LAB_ram_f9de              ; If bit set, draw door/feature
-    CALL        DRAW_DOOR_L1_NORMAL         ; Draw wall variant
-    CALL        SUB_ram_f9e7                ; Item check routine
-    JP          LAB_ram_fa19                ; Jump to next wall section
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_fa01                     ; If no wall, check next position
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          C,LAB_ram_f9de                      ; If door open, draw hidden door
+    CALL        DRAW_DOOR_L1_NORMAL                 ; Draw normal door on L1
+    CALL        SUB_ram_f9e7                        ; Check and draw FL1 item
+    JP          LAB_ram_fa19                        ; Continue to R0 walls
 LAB_ram_fa01:
-    INC         E                           ; Move to next wall state byte
-    RRCA                                    ; Test next bit in A register
-    JP          NC,LAB_ram_fa0f             ; If bit clear, jump to FL22 handling
+    INC         E                                   ; Move to next wall state byte
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_fa0f                     ; If no wall, draw empty
 LAB_ram_fa06:
-    CALL        SUB_ram_c9f9                ; Draw wall (bit was set)
-    CALL        SUB_ram_f9e7                ; Common cleanup routine
-    JP          LAB_ram_fa19                ; Jump to next wall section
+    CALL        SUB_ram_c9f9                        ; Draw wall
+    CALL        SUB_ram_f9e7                        ; Check and draw FL1 item
+    JP          LAB_ram_fa19                        ; Continue to R0 walls
 LAB_ram_fa0f:
-    RRCA                                    ; Test FL22 bit in A register
-    JP          C,LAB_ram_fa06              ; If FL22 bit set, jump to draw routine
-    CALL        DRAW_WALL_FL22_EMPTY        ; FL22 bit clear, clear/empty FL22 area
-    CALL        SUB_ram_f9e7                ; Common cleanup routine
+    RRCA                                            ; Test bit 2 (next flag)
+    JP          C,LAB_ram_fa06                      ; If bit set, draw wall
+    CALL        DRAW_WALL_FL22_EMPTY                ; Draw empty FL22 space
+    CALL        SUB_ram_f9e7                        ; Check and draw FL1 item
 LAB_ram_fa19:
-    LD          DE,WALL_R0_STATE            ; Load pointer to next wall state data
-    LD          A,(DE)                      ; Load wall state byte into A
-    RRCA                                    ; Test first bit (wall presence)
-    JP          NC,LAB_ram_fa34             ; If first bit clear, jump ahead
-    EX          AF,AF'                      ; Save A register state
-    CALL        DRAW_WALL_R0                ; Draw wall routine
-    EX          AF,AF'                      ; Restore A register state
-    RRCA                                    ; Test next bit (door presence?)
-    JP          NC,LAB_ram_faa3             ; If door bit clear, jump to end
-    RRCA                                    ; Test third bit (door type?)
-    JP          NC,LAB_ram_faa3             ; If door type bit clear, jump to end
+    LD          DE,WALL_R0_STATE                    ; DE = right wall 0 state
+    LD          A,(DE)                              ; Load R0 wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_fa34                     ; If no hidden door, check bit 1
+    EX          AF,AF'                              ; Save wall state to alternate
+    CALL        DRAW_WALL_R0                        ; Draw R0 wall
+    EX          AF,AF'                              ; Restore A register state
+    RRCA                                            ; Test next bit (door presence?)
+    JP          NC,LAB_ram_faa3                     ; If door bit clear, jump to end
+    RRCA                                            ; Test third bit (door type?)
+    JP          NC,LAB_ram_faa3                     ; If door type bit clear, jump to end
 LAB_ram_fa2e:
-    CALL        DRAW_R0_DOOR_HIDDEN
-    JP          LAB_ram_faa3
+    CALL        DRAW_R0_DOOR_HIDDEN                 ; Draw hidden door on R0
+    JP          LAB_ram_faa3                        ; Jump to F0 item check
 LAB_ram_fa34:
-    RRCA
-    JP          NC,LAB_ram_fa42
-    RRCA
-    JP          C,LAB_ram_fa2e
-    CALL        DRAW_R0_DOOR_NORMAL
-    JP          LAB_ram_faa3
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_fa42                     ; If no wall, check FR0
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          C,LAB_ram_fa2e                      ; If door open, draw hidden door
+    CALL        DRAW_R0_DOOR_NORMAL                 ; Draw normal door on R0
+    JP          LAB_ram_faa3                        ; Jump to F0 item check
 LAB_ram_fa42:
-    INC         E
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_fa57
+    INC         E                                   ; Move to FR0 wall state
+    LD          A,(DE)                              ; Load FR0 wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_fa57                     ; If no hidden door, check bit 1
 LAB_ram_fa48:
-    CALL        DRAW_WALL_FR0
-    JP          LAB_ram_faa3
+    CALL        DRAW_WALL_FR0                       ; Draw FR0 wall
+    JP          LAB_ram_faa3                        ; Jump to F0 item check
 SUB_ram_fa4e:
-    LD          A,(ITEM_FR1)
-    LD          BC,$4e4
-    JP          CHK_ITEM
+    LD          A,(ITEM_FR1)                        ; Load item at FR1 position
+    LD          BC,$4e4                             ; BC = distance/size parameters
+    JP          CHK_ITEM                            ; Check and draw FR1 item
 LAB_ram_fa57:
-    RRCA
-    JP          C,LAB_ram_fa48
-    INC         E
-    LD          A,(DE)
-    RRCA
-    JP          NC,LAB_ram_fa7a
-    EX          AF,AF'
-    CALL        DRAW_WALL_FR1_B
-    CALL        SUB_ram_fa4e
-    EX          AF,AF'
-    RRCA
-    JP          NC,LAB_ram_faa3
-    RRCA
-    JP          NC,LAB_ram_faa3
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          C,LAB_ram_fa48                      ; If wall exists, draw it
+    INC         E                                   ; Move to FR1 back wall state
+    LD          A,(DE)                              ; Load FR1 back wall state
+    RRCA                                            ; Test bit 0 (hidden door flag)
+    JP          NC,LAB_ram_fa7a                     ; If no hidden door, check bit 1
+    EX          AF,AF'                              ; Save wall state to alternate
+    CALL        DRAW_WALL_FR1_B                     ; Draw FR1 back wall
+    CALL        SUB_ram_fa4e                        ; Check and draw FR1 item
+    EX          AF,AF'                              ; Restore wall state
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_faa3                     ; If no wall, continue to F0
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          NC,LAB_ram_faa3                     ; If door closed, continue to F0
 LAB_ram_fa71:
-    CALL        DRAW_DOOR_FR1_B_HIDDEN
-    CALL        SUB_ram_fa4e
-    JP          LAB_ram_faa3
+    CALL        DRAW_DOOR_FR1_B_HIDDEN              ; Draw hidden door on FR1 back
+    CALL        SUB_ram_fa4e                        ; Check and draw FR1 item
+    JP          LAB_ram_faa3                        ; Jump to F0 item check
 LAB_ram_fa7a:
-    RRCA
-    JP          NC,LAB_ram_fa8b
-    RRCA
-    JP          C,LAB_ram_fa71
-    CALL        DRAW_DOOR_FR1_B_NORMAL
-    CALL        SUB_ram_fa4e
-    JP          LAB_ram_faa3
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_fa8b                     ; If no wall, check FR2
+    RRCA                                            ; Test bit 2 (door open flag)
+    JP          C,LAB_ram_fa71                      ; If door open, draw hidden door
+    CALL        DRAW_DOOR_FR1_B_NORMAL              ; Draw normal door on FR1 back
+    CALL        SUB_ram_fa4e                        ; Check and draw FR1 item
+    JP          LAB_ram_faa3                        ; Jump to F0 item check
 LAB_ram_fa8b:
-    INC         E
-    RRCA
-    JP          NC,LAB_ram_fa99
+    INC         E                                   ; Move to FR2 wall state
+    RRCA                                            ; Test bit 1 (wall exists flag)
+    JP          NC,LAB_ram_fa99                     ; If no wall, draw empty
 LAB_ram_fa90:
-    CALL        SUB_ram_cbe2
-    CALL        SUB_ram_fa4e
-    JP          LAB_ram_faa3
+    CALL        SUB_ram_cbe2                        ; Draw FR2 wall
+    CALL        SUB_ram_fa4e                        ; Check and draw FR1 item
+    JP          LAB_ram_faa3                        ; Jump to F0 item check
 LAB_ram_fa99:
-    RRCA
-    JP          C,LAB_ram_fa90
-    CALL        DRAW_WALL_FR22_EMPTY
-    CALL        SUB_ram_fa4e
+    RRCA                                            ; Test bit 2 (next flag)
+    JP          C,LAB_ram_fa90                      ; If bit set, draw wall
+    CALL        DRAW_WALL_FR22_EMPTY                ; Draw empty FR2 space
+    CALL        SUB_ram_fa4e                        ; Check and draw FR1 item
 LAB_ram_faa3:
-    LD          A,(ITEM_F0)
-    LD          BC,$8a
-    JP          CHK_ITEM
+    LD          A,(ITEM_F0)                         ; Load item at F0 position
+    LD          BC,$8a                              ; BC = distance/size parameters
+    JP          CHK_ITEM                            ; Check and draw F0 item
 MAKE_RANDOM_BYTE:
-    PUSH        BC
-    PUSH        HL
-    LD          B,0x5								;  Run data randomizer 5x
-    LD          HL,(RNDHOLD_AA)
+    PUSH        BC                                  ; Preserve BC register
+    PUSH        HL                                  ; Preserve HL register
+    LD          B,0x5                               ; Run data randomizer 5 iterations
+    LD          HL,(RNDHOLD_AA)                     ; Load random seed value
 RANDOM_BYTE_LOOP:
-    SLA         L								;  L x 2
-    RL          H
-    JP          C,FINISH_BYTE_LOOP
-    LD          A,$87
-    XOR         L
-    LD          L,A
-    LD          A,$1d
-    XOR         H
-    LD          H,A
+    SLA         L                                   ; Shift L left (multiply by 2)
+    RL          H                                   ; Rotate H left with carry
+    JP          C,FINISH_BYTE_LOOP                  ; If carry set, skip XOR step
+    LD          A,$87                               ; Load XOR mask $87
+    XOR         L                                   ; XOR with L
+    LD          L,A                                 ; Store result in L
+    LD          A,$1d                               ; Load XOR mask $1D
+    XOR         H                                   ; XOR with H
+    LD          H,A                                 ; Store result in H
 FINISH_BYTE_LOOP:
-    DJNZ        RANDOM_BYTE_LOOP
-    LD          (RNDHOLD_AA),HL
-    LD          A,H
-    POP         HL
-    POP         BC
-    RET
+    DJNZ        RANDOM_BYTE_LOOP                    ; Decrement B, loop if non-zero
+    LD          (RNDHOLD_AA),HL                     ; Store updated random seed
+    LD          A,H                                 ; Return random byte in A
+    POP         HL                                  ; Restore HL register
+    POP         BC                                  ; Restore BC register
+    RET                                             ; Return with random byte in A
 UPDATE_SCR_SAVER_TIMER:
-    PUSH        BC
-    PUSH        HL
-    LD          HL,(TIMER_E)
-    LD          B,H
-    LD          C,L
-    SLA         C
-    RL          B
-    SLA         C
-    RL          B
-    ADD         HL,BC
-    LD          A,H
-    XOR         L
-    LD          (TIMER_D),A
-    LD          B,H
-    LD          C,L
-    SLA         C
-    RL          B
-    SLA         C
-    RL          B
-    ADD         HL,BC
-    LD          BC,$13
-    ADD         HL,BC
-    LD          (TIMER_E),HL
-    POP         HL
-    POP         BC
-    RET
+    PUSH        BC                                  ; Preserve BC register
+    PUSH        HL                                  ; Preserve HL register
+    LD          HL,(TIMER_E)                        ; Load timer value into HL
+    LD          B,H                                 ; Copy H to B
+    LD          C,L                                 ; Copy L to C
+    SLA         C                                   ; Shift C left (BC *= 2)
+    RL          B                                   ; Rotate B left with carry
+    SLA         C                                   ; Shift C left again (BC *= 4)
+    RL          B                                   ; Rotate B left with carry
+    ADD         HL,BC                               ; HL = HL + BC (HL *= 5)
+    LD          A,H                                 ; Load H into A
+    XOR         L                                   ; XOR H with L
+    LD          (TIMER_D),A                         ; Store result in TIMER_D
+    LD          B,H                                 ; Copy H to B
+    LD          C,L                                 ; Copy L to C
+    SLA         C                                   ; Shift C left (BC *= 2)
+    RL          B                                   ; Rotate B left with carry
+    SLA         C                                   ; Shift C left again (BC *= 4)
+    RL          B                                   ; Rotate B left with carry
+    ADD         HL,BC                               ; HL = HL + BC (HL *= 9 from original)
+    LD          BC,$13                              ; Load constant $13
+    ADD         HL,BC                               ; HL = HL + $13
+    LD          (TIMER_E),HL                        ; Store updated timer value
+    POP         HL                                  ; Restore HL register
+    POP         BC                                  ; Restore BC register
+    RET                                             ; Return with pseudo-random in TIMER_D
 MINOTAUR_DEAD:
-    CALL        DRAW_BKGD
-    LD          HL,DAT_ram_3050
-    LD          DE,THE_END_PART_A								;  WAS LD DE, 0xC25D
-    LD          B,$10								;  RED on BLK
-    CALL        GFX_DRAW
-    LD          HL,DAT_ram_30a0
-    CALL        GFX_DRAW
-    CALL        MAKE_RANDOM_BYTE
-    AND         0x3
-    ADD         A,0xa
-    LD          B,A
-    LD          A,(INPUT_HOLDER)
+    CALL        DRAW_BKGD                           ; Draw background
+    LD          HL,DAT_ram_3050                     ; HL = first text data address
+    LD          DE,THE_END_PART_A                   ; DE = screen position for "THE END" part A
+    LD          B,$10                               ; B = color (RED on BLACK)
+    CALL        GFX_DRAW                            ; Draw first part of text
+    LD          HL,DAT_ram_30a0                     ; HL = second text data address
+    CALL        GFX_DRAW                            ; Draw second part of text
+    CALL        MAKE_RANDOM_BYTE                    ; Get random byte in A
+    AND         0x3                                 ; Mask to 0-3
+    ADD         A,0xa                               ; Add 10 (result: 10-13)
+    LD          B,A                                 ; Store in B (unused?)
+    LD          A,(INPUT_HOLDER)                    ; Load input holder value
+    RLCA                                            ; Rotate left 4 times
+    RLCA                                            ; (shift upper nibble to lower)
     RLCA
     RLCA
-    RLCA
-    RLCA
-    LD          B,A
-    XOR         A
-    LD          (INPUT_HOLDER),A
-    LD          DE,MINOTAUR
-    LD          HL,DAT_ram_32da
-    CALL        GFX_DRAW
-    CALL        TOTAL_HEAL
-    CALL        REDRAW_STATS
-    LD          B,0x2								;  Was LD B,0x6
+    LD          B,A                                 ; Store rotated value in B
+    XOR         A                                   ; Clear A (A = 0)
+    LD          (INPUT_HOLDER),A                    ; Clear input holder
+    LD          DE,MINOTAUR                         ; DE = Minotaur sprite data
+    LD          HL,DAT_ram_32da                     ; HL = screen position for Minotaur
+    CALL        GFX_DRAW                            ; Draw Minotaur sprite
+    CALL        TOTAL_HEAL                          ; Fully heal player
+    CALL        REDRAW_STATS                        ; Update stats display
+    LD          B,0x2                               ; B = 2 (sound loop count, was 6)
 MINOTAUR_DEAD_SOUND_LOOP:
-    EXX
-    CALL        SUB_ram_cd5f
-    CALL        END_OF_GAME_SOUND
-    EXX
-    DJNZ        MINOTAUR_DEAD_SOUND_LOOP
-    JP          SCREEN_SAVER_FULL_SCREEN
+    EXX                                             ; Switch to alternate register set
+    CALL        SUB_ram_cd5f                        ; Play sound effect part 1
+    CALL        END_OF_GAME_SOUND                   ; Play end game sound
+    EXX                                             ; Switch back to main registers
+    DJNZ        MINOTAUR_DEAD_SOUND_LOOP            ; Loop B times
+    JP          SCREEN_SAVER_FULL_SCREEN            ; Jump to screen saver
 DO_REST:
-    LD          A,(COMBAT_BUSY_FLAG)								;  Load combat busy flag into A (was mislabeled)
-    AND         A
-    JP          NZ,NO_ACTION_TAKEN								;  If food is empty, do nothing
+    LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
+    AND         A                                   ; Test if zero
+    JP          NZ,NO_ACTION_TAKEN                  ; If in combat, can't rest
 CHK_NEEDS_HEALING:
-    LD          HL,(PLAYER_PHYS_HEALTH_MAX)								;  HL = max PHYS health
-    LD          DE,(PLAYER_PHYS_HEALTH)								;  DE = current PHYS health
-    CALL        RECALC_PHYS_HEALTH
-    OR          L
-    JP          NZ,HEAL_PLAYER_PHYS_HEALTH
-    LD          A,(PLAYER_SPRT_HEALTH_MAX)
-    LD          C,A
-    LD          A,(PLAYER_SPRT_HEALTH)
-    CP          C
-    JP          Z,INPUT_DEBOUNCE
-    JP          HEAL_PLAYER_SPRT_HEALTH
+    LD          HL,(PLAYER_PHYS_HEALTH_MAX)         ; HL = max physical health
+    LD          DE,(PLAYER_PHYS_HEALTH)             ; DE = current physical health
+    CALL        RECALC_PHYS_HEALTH                  ; Calculate difference (HL - DE)
+    OR          L                                   ; Check if result is non-zero
+    JP          NZ,HEAL_PLAYER_PHYS_HEALTH          ; If needs phys healing, do it
+    LD          A,(PLAYER_SPRT_HEALTH_MAX)          ; Load max spiritual health
+    LD          C,A                                 ; Store in C for comparison
+    LD          A,(PLAYER_SPRT_HEALTH)              ; Load current spiritual health
+    CP          C                                   ; Compare current to max
+    JP          Z,INPUT_DEBOUNCE                    ; If at max health, done resting
+    JP          HEAL_PLAYER_SPRT_HEALTH             ; Otherwise heal spiritual
 HEAL_PLAYER_PHYS_HEALTH:
-    LD          HL,(BYTE_ram_3aa9)
-    LD          DE,0x1
-    CALL        RECALC_PHYS_HEALTH
-    JP          C,INPUT_DEBOUNCE
-    LD          (BYTE_ram_3aa9),HL
-    LD          HL,FOOD_INV
-    DEC         (HL)
-    LD          HL,(PLAYER_PHYS_HEALTH)
-    CALL        ADD_BCD_HL_DE
-    LD          (PLAYER_PHYS_HEALTH),HL
-    CALL        REDRAW_STATS
-    LD          A,(PLAYER_SPRT_HEALTH_MAX)
-    LD          C,A
-    LD          A,(PLAYER_SPRT_HEALTH)
-    CP          C
-    JP          Z,CHK_NEEDS_HEALING
+    LD          HL,(BYTE_ram_3aa9)                  ; Load rest counter/timer
+    LD          DE,0x1                              ; DE = 1 (amount to check)
+    CALL        RECALC_PHYS_HEALTH                  ; Check if can consume food
+    JP          C,INPUT_DEBOUNCE                    ; If can't afford, exit
+    LD          (BYTE_ram_3aa9),HL                  ; Update rest counter
+    LD          HL,FOOD_INV                         ; HL = food inventory address
+    DEC         (HL)                                ; Decrease food by 1
+    LD          HL,(PLAYER_PHYS_HEALTH)             ; Load current physical health
+    CALL        ADD_BCD_HL_DE                       ; Add 1 to health (BCD)
+    LD          (PLAYER_PHYS_HEALTH),HL             ; Store updated health
+    CALL        REDRAW_STATS                        ; Update stats display
+    LD          A,(PLAYER_SPRT_HEALTH_MAX)          ; Load max spiritual health
+    LD          C,A                                 ; Store in C for comparison
+    LD          A,(PLAYER_SPRT_HEALTH)              ; Load current spiritual health
+    CP          C                                   ; Compare current to max
+    JP          Z,CHK_NEEDS_HEALING                 ; If at max sprt, check phys again
 HEAL_PLAYER_SPRT_HEALTH:
-    LD          HL,(BYTE_ram_3aa9)
-    LD          DE,0x1
-    CALL        RECALC_PHYS_HEALTH
-    JP          C,INPUT_DEBOUNCE
-    LD          (BYTE_ram_3aa9),HL
-    LD          HL,FOOD_INV
-    DEC         (HL)
-    LD          A,(PLAYER_SPRT_HEALTH)
-    ADD         A,0x1
-    DAA
-    LD          (PLAYER_SPRT_HEALTH),A
-    CALL        REDRAW_STATS
-    JP          CHK_NEEDS_HEALING
+    LD          HL,(BYTE_ram_3aa9)                  ; Load rest counter/timer
+    LD          DE,0x1                              ; DE = 1 (amount to check)
+    CALL        RECALC_PHYS_HEALTH                  ; Check if can consume food
+    JP          C,INPUT_DEBOUNCE                    ; If can't afford, exit
+    LD          (BYTE_ram_3aa9),HL                  ; Update rest counter
+    LD          HL,FOOD_INV                         ; HL = food inventory address
+    DEC         (HL)                                ; Decrease food by 1
+    LD          A,(PLAYER_SPRT_HEALTH)              ; Load current spiritual health
+    ADD         A,0x1                               ; Add 1
+    DAA                                             ; Decimal adjust for BCD
+    LD          (PLAYER_SPRT_HEALTH),A              ; Store updated spiritual health
+    CALL        REDRAW_STATS                        ; Update stats display
+    JP          CHK_NEEDS_HEALING                   ; Check if more healing needed
 KEY_COMPARE:
     LD          A,(RAM_AE)
     CP          $31								;  Compare to "1" db?
