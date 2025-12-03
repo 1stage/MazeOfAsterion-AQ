@@ -1033,35 +1033,68 @@ UPDATE_COLRAM_FROM_OFFSET:
     LD          (HL),D                          ; Write color value D to COLRAM
     RET                                         ; Return to caller
 
+;==============================================================================
+; CHK_ITEM_BREAK
+;==============================================================================
+; Determines whether a right-hand (RH) item breaks after use based on the
+; item level and a random roll. Higher item levels increase break chance.
+; If the item breaks, triggers a poof animation and resets RH colors.
+;
+; Flow:
+; 1. Scale item level (B) by 8 to get base break factor
+; 2. Add random byte to factor; if carry set, item breaks immediately
+; 3. Otherwise add a small constant (+5) and test carry again
+; 4. If carry set, item breaks; else item survives
+;
+; Input:
+;   B = itemLevel (0-3)
+;
+; Output:
+;   Carry set if item breaks; clear if not
+;   On break: falls through to ITEM_POOFS_RH then FIX_RH_COLORS
+;
+; Registers:
+; --- Start ---
+;   B = itemLevel
+; --- In Process ---
+;   A = scaled level and random calculations
+;   C = scaled level (level*8)
+; ---  End  ---
+;   Flags reflect break outcome (C set on break)
+;
+; Memory Modified: CHRRAM_RH_ITEM_IDX, COLRAM_RH_ITEM_IDX via FIX_RH_COLORS
+; Calls: MAKE_RANDOM_BYTE, ITEM_POOFS_RH, FIX_RH_COLORS
+;==============================================================================
 CHK_ITEM_BREAK:
-    LD          A,B								;  A  = itemLevel (0-3)
-    RLCA								;  A  = A * 2
-    RLCA								;  A  = A * 2
-    RLCA								;  A  = A * 2
-    LD          C,A								;  B  = A
-    CALL        MAKE_RANDOM_BYTE								;  A  = Random Byte
-    ADD         A,C								;  A  = A + B (orig A * 8)
-    JP          C,ITEM_POOFS_RH								;  If A > 255, item breaks
-    ADD         A,0x5								;  A  = A + 5
-    RET         NC								;  If A < 255, item doesn't break
+    LD          A,B                             ; Load item level (0-3)
+    RLCA                                        ; Scale: level * 2
+    RLCA                                        ; Scale: level * 4
+    RLCA                                        ; Scale: level * 8 (break factor)
+    LD          C,A                             ; Save factor in C
+    CALL        MAKE_RANDOM_BYTE                ; A = random byte
+    ADD         A,C                             ; Add factor; test for carry (overflow)
+    JP          C,ITEM_POOFS_RH                 ; If overflow, item breaks immediately
+    ADD         A,0x5                           ; Add small constant to increase chance
+    RET         NC                              ; If still no carry, item survives
 ITEM_POOFS_RH:
-    SCF								;  Set C
-    EX          AF,AF'
-    LD          HL,CHRRAM_RH_POOF_IDX
-    CALL        PLAY_POOF_ANIM
+    SCF                                         ; Set carry to indicate break
+    EX          AF,AF'                          ; Preserve flags/state in alternate set
+    LD          HL,CHRRAM_RH_POOF_IDX           ; CHRRAM pointer for poof animation
+    CALL        PLAY_POOF_ANIM                  ; Execute poof animation frames
 FIX_RH_COLORS:
-    PUSH        AF
+    PUSH        AF                              ; Preserve registers during color fix
     PUSH        BC
     PUSH        HL
-    LD          A,COLOR(DKGRY,BLK)								;  DKGRY on BLK
-    LD          BC,RECT(4,4)								;   4 x 4 rectangle
-    LD          HL,COLRAM_RH_ITEM_IDX
-    CALL        FILL_CHRCOL_RECT
+    LD          A,COLOR(DKGRY,BLK)              ; Set RH item area to dark gray on black
+    LD          BC,RECT(4,4)                    ; 4x4 rectangle (RH item viewport)
+    LD          HL,COLRAM_RH_ITEM_IDX           ; Color RAM base for RH item block
+    CALL        FILL_CHRCOL_RECT                ; Clear/neutralize RH item colors
     POP         HL
     POP         BC
     POP         AF
-    SCF
+    SCF                                         ; Keep carry set indicating break
     RET
+    
 SUB_ram_e39a:
     CALL        SOUND_05
     LD          A,(ITEM_ANIM_STATE)
