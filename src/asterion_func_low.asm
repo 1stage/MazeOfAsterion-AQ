@@ -29,8 +29,8 @@
 ; OUTPUT:  DE = door bottom color, character drawn, HL modified
 ;==============================================================================
 DRAW_DOOR_BOTTOM_SETUP:
-    LD          DE,COLOR(GRN,DKCYN)					; GRN on DKCYN (door bottom/frame color)
-								                    ; (bottom of closed door)
+    LD          DE,COLOR(GRN,DKCYN)                 ; GRN on DKCYN (door bottom/frame color)
+                                                    ; (bottom of closed door)
 
 ;------------------------------------------------------------------------------
 ; DRAW_SINGLE_CHAR_UP - Draw single character moving cursor up
@@ -44,9 +44,7 @@ DRAW_SINGLE_CHAR_UP:
     LD          (HL),A                              ; Draw character at current position
     SCF                                             ; Set carry flag 
     CCF                                             ; Clear carry flag (prepare for SBC)
-    SBC         HL,DE                               ; Move cursor up by DE amount
-
-;------------------------------------------------------------------------------
+    SBC         HL,DE                               ; Move cursor up by DE amount;------------------------------------------------------------------------------
 ; DRAW_VERTICAL_LINE_3_UP - Draw 3-character vertical line moving upward
 ;------------------------------------------------------------------------------
 ; INPUT:  HL = starting position, A = character, DE = row stride
@@ -307,8 +305,8 @@ DRAW_CHRCOLS:
 
 DRAW_F0_WALL:
     LD          HL,COLRAM_F0_WALL_IDX               ; Point to far wall color area
-    LD          BC,RECT(16,15)						; 16 x 16 rectangle
-    LD          A,COLOR(BLU,BLU)					; BLU on BLU (solid blue wall)
+    LD          BC,RECT(16,15)                      ; 16 x 16 rectangle
+    LD          A,COLOR(BLU,BLU)                    ; BLU on BLU (solid blue wall)
     CALL        FILL_CHRCOL_RECT                    ; Fill wall area with blue color (WAS JP)
     LD          HL,COLRAM_F0_WALL_IDX + 2 + (40 * 15)
     LD          B,12
@@ -316,393 +314,393 @@ DRAW_F0_WALL:
 
 DRAW_F0_WALL_AND_CLOSED_DOOR:
     CALL        DRAW_F0_WALL                        ; Draw the wall background first
-    LD          A,COLOR(GRN,GRN)					; GRN on GRN (closed door color)
+    LD          A,COLOR(GRN,GRN)                    ; GRN on GRN (closed door color)
 
 DRAW_DOOR_F0:
     LD          HL,COLRAM_F0_DOOR_IDX               ; Point to door area within wall
-    LD          BC,RECT(8,12)						; 8 x 12 rectangle (door size)
+    LD          BC,RECT(8,12)                       ; 8 x 12 rectangle (door size)
     JP          FILL_CHRCOL_RECT                    ; Fill door area with specified color
 
 DRAW_WALL_F0_AND_OPEN_DOOR:
     CALL        DRAW_F0_WALL                        ; Draw the wall background first
-    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK (open door/passage color)
+    LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (open door/passage color)
     JP          DRAW_DOOR_F0                        ; Fill door area showing passage through
 
 DRAW_WALL_F1:
     LD          HL,CHRRAM_F1_WALL_IDX               ; Point to F1 wall character area
-    LD          BC,RECT(8,8)						; 8 x 8 rectangle (mid-distance wall size)
-    LD          A,$20								; SPACE character (clear wall area)
+    LD          BC,RECT(8,8)                        ; 8 x 8 rectangle (mid-distance wall size)
+    LD          A,$20                               ; SPACE character (clear wall area)
     CALL        FILL_CHRCOL_RECT                    ; Clear wall character area with spaces
     LD          C,0x8                               ; Set height for color fill operation
     LD          HL,COLRAM_F0_DOOR_IDX               ; Point to corresponding color area
-    LD          A,COLOR(BLU,DKBLU)					; BLU on DKBLU (wall color scheme)
+    LD          A,COLOR(BLU,DKBLU)                  ; BLU on DKBLU (wall color scheme)
     JP          DRAW_CHRCOLS                        ; Fill color area for wall
 
 DRAW_WALL_F1_AND_CLOSED_DOOR:
     CALL        DRAW_WALL_F1                        ; Draw the F1 wall background first
-    LD          A,COLOR(GRN,DKGRN)					; GRN on DKGRN (closed door at F1 distance)
+    LD          A,COLOR(GRN,DKGRN)                  ; GRN on DKGRN (closed door at F1 distance)
 
 DRAW_DOOR_F1:
     LD          HL,COLRAM_F1_DOOR_IDX               ; Point to door area within F1 wall
-    LD          BC,RECT(4,6)						; 4 x 6 rectangle (smaller door at mid-distance)
+    LD          BC,RECT(4,6)                        ; 4 x 6 rectangle (smaller door at mid-distance)
     JP          FILL_CHRCOL_RECT                    ; Fill door area with specified color
 
 DRAW_WALL_F1_AND_OPEN_DOOR:
-    CALL        DRAW_WALL_F1
-    LD          A,COLOR(BLK,BLK)					; BLK on BLK
-    JP          DRAW_DOOR_F1
+    CALL        DRAW_WALL_F1                        ; Draw F1 wall background
+    LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (open door/darkness)
+    JP          DRAW_DOOR_F1                        ; Fill door area with black
 
 DRAW_WALL_F2:
-    LD          BC,RECT(4,4)						; 4 x 4 rectangle
-    LD          HL,COLRAM_F2_WALL_IDX
-    LD          A,COLOR(BLK,DKGRY)				    ; BLK on DKGRY
-    CALL        FILL_CHRCOL_RECT                    ; Was JP FILL_CHRCOL_RECT
-    LD          HL,$323a						    ; Bottom-left CHARRAM IDX of F2
-    LD          BC,RECT(4,1)						; 4 x 1 rectangle
-    LD          A,$90								; Thin base line char
-    JP          FILL_CHRCOL_RECT
+    LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
+    LD          HL,COLRAM_F2_WALL_IDX               ; Point to F2 wall color area
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (far distance wall)
+    CALL        FILL_CHRCOL_RECT                    ; Fill wall area (was JP)
+    LD          HL,$323a                            ; Bottom-left CHRRAM IDX of F2
+    LD          BC,RECT(4,1)                        ; 4 x 1 rectangle
+    LD          A,$90                               ; Thin base line character
+    JP          FILL_CHRCOL_RECT                    ; Draw base line
 
 DRAW_WALL_F2_EMPTY:
-    LD          HL,COLRAM_F2_WALL_IDX
-    LD          A,COLOR(BLK,BLK)					; BLK on BLK
+    LD          HL,COLRAM_F2_WALL_IDX               ; Point to F2 wall color area
+    LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
 
 UPDATE_F0_ITEM:
-    LD          BC,RECT(4,4)						; 4 x 4 rectangle
-    JP          FILL_CHRCOL_RECT
+    LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
+    JP          FILL_CHRCOL_RECT                    ; Fill area with color in A
 
 DRAW_WALL_L0:
-    LD          HL,COLRAM_L0_WALL_IDX
-    LD          A,COLOR(BLU,BLK)					; BLU on BLK
-    CALL        DRAW_DOOR_BOTTOM_SETUP
+    LD          HL,COLRAM_L0_WALL_IDX               ; Point to L0 wall color area
+    LD          A,COLOR(BLU,BLK)                    ; BLU on BLK (wall top color)
+    CALL        DRAW_DOOR_BOTTOM_SETUP              ; Set door bottom color and draw
     DEC         DE                                  ; Decrease stride to 40
-    ADD         HL,DE                               ; Go to next row
-    LD          A,COLOR(BLK,BLU)    				; BLK on BLU
-    CALL        DRAW_DL_3X3_CORNER                  ; Draw door top blocks
-    ADD         HL,DE                               ; Go to next row
-    LD          BC,RECT(4,15)						; 4 x 15 rectangle (was 16)
-    CALL        DRAW_CHRCOLS
+    ADD         HL,DE                               ; Move to next row
+    LD          A,COLOR(BLK,BLU)                    ; BLK on BLU (wall body color)
+    CALL        DRAW_DL_3X3_CORNER                  ; Draw corner pattern
+    ADD         HL,DE                               ; Move to next row
+    LD          BC,RECT(4,15)                       ; 4 x 15 rectangle (was 16)
+    CALL        DRAW_CHRCOLS                        ; Fill wall columns
     DEC         DE                                  ; Decrease stride to 39
-    LD          HL,CHRRAM_L0_WALL_IDX
-    LD          A,CHAR_LT_ANGLE
+    LD          HL,CHRRAM_L0_WALL_IDX               ; Point to L0 character area
+    LD          A,CHAR_LT_ANGLE                     ; Left angle bracket character
     INC         DE                                  ; Increase stride to 40
     INC         DE                                  ; Increase stride to 41
-    JP          DRAW_VERTICAL_LINE_4_DOWN           ; Draw door top chars
-    RET
+    JP          DRAW_VERTICAL_LINE_4_DOWN           ; Draw vertical line characters
+    RET                                             ; (Unreachable - dead code)
 DRAW_DOOR_L0_HIDDEN:
-    CALL        DRAW_WALL_L0
-    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
-    EX          AF,AF'
-    LD          A,COLOR(BLK,BLU)					; BLK on BLU
-    JP          DRAW_DOOR_L0
+    CALL        DRAW_WALL_L0                        ; Draw L0 wall background
+    LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (hidden door)
+    EX          AF,AF'                              ; Save door color to alternate
+    LD          A,COLOR(BLK,BLU)                    ; BLK on BLU (wall color)
+    JP          DRAW_DOOR_L0                        ; Draw door with saved color
 DRAW_DOOR_L0_NORMAL:
-    CALL        DRAW_WALL_L0
-    LD          A,COLOR(DKGRY,GRN)					; DKGRY on GRN
-    EX          AF,AF'
-    LD          A,COLOR(GRN,BLU)					; GRN on BLU
+    CALL        DRAW_WALL_L0                        ; Draw L0 wall background
+    LD          A,COLOR(DKGRY,GRN)                  ; DKGRY on GRN (normal door)
+    EX          AF,AF'                              ; Save door color to alternate
+    LD          A,COLOR(GRN,BLU)                    ; GRN on BLU (door frame color)
 
 DRAW_DOOR_L0:
-    LD          HL,COLRAM_L0_DOOR_IDX
-    CALL        DRAW_VERTICAL_LINE_3_UP             ; Stride is 41
+    LD          HL,COLRAM_L0_DOOR_IDX               ; Point to L0 door color area
+    CALL        DRAW_VERTICAL_LINE_3_UP             ; Draw vertical line (stride 41)
     DEC         DE                                  ; Decrease stride to 40
-    ADD         HL,DE                               ; Go to next row
-    EX          AF,AF'                              ; Get proper door color
-    CALL        DRAW_DL_3X3_CORNER                  ; Draw top of door color blocks
-    ADD         HL,DE                               ; Go to next row
+    ADD         HL,DE                               ; Move to next row
+    EX          AF,AF'                              ; Restore door color from alternate
+    CALL        DRAW_DL_3X3_CORNER                  ; Draw door corner pattern
+    ADD         HL,DE                               ; Move to next row
     LD          BC,RECT(3,11)                       ; 3 x 11 rectangle (was 12)
-    CALL        DRAW_CHRCOLS
+    CALL        DRAW_CHRCOLS                        ; Fill door columns
     DEC         DE                                  ; Decrease stride to 39
-    LD          HL,CHRRAM_L0_DOOR_IDX
-    LD          A,CHAR_LT_ANGLE
+    LD          HL,CHRRAM_L0_DOOR_IDX               ; Point to L0 door character area
+    LD          A,CHAR_LT_ANGLE                     ; Left angle bracket character
     INC         DE                                  ; Increase stride to 40
     INC         DE                                  ; Increase stride to 41
-    JP          CONTINUE_VERTICAL_LINE_DOWN         ; Draw top of door characters
-    RET
+    JP          CONTINUE_VERTICAL_LINE_DOWN         ; Draw door characters
+    RET                                             ; (Unreachable - dead code)
 
 DRAW_WALL_FL0:
-    LD          HL,DAT_ram_34c8
-    LD          A,COLOR(BLK,BLU)					; BLK on BLU
-    LD          BC,RECT(4,15)						; 4 x 15 rectangle (was 16)
-    JP          FILL_CHRCOL_RECT
+    LD          HL,DAT_ram_34c8                     ; Point to FL0 wall color area
+    LD          A,COLOR(BLK,BLU)                    ; BLK on BLU (wall color)
+    LD          BC,RECT(4,15)                       ; 4 x 15 rectangle (was 16)
+    JP          FILL_CHRCOL_RECT                    ; Fill wall area
 
 DRAW_WALL_L1:
-    LD          HL,CHRRAM_WALL_FL1_A_IDX
-    LD          BC,RECT(4,8)						; 4 x 8 rectangle
-    LD          A,$20								; Change to SPACE 32 / $20
-    CALL        FILL_CHRCOL_RECT
-    LD          HL,COLRAM_WALL_FL1_A_IDX
-    LD          C,0x8
-    LD          A,COLOR(BLU,DKBLU)					; BLU on DKBLU
-    JP          DRAW_CHRCOLS
+    LD          HL,CHRRAM_WALL_FL1_A_IDX            ; Point to L1 character area
+    LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
+    LD          A,$20                               ; SPACE character (32 / $20)
+    CALL        FILL_CHRCOL_RECT                    ; Clear character area
+    LD          HL,COLRAM_WALL_FL1_A_IDX            ; Point to L1 color area
+    LD          C,0x8                               ; Set height to 8
+    LD          A,COLOR(BLU,DKBLU)                  ; BLU on DKBLU (wall color)
+    JP          DRAW_CHRCOLS                        ; Fill color columns
 DRAW_DOOR_L1_NORMAL:
-    CALL        DRAW_WALL_L1
-    LD          A,COLOR(DKGRN,DKGRN)				; DKGRN on DKGRN
+    CALL        DRAW_WALL_L1                        ; Draw L1 wall background
+    LD          A,COLOR(DKGRN,DKGRN)                ; DKGRN on DKGRN (normal door)
 DRAW_DOOR_L1:
-    LD          HL,COLRAM_L1_DOOR_PATTERN_IDX
-    LD          BC,RECT(2,6)						; 2 x 6 rectangle
-    JP          DRAW_CHRCOLS
+    LD          HL,COLRAM_L1_DOOR_PATTERN_IDX       ; Point to L1 door pattern area
+    LD          BC,RECT(2,6)                        ; 2 x 6 rectangle
+    JP          DRAW_CHRCOLS                        ; Fill door area
 DRAW_DOOR_L1_HIDDEN:
-    CALL        DRAW_WALL_L1
-    XOR         A
-    JP          DRAW_DOOR_L1
+    CALL        DRAW_WALL_L1                        ; Draw L1 wall background
+    XOR         A                                   ; A = 0 (BLK on BLK - hidden door)
+    JP          DRAW_DOOR_L1                        ; Draw door with black color
 SUB_ram_c9f9:
-    LD          HL,CHRRAM_L1_WALL_IDX
-    LD          A,CHAR_LT_ANGLE                     ; Left angle char
-    LD          (HL),A
+    LD          HL,CHRRAM_L1_WALL_IDX               ; Point to L1 wall character area
+    LD          A,CHAR_LT_ANGLE                     ; Left angle bracket character
+    LD          (HL),A                              ; Draw left angle at top
     LD          DE,$28                              ; Set stride to 40
-    ADD         HL,DE                               ; Go to next row
-    INC         HL                                  ; Go to next cell
-    LD          (HL),A
-    LD          HL,DAT_ram_3259                     ; Draw top of wall characters
-    LD          A,CHAR_RT_ANGLE                     ; Right angle char
-    LD          (HL),A
-    ADD         HL,DE
-    DEC         HL                                  ; Set stride to 39
-    LD          (HL),A
-    LD          HL,COLRAM_WALL_FL1_A_IDX
-    LD          A,COLOR(DKBLU,DKGRY)				; DKBLU on DKGRY
-    LD          (HL),A
-    ADD         HL,DE                               ; Go to next row
-    INC         HL                                  ; Go to next cell
-    LD          (HL),A
-    DEC         HL                                  ; Go to previous cell
-    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
-    LD          (HL),A
-    LD          BC,RECT(2,4)						; 2 x 4 rectangle
-    ADD         HL,DE                               ; Go to next row
-    CALL        DRAW_CHRCOLS
-    ADD         HL,DE
-    LD          (HL),A
-    INC         HL
-    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
-    LD          (HL),A
-    ADD         HL,DE
-    DEC         HL
-    LD          (HL),A
-    LD          HL,COLRAM_L1_DOOR_PATTERN_IDX
-    LD          C,0x4
-    LD          A,COLOR(BLK,BLK)
-    JP          DRAW_CHRCOLS                        ; DRAW
+    ADD         HL,DE                               ; Move to next row
+    INC         HL                                  ; Move to next cell
+    LD          (HL),A                              ; Draw left angle again
+    LD          HL,DAT_ram_3259                     ; Point to top wall characters
+    LD          A,CHAR_RT_ANGLE                     ; Right angle bracket character
+    LD          (HL),A                              ; Draw right angle at top
+    ADD         HL,DE                               ; Move to next row
+    DEC         HL                                  ; Move back one cell (stride 39)
+    LD          (HL),A                              ; Draw right angle again
+    LD          HL,COLRAM_WALL_FL1_A_IDX            ; Point to FL1 wall color area
+    LD          A,COLOR(DKBLU,DKGRY)                ; DKBLU on DKGRY
+    LD          (HL),A                              ; Set color at top-left
+    ADD         HL,DE                               ; Move to next row
+    INC         HL                                  ; Move to next cell
+    LD          (HL),A                              ; Set color at next position
+    DEC         HL                                  ; Move back one cell
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY
+    LD          (HL),A                              ; Set color
+    LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
+    ADD         HL,DE                               ; Move to next row
+    CALL        DRAW_CHRCOLS                        ; Fill middle section
+    ADD         HL,DE                               ; Move to next row
+    LD          (HL),A                              ; Set color at bottom-left
+    INC         HL                                  ; Move to next cell
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY
+    LD          (HL),A                              ; Set color at bottom-right
+    ADD         HL,DE                               ; Move to next row
+    DEC         HL                                  ; Move back one cell
+    LD          (HL),A                              ; Set final color
+    LD          HL,COLRAM_L1_DOOR_PATTERN_IDX       ; Point to door pattern area
+    LD          C,0x4                               ; Set height to 4
+    LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (door opening)
+    JP          DRAW_CHRCOLS                        ; Fill door area
 
 DRAW_WALL_FL22:
-    LD          HL,COLRAM_FL22_WALL_IDX
-    LD          BC,RECT(4,4)						; 4 x 4 rectangle
-    LD          A,COLOR(DKGRY,DKGRY)				; DKGRY on DKGRY
-    JP          FILL_CHRCOL_RECT
+    LD          HL,COLRAM_FL22_WALL_IDX             ; Point to FL22 wall color area
+    LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
+    LD          A,COLOR(DKGRY,DKGRY)                ; DKGRY on DKGRY (far wall)
+    JP          FILL_CHRCOL_RECT                    ; Fill wall area
 DRAW_L1_WALL:
-    LD          HL,CHRRAM_L1_UR_WALL_IDX
-    LD          A,CHAR_LT_ANGLE						; LEFT angle CHR
-    CALL        DRAW_DOOR_BOTTOM_SETUP
+    LD          HL,CHRRAM_L1_UR_WALL_IDX            ; Point to L1 upper-right character area
+    LD          A,CHAR_LT_ANGLE                     ; Left angle bracket character
+    CALL        DRAW_DOOR_BOTTOM_SETUP              ; Set door bottom color
     DEC         DE                                  ; Decrease stride to 40
-    ADD         HL,DE                               ; Go to next row
-    LD          A,$20								; Change to SPACE 32 / $20
-    CALL        DRAW_DL_3X3_CORNER                  ; Draw upper wall char blocks
-    ADD         HL,DE                               ; Go to next row
-    LD          BC,RECT(4,8)						; 4 x 8 rectangle
-    CALL        DRAW_CHRCOLS
-    ADD         HL,DE                               ; Go to next row
-    CALL        DRAW_UL_3X3_CORNER                  ; Draw bottom wall char blocks
-    INC         HL                                  ; NEW
-    LD          A,CHAR_RT_ANGLE						; RIGHT angle CHR
+    ADD         HL,DE                               ; Move to next row
+    LD          A,$20                               ; SPACE character (32 / $20)
+    CALL        DRAW_DL_3X3_CORNER                  ; Draw upper wall character blocks
+    ADD         HL,DE                               ; Move to next row
+    LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
+    CALL        DRAW_CHRCOLS                        ; Fill middle section
+    ADD         HL,DE                               ; Move to next row
+    CALL        DRAW_UL_3X3_CORNER                  ; Draw bottom wall character blocks
+    INC         HL                                  ; Move to next cell
+    LD          A,CHAR_RT_ANGLE                     ; Right angle bracket character
     DEC         DE                                  ; Decrease stride to 39
-    CALL        DRAW_VERTICAL_LINE_3_UP             ; Draw bottom wall char block
+    CALL        DRAW_VERTICAL_LINE_3_UP             ; Draw bottom wall characters
 
-    LD          HL,COLRAM_L1_UR_WALL_IDX
-    LD          A,COLOR(DKBLU,BLK)					; DKBLU on BLK
-    CALL        DRAW_DOOR_BOTTOM_SETUP
+    LD          HL,COLRAM_L1_UR_WALL_IDX            ; Point to L1 upper-right color area
+    LD          A,COLOR(DKBLU,BLK)                  ; DKBLU on BLK (wall top color)
+    CALL        DRAW_DOOR_BOTTOM_SETUP              ; Set door bottom color
     DEC         DE                                  ; Decrease stride to 40
-    ADD         HL,DE                               ; Go to next row
-    LD          A,COLOR(BLU,DKBLU)					; BLU on DKBLU
+    ADD         HL,DE                               ; Move to next row
+    LD          A,COLOR(BLU,DKBLU)                  ; BLU on DKBLU (wall body color)
     CALL        DRAW_DL_3X3_CORNER                  ; Draw upper wall color blocks
-    ADD         HL,DE                               ; Go to next row
-    LD          BC,RECT(4,8)						; 4 x 8 rectangle
-    CALL        DRAW_CHRCOLS
-    ADD         HL,DE                               ; Go to next row
+    ADD         HL,DE                               ; Move to next row
+    LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
+    CALL        DRAW_CHRCOLS                        ; Fill middle color section
+    ADD         HL,DE                               ; Move to next row
     CALL        DRAW_UL_3X3_CORNER                  ; Draw bottom wall color blocks
-    INC         HL                                  ; NEW
-    LD          A,COLOR(DKGRY,DKBLU)   			    ; DKGRY on DKBLU
+    INC         HL                                  ; Move to next cell
+    LD          A,COLOR(DKGRY,DKBLU)                ; DKGRY on DKBLU (wall edge color)
     DEC         DE                                  ; Decrease stride to 39
-    JP          DRAW_VERTICAL_LINE_3_UP             ; Draw bottom wall color blocks
-    RET
+    JP          DRAW_VERTICAL_LINE_3_UP             ; Draw bottom wall colors
+    RET                                             ; (Unreachable - dead code)
 DRAW_FL1_DOOR:
-    CALL        DRAW_L1_WALL
-    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
-    PUSH        AF
-    LD          A,COLOR(DKBLU,BLK)					; DKBLU on BLK
-    PUSH        AF
-    LD          A,COLOR(BLK,DKBLU)  				; BLK on DKGRY
-    JP          DRAW_L1_DOOR
+    CALL        DRAW_L1_WALL                        ; Draw L1 wall background
+    LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (door edge color)
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,COLOR(DKBLU,BLK)                  ; DKBLU on BLK (wall color)
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,COLOR(BLK,DKBLU)                  ; BLK on DKBLU (door body color)
+    JP          DRAW_L1_DOOR                        ; Draw door with stacked colors
 DRAW_L1:
-    CALL        DRAW_L1_WALL
-    LD          A,COLOR(DKGRY,DKGRN)				; DKGRY on DKGRN
-    PUSH        AF
-    LD          A,COLOR(GRN,DKGRN)					; GRN on DKGRN
-    PUSH        AF
-    LD          A,COLOR(DKGRN,DKBLU)				; DKGRN on DKBLU
+    CALL        DRAW_L1_WALL                        ; Draw L1 wall background
+    LD          A,COLOR(DKGRY,DKGRN)                ; DKGRY on DKGRN (door edge color)
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,COLOR(GRN,DKGRN)                  ; GRN on DKGRN (door frame color)
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,COLOR(DKGRN,DKBLU)                ; DKGRN on DKBLU (door body color)
 DRAW_L1_DOOR:
-    LD          HL,COLRAM_L1_DOOR_IDX
-    LD          BC,RECT(2,7)						; 2 x 7 rectangle
-    CALL        SUB_ram_cb1c
-    LD          HL,CHRRAM_L1_DOOR_IDX
-    LD          A,CHAR_LT_ANGLE						; LEFT ANGLE CHR
-    LD          (HL),A
+    LD          HL,COLRAM_L1_DOOR_IDX               ; Point to L1 door color area
+    LD          BC,RECT(2,7)                        ; 2 x 7 rectangle
+    CALL        SUB_ram_cb1c                        ; Fill door with stacked colors
+    LD          HL,CHRRAM_L1_DOOR_IDX               ; Point to L1 door character area
+    LD          A,CHAR_LT_ANGLE                     ; Left angle bracket character
+    LD          (HL),A                              ; Draw left angle at top
     LD          DE,$29                              ; Set stride to 41
-    ADD         HL,DE                               ; Go to next row
-    LD          (HL),A
-    RET
+    ADD         HL,DE                               ; Move to next row
+    LD          (HL),A                              ; Draw left angle again
+    RET                                             ; Return to caller
 DRAW_WALL_FL1_B:
-    LD          HL,COLRAM_WALL_FL1_B_IDX
-    LD          BC,RECT(4,8)						; 4 x 8 rectangle
-    LD          A,COLOR(BLU,DKBLU)					; BLU on DKBLU
-    CALL        FILL_CHRCOL_RECT
-    LD          HL,CHRRAM_WALL_FL1_B_IDX
-    LD          C,0x8
-    LD          A,$20								; Change to SPACE 32 / $20
-    JP          DRAW_CHRCOLS
+    LD          HL,COLRAM_WALL_FL1_B_IDX            ; Point to FL1_B wall color area
+    LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
+    LD          A,COLOR(BLU,DKBLU)                  ; BLU on DKBLU (wall color)
+    CALL        FILL_CHRCOL_RECT                    ; Fill color area
+    LD          HL,CHRRAM_WALL_FL1_B_IDX            ; Point to FL1_B character area
+    LD          C,0x8                               ; Set height to 8
+    LD          A,$20                               ; SPACE character (32 / $20)
+    JP          DRAW_CHRCOLS                        ; Fill character area
 DRAW_DOOR_FL1_B_HIDDEN:
-    CALL        DRAW_WALL_FL1_B
-    XOR         A
-    JP          DRAW_DOOR_FL1_B
+    CALL        DRAW_WALL_FL1_B                     ; Draw FL1_B wall background
+    XOR         A                                   ; A = 0 (BLK on BLK - hidden door)
+    JP          DRAW_DOOR_FL1_B                     ; Draw door with black
 DRAW_DOOR_FL1_B_NORMAL:
-    CALL        DRAW_WALL_FL1_B
-    LD          A,COLOR(DKGRN,DKGRN)				; DKGRN on DKGRN
+    CALL        DRAW_WALL_FL1_B                     ; Draw FL1_B wall background
+    LD          A,COLOR(DKGRN,DKGRN)                ; DKGRN on DKGRN (normal door)
 DRAW_DOOR_FL1_B:
-    LD          HL,COLRAM_FL2_WALL_IDX
-    LD          BC,RECT(2,6)						; 2 x 6 rectangle
-    JP          DRAW_CHRCOLS
+    LD          HL,COLRAM_FL2_WALL_IDX              ; Point to FL2 wall area for door
+    LD          BC,RECT(2,6)                        ; 2 x 6 rectangle
+    JP          DRAW_CHRCOLS                        ; Fill door area
 
 DRAW_WALL_FL2_EMPTY:
-    LD          HL,COLRAM_FL2_WALL_IDX
-    LD          BC,RECT(4,4)						; 4 x 4 rectangle
-    LD          A,COLOR(BLK,BLK)					; BLK on BLK
-    JP          FILL_CHRCOL_RECT
+    LD          HL,COLRAM_FL2_WALL_IDX              ; Point to FL2 wall color area
+    LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
+    LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
+    JP          FILL_CHRCOL_RECT                    ; Fill area with black
 DRAW_WALL_L2:
-    LD          A,$ca								; Right slash char
-    PUSH        AF
-    LD          A,$20								; SPACE char
-    PUSH        AF
-    LD          HL,CHRRAM_F1_WALL_IDX
-    LD          A,CHAR_LT_ANGLE						; Left angle char
-    LD          BC,RECT(2,4)						; 2 x 4 rectangle
-    CALL        SUB_ram_cb1c
-    LD          A,COLOR(BLK,DKGRY)					; BLK on CKGRY
-    PUSH        AF
-    LD          A,COLOR(BLK,DKGRY)					; BLK on CKGRY
-    PUSH        AF
-    LD          HL,COLRAM_F0_DOOR_IDX
-    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
-    LD          BC,RECT(2,4)						; 2 x 4 rectangle
-    CALL        SUB_ram_cb1c
-    RET
+    LD          A,$ca                               ; Right slash character
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,$20                               ; SPACE character
+    PUSH        AF                                  ; Save to stack for later
+    LD          HL,CHRRAM_F1_WALL_IDX               ; Point to F1 character area
+    LD          A,CHAR_LT_ANGLE                     ; Left angle bracket character
+    LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
+    CALL        SUB_ram_cb1c                        ; Fill with stacked characters
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
+    PUSH        AF                                  ; Save to stack for later
+    LD          HL,COLRAM_F0_DOOR_IDX               ; Point to F0 door color area
+    LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (wall edge color)
+    LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
+    CALL        SUB_ram_cb1c                        ; Fill with stacked colors
+    RET                                             ; Return to caller
 SUB_ram_cb1c:
-    POP         IX
-    LD          (HL),A
-    LD          DE,$29								; Diagonal DR step
-    ADD         HL,DE
-    LD          (HL),A
-    DEC         HL
-    DEC         DE
-    POP         AF
-    LD          (HL),A
-    ADD         HL,DE
-    CALL        DRAW_CHRCOLS
-    ADD         HL,DE
-    LD          (HL),A
-    ADD         HL,DE
-    POP         AF
-    LD          (HL),A
-    SCF
-    CCF
-    SBC         HL,DE
-    INC         HL
-    LD          (HL),A
-    JP          (IX)
+    POP         IX                                  ; Save return address to IX
+    LD          (HL),A                              ; Draw character at position
+    LD          DE,$29                              ; Diagonal DR step (stride 41)
+    ADD         HL,DE                               ; Move diagonally down-right
+    LD          (HL),A                              ; Draw character at position
+    DEC         HL                                  ; Move left one cell
+    DEC         DE                                  ; Decrease stride to 40
+    POP         AF                                  ; Pop second character from stack
+    LD          (HL),A                              ; Draw character at position
+    ADD         HL,DE                               ; Move to next row
+    CALL        DRAW_CHRCOLS                        ; Fill middle columns
+    ADD         HL,DE                               ; Move to next row
+    LD          (HL),A                              ; Draw character at position
+    ADD         HL,DE                               ; Move to next row
+    POP         AF                                  ; Pop third character from stack
+    LD          (HL),A                              ; Draw character at position
+    SCF                                             ; Set carry flag
+    CCF                                             ; Clear carry flag
+    SBC         HL,DE                               ; Move back up one row
+    INC         HL                                  ; Move right one cell
+    LD          (HL),A                              ; Draw character at position
+    JP          (IX)                                ; Return to caller
 DRAW_WALL_L2_LEFT:
-    LD          HL,COLRAM_L2_LEFT
-    LD          BC,RECT(2,4)						; 2 x 4 rectangle
-    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
-    CALL        FILL_CHRCOL_RECT
-    LD          HL,$3238
-    LD          BC,RECT(2,1)
-    LD          A,CHAR_BOTTOM_LINE
-    JP          FILL_CHRCOL_RECT
+    LD          HL,COLRAM_L2_LEFT                   ; Point to L2 left wall color area
+    LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
+    CALL        FILL_CHRCOL_RECT                    ; Fill color area
+    LD          HL,$3238                            ; Point to bottom edge area
+    LD          BC,RECT(2,1)                        ; 2 x 1 rectangle
+    LD          A,CHAR_BOTTOM_LINE                  ; Bottom line character
+    JP          FILL_CHRCOL_RECT                    ; Fill bottom edge
 DRAW_WALL_L2_LEFT_EMPTY:
-    LD          HL,COLRAM_L2_LEFT
-    LD          BC,RECT(2,4)    					; 2 x 4 rectangle
-    LD          A,COLOR(BLK,BLK)					; BLK on BLK
-    JP          FILL_CHRCOL_RECT
+    LD          HL,COLRAM_L2_LEFT                   ; Point to L2 left wall color area
+    LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
+    LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
+    JP          FILL_CHRCOL_RECT                    ; Fill area with black
 DRAW_WALL_R0:
-    LD          A,COLOR(DKGRY,BLU)					; DKGRY on BLU
-    PUSH        AF
+    LD          A,COLOR(DKGRY,BLU)                  ; DKGRY on BLU (wall edge color)
+    PUSH        AF                                  ; Save to stack for later
     LD          BC,RECT(4,15)                       ; 4 x 15 rectangle (was 16)
-    LD          A,COLOR(BLK,BLU)					; BLK on BLU
-    PUSH        AF
-    LD          A,COLOR(BLU,BLK)					; BLU on BLK
-    LD          HL,DAT_ram_34b4
+    LD          A,COLOR(BLK,BLU)                    ; BLK on BLU (wall color)
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,COLOR(BLU,BLK)                    ; BLU on BLK (background color)
+    LD          HL,DAT_ram_34b4                     ; Point to R0 wall area
     CALL        DRAW_R0_CORNERS                     ; Do corner fills
     LD          HL,DAT_ram_303f                     ; Top right corner of R0
-    LD          A,CHAR_RT_ANGLE						; Right angle char
+    LD          A,CHAR_RT_ANGLE                     ; Right angle character
     LD          DE,$27                              ; Pitch to 39 / $27
-    CALL        DRAW_VERTICAL_LINE_4_DOWN           ; Draw top of RO wall
+    CALL        DRAW_VERTICAL_LINE_4_DOWN           ; Draw top of R0 wall
 
     INC         A                                   ; Increment A to CHAR_LT_ANGLE ($c1)
     INC         DE                                  ; Increment pitch to 40 / $28
     INC         DE                                  ; Increment pitch to 41 / $29
-    RET
+    RET                                             ; Return to caller
 DRAW_R0_DOOR_HIDDEN:
-    CALL        DRAW_WALL_R0
-    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
-    EX          AF,AF'
-    LD          A,COLOR(BLK,BLU)					; BLK on BLU
-    JP          DRAW_R0_DOOR
+    CALL        DRAW_WALL_R0                        ; Draw R0 wall background
+    LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (hidden door edge)
+    EX          AF,AF'                              ; Save to alternate AF
+    LD          A,COLOR(BLK,BLU)                    ; BLK on BLU (hidden door body)
+    JP          DRAW_R0_DOOR                        ; Draw door with hidden colors
 DRAW_R0_DOOR_NORMAL:
-    CALL        DRAW_WALL_R0
-    LD          A,COLOR(DKGRY,GRN)					; DKGRY on GRN
-    EX          AF,AF'
-    LD          A,COLOR(GRN,BLU)					; GRN on BLU
+    CALL        DRAW_WALL_R0                        ; Draw R0 wall background
+    LD          A,COLOR(DKGRY,GRN)                  ; DKGRY on GRN (normal door edge)
+    EX          AF,AF'                              ; Save to alternate AF
+    LD          A,COLOR(GRN,BLU)                    ; GRN on BLU (normal door body)
 DRAW_R0_DOOR:
-    LD          HL,DAT_ram_352d                     ; RO door top left COLRAM IDX
+    LD          HL,DAT_ram_352d                     ; R0 door top left COLRAM IDX
     DEC         DE                                  ; Decrement pitch to 40
     DEC         DE                                  ; Decrement pitch to 39
-    CALL        DRAW_VERTICAL_LINE_3_UP
+    CALL        DRAW_VERTICAL_LINE_3_UP             ; Draw door edge
     INC         DE                                  ; Increment pitch to 40
     ADD         HL,DE                               ; Move down a row
     EX          AF,AF'                              ; Get correct door colors
     CALL        DRAW_DR_3X3_CORNER                  ; Draw top door blocks
     ADD         HL,DE                               ; Move down a row
     LD          BC,RECT(3,11)                       ; 3 x 11 rectangle (was 12)
-    CALL        DRAW_CHRCOLS
+    CALL        DRAW_CHRCOLS                        ; Fill door body
 
-    LD          HL,DAT_ram_30df
-    LD          A,CHAR_RT_ANGLE						; Right angle char
+    LD          HL,DAT_ram_30df                     ; Point to door angle area
+    LD          A,CHAR_RT_ANGLE                     ; Right angle character
     DEC         DE                                  ; Decrement pitch to 39
     JP          CONTINUE_VERTICAL_LINE_DOWN         ; Draw top of door angles
 
 DRAW_WALL_FR0:
-    LD          HL,DAT_ram_34dc
-    LD          A,COLOR(BLK,BLU)					; BLK on BLU
-    LD          BC,RECT(4,15)						; 4 x 15 rectangle (was 16)
-    JP          FILL_CHRCOL_RECT
+    LD          HL,DAT_ram_34dc                     ; Point to FR0 wall area
+    LD          A,COLOR(BLK,BLU)                    ; BLK on BLU (wall color)
+    LD          BC,RECT(4,15)                       ; 4 x 15 rectangle (was 16)
+    JP          FILL_CHRCOL_RECT                    ; Fill wall area
 DRAW_WALL_FR1_B:
-    LD          HL,DAT_ram_317c
+    LD          HL,DAT_ram_317c                     ; Point to FR1_B character area
     LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
-    LD          A,$20								; Change to SPACE 32 / $20
-    CALL        FILL_CHRCOL_RECT
-    LD          HL,DAT_ram_357c
-    LD          C,0x8
-    LD          A,COLOR(BLU,DKBLU)					; BLU on DKBLU ****
-    JP          DRAW_CHRCOLS
+    LD          A,$20                               ; SPACE character (32 / $20)
+    CALL        FILL_CHRCOL_RECT                    ; Fill character area
+    LD          HL,DAT_ram_357c                     ; Point to FR1_B color area
+    LD          C,0x8                               ; Set height to 8
+    LD          A,COLOR(BLU,DKBLU)                  ; BLU on DKBLU (wall color)
+    JP          DRAW_CHRCOLS                        ; Fill color area
 
 DRAW_DOOR_FR1_B_HIDDEN:
-    CALL        DRAW_WALL_FR1_B
-    XOR         A
-    JP          DRAW_DOOR_FR1_B
+    CALL        DRAW_WALL_FR1_B                     ; Draw FR1_B wall background
+    XOR         A                                   ; A = 0 (BLK on BLK - hidden door)
+    JP          DRAW_DOOR_FR1_B                     ; Draw door with black
 DRAW_DOOR_FR1_B_NORMAL:
-    CALL        DRAW_WALL_FR1_B
-    LD          A,COLOR(DKGRN,DKGRN)				; DKGRN on DKGRNd
+    CALL        DRAW_WALL_FR1_B                     ; Draw FR1_B wall background
+    LD          A,COLOR(DKGRN,DKGRN)                ; DKGRN on DKGRN (normal door)
 DRAW_DOOR_FR1_B:
-    LD          HL,COLRAM_FR22_WALL_IDX
-    LD          BC,RECT(2,6)						; 2 x 6 rectangle
-    JP          DRAW_CHRCOLS
+    LD          HL,COLRAM_FR22_WALL_IDX             ; Point to FR22 wall area for door
+    LD          BC,RECT(2,6)                        ; 2 x 6 rectangle
+    JP          DRAW_CHRCOLS                        ; Fill door area
 SUB_ram_cbe2:
     LD          HL,DAT_ram_317f
     LD          A,CHAR_RT_ANGLE						; Right angle char
@@ -744,864 +742,860 @@ SUB_ram_cbe2:
     LD          A,COLOR(BLK,BLK)
     JP          DRAW_CHRCOLS
 DRAW_WALL_FR22_EMPTY:
-    LD          HL,COLRAM_FR22_WALL_IDX
-    LD          BC,RECT(4,4)						; 4 x 4 rectangle
-    LD          A,COLOR(BLK,BLK)					; BLK on BLK
-    JP          FILL_CHRCOL_RECT
+    LD          HL,COLRAM_FR22_WALL_IDX             ; Point to FR22 wall color area
+    LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
+    LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
+    JP          FILL_CHRCOL_RECT                    ; Fill area with black
 DRAW_WALL_R1:
-    LD          A,CHAR_LT_ANGLE
-    PUSH        AF
-    LD          BC,RECT(4,8)						; 4 x 8 rectangle
-    LD          A,$20								; Change to SPACE 32 / $20
-    PUSH        AF
-    LD          A,CHAR_RT_ANGLE						; Right angle char
-    LD          HL,CHRRAM_R1_WALL_IDX
+    LD          A,CHAR_LT_ANGLE                     ; Left angle character
+    PUSH        AF                                  ; Save to stack for later
+    LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
+    LD          A,$20                               ; SPACE character (32 / $20)
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,CHAR_RT_ANGLE                     ; Right angle character
+    LD          HL,CHRRAM_R1_WALL_IDX               ; Point to R1 wall character area
     CALL        DRAW_R1_CORNERS                     ; Draw characters
-    LD          A,COLOR(DKGRY,DKBLU)		    	; DKGRY on DKBLU
-    PUSH        AF
-    LD          C,0x8
-    LD          A,COLOR(BLU,DKBLU)			    	; BLU on DKBLU
-    PUSH        AF
-    LD          A,COLOR(DKBLU,BLK)			    	; DKBLU on BLK
-    LD          HL,COLRAM_R1_WALL_IDX
+    LD          A,COLOR(DKGRY,DKBLU)                ; DKGRY on DKBLU (wall edge color)
+    PUSH        AF                                  ; Save to stack for later
+    LD          C,0x8                               ; Set height to 8
+    LD          A,COLOR(BLU,DKBLU)                  ; BLU on DKBLU (wall color)
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,COLOR(DKBLU,BLK)                  ; DKBLU on BLK (background color)
+    LD          HL,COLRAM_R1_WALL_IDX               ; Point to R1 wall color area
     CALL        DRAW_R1_CORNERS                     ; Draw colors
-    RET
+    RET                                             ; Return to caller
 DRAW_R0_CORNERS:
     POP         IX                                  ; Save RET address to IX
     LD          DE,$27                              ; Stride is 39 / $27
-    CALL        DRAW_SINGLE_CHAR_UP
+    CALL        DRAW_SINGLE_CHAR_UP                 ; Draw top character
     INC         DE                                  ; Stride is 40
     ADD         HL,DE                               ; Go to next row
-    POP         AF
-    CALL        DRAW_DR_3X3_CORNER
+    POP         AF                                  ; Pop color from stack
+    CALL        DRAW_DR_3X3_CORNER                  ; Draw upper corner pattern
     ADD         HL,DE                               ; Go to next row
     DEC         HL                                  ; Decrease stride to 39
-    CALL        DRAW_CHRCOLS
-    POP         AF
+    CALL        DRAW_CHRCOLS                        ; Fill middle columns
+    POP         AF                                  ; Pop next color from stack
     INC         DE                                  ; Increase stride to 41
-    JP          (IX)
+    JP          (IX)                                ; Return to caller
 
 DRAW_R1_CORNERS:
     POP         IX                                  ; Save RET address to IX
     LD          DE,$27                              ; Stride is 39 / $27
-    CALL        DRAW_SINGLE_CHAR_UP
+    CALL        DRAW_SINGLE_CHAR_UP                 ; Draw top character
     INC         DE                                  ; Increase stride to 40
     ADD         HL,DE                               ; Go to next row
-    POP         AF
+    POP         AF                                  ; Pop character from stack
     CALL        DRAW_DR_3X3_CORNER                  ; Draw upper wall blocks
     ADD         HL,DE                               ; Go to next row
     DEC         HL                                  ; Go back one cell
-    CALL        DRAW_CHRCOLS
+    CALL        DRAW_CHRCOLS                        ; Fill middle columns
     ADD         HL,DE                               ; Go to next row
     INC         HL                                  ; Go to next cell
-    CALL        DRAW_UR_3X3_CORNER
-    DEC         HL                                  ; NEW, back one cell
-    POP         AF                                  ; 
+    CALL        DRAW_UR_3X3_CORNER                  ; Draw lower corner pattern
+    DEC         HL                                  ; Back one cell
+    POP         AF                                  ; Pop next character from stack
     INC         DE                                  ; Stride is 41
-    CALL        DRAW_VERTICAL_LINE_3_UP                 
-    JP          (IX)
+    CALL        DRAW_VERTICAL_LINE_3_UP             ; Draw vertical line
+    JP          (IX)                                ; Return to caller
 
 DRAW_DOOR_R1_HIDDEN:
-    CALL        DRAW_WALL_R1
-    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
-    PUSH        AF
-    LD          A,COLOR(DKBLU,BLK)  				; DKBLU on BLK
-    PUSH        AF
-    LD          A,COLOR(BLK,DKBLU)					; BLK on DKBLU
-    JP          DRAW_DOOR_R1
+    CALL        DRAW_WALL_R1                        ; Draw R1 wall background
+    LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (hidden door edge)
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,COLOR(DKBLU,BLK)                  ; DKBLU on BLK (hidden door body)
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,COLOR(BLK,DKBLU)                  ; BLK on DKBLU (background)
+    JP          DRAW_DOOR_R1                        ; Draw door with hidden colors
 DRAW_DOOR_R1_NORMAL:
-    CALL        DRAW_WALL_R1
-    LD          A,COLOR(DKGRY,DKGRN)				; DKGRY on DKGRN
-    PUSH        AF
-    LD          A,COLOR(GRN,DKGRN)					; GRN on DKGRN
-    PUSH        AF
-    LD          A,COLOR(DKGRN,DKBLU)				; DKGRN on DKBLU
+    CALL        DRAW_WALL_R1                        ; Draw R1 wall background
+    LD          A,COLOR(DKGRY,DKGRN)                ; DKGRY on DKGRN (normal door edge)
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,COLOR(GRN,DKGRN)                  ; GRN on DKGRN (normal door frame)
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,COLOR(DKGRN,DKBLU)                ; DKGRN on DKBLU (door body)
 DRAW_DOOR_R1:
-    LD          HL,DAT_ram_357a
-    LD          BC,RECT(2,7)						; 2 x 7 rectangle
-    CALL        SUB_ram_cd07
-    LD          HL,DAT_ram_317a
-    LD          A,CHAR_RT_ANGLE						; Right angle char
-    LD          (HL),A
+    LD          HL,DAT_ram_357a                     ; Point to R1 door area
+    LD          BC,RECT(2,7)                        ; 2 x 7 rectangle
+    CALL        SUB_ram_cd07                        ; Fill door with stacked colors
+    LD          HL,DAT_ram_317a                     ; Point to R1 door character area
+    LD          A,CHAR_RT_ANGLE                     ; Right angle character
+    LD          (HL),A                              ; Draw right angle at top
     LD          DE,$27                              ; Stride is 39 / $27
-    ADD         HL,DE
-    LD          (HL),A
-    RET
+    ADD         HL,DE                               ; Move to next row
+    LD          (HL),A                              ; Draw right angle again
+    RET                                             ; Return to caller
 DRAW_WALL_FR1_A:
-    LD          HL,COLRAM_WALL_FR1_A_IDX
-    LD          BC,RECT(4,8)						; 4 x 8 rectangle
-    LD          A,COLOR(BLU,DKBLU)					; BLU on DKBLU
-    CALL        FILL_CHRCOL_RECT
-    LD          HL,CHRRAM_WALL_FR1_A_IDX
-    LD          C,0x8
-    LD          A,$20								; Change to SPACE 32 / $20
-    JP          DRAW_CHRCOLS
+    LD          HL,COLRAM_WALL_FR1_A_IDX            ; Point to FR1_A wall color area
+    LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
+    LD          A,COLOR(BLU,DKBLU)                  ; BLU on DKBLU (wall color)
+    CALL        FILL_CHRCOL_RECT                    ; Fill color area
+    LD          HL,CHRRAM_WALL_FR1_A_IDX            ; Point to FR1_A character area
+    LD          C,0x8                               ; Set height to 8
+    LD          A,$20                               ; SPACE character (32 / $20)
+    JP          DRAW_CHRCOLS                        ; Fill character area
 SUB_ram_ccaf:
-    CALL        DRAW_WALL_FR1_A
-    XOR         A
-    JP          LAB_ram_ccba
+    CALL        DRAW_WALL_FR1_A                     ; Draw FR1_A wall background
+    XOR         A                                   ; A = 0 (BLK on BLK - hidden)
+    JP          LAB_ram_ccba                        ; Jump to door drawing
 SUB_ram_ccb5:
-    CALL        DRAW_WALL_FR1_A
-    LD          A,COLOR(DKGRN,DKGRN)				; DKGRN on DKGRN
+    CALL        DRAW_WALL_FR1_A                     ; Draw FR1_A wall background
+    LD          A,COLOR(DKGRN,DKGRN)                ; DKGRN on DKGRN (normal door)
 LAB_ram_ccba:
-    LD          HL,DAT_ram_35ca
-    LD          BC,RECT(2,6)						; 2 x 6 rectangle
-    JP          DRAW_CHRCOLS
+    LD          HL,DAT_ram_35ca                     ; Point to door area
+    LD          BC,RECT(2,6)                        ; 2 x 6 rectangle
+    JP          DRAW_CHRCOLS                        ; Fill door area
 DRAW_WALL_FR2:
-    LD          HL,DAT_ram_35ca                     ; ???
-    LD          BC,RECT(2,4)						; 2 x 4 rectangle
-    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
-    CALL        FILL_CHRCOL_RECT
-    LD          C,0x4
-    LD          HL,COLRAM_FR2_RIGHT                 ; FR2 Right
-    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
-    CALL        DRAW_CHRCOLS                        ; Was JP
+    LD          HL,DAT_ram_35ca                     ; Point to FR2 left wall area
+    LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
+    CALL        FILL_CHRCOL_RECT                    ; Fill left wall
+    LD          C,0x4                               ; Set height to 4
+    LD          HL,COLRAM_FR2_RIGHT                 ; FR2 Right wall area
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
+    CALL        DRAW_CHRCOLS                        ; Fill right wall (was JP)
     LD          HL,$31c8 + 120                      ; Bottom row of FR2 right, CHRRAM
     LD          BC,RECT(4,1)                        ; 4 x 1 rectangle
-    LD          A,CHAR_BOTTOM_LINE
-    JP          DRAW_CHRCOLS                        ; *****
+    LD          A,CHAR_BOTTOM_LINE                  ; Bottom line character
+    JP          DRAW_CHRCOLS                        ; Fill bottom edge
 
 DRAW_WALL_FR2_EMPTY:
-    LD          HL,COLRAM_FR2_RIGHT
-    LD          BC,RECT(4,4)						; 4 x 4 rectangle
-    LD          A,COLOR(BLK,BLK)					; BLK on BLK
-    JP          FILL_CHRCOL_RECT
+    LD          HL,COLRAM_FR2_RIGHT                 ; Point to FR2 right wall area
+    LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
+    LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
+    JP          FILL_CHRCOL_RECT                    ; Fill area with black
 DRAW_WALL_R2:
-    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
-    PUSH        AF
-    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
-    PUSH        AF
-    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
-    LD          HL,DAT_ram_3577
-    LD          BC,RECT(2,4)						; 2 x 4 rectangle
-    CALL        SUB_ram_cd07
-    LD          HL,DAT_ram_3266
-    LD          A,$da								; Left slash char
-    LD          (HL),A
-    ADD         HL,DE
-    LD          (HL),A
-    LD          HL,DAT_ram_3177
-    LD          A,CHAR_RT_ANGLE						; Right angle char
-    LD          (HL),A
-    DEC         DE
-    DEC         DE
-    ADD         HL,DE
-    LD          (HL),A
-    RET
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
+    PUSH        AF                                  ; Save to stack for later
+    LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (edge color)
+    LD          HL,DAT_ram_3577                     ; Point to R2 wall area
+    LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
+    CALL        SUB_ram_cd07                        ; Fill with stacked colors
+    LD          HL,DAT_ram_3266                     ; Point to character area
+    LD          A,$da                               ; Left slash character
+    LD          (HL),A                              ; Draw left slash at position
+    ADD         HL,DE                               ; Move to next row
+    LD          (HL),A                              ; Draw left slash again
+    LD          HL,DAT_ram_3177                     ; Point to next character area
+    LD          A,CHAR_RT_ANGLE                     ; Right angle character
+    LD          (HL),A                              ; Draw right angle at position
+    DEC         DE                                  ; Decrease stride
+    DEC         DE                                  ; Decrease stride again
+    ADD         HL,DE                               ; Move to next row
+    LD          (HL),A                              ; Draw right angle again
+    RET                                             ; Return to caller
 
 SUB_ram_cd07:
-    POP         IX
-    LD          (HL),A
-    LD          DE,$27
-    ADD         HL,DE
-    LD          (HL),A
-    INC         HL
-    POP         AF
-    LD          (HL),A
-    ADD         HL,DE
-    INC         DE
-    CALL        DRAW_CHRCOLS
-    INC         DE
-    ADD         HL,DE
-    LD          (HL),A
-    DEC         HL
-    POP         AF
-    LD          (HL),A
-    ADD         HL,DE
-    LD          (HL),A
-    JP          (IX)
+    POP         IX                                  ; Save return address to IX
+    LD          (HL),A                              ; Draw color at position
+    LD          DE,$27                              ; Stride is 39 / $27
+    ADD         HL,DE                               ; Move to next row
+    LD          (HL),A                              ; Draw color at position
+    INC         HL                                  ; Move right one cell
+    POP         AF                                  ; Pop second color from stack
+    LD          (HL),A                              ; Draw color at position
+    ADD         HL,DE                               ; Move to next row
+    INC         DE                                  ; Increase stride to 40
+    CALL        DRAW_CHRCOLS                        ; Fill middle columns
+    INC         DE                                  ; Increase stride to 41
+    ADD         HL,DE                               ; Move to next row
+    LD          (HL),A                              ; Draw color at position
+    DEC         HL                                  ; Move left one cell
+    POP         AF                                  ; Pop third color from stack
+    LD          (HL),A                              ; Draw color at position
+    ADD         HL,DE                               ; Move to next row
+    LD          (HL),A                              ; Draw color at position
+    JP          (IX)                                ; Return to caller
 SUB_ram_cd21:
-    LD          HL,COLRAM_FR2_LEFT                  ; FR2_LEFT_SOLID
-    LD          BC,RECT(2,4)						; 2 x 4 rectangle
-    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
-    CALL        FILL_CHRCOL_RECT                    ; Was JP
+    LD          HL,COLRAM_FR2_LEFT                  ; FR2_LEFT_SOLID area
+    LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
+    CALL        FILL_CHRCOL_RECT                    ; Fill left wall (was JP)
     LD          HL,$31c6 + 120                      ; Bottom row of FR2 left, CHRRAM
     LD          BC,RECT(4,1)                        ; 4 x 1 rectangle
-    LD          A,CHAR_BOTTOM_LINE
-    JP          DRAW_CHRCOLS                        ; 
+    LD          A,CHAR_BOTTOM_LINE                  ; Bottom line character
+    JP          DRAW_CHRCOLS                        ; Fill bottom edge
 
 SUB_ram_cd2c:
-    LD          HL,COLRAM_FR2_LEFT                  ; FR2_LEFT_OPEN
-    LD          BC,RECT(2,4)						; 2 x 4 rectangle
-    LD          A,COLOR(BLK,BLK)					; BLK on BLK
-    JP          FILL_CHRCOL_RECT                    ; *****
+    LD          HL,COLRAM_FR2_LEFT                  ; FR2_LEFT_OPEN area
+    LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
+    LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
+    JP          FILL_CHRCOL_RECT                    ; Fill with black
 
 
-    LD          A,0x8
-    LD          (SOUND_REPEAT_COUNT),A
-    LD          B,A
+    LD          A,0x8                               ; Load sound repeat count
+    LD          (SOUND_REPEAT_COUNT),A              ; Store repeat count
+    LD          B,A                                 ; Set loop counter to 8
 LAB_ram_cd3d:
-    PUSH        BC
-    CALL        SOUND_04
-    CALL        SUB_ram_cde7
-    CALL        SOUND_02
-    CALL        SOUND_01
-    POP         BC
-    DJNZ        LAB_ram_cd3d
-    RET
-    LD          A,0x7
-    LD          (SOUND_REPEAT_COUNT),A
-    LD          B,A
+    PUSH        BC                                  ; Save loop counter
+    CALL        SOUND_04                            ; Play sound 4
+    CALL        SUB_ram_cde7                        ; Call delay routine
+    CALL        SOUND_02                            ; Play sound 2
+    CALL        SOUND_01                            ; Play sound 1
+    POP         BC                                  ; Restore loop counter
+    DJNZ        LAB_ram_cd3d                        ; Repeat B times
+    RET                                             ; Return to caller
+    LD          A,0x7                               ; Load sound repeat count
+    LD          (SOUND_REPEAT_COUNT),A              ; Store repeat count
+    LD          B,A                                 ; Set loop counter to 7
 LAB_ram_cd54:
-    PUSH        BC
-    CALL        SOUND_02
-    CALL        SOUND_03
-    POP         BC
-    DJNZ        LAB_ram_cd54
-    RET
+    PUSH        BC                                  ; Save loop counter
+    CALL        SOUND_02                            ; Play sound 2
+    CALL        SOUND_03                            ; Play sound 3
+    POP         BC                                  ; Restore loop counter
+    DJNZ        LAB_ram_cd54                        ; Repeat B times
+    RET                                             ; Return to caller
 SUB_ram_cd5f:
-    LD          A,0xa
-    LD          (SOUND_REPEAT_COUNT),A
-    LD          B,A
+    LD          A,0xa                               ; Load sound repeat count
+    LD          (SOUND_REPEAT_COUNT),A              ; Store repeat count
+    LD          B,A                                 ; Set loop counter to 10
 LAB_ram_cd65:
-    PUSH        BC
-    CALL        SOUND_04
-    CALL        SOUND_05
-    POP         BC
-    DJNZ        LAB_ram_cd65
-    JP          SUB_ram_cdbf
+    PUSH        BC                                  ; Save loop counter
+    CALL        SOUND_04                            ; Play sound 4
+    CALL        SOUND_05                            ; Play sound 5
+    POP         BC                                  ; Restore loop counter
+    DJNZ        LAB_ram_cd65                        ; Repeat B times
+    JP          SUB_ram_cdbf                        ; Jump to next routine
 POOF_SOUND:
-    LD          A,0x7
-    LD          (SOUND_REPEAT_COUNT),A
-    LD          B,0x1
-    JP          DOINK_SOUND
+    LD          A,0x7                               ; Load sound repeat count
+    LD          (SOUND_REPEAT_COUNT),A              ; Store repeat count
+    LD          B,0x1                               ; Set loop counter to 1
+    JP          DOINK_SOUND                         ; Jump to doink sound routine
 END_OF_GAME_SOUND:
-    LD          A,0x4								; Was LD A,0x7
-    LD          (SOUND_REPEAT_COUNT),A
-    LD          B,A
+    LD          A,0x4                               ; Load sound repeat count (was 0x7)
+    LD          (SOUND_REPEAT_COUNT),A              ; Store repeat count
+    LD          B,A                                 ; Set loop counter to 4
 DOINK_SOUND:
-    PUSH        BC
-    CALL        SOUND_02
-    CALL        SUB_ram_cde7
-    CALL        SOUND_03
-    POP         BC
-    DJNZ        DOINK_SOUND
-    RET
-    CALL        SUB_ram_cde7
-    CALL        SUB_ram_cde7
-    CALL        SUB_ram_cde7
-    CALL        SUB_ram_cde7
-    CALL        SUB_ram_cde7
-    CALL        SUB_ram_cde7
-    CALL        SUB_ram_cde7
-    CALL        SUB_ram_cde7
-    CALL        SUB_ram_cde7
-    CALL        SUB_ram_cde7
-    CALL        SUB_ram_cde7
-    CALL        SOUND_05
-    CALL        SOUND_05
-    CALL        SOUND_05
-    CALL        SOUND_05
-    JP          SOUND_05
+    PUSH        BC                                  ; Save loop counter
+    CALL        SOUND_02                            ; Play sound 2
+    CALL        SUB_ram_cde7                        ; Call delay routine
+    CALL        SOUND_03                            ; Play sound 3
+    POP         BC                                  ; Restore loop counter
+    DJNZ        DOINK_SOUND                         ; Repeat B times
+    RET                                             ; Return to caller
+    CALL        SUB_ram_cde7                        ; Call delay routine
+    CALL        SUB_ram_cde7                        ; Call delay routine
+    CALL        SUB_ram_cde7                        ; Call delay routine
+    CALL        SUB_ram_cde7                        ; Call delay routine
+    CALL        SUB_ram_cde7                        ; Call delay routine
+    CALL        SUB_ram_cde7                        ; Call delay routine
+    CALL        SUB_ram_cde7                        ; Call delay routine
+    CALL        SUB_ram_cde7                        ; Call delay routine
+    CALL        SUB_ram_cde7                        ; Call delay routine
+    CALL        SUB_ram_cde7                        ; Call delay routine
+    CALL        SUB_ram_cde7                        ; Call delay routine
+    CALL        SOUND_05                            ; Play sound 5
+    CALL        SOUND_05                            ; Play sound 5
+    CALL        SOUND_05                            ; Play sound 5
+    CALL        SOUND_05                            ; Play sound 5
+    JP          SOUND_05                            ; Play sound 5 and return
 SUB_ram_cdbf:
-    LD          A,0x0
-    PUSH        AF
-    LD          BC,$40
-    LD          DE,$15
-    LD          HL,$400
-    LD          A,0x0
-    LD          (PITCH_UP_BOOL),A
-    JP          PLAY_PITCH_CHANGE
+    LD          A,0x0                               ; Load value 0
+    PUSH        AF                                  ; Save to stack
+    LD          BC,$40                              ; Set BC to 64
+    LD          DE,$15                              ; Set DE to 21
+    LD          HL,$400                             ; Set HL to 1024
+    LD          A,0x0                               ; Load value 0
+    LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to down
+    JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
 SUB_ram_cdd3:
-    LD          A,0x0
-    PUSH        AF
-    LD          BC,$a0
-    LD          DE,0x8
-    LD          HL,$800
-    LD          A,0x0
-    LD          (PITCH_UP_BOOL),A
-    JP          PLAY_PITCH_CHANGE
+    LD          A,0x0                               ; Load value 0
+    PUSH        AF                                  ; Save to stack
+    LD          BC,$a0                              ; Set BC to 160
+    LD          DE,0x8                              ; Set DE to 8
+    LD          HL,$800                             ; Set HL to 2048
+    LD          A,0x0                               ; Load value 0
+    LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to down
+    JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
 SUB_ram_cde7:
-    LD          A,0x0
-    PUSH        AF
-    LD          BC,$a0
-    LD          DE,0x1
-    LD          HL,0x2
-    LD          A,0x0
-    LD          (PITCH_UP_BOOL),A
-    JP          PLAY_PITCH_CHANGE
+    LD          A,0x0                               ; Load value 0
+    PUSH        AF                                  ; Save to stack
+    LD          BC,$a0                              ; Set BC to 160
+    LD          DE,0x1                              ; Set DE to 1
+    LD          HL,0x2                              ; Set HL to 2
+    LD          A,0x0                               ; Load value 0
+    LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to down
+    JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
 SETUP_OPEN_DOOR_SOUND:
-    LD          DE,0xf
-    LD          HL,$580
+    LD          DE,0xf                              ; Set DE to 15
+    LD          HL,$580                             ; Set HL to 1408
 LO_HI_PITCH_SOUND:
-    LD          BC,0x8
-    LD          A,0x0
-    PUSH        AF
-    LD          A,0x1
-    LD          (PITCH_UP_BOOL),A
-    JP          PLAY_PITCH_CHANGE
+    LD          BC,0x8                              ; Set BC to 8
+    LD          A,0x0                               ; Load value 0
+    PUSH        AF                                  ; Save to stack
+    LD          A,0x1                               ; Load value 1
+    LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to up
+    JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
 SETUP_CLOSE_DOOR_SOUND:
-    LD          HL,0x5
-    LD          DE,0xc
+    LD          HL,0x5                              ; Set HL to 5
+    LD          DE,0xc                              ; Set DE to 12
 HI_LO_PITCH_SOUND:
-    LD          BC,0xe
-    XOR         A
-    PUSH        AF
-    LD          (PITCH_UP_BOOL),A
-    JP          PLAY_PITCH_CHANGE
+    LD          BC,0xe                              ; Set BC to 14
+    XOR         A                                   ; A = 0
+    PUSH        AF                                  ; Save to stack
+    LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to down
+    JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
 SOUND_01:
-    LD          A,0x0
-    PUSH        AF
-    LD          BC,$30
-    LD          DE,0x2
-    LD          HL,$100
-    LD          A,0x1
-    LD          (PITCH_UP_BOOL),A
-    JP          PLAY_PITCH_CHANGE
+    LD          A,0x0                               ; Load value 0
+    PUSH        AF                                  ; Save to stack
+    LD          BC,$30                              ; Set BC to 48
+    LD          DE,0x2                              ; Set DE to 2
+    LD          HL,$100                             ; Set HL to 256
+    LD          A,0x1                               ; Load value 1
+    LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to up
+    JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
 SOUND_02:
-    LD          A,0x0
-    PUSH        AF
-    LD          BC,$1a
-    LD          DE,$10
-    LD          HL,$300
-    LD          A,0x1
-    LD          (PITCH_UP_BOOL),A
-    JP          PLAY_PITCH_CHANGE
+    LD          A,0x0                               ; Load value 0
+    PUSH        AF                                  ; Save to stack
+    LD          BC,$1a                              ; Set BC to 26
+    LD          DE,$10                              ; Set DE to 16
+    LD          HL,$300                             ; Set HL to 768
+    LD          A,0x1                               ; Load value 1
+    LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to up
+    JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
 SOUND_03:
-    LD          A,0x0
-    PUSH        AF
-    LD          BC,$2a
-    LD          DE,0xa
-    LD          HL,0x4
-    LD          A,0x0
-    LD          (PITCH_UP_BOOL),A
-    JP          PLAY_PITCH_CHANGE
+    LD          A,0x0                               ; Load value 0
+    PUSH        AF                                  ; Save to stack
+    LD          BC,$2a                              ; Set BC to 42
+    LD          DE,0xa                              ; Set DE to 10
+    LD          HL,0x4                              ; Set HL to 4
+    LD          A,0x0                               ; Load value 0
+    LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to down
+    JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
 SOUND_04:
-    LD          A,0x0
-    PUSH        AF
-    LD          BC,$20
-    LD          DE,0x2
-    LD          HL,$55
-    LD          A,0x1
-    LD          (PITCH_UP_BOOL),A
-    JP          PLAY_PITCH_CHANGE
+    LD          A,0x0                               ; Load value 0
+    PUSH        AF                                  ; Save to stack
+    LD          BC,$20                              ; Set BC to 32
+    LD          DE,0x2                              ; Set DE to 2
+    LD          HL,$55                              ; Set HL to 85
+    LD          A,0x1                               ; Load value 1
+    LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to up
+    JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
 SOUND_05:
-    LD          A,0x0
-    PUSH        AF
-    LD          BC,$30
-    LD          DE,0x1
-    LD          HL,0x1
-    LD          A,0x0
-    LD          (PITCH_UP_BOOL),A
-    JP          PLAY_PITCH_CHANGE
+    LD          A,0x0                               ; Load value 0
+    PUSH        AF                                  ; Save to stack
+    LD          BC,$30                              ; Set BC to 48
+    LD          DE,0x1                              ; Set DE to 1
+    LD          HL,0x1                              ; Set HL to 1
+    LD          A,0x0                               ; Load value 0
+    LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to down
+    JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
 PLAY_PITCH_CHANGE:
-    LD          (SND_CYCLE_HOLDER),HL
+    LD          (SND_CYCLE_HOLDER),HL               ; Store cycle count
 PLAY_PITCH_CHANGE_LOOP:
-    DEC         HL
-    LD          A,H
-    OR          L								; Clear flags
-    JP          NZ,PLAY_PITCH_CHANGE_LOOP
-    POP         AF
-    OUT         (SPEAKER),A
-    XOR         0x1
-    PUSH        AF
-    DEC         BC
-    LD          A,B
-    OR          C
-    JP          NZ,INCREASE_PITCH
-    POP         AF
-    LD          HL,(SND_CYCLE_HOLDER)
-    RET
+    DEC         HL                                  ; Decrement cycle counter
+    LD          A,H                                 ; Load H into A
+    OR          L                                   ; OR with L to check if zero
+    JP          NZ,PLAY_PITCH_CHANGE_LOOP           ; Loop if not zero
+    POP         AF                                  ; Restore speaker state
+    OUT         (SPEAKER),A                         ; Toggle speaker
+    XOR         0x1                                 ; Flip bit 0
+    PUSH        AF                                  ; Save new speaker state
+    DEC         BC                                  ; Decrement duration counter
+    LD          A,B                                 ; Load B into A
+    OR          C                                   ; OR with C to check if zero
+    JP          NZ,INCREASE_PITCH                   ; Continue if more cycles
+    POP         AF                                  ; Clean up stack
+    LD          HL,(SND_CYCLE_HOLDER)               ; Restore cycle count
+    RET                                             ; Return to caller
 INCREASE_PITCH:
-    LD          HL,PITCH_UP_BOOL
-    BIT         0x0,(HL)
-    JP          Z,DECREASE_PITCH
-    LD          HL,(SND_CYCLE_HOLDER)
-    SBC         HL,DE
-    JP          PLAY_PITCH_CHANGE
+    LD          HL,PITCH_UP_BOOL                    ; Point to pitch direction flag
+    BIT         0x0,(HL)                            ; Check if pitch up is set
+    JP          Z,DECREASE_PITCH                    ; If zero, decrease pitch instead
+    LD          HL,(SND_CYCLE_HOLDER)               ; Load current cycle count
+    SBC         HL,DE                               ; Subtract pitch step (increase freq)
+    JP          PLAY_PITCH_CHANGE                   ; Continue with new pitch
 DECREASE_PITCH:
-    LD          HL,(SND_CYCLE_HOLDER)
-    ADD         HL,DE
-    JP          PLAY_PITCH_CHANGE
+    LD          HL,(SND_CYCLE_HOLDER)               ; Load current cycle count
+    ADD         HL,DE                               ; Add pitch step (decrease freq)
+    JP          PLAY_PITCH_CHANGE                   ; Continue with new pitch
 HC_JOY_INPUT_COMPARE:
-    LD          A,(RAM_AE)
-    CP          $31								; Compare to "1" db?
-    JP          NZ,WAIT_FOR_INPUT
-    LD          HL,(HC_INPUT_HOLDER)
-    LD          A,$f3								; Compare to JOY disc UUL
-    CP          L
-    JP          Z,DO_MOVE_FW_CHK_WALLS
-    CP          H
-    JP          Z,DO_MOVE_FW_CHK_WALLS
-    LD          A,$fb								; Compare to JOY disc UP
-    CP          L
-    JP          Z,DO_MOVE_FW_CHK_WALLS
-    CP          H
-    JP          Z,DO_MOVE_FW_CHK_WALLS
-    LD          A,$eb								; Compare to JOY disc UUR
-    CP          H
-    JP          Z,DO_MOVE_FW_CHK_WALLS
-    CP          L
-    JP          Z,DO_MOVE_FW_CHK_WALLS
-    LD          A,$e9								; Compare to JOY disc UR
-    CP          L
-    JP          Z,DO_TURN_RIGHT
-    CP          H
-    JP          Z,DO_TURN_RIGHT
-    LD          A,$f9								; Compare to JOY disc RUR
-    CP          L
-    JP          Z,DO_TURN_RIGHT
-    CP          H
-    JP          Z,DO_TURN_RIGHT
-    LD          A,$fd								; Compare to JOY disc RIGHT
-    CP          L
-    JP          Z,DO_TURN_RIGHT
-    CP          H
-    JP          Z,DO_TURN_RIGHT
-    LD          A,$e7								; Compare to JOY disc LUL
-    CP          L
-    JP          Z,DO_TURN_LEFT
-    CP          H
-    JP          Z,DO_TURN_LEFT
-    LD          A,$e3								; Compare to JOY disc UL
-    CP          L
-    JP          Z,DO_TURN_LEFT
-    CP          H
-    JP          Z,DO_TURN_LEFT
-    LD          A,$f7								; Compare to JOY disc LEFT
-    CP          L
-    JP          Z,DO_TURN_LEFT
-    CP          H
-    JP          Z,DO_TURN_LEFT
-    LD          A,$f6								; Compare to JOY disc LDL
-    CP          L
-    JP          Z,DO_GLANCE_LEFT
-    CP          H
-    JP          Z,DO_GLANCE_LEFT
-    LD          A,$e6								; Compare to JOY disc DL
-    CP          L
-    JP          Z,DO_GLANCE_LEFT
-    CP          H
-    JP          Z,DO_GLANCE_LEFT
-    LD          A,$ed								; Compare to JOY disc RDR
-    CP          L
-    JP          Z,DO_GLANCE_RIGHT
-    CP          H
-    JP          Z,DO_GLANCE_RIGHT
-    LD          A,$ec								; Compare to JOY disc DR
-    CP          L
-    JP          Z,DO_GLANCE_RIGHT
-    CP          H
-    JP          Z,DO_GLANCE_RIGHT
-    LD          A,$fc								; Compare to JOY disc DDR
-    CP          L
-    JP          Z,DO_JUMP_BACK
-    CP          H
-    JP          Z,DO_JUMP_BACK
-    LD          A,$fe								; Compare to JOY disc DOWN
-    CP          L
-    JP          Z,DO_JUMP_BACK
-    CP          H
-    JP          Z,DO_JUMP_BACK
-    LD          A,$ee								; Compare to JOY disc DDL
-    CP          L
-    JP          Z,DO_JUMP_BACK
-    CP          H
-    JP          Z,DO_JUMP_BACK
-    LD          A,$df								; Compare to JOY K4
-    CP          L
-    JP          Z,TOGGLE_SHIFT_MODE
-    CP          H
-    JP          Z,TOGGLE_SHIFT_MODE
-    LD          A,(GAME_BOOLEANS)
-    BIT         0x1,A
-    JP          NZ,DO_HC_SHIFT_ACTIONS
+    LD          A,(RAM_AE)                          ; Load input mode flag
+    CP          $31                                 ; Compare to "1" (handcontroller mode)
+    JP          NZ,WAIT_FOR_INPUT                   ; If not HC mode, wait for input
+    LD          HL,(HC_INPUT_HOLDER)                ; Load joystick input values
+    LD          A,$f3                               ; Compare to JOY disc UUL
+    CP          L                                   ; Check L register
+    JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
+    LD          A,$fb                               ; Compare to JOY disc UP
+    CP          L                                   ; Check L register
+    JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
+    LD          A,$eb                               ; Compare to JOY disc UUR
+    CP          H                                   ; Check H register
+    JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
+    CP          L                                   ; Check L register
+    JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
+    LD          A,$e9                               ; Compare to JOY disc UR
+    CP          L                                   ; Check L register
+    JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
+    LD          A,$f9                               ; Compare to JOY disc RUR
+    CP          L                                   ; Check L register
+    JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
+    LD          A,$fd                               ; Compare to JOY disc RIGHT
+    CP          L                                   ; Check L register
+    JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
+    LD          A,$e7                               ; Compare to JOY disc LUL
+    CP          L                                   ; Check L register
+    JP          Z,DO_TURN_LEFT                      ; Turn left if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_TURN_LEFT                      ; Turn left if matched
+    LD          A,$e3                               ; Compare to JOY disc UL
+    CP          L                                   ; Check L register
+    JP          Z,DO_TURN_LEFT                      ; Turn left if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_TURN_LEFT                      ; Turn left if matched
+    LD          A,$f7                               ; Compare to JOY disc LEFT
+    CP          L                                   ; Check L register
+    JP          Z,DO_TURN_LEFT                      ; Turn left if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_TURN_LEFT                      ; Turn left if matched
+    LD          A,$f6                               ; Compare to JOY disc LDL
+    CP          L                                   ; Check L register
+    JP          Z,DO_GLANCE_LEFT                    ; Glance left if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_GLANCE_LEFT                    ; Glance left if matched
+    LD          A,$e6                               ; Compare to JOY disc DL
+    CP          L                                   ; Check L register
+    JP          Z,DO_GLANCE_LEFT                    ; Glance left if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_GLANCE_LEFT                    ; Glance left if matched
+    LD          A,$ed                               ; Compare to JOY disc RDR
+    CP          L                                   ; Check L register
+    JP          Z,DO_GLANCE_RIGHT                   ; Glance right if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_GLANCE_RIGHT                   ; Glance right if matched
+    LD          A,$ec                               ; Compare to JOY disc DR
+    CP          L                                   ; Check L register
+    JP          Z,DO_GLANCE_RIGHT                   ; Glance right if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_GLANCE_RIGHT                   ; Glance right if matched
+    LD          A,$fc                               ; Compare to JOY disc DDR
+    CP          L                                   ; Check L register
+    JP          Z,DO_JUMP_BACK                      ; Jump back if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_JUMP_BACK                      ; Jump back if matched
+    LD          A,$fe                               ; Compare to JOY disc DOWN
+    CP          L                                   ; Check L register
+    JP          Z,DO_JUMP_BACK                      ; Jump back if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_JUMP_BACK                      ; Jump back if matched
+    LD          A,$ee                               ; Compare to JOY disc DDL
+    CP          L                                   ; Check L register
+    JP          Z,DO_JUMP_BACK                      ; Jump back if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_JUMP_BACK                      ; Jump back if matched
+    LD          A,$df                               ; Compare to JOY K4
+    CP          L                                   ; Check L register
+    JP          Z,TOGGLE_SHIFT_MODE                 ; Toggle shift mode if matched
+    CP          H                                   ; Check H register
+    JP          Z,TOGGLE_SHIFT_MODE                 ; Toggle shift mode if matched
+    LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
+    BIT         0x1,A                               ; Check if shift mode is active
+    JP          NZ,DO_HC_SHIFT_ACTIONS              ; If shift active, use shift actions
 DO_HC_BUTTON_ACTIONS:
-    LD          A,$bf								; Compare to JOY K1
-    CP          L
-    JP          Z,DO_USE_ATTACK
-    CP          H
-    JP          Z,DO_USE_ATTACK
-    LD          A,$7b								; Compare to JOY K2
-    CP          L
-    JP          Z,DO_OPEN_CLOSE
-    CP          H
-    JP          Z,DO_OPEN_CLOSE
-    LD          A,$5f								; Compare to JOY K3
-    CP          L
-    JP          Z,DO_PICK_UP
-    CP          H
-    JP          Z,DO_PICK_UP
-    LD          A,$7d								; Compare to JOY K5
-    CP          L
-    JP          Z,DO_SWAP_PACK
-    CP          H
-    JP          Z,DO_SWAP_PACK
-    LD          A,$7e								; Compare to JOY K6
-    CP          L
-    JP          Z,DO_ROTATE_PACK
-    CP          H
-    JP          Z,DO_ROTATE_PACK
-    JP          NO_ACTION_TAKEN
+    LD          A,$bf                               ; Compare to JOY K1
+    CP          L                                   ; Check L register
+    JP          Z,DO_USE_ATTACK                     ; Use/attack if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_USE_ATTACK                     ; Use/attack if matched
+    LD          A,$7b                               ; Compare to JOY K2
+    CP          L                                   ; Check L register
+    JP          Z,DO_OPEN_CLOSE                     ; Open/close if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_OPEN_CLOSE                     ; Open/close if matched
+    LD          A,$5f                               ; Compare to JOY K3
+    CP          L                                   ; Check L register
+    JP          Z,DO_PICK_UP                        ; Pick up if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_PICK_UP                        ; Pick up if matched
+    LD          A,$7d                               ; Compare to JOY K5
+    CP          L                                   ; Check L register
+    JP          Z,DO_SWAP_PACK                      ; Swap pack if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_SWAP_PACK                      ; Swap pack if matched
+    LD          A,$7e                               ; Compare to JOY K6
+    CP          L                                   ; Check L register
+    JP          Z,DO_ROTATE_PACK                    ; Rotate pack if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_ROTATE_PACK                    ; Rotate pack if matched
+    JP          NO_ACTION_TAKEN                     ; No action matched
 DO_HC_SHIFT_ACTIONS:
-    LD          A,$bf								; Compare to JOY K1
-    CP          L
-    JP          Z,DO_USE_LADDER
-    CP          H
-    JP          Z,DO_USE_LADDER
-    LD          A,$7b								; Compare to JOY K2
-    CP          L
-    ; JP          Z,DO_COUNT_FOOD
-    JP          Z,NO_ACTION_TAKEN
-    CP          H
-    ; JP          Z,DO_COUNT_FOOD
-    JP          Z,NO_ACTION_TAKEN
-    LD          A,$5f								; Compare to JOY K3
-    CP          L
-    ; JP          Z,DO_COUNT_ARROWS
-    JP          Z,NO_ACTION_TAKEN
-    CP          H
-    ; JP          Z,DO_COUNT_ARROWS
-    JP          Z,NO_ACTION_TAKEN
-    LD          A,$7d								; Compare to JOY K5
-    CP          L
-    JP          Z,DO_SWAP_HANDS
-    CP          H
-    JP          Z,DO_SWAP_HANDS
-    LD          A,$7e								; Compare to JOY K6
-    CP          L
-    JP          Z,DO_REST
-    CP          H
-    JP          Z,DO_REST
-    LD          A,$cc								; Compare to K4 + DR chord
-    CP          L
-    JP          Z,MAX_HEALTH_ARROWS_FOOD
-    CP          H
-    JP          Z,MAX_HEALTH_ARROWS_FOOD
-    LD          A,$c6								; Compare to K4 + DL chord
-    CP          L
-    JP          Z,DO_TELEPORT
-    CP          H
-    JP          Z,DO_TELEPORT
-    JP          NO_ACTION_TAKEN
+    LD          A,$bf                               ; Compare to JOY K1
+    CP          L                                   ; Check L register
+    JP          Z,DO_USE_LADDER                     ; Use ladder if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_USE_LADDER                     ; Use ladder if matched
+    LD          A,$7b                               ; Compare to JOY K2
+    CP          L                                   ; Check L register
+    JP          Z,NO_ACTION_TAKEN                   ; No action for K2 in shift mode
+    CP          H                                   ; Check H register
+    JP          Z,NO_ACTION_TAKEN                   ; No action for K2 in shift mode
+    LD          A,$5f                               ; Compare to JOY K3
+    CP          L                                   ; Check L register
+    JP          Z,NO_ACTION_TAKEN                   ; No action for K3 in shift mode
+    CP          H                                   ; Check H register
+    JP          Z,NO_ACTION_TAKEN                   ; No action for K3 in shift mode
+    LD          A,$7d                               ; Compare to JOY K5
+    CP          L                                   ; Check L register
+    JP          Z,DO_SWAP_HANDS                     ; Swap hands if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_SWAP_HANDS                     ; Swap hands if matched
+    LD          A,$7e                               ; Compare to JOY K6
+    CP          L                                   ; Check L register
+    JP          Z,DO_REST                           ; Rest if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_REST                           ; Rest if matched
+    LD          A,$cc                               ; Compare to K4 + DR chord
+    CP          L                                   ; Check L register
+    JP          Z,MAX_HEALTH_ARROWS_FOOD            ; Max stats if matched
+    CP          H                                   ; Check H register
+    JP          Z,MAX_HEALTH_ARROWS_FOOD            ; Max stats if matched
+    LD          A,$c6                               ; Compare to K4 + DL chord
+    CP          L                                   ; Check L register
+    JP          Z,DO_TELEPORT                       ; Teleport if matched
+    CP          H                                   ; Check H register
+    JP          Z,DO_TELEPORT                       ; Teleport if matched
+    JP          NO_ACTION_TAKEN                     ; No action matched
 
 DRAW_BKGD:
-    LD          A,$20								; Set VIEWPORT fill chars to SPACE
-    LD          HL,CHRRAM_VIEWPORT_IDX				; Set CHRRAM starting point at the beginning of the VIEWPORT
-    LD          BC,RECT(24,24)						; 24 x 24 rectangle
-    CALL        FILL_CHRCOL_RECT
-    LD          C,0x8								; 8 rows of ceiling
-    LD          HL,COLRAM_VIEWPORT_IDX				; Set COLRAM starting point at the beginning of the VIEWPORT
-    LD          A,COLOR(DKGRY,BLK)					; DKGRY on BLK
-    CALL        DRAW_CHRCOLS
-    LD          C,0x6								; 6 more rows of ceiling
-    ADD         HL,DE
-    LD          A,COLOR(BLK,BLK)					; BLK on BLK
-    CALL        DRAW_CHRCOLS
-    LD          C,5 								; 5 rows of floor (was 10)
-    ADD         HL,DE
-    LD          A,COLOR(DKGRN,DKGRY)				; DKGRN on DKGRY
-    CALL        DRAW_CHRCOLS
+    LD          A,$20                               ; Set VIEWPORT fill chars to SPACE
+    LD          HL,CHRRAM_VIEWPORT_IDX              ; Set CHRRAM starting point at the beginning of the VIEWPORT
+    LD          BC,RECT(24,24)                      ; 24 x 24 rectangle
+    CALL        FILL_CHRCOL_RECT                    ; Fill viewport with spaces
+    LD          C,0x8                               ; 8 rows of ceiling
+    LD          HL,COLRAM_VIEWPORT_IDX              ; Set COLRAM starting point at the beginning of the VIEWPORT
+    LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (upper ceiling)
+    CALL        DRAW_CHRCOLS                        ; Fill upper ceiling rows
+    LD          C,0x6                               ; 6 more rows of ceiling
+    ADD         HL,DE                               ; Move to next row
+    LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (lower ceiling)
+    CALL        DRAW_CHRCOLS                        ; Fill lower ceiling rows
+    LD          C,5                                 ; 5 rows of floor (was 10)
+    ADD         HL,DE                               ; Move to next row
+    LD          A,COLOR(DKGRN,DKGRY)                ; DKGRN on DKGRY (floor)
+    CALL        DRAW_CHRCOLS                        ; Fill floor rows
 ; NEW STUFF
-    ADD         HL,DE                               
-    LD          A,L
-    ADD         A,6
-    LD          L,A
-    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY
+    ADD         HL,DE                               ; Move to next row
+    LD          A,L                                 ; Load low byte of HL
+    ADD         A,6                                 ; Add 6 to offset
+    LD          L,A                                 ; Store back to L
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (lower floor)
     LD          BC,RECT(12,5)                       ; 12 x 5 rectangle
-    CALL        FILL_CHRCOL_RECT
+    CALL        FILL_CHRCOL_RECT                    ; Fill lower floor area
 
 ; Check if in-battle
-    LD          A,(CURR_MONSTER_PHYS)
-    CP          0x0
-    JP          Z,NOT_IN_BATTLE
-    LD          A,(CURR_MONSTER_SPRT)
-    CP          0x0
-    JP          Z,NOT_IN_BATTLE
-    CALL        REDRAW_MONSTER_HEALTH
-    RET
+    LD          A,(CURR_MONSTER_PHYS)               ; Load current monster physical stats
+    CP          0x0                                 ; Check if monster exists
+    JP          Z,NOT_IN_BATTLE                     ; If no monster, not in battle
+    LD          A,(CURR_MONSTER_SPRT)               ; Load current monster sprite
+    CP          0x0                                 ; Check if sprite exists
+    JP          Z,NOT_IN_BATTLE                     ; If no sprite, not in battle
+    CALL        REDRAW_MONSTER_HEALTH               ; Redraw monster health bar
+    RET                                             ; Return to caller
 NOT_IN_BATTLE:
-    RET
+    RET                                             ; Return to caller
 WIPE_VARIABLE_SPACE:
-    LD          A,0x0
-    LD          HL,$3900
-    LD          B,$ff
+    LD          A,0x0                               ; Load value 0
+    LD          HL,$3900                            ; Point to start of variable space
+    LD          B,$ff                               ; Set loop counter to 255
 CLEAR_MAP_SPACE:
-    LD          (HL),A
-    INC         HL
-    LD          (HL),A
-    INC         HL
-    LD          (HL),A
-    INC         HL
-    DJNZ        CLEAR_MAP_SPACE
-    LD          HL,$3a62
-    LD          (NEXT_BLINK_CHECK),HL
-    RET
+    LD          (HL),A                              ; Clear byte at HL
+    INC         HL                                  ; Move to next byte
+    LD          (HL),A                              ; Clear byte at HL
+    INC         HL                                  ; Move to next byte
+    LD          (HL),A                              ; Clear byte at HL
+    INC         HL                                  ; Move to next byte
+    DJNZ        CLEAR_MAP_SPACE                     ; Repeat B times
+    LD          HL,$3a62                            ; Load initial blink check value
+    LD          (NEXT_BLINK_CHECK),HL               ; Store blink check timer
+    RET                                             ; Return to caller
 
 PLAY_POOF_ANIM:
-    PUSH        HL								; Save HL register value
-    LD          DE,POOF_1								; DE = Start of POOF animation graphic
-    LD          B,$70								; Set color to WHT on BLK
-    EXX								; Swap BC DE HL with BC' DE' HL'
-    CALL        POOF_SOUND
-    EXX								; Swap BC DE HL with BC' DE' HL'
-    CALL        GFX_DRAW
-    POP         HL								; Restore DE register value
-    CALL        TOGGLE_ITEM_POOF_AND_WAIT
-    PUSH        HL
-    CALL        GFX_DRAW
-    POP         HL
-    PUSH        DE
-    LD          DE,$29
-    SBC         HL,DE
-    POP         DE								; = $D7,$C9,$01
-    CALL        TOGGLE_ITEM_POOF_AND_WAIT
-    PUSH        HL
-    CALL        GFX_DRAW
-    POP         HL
-    PUSH        HL
-    LD          B,$80
-    CALL        GFX_DRAW
-    CALL        TOGGLE_ITEM_POOF_AND_WAIT
-    POP         HL
-    PUSH        HL
-    CALL        GFX_DRAW
-    CALL        TOGGLE_ITEM_POOF_AND_WAIT
-    LD          B,$d0
-    POP         HL
-    CALL        GFX_DRAW
-    EX          AF,AF'
-    RET
+    PUSH        HL                                  ; Save HL register value
+    LD          DE,POOF_1                           ; DE = Start of POOF animation graphic
+    LD          B,$70                               ; Set color to WHT on BLK
+    EXX                                             ; Swap BC DE HL with BC' DE' HL'
+    CALL        POOF_SOUND                          ; Play poof sound effect
+    EXX                                             ; Swap BC DE HL with BC' DE' HL'
+    CALL        GFX_DRAW                            ; Draw first frame
+    POP         HL                                  ; Restore HL register value
+    CALL        TOGGLE_ITEM_POOF_AND_WAIT           ; Wait for frame delay
+    PUSH        HL                                  ; Save HL again
+    CALL        GFX_DRAW                            ; Draw second frame
+    POP         HL                                  ; Restore HL
+    PUSH        DE                                  ; Save DE
+    LD          DE,$29                              ; Load offset value
+    SBC         HL,DE                               ; Adjust HL position
+    POP         DE                                  ; Restore DE = $D7,$C9,$01
+    CALL        TOGGLE_ITEM_POOF_AND_WAIT           ; Wait for frame delay
+    PUSH        HL                                  ; Save HL
+    CALL        GFX_DRAW                            ; Draw third frame
+    POP         HL                                  ; Restore HL
+    PUSH        HL                                  ; Save HL again
+    LD          B,$80                               ; Set color to BLK on BLK
+    CALL        GFX_DRAW                            ; Draw fourth frame
+    CALL        TOGGLE_ITEM_POOF_AND_WAIT           ; Wait for frame delay
+    POP         HL                                  ; Restore HL
+    PUSH        HL                                  ; Save HL again
+    CALL        GFX_DRAW                            ; Draw fifth frame
+    CALL        TOGGLE_ITEM_POOF_AND_WAIT           ; Wait for frame delay
+    LD          B,$d0                               ; Set color to DKGRN on BLK
+    POP         HL                                  ; Restore HL
+    CALL        GFX_DRAW                            ; Draw final frame
+    EX          AF,AF'                              ; Swap AF with AF'
+    RET                                             ; Return to caller
 TOGGLE_ITEM_POOF_AND_WAIT:
-    EXX
-    LD          BC,DAT_ram_3200
-    CALL        SLEEP								; byte SLEEP(short cycleCount)
-    EXX
-    RET
+    EXX                                             ; Swap BC DE HL with BC' DE' HL'
+    LD          BC,DAT_ram_3200                     ; Load cycle count for delay
+    CALL        SLEEP                               ; byte SLEEP(short cycleCount)
+    EXX                                             ; Swap BC DE HL with BC' DE' HL'
+    RET                                             ; Return to caller
 MONSTER_KILLED:
-    LD          HL,CHRRAM_MONSTER_POOF_IDX
-    CALL        PLAY_POOF_ANIM
-    LD          A,(PLAYER_MAP_POS)								; A  = Player position in map
-    LD          HL,(DIR_FACING_HI)								; HL = FW adjustment value
-    ADD         A,H								; A  = Player position in map
-								; one step forward
-    CALL        ITEM_MAP_CHECK								; Upon return,
-								; A  = itemNum one step forward
-								; BC = itemMapRAMLocation
-    CP          $9f								; Check to see if it is
-								; the Minotaur ($9f)
-    JP          Z,MINOTAUR_DEAD
-    LD          A,$fe								; A  = $fe (empty item space)
-    LD          (BC),A								; itemMapLocRAM = $fe (empty)
-    CALL        CLEAR_MONSTER_STATS
-    POP         HL
-    JP          UPDATE_VIEWPORT
+    LD          HL,CHRRAM_MONSTER_POOF_IDX          ; Point to monster poof position
+    CALL        PLAY_POOF_ANIM                      ; Play poof animation
+    LD          A,(PLAYER_MAP_POS)                  ; A  = Player position in map
+    LD          HL,(DIR_FACING_HI)                  ; HL = FW adjustment value
+    ADD         A,H                                 ; A  = Player position in map
+                                                    ; one step forward
+    CALL        ITEM_MAP_CHECK                      ; Upon return,
+                                                    ; A  = itemNum one step forward
+                                                    ; BC = itemMapRAMLocation
+    CP          $9f                                 ; Check to see if it is
+                                                    ; the Minotaur ($9f)
+    JP          Z,MINOTAUR_DEAD                     ; If Minotaur, handle special death
+    LD          A,$fe                               ; A  = $fe (empty item space)
+    LD          (BC),A                              ; itemMapLocRAM = $fe (empty)
+    CALL        CLEAR_MONSTER_STATS                 ; Clear monster statistics
+    POP         HL                                  ; Restore HL
+    JP          UPDATE_VIEWPORT                     ; Update viewport display
 TOGGLE_SHIFT_MODE:
-    LD          A,(GAME_BOOLEANS)
-    BIT         0x1,A								; NZ if SHIFT MODE
-    JP          NZ,RESET_SHIFT_MODE
+    LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
+    BIT         0x1,A                               ; NZ if SHIFT MODE active
+    JP          NZ,RESET_SHIFT_MODE                 ; If set, reset shift mode
 SET_SHIFT_MODE:
-    SET         0x1,A								; Set SHIFT MODE boolean
-    LD          (GAME_BOOLEANS),A
-    LD          A,$d0								; DKGRN on BLK
-    LD          (COLRAM_SHIFT_MODE_IDX),A
-    JP          INPUT_DEBOUNCE
+    SET         0x1,A                               ; Set SHIFT MODE boolean
+    LD          (GAME_BOOLEANS),A                   ; Store updated flags
+    LD          A,$d0                               ; DKGRN on BLK (shift indicator)
+    LD          (COLRAM_SHIFT_MODE_IDX),A           ; Update shift mode color
+    JP          INPUT_DEBOUNCE                      ; Debounce input
 RESET_SHIFT_MODE:
-    LD          A,(GAME_BOOLEANS)								; Reset SHIFT MODE boolean
-    RES         0x1,A
-    LD          (GAME_BOOLEANS),A
-    LD          A,$f0
-    LD          (COLRAM_SHIFT_MODE_IDX),A
-    JP          INPUT_DEBOUNCE
+    LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
+    RES         0x1,A                               ; Reset SHIFT MODE boolean
+    LD          (GAME_BOOLEANS),A                   ; Store updated flags
+    LD          A,$f0                               ; WHT on BLK (normal indicator)
+    LD          (COLRAM_SHIFT_MODE_IDX),A           ; Update shift mode color
+    JP          INPUT_DEBOUNCE                      ; Debounce input
 SHOW_AUTHOR:
-    LD          HL,CHRRAM_AUTHORS_IDX
-    LD          DE,AUTHORS								; = "   Originally programmed by Tom L...
-    LD          B,$20
-    CALL        GFX_DRAW
-    LD          A,$ff
-    JP          WAIT_FOR_INPUT
+    LD          HL,CHRRAM_AUTHORS_IDX               ; Point to author text area
+    LD          DE,AUTHORS                          ; = "   Originally programmed by Tom L...
+    LD          B,$20                               ; Set length to 32 bytes
+    CALL        GFX_DRAW                            ; Draw author text
+    LD          A,$ff                               ; Load value 255
+    JP          WAIT_FOR_INPUT                      ; Wait for input
 TIMER_UPDATE:
-    LD          HL,(TIMER_A)
-    LD          BC,0x1
-    ADD         HL,BC
-    LD          (TIMER_A),HL
-    RET
+    LD          HL,(TIMER_A)                        ; Load TIMER_A value
+    LD          BC,0x1                              ; Load increment value 1
+    ADD         HL,BC                               ; Increment timer
+    LD          (TIMER_A),HL                        ; Store updated timer
+    RET                                             ; Return to caller
 BLINK_ROUTINE:
-    PUSH        AF
-    LD          A,(GAME_BOOLEANS)
-    BIT         0x0,A
-    JP          Z,STILL_ON_TITLE
-    JP          BLINK_EXIT_AF
+    PUSH        AF                                  ; Save AF register
+    LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
+    BIT         0x0,A                               ; Check if game started
+    JP          Z,STILL_ON_TITLE                    ; If on title screen, do blink
+    JP          BLINK_EXIT_AF                       ; Otherwise exit
 BLINK_EXIT_ALL:
-    POP         DE
-    POP         HL
+    POP         DE                                  ; Restore DE register
+    POP         HL                                  ; Restore HL register
 BLINK_EXIT_BCAF:
-    POP         BC
+    POP         BC                                  ; Restore BC register
 BLINK_EXIT_AF:
-    POP         AF
-    RET
+    POP         AF                                  ; Restore AF register
+    RET                                             ; Return to caller
 STILL_ON_TITLE:
-    PUSH        BC
-    LD          A,(TIMER_B)
-    LD          B,A
-    LD          A,(NEXT_BLINK_CHECK)
-    CP          B
-    JP          NZ,BLINK_EXIT_BCAF
-    LD          A,R
-    LD          (NEXT_BLINK_CHECK),A
-    PUSH        HL
-    PUSH        DE
-    CALL        DO_CLOSE_EYES
-    LD          BC,$8000
-    CALL        SLEEP								; byte SLEEP(short cycleCount)
-    CALL        DO_OPEN_EYES
-    JP          BLINK_EXIT_ALL
+    PUSH        BC                                  ; Save BC register
+    LD          A,(TIMER_B)                         ; Load TIMER_B value
+    LD          B,A                                 ; Store in B register
+    LD          A,(NEXT_BLINK_CHECK)                ; Load next blink check time
+    CP          B                                   ; Compare to current timer
+    JP          NZ,BLINK_EXIT_BCAF                  ; If not time yet, exit
+    LD          A,R                                 ; Load refresh register (random)
+    LD          (NEXT_BLINK_CHECK),A                ; Store next blink check time
+    PUSH        HL                                  ; Save HL register
+    PUSH        DE                                  ; Save DE register
+    CALL        DO_CLOSE_EYES                       ; Close eyes animation
+    LD          BC,$8000                            ; Set long delay count
+    CALL        SLEEP                               ; byte SLEEP(short cycleCount)
+    CALL        DO_OPEN_EYES                        ; Open eyes animation
+    JP          BLINK_EXIT_ALL                      ; Exit and restore all registers
 DO_OPEN_EYES:
-    LD          DE,$32d6
-    LD          HL,TS_EYES_OPEN_CHR								;  Pinned to TITLE_SCREEN (0xD800) + 726; WAS 0xdad6
-    LD          BC,$44
-    LDIR
-    LD          DE,$36d6
-    LD          HL,TS_EYES_OPTN_COL								;  Pinned to TITLE_SCREEN (0XD800) + 1750; WAS 0xded6
-    LD          BC,$44
-    LDIR
-    RET
+    LD          DE,$32d6                            ; Point to eyes character area
+    LD          HL,TS_EYES_OPEN_CHR                 ; Pinned to TITLE_SCREEN (0xD800) + 726; WAS 0xdad6
+    LD          BC,$44                              ; Set byte count to 68
+    LDIR                                            ; Copy open eyes characters
+    LD          DE,$36d6                            ; Point to eyes color area
+    LD          HL,TS_EYES_OPTN_COL                 ; Pinned to TITLE_SCREEN (0XD800) + 1750; WAS 0xded6
+    LD          BC,$44                              ; Set byte count to 68
+    LDIR                                            ; Copy open eyes colors
+    RET                                             ; Return to caller
 DO_CLOSE_EYES:
-    LD          HL,$32d6
-    LD          BC,$d1d0								;  Value, not an address 
-    LD          (HL),B
-    INC         HL
-    LD          (HL),B
-    LD          DE,$1a
-    ADD         HL,DE
-    LD          (HL),B
-    DEC         HL
-    LD          (HL),B
-    LD          HL,$32fe
-    LD          (HL),C
-    INC         HL
-    LD          (HL),B
-    ADD         HL,DE
-    LD          (HL),B
-    DEC         HL
-    LD          (HL),C
-    LD          HL,$36d6
-    LD          BC,$f00f								;  Value, not an address
-    LD          (HL),B
-    INC         HL
-    LD          (HL),C
-    ADD         HL,DE
-    LD          (HL),C
-    DEC         HL
-    LD          (HL),B
-    LD          HL,$36fe
-    LD          (HL),B
-    INC         HL
-    LD          (HL),B
-    ADD         HL,DE
-    LD          (HL),B
-    DEC         HL
-    LD          (HL),B
-    RET
+    LD          HL,$32d6                            ; Point to eyes character area
+    LD          BC,$d1d0                            ; Value, not an address (closed eye chars)
+    LD          (HL),B                              ; Draw closed eye character
+    INC         HL                                  ; Move to next position
+    LD          (HL),B                              ; Draw closed eye character
+    LD          DE,$1a                              ; Set offset to next row
+    ADD         HL,DE                               ; Move to next row
+    LD          (HL),B                              ; Draw closed eye character
+    DEC         HL                                  ; Move back one position
+    LD          (HL),B                              ; Draw closed eye character
+    LD          HL,$32fe                            ; Point to second eye character area
+    LD          (HL),C                              ; Draw closed eye character
+    INC         HL                                  ; Move to next position
+    LD          (HL),B                              ; Draw closed eye character
+    ADD         HL,DE                               ; Move to next row
+    LD          (HL),B                              ; Draw closed eye character
+    DEC         HL                                  ; Move back one position
+    LD          (HL),C                              ; Draw closed eye character
+    LD          HL,$36d6                            ; Point to eyes color area
+    LD          BC,$f00f                            ; Value, not an address (closed eye colors)
+    LD          (HL),B                              ; Set color for closed eye
+    INC         HL                                  ; Move to next position
+    LD          (HL),C                              ; Set color for closed eye
+    ADD         HL,DE                               ; Move to next row
+    LD          (HL),C                              ; Set color for closed eye
+    DEC         HL                                  ; Move back one position
+    LD          (HL),B                              ; Set color for closed eye
+    LD          HL,$36fe                            ; Point to second eye color area
+    LD          (HL),B                              ; Set color for closed eye
+    INC         HL                                  ; Move to next position
+    LD          (HL),B                              ; Set color for closed eye
+    ADD         HL,DE                               ; Move to next row
+    LD          (HL),B                              ; Set color for closed eye
+    DEC         HL                                  ; Move back one position
+    LD          (HL),B                              ; Set color for closed eye
+    RET                                             ; Return to caller
 DRAW_ICON_BAR:
-    PUSH        AF
-    PUSH        HL
-    LD          HL,CHRRAM_LEVEL_IND_L
-    LD          (HL),$85								; Right side halftone CHR
-    INC         HL
-    INC         HL
-    INC         HL
-    LD          (HL),$95								; Left side halftone CHR
-    INC         HL
-    LD          (HL),0x8								; Up arrow CHR
-    INC         HL
-    INC         HL
-    LD          (HL),$48								; Ladder (H) CHR
-    INC         HL
-    INC         HL
-    LD          (HL),$d3								; Item CHR
-    INC         HL
-    INC         HL
-    LD          (HL),$93								; Monster CHR
-    INC         HL
-    INC         HL
-    LD          (HL),$85								; Right side halftone CHR
-    INC         HL
-    INC         HL
-    INC         HL
-    INC         HL								; Map CHR
-    LD          (HL),$d1
-    INC         HL
-    INC         HL								; Armor CHR
-    LD          (HL),$9d
-    INC         HL
-    INC         HL								; Helmet CHR
-    LD          (HL),0xe
-    INC         HL
-    INC         HL								; Ring (o) CHR
-    LD          (HL),$6f
-    POP         HL
-    POP         AF
-    RET
+    PUSH        AF                                  ; Save AF register
+    PUSH        HL                                  ; Save HL register
+    LD          HL,CHRRAM_LEVEL_IND_L               ; Point to level indicator area
+    LD          (HL),$85                            ; Right side halftone CHR
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Move to next position
+    LD          (HL),$95                            ; Left side halftone CHR
+    INC         HL                                  ; Move to next position
+    LD          (HL),0x8                            ; Up arrow CHR
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Move to next position
+    LD          (HL),$48                            ; Ladder (H) CHR
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Move to next position
+    LD          (HL),$d3                            ; Item CHR
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Move to next position
+    LD          (HL),$93                            ; Monster CHR
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Move to next position
+    LD          (HL),$85                            ; Right side halftone CHR
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Map CHR position
+    LD          (HL),$d1                            ; Map CHR
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Armor CHR position
+    LD          (HL),$9d                            ; Armor CHR
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Helmet CHR position
+    LD          (HL),0xe                            ; Helmet CHR
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Ring (o) CHR position
+    LD          (HL),$6f                            ; Ring (o) CHR
+    POP         HL                                  ; Restore HL register
+    POP         AF                                  ; Restore AF register
+    RET                                             ; Return to caller
 DRAW_COMPASS:
-    PUSH        AF								; DKBLU on BLK
-    PUSH        BC
-    PUSH        HL
-    PUSH        DE
-    LD          B,$b0
-    LD          HL,DAT_ram_31af
-    LD          DE,COMPASS								; = $D7,"n",$C9,$01
-    CALL        GFX_DRAW
-    LD          HL,DAT_ram_35d8
-    LD          (HL),$10
-    POP         DE
-    POP         HL
-    POP         BC
-    POP         AF
-    RET
+    PUSH        AF                                  ; Save AF register (DKBLU on BLK)
+    PUSH        BC                                  ; Save BC register
+    PUSH        HL                                  ; Save HL register
+    PUSH        DE                                  ; Save DE register
+    LD          B,$b0                               ; Set color to DKBLU on BLK
+    LD          HL,DAT_ram_31af                     ; Point to compass position
+    LD          DE,COMPASS                          ; = $D7,"n",$C9,$01
+    CALL        GFX_DRAW                            ; Draw compass graphic
+    LD          HL,DAT_ram_35d8                     ; Point to compass color area
+    LD          (HL),$10                            ; Set compass color
+    POP         DE                                  ; Restore DE register
+    POP         HL                                  ; Restore HL register
+    POP         BC                                  ; Restore BC register
+    POP         AF                                  ; Restore AF register
+    RET                                             ; Return to caller
 WIPE_WALLS:
-    PUSH        AF
-    PUSH        BC
-    PUSH        HL
-    LD          HL,$3800
-    LD          BC,0x0
-    LD          A,0x0
+    PUSH        AF                                  ; Save AF register
+    PUSH        BC                                  ; Save BC register
+    PUSH        HL                                  ; Save HL register
+    LD          HL,$3800                            ; Point to wall data area
+    LD          BC,0x0                              ; Set BC to 0 (B=0, C=0)
+    LD          A,0x0                               ; Load value 0
 WIPE_WALLS_LOOP:
-    LD          (HL),A
-    INC         HL
-    DJNZ        WIPE_WALLS_LOOP
-    POP         HL
-    POP         BC
-    POP         AF
-    CALL        UPDATE_VIEWPORT
-    JP          INPUT_DEBOUNCE
+    LD          (HL),A                              ; Clear byte at HL
+    INC         HL                                  ; Move to next byte
+    DJNZ        WIPE_WALLS_LOOP                     ; Repeat B times (256 iterations)
+    POP         HL                                  ; Restore HL register
+    POP         BC                                  ; Restore BC register
+    POP         AF                                  ; Restore AF register
+    CALL        UPDATE_VIEWPORT                     ; Update viewport display
+    JP          INPUT_DEBOUNCE                      ; Debounce input
 DRAW_WALL_FL22_EMPTY:
-    LD          HL,COLRAM_FL22_WALL_IDX
-    LD          BC,RECT(4,4)						; 4 x 4 rectangle
-    LD          A,COLOR(BLK,BLK)					; BLK on BLK
-    JP          FILL_CHRCOL_RECT                    ; Was CALL, followed by the commented section
+    LD          HL,COLRAM_FL22_WALL_IDX             ; Point to FL22 wall color area
+    LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
+    LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
+    JP          FILL_CHRCOL_RECT                    ; Fill area with black (Was CALL, followed by the commented section)
 
 DRAW_WALL_FL2:
-    LD          HL,$3234							; Bottom CHARRAM IDX of FL2
-    LD          BC,RECT(4,1)						; 4 x 1 rectangle
-    LD          A,CHAR_BOTTOM_LINE					; Thin base line char
-    CALL        FILL_CHRCOL_RECT
-    LD          HL,$35bc
-    LD          BC,RECT(2,4)						; 2 x 4 rectangle
-    LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
-    CALL        FILL_CHRCOL_RECT
-    LD          C,0x4
-    LD          HL,$35be
-    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY
-    JP          DRAW_CHRCOLS                        ; *****
+    LD          HL,$3234                            ; Bottom CHARRAM IDX of FL2
+    LD          BC,RECT(4,1)                        ; 4 x 1 rectangle
+    LD          A,CHAR_BOTTOM_LINE                  ; Thin base line character
+    CALL        FILL_CHRCOL_RECT                    ; Fill bottom edge
+    LD          HL,$35bc                            ; Point to FL2 left wall area
+    LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
+    CALL        FILL_CHRCOL_RECT                    ; Fill left wall
+    LD          C,0x4                               ; Set height to 4
+    LD          HL,$35be                            ; Point to FL2 right wall area
+    LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
+    JP          DRAW_CHRCOLS                        ; Fill right wall
 
 FIX_ICON_COLORS:
-    LD          HL,COLRAM_LEVEL_IDX_L
-    LD          A,(INPUT_HOLDER)
-    ADD         A,A
-    SUB         0x1
-    LD          (HL),A
-    INC         L
-    LD          (HL),A
-    INC         L
-    LD          (HL),A
-    INC         L
-    LD          (HL),A
-    LD          HL,COLRAM_SHIFT_MODE_IDX
-    LD          BC,$1300
-    DEC         HL
+    LD          HL,COLRAM_LEVEL_IDX_L               ; Point to level indicator color area
+    LD          A,(INPUT_HOLDER)                    ; Load input holder value
+    ADD         A,A                                 ; Double the value
+    SUB         0x1                                 ; Subtract 1
+    LD          (HL),A                              ; Set level indicator color
+    INC         L                                   ; Move to next position
+    LD          (HL),A                              ; Set level indicator color
+    INC         L                                   ; Move to next position
+    LD          (HL),A                              ; Set level indicator color
+    INC         L                                   ; Move to next position
+    LD          (HL),A                              ; Set level indicator color
+    LD          HL,COLRAM_SHIFT_MODE_IDX            ; Point to shift mode color area
+    LD          BC,$1300                            ; Set B=19, C=0
+    DEC         HL                                  ; Move back one position
 ICON_GREY_FILL_LOOP:
-    INC         HL
-    LD          (HL),$f0
-    DJNZ        ICON_GREY_FILL_LOOP
-    RET
+    INC         HL                                  ; Move to next position
+    LD          (HL),$f0                            ; Set color to WHT on BLK
+    DJNZ        ICON_GREY_FILL_LOOP                 ; Repeat B times
+    RET                                             ; Return to caller
