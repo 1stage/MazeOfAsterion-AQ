@@ -936,7 +936,7 @@ DRAW_DOOR_L1_HIDDEN:
     JP          DRAW_DOOR_L1                        ; Draw door with black color
 
 ;==============================================================================
-; DRAW_WALL_L1
+; DRAW_WALL_L1_SIMPLE
 ;==============================================================================
 ; Draws L1 wall edge characters and colors with complex pattern of angle brackets
 ; and color gradients. Creates visible edges and door opening in middle.
@@ -958,7 +958,7 @@ DRAW_DOOR_L1_HIDDEN:
 ; Memory Modified: CHRRAM and COLRAM at L1 wall edges and door area
 ; Calls: DRAW_CHRCOLS (falls through)
 ;==============================================================================
-DRAW_WALL_L1:
+DRAW_WALL_L1_SIMPLE:
     LD          HL,CHRRAM_L1_WALL_IDX               ; Point to L1 wall character area
     LD          A,CHAR_LT_ANGLE                     ; Left angle bracket character
     LD          (HL),A                              ; Draw left angle at top
@@ -998,7 +998,7 @@ DRAW_WALL_L1:
     JP          DRAW_CHRCOLS                        ; Fill door area
 
 ;==============================================================================
-; DRAW_L1_WALL
+; DRAW_WALL_L1
 ;==============================================================================
 ; Draws left wall at mid-distance (L1) - complex wall with character and color
 ; layers. Creates 4x8 wall section with corner patterns and edge characters.
@@ -1019,7 +1019,7 @@ DRAW_WALL_L1:
 ; Calls: DRAW_DOOR_BOTTOM_SETUP, DRAW_DL_3X3_CORNER, DRAW_CHRCOLS,
 ;        DRAW_UL_3X3_CORNER, DRAW_VERTICAL_LINE_3_UP (jump)
 ;==============================================================================
-DRAW_L1_WALL:
+DRAW_WALL_L1:
     LD          HL,CHRRAM_L1_UR_WALL_IDX            ; Point to L1 upper-right character area
     LD          A,CHAR_LT_ANGLE                     ; Left angle bracket character
     CALL        DRAW_DOOR_BOTTOM_SETUP              ; Set door bottom color
@@ -1071,10 +1071,10 @@ DRAW_L1_WALL:
 ;   Jumps to DRAW_L1_DOOR
 ;
 ; Memory Modified: L1 wall and door areas
-; Calls: DRAW_L1_WALL, jumps to DRAW_L1_DOOR
+; Calls: DRAW_WALL_L1, jumps to DRAW_L1_DOOR
 ;==============================================================================
 DRAW_FL1_DOOR:
-    CALL        DRAW_L1_WALL                        ; Draw L1 wall background
+    CALL        DRAW_WALL_L1                        ; Draw L1 wall background
     LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (door edge color)
     PUSH        AF                                  ; Save to stack for later
     LD          A,COLOR(DKBLU,BLK)                  ; DKBLU on BLK (wall color)
@@ -1098,10 +1098,10 @@ DRAW_FL1_DOOR:
 ;   Falls through to DRAW_L1_DOOR
 ;
 ; Memory Modified: L1 wall and door areas
-; Calls: DRAW_L1_WALL, falls through to DRAW_L1_DOOR
+; Calls: DRAW_WALL_L1, falls through to DRAW_L1_DOOR
 ;==============================================================================
 DRAW_L1:
-    CALL        DRAW_L1_WALL                        ; Draw L1 wall background
+    CALL        DRAW_WALL_L1                        ; Draw L1 wall background
     LD          A,COLOR(DKGRY,DKGRN)                ; DKGRY on DKGRN (door edge color)
     PUSH        AF                                  ; Save to stack for later
     LD          A,COLOR(GRN,DKGRN)                  ; GRN on DKGRN (door frame color)
@@ -1753,7 +1753,7 @@ DRAW_WALL_FR22_EMPTY:
 ; DRAW_WALL_R1
 ;==============================================================================
 ; Draws right wall at mid-distance (R1) - uses stack-based corner pattern with
-; characters and colors. Mirror of DRAW_L1_WALL.
+; characters and colors. Mirror of DRAW_WALL_L1.
 ;
 ; Registers:
 ; --- Start ---
