@@ -291,7 +291,7 @@ FINALIZE_STARTUP_STATE:
     LD          DE,BUCKLER                          ; DE = BUCKLER graphics pointer
     CALL        GFX_DRAW                            ; Draw BUCKLER in right hand slot
     CALL        BUILD_MAP                           ; Generate dungeon walls/items
-    CALL        SUB_ram_cdbf                        ; Init sound / system routine
+    CALL        PLAY_PITCH_DOWN_MED                 ; Init sound / system routine
     CALL        SUB_ram_f2c4                        ; Additional startup (timer/UI) routine
     CALL        REDRAW_START                        ; Draw initial non-viewport UI elements
     CALL        REDRAW_VIEWPORT                     ; Render initial 3D maze view
@@ -6363,7 +6363,7 @@ REDUCE_HEALTH_SMALL:
 ;   Jumps to SCREEN_SAVER_FULL_SCREEN (does not return)
 ;
 ; Memory Modified: Viewport colors, CHRRAM_YOU_DIED_IDX, COMBAT_BUSY_FLAG, all health values, INPUT_HOLDER, RAM_AD
-; Calls: FILL_CHRCOL_RECT, GFX_DRAW, REDRAW_STATS, SUB_ram_cdd3, SLEEP_ZERO, SCREEN_SAVER_FULL_SCREEN (jump)
+; Calls: FILL_CHRCOL_RECT, GFX_DRAW, REDRAW_STATS, PLAY_PITCH_DOWN_SLOW, SLEEP_ZERO, SCREEN_SAVER_FULL_SCREEN (jump)
 ;==============================================================================
 PLAYER_DIES:
     LD          HL,COLRAM_VIEWPORT_IDX              ; Point to viewport color RAM
@@ -6388,7 +6388,7 @@ PLAYER_DIES:
     CALL        REDRAW_STATS                        ; Update stats display
     LD          A,$32                               ; Value $32
     LD          (RAM_AD),A                          ; Store to RAM_AD
-    CALL        SUB_ram_cdd3                        ; Call subroutine
+    CALL        PLAY_PITCH_DOWN_SLOW                ; Play slow pitch-down sound
     CALL        SLEEP_ZERO                          ; Wait/delay function
     JP          SCREEN_SAVER_FULL_SCREEN            ; Jump to screen saver
 
@@ -7792,7 +7792,7 @@ WRITE_HP_TRIPLET:
 ;   Control transfers to RESET_SHIFT_MODE
 ;
 ; Memory Modified: PLAYER_PREV_MAP_LOC, DUNGEON_LEVEL, entire map space
-; Calls: BUILD_MAP, SUB_ram_cdbf, SUB_ram_f2c4, RESET_SHIFT_MODE
+; Calls: BUILD_MAP, PLAY_PITCH_DOWN_MED, SUB_ram_f2c4, RESET_SHIFT_MODE
 ;==============================================================================
 DO_USE_LADDER:
     LD          A,(COMBAT_BUSY_FLAG)                ; Check if in combat
@@ -7804,7 +7804,7 @@ DO_USE_LADDER:
     LD          A,(PLAYER_MAP_POS)                  ; Load current map position
     LD          (PLAYER_PREV_MAP_LOC),A             ; Store as previous location
     CALL        BUILD_MAP                           ; Generate new dungeon level
-    CALL        SUB_ram_cdbf                        ; Call subroutine
+    CALL        PLAY_PITCH_DOWN_MED                 ; Call pitch-down routine
     CALL        SUB_ram_f2c4                        ; Update dungeon level display
     JP          RESET_SHIFT_MODE                    ; Reset shift mode and return
 ;==============================================================================

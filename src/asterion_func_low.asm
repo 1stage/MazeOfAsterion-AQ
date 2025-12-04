@@ -2273,71 +2273,10 @@ SUB_ram_cd2c:
     JP          FILL_CHRCOL_RECT                    ; Fill with black
 
 ;==============================================================================
-; LAB_ram_cd3d (Sound Routine 1)
-;==============================================================================
-; Plays repeating sound sequence - SOUND_04, delay, SOUND_02, SOUND_01.
-; Loops 8 times with delays between iterations.
-;
-; Registers:
-; --- Start ---
-;   None specific
-; --- In Process ---
-;   A  = 8 (sound repeat count and loop counter)
-;   B  = 8 (loop counter, decremented to 0)
-;   BC = pushed/popped each iteration
-; ---  End  ---
-;   B  = 0
-;
-; Memory Modified: SOUND_REPEAT_COUNT
-; Calls: SOUND_04, SUB_ram_cde7, SOUND_02, SOUND_01
-;==============================================================================
-    LD          A,0x8                               ; Load sound repeat count
-    LD          (SOUND_REPEAT_COUNT),A              ; Store repeat count
-    LD          B,A                                 ; Set loop counter to 8
-LAB_ram_cd3d:
-    PUSH        BC                                  ; Save loop counter
-    CALL        SOUND_04                            ; Play sound 4
-    CALL        SUB_ram_cde7                        ; Call delay routine
-    CALL        SOUND_02                            ; Play sound 2
-    CALL        SOUND_01                            ; Play sound 1
-    POP         BC                                  ; Restore loop counter
-    DJNZ        LAB_ram_cd3d                        ; Repeat B times
-    RET                                             ; Return to caller
-
-;==============================================================================
-; LAB_ram_cd54 (Sound Routine 2)
-;==============================================================================
-; Plays repeating sound sequence - SOUND_02, SOUND_03. Loops 7 times.
-;
-; Registers:
-; --- Start ---
-;   None specific
-; --- In Process ---
-;   A  = 7 (sound repeat count and loop counter)
-;   B  = 7 (loop counter, decremented to 0)
-;   BC = pushed/popped each iteration
-; ---  End  ---
-;   B  = 0
-;
-; Memory Modified: SOUND_REPEAT_COUNT
-; Calls: SOUND_02, SOUND_03
-;==============================================================================
-    LD          A,0x7                               ; Load sound repeat count
-    LD          (SOUND_REPEAT_COUNT),A              ; Store repeat count
-    LD          B,A                                 ; Set loop counter to 7
-LAB_ram_cd54:
-    PUSH        BC                                  ; Save loop counter
-    CALL        SOUND_02                            ; Play sound 2
-    CALL        SOUND_03                            ; Play sound 3
-    POP         BC                                  ; Restore loop counter
-    DJNZ        LAB_ram_cd54                        ; Repeat B times
-    RET                                             ; Return to caller
-
-;==============================================================================
 ; PLAY_MONSTER_GROWL
 ;==============================================================================
 ; Plays monster growl sound effect. Loops SOUND_04+SOUND_05 10 times to create
-; growl character, then jumps to SUB_ram_cdbf for pitch-down tail.
+; growl character, then jumps to PLAY_PITCH_DOWN_MED for pitch-down tail.
 ;
 ; Registers:
 ; --- Start ---
@@ -2348,10 +2287,10 @@ LAB_ram_cd54:
 ;   BC = pushed/popped each iteration
 ; ---  End  ---
 ;   B  = 0
-;   Jumps to SUB_ram_cdbf
+;   Jumps to PLAY_PITCH_DOWN_MED
 ;
 ; Memory Modified: SOUND_REPEAT_COUNT
-; Calls: SOUND_04, SOUND_05, jumps to SUB_ram_cdbf
+; Calls: SOUND_04, SOUND_05, jumps to PLAY_PITCH_DOWN_MED
 ;==============================================================================
 PLAY_MONSTER_GROWL:
     LD          A,0xa                               ; Load sound repeat count
@@ -2363,7 +2302,7 @@ MONSTER_GROWL_LOOP:
     CALL        SOUND_05                            ; Play sound 5
     POP         BC                                  ; Restore loop counter
     DJNZ        MONSTER_GROWL_LOOP                  ; Repeat B times
-    JP          SUB_ram_cdbf                        ; Jump to next routine
+    JP          PLAY_PITCH_DOWN_MED                 ; Jump to pitch-down routine
 
 ;==============================================================================
 ; POOF_SOUND
@@ -2426,19 +2365,19 @@ END_OF_GAME_SOUND:
 ;   B  = 0
 ;
 ; Memory Modified: None directly (sound routines modify sound registers)
-; Calls: SOUND_02, SUB_ram_cde7, SOUND_03
+; Calls: SOUND_02, PLAY_PITCH_DOWN_QUICK, SOUND_03
 ;==============================================================================
 DOINK_SOUND:
     PUSH        BC                                  ; Save loop counter
     CALL        SOUND_02                            ; Play sound 2
-    CALL        SUB_ram_cde7                        ; Call delay routine
+    CALL        PLAY_PITCH_DOWN_QUICK               ; Quick pitch-down delay
     CALL        SOUND_03                            ; Play sound 3
     POP         BC                                  ; Restore loop counter
     DJNZ        DOINK_SOUND                         ; Repeat B times
     RET                                             ; Return to caller
 
 ;==============================================================================
-; SUB_ram_cdbf
+; PLAY_PITCH_DOWN_MED
 ;==============================================================================
 ; Sound delay/pitch routine with specific parameters. Sets up pitch change
 ; parameters and falls through to PLAY_PITCH_CHANGE.
@@ -2458,7 +2397,7 @@ DOINK_SOUND:
 ; Memory Modified: PITCH_UP_BOOL, stack
 ; Calls: PLAY_PITCH_CHANGE (fall-through)
 ;==============================================================================
-SUB_ram_cdbf:
+PLAY_PITCH_DOWN_MED:
     LD          A,0x0                               ; Load value 0
     PUSH        AF                                  ; Save to stack
     LD          BC,$40                              ; Set BC to 64
@@ -2469,10 +2408,10 @@ SUB_ram_cdbf:
     JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
 
 ;==============================================================================
-; SUB_ram_cdd3
+; PLAY_PITCH_DOWN_SLOW
 ;==============================================================================
 ; Sound delay/pitch routine with alternate parameters. Sets up different pitch
-; change characteristics than SUB_ram_cdbf.
+; change characteristics than PLAY_PITCH_DOWN_MED.
 ;
 ; Registers:
 ; --- Start ---
@@ -2489,7 +2428,7 @@ SUB_ram_cdbf:
 ; Memory Modified: PITCH_UP_BOOL, stack
 ; Calls: PLAY_PITCH_CHANGE (fall-through)
 ;==============================================================================
-SUB_ram_cdd3:
+PLAY_PITCH_DOWN_SLOW:
     LD          A,0x0                               ; Load value 0
     PUSH        AF                                  ; Save to stack
     LD          BC,$a0                              ; Set BC to 160
@@ -2500,7 +2439,7 @@ SUB_ram_cdd3:
     JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
 
 ;==============================================================================
-; SUB_ram_cde7
+; PLAY_PITCH_DOWN_QUICK
 ;==============================================================================
 ; Short delay/pitch routine with minimal parameters. Used for brief sound delays.
 ;
@@ -2519,7 +2458,7 @@ SUB_ram_cdd3:
 ; Memory Modified: PITCH_UP_BOOL, stack
 ; Calls: PLAY_PITCH_CHANGE (fall-through)
 ;==============================================================================
-SUB_ram_cde7:
+PLAY_PITCH_DOWN_QUICK:
     LD          A,0x0                               ; Load value 0
     PUSH        AF                                  ; Save to stack
     LD          BC,$a0                              ; Set BC to 160
@@ -2624,38 +2563,6 @@ HI_LO_PITCH_SOUND:
     XOR         A                                   ; A = 0
     PUSH        AF                                  ; Save to stack
     LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to down
-    JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
-
-;==============================================================================
-; SOUND_01
-;==============================================================================
-; Basic sound effect 1 - rising pitch with moderate duration.
-;
-; Parameters: BC=$30 (48), DE=$2 (2), HL=$100 (256), pitch up
-;
-; Registers:
-; --- Start ---
-;   None specific
-; --- In Process ---
-;   A  = 0, then 1
-;   BC = $30 (48 duration)
-;   DE = $2 (2 pitch step)
-;   HL = $100 (256 cycles)
-; ---  End  ---
-;   PITCH_UP_BOOL = 1 (pitch up)
-;   Jumps to PLAY_PITCH_CHANGE
-;
-; Memory Modified: PITCH_UP_BOOL, stack
-; Calls: Jumps to PLAY_PITCH_CHANGE
-;==============================================================================
-SOUND_01:
-    LD          A,0x0                               ; Load value 0
-    PUSH        AF                                  ; Save to stack
-    LD          BC,$30                              ; Set BC to 48
-    LD          DE,0x2                              ; Set DE to 2
-    LD          HL,$100                             ; Set HL to 256
-    LD          A,0x1                               ; Load value 1
-    LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to up
     JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
 
 ;==============================================================================
