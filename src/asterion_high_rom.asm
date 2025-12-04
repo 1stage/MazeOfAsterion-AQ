@@ -9995,7 +9995,7 @@ LAB_ram_f9c4:
     RRCA                                            ; Test bit 0 (hidden door flag)
     JP          NC,LAB_ram_f9f0                     ; If no hidden door, check bit 1
     EX          AF,AF'                              ; Save wall state to alternate
-    CALL        DRAW_WALL_L1                        ; Draw L1 wall
+    CALL        DRAW_WALL_FL1_A                     ; Draw L1 wall
     CALL        SUB_ram_f9e7                        ; Check and draw FL1 item
     EX          AF,AF'                              ; Restore wall state
     RRCA                                            ; Test bit 1 (wall exists flag)

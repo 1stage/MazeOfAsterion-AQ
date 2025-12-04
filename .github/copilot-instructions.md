@@ -58,13 +58,6 @@ Use this exact structure for all routine headers:
 ;==============================================================================
 ; <One-line description of routine purpose.>
 ;
-; Inputs:
-;   <explicit registers/vars used on entry>
-;
-; Outputs:
-;   <registers/memory effects on exit>
-;   F  = <flags state/impact>
-;
 ; Registers:
 ; --- Start ---
 ;   <registers at entry>

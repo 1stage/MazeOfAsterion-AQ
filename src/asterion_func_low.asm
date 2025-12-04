@@ -813,9 +813,9 @@ DRAW_WALL_FL0:
     JP          FILL_CHRCOL_RECT                    ; Fill wall area
 
 ;==============================================================================
-; DRAW_WALL_L1
+; DRAW_WALL_FL1_A
 ;==============================================================================
-; Draws left wall at mid-distance (L1) - 4x8 rectangle with space chars and
+; Draws left side of FL1 wall - 4x8 rectangle with space chars and
 ; blue/dark-blue colors.
 ;
 ; Registers:
@@ -832,7 +832,7 @@ DRAW_WALL_FL0:
 ; Memory Modified: CHRRAM and COLRAM at L1 wall positions (4x8)
 ; Calls: FILL_CHRCOL_RECT, jumps to DRAW_CHRCOLS
 ;==============================================================================
-DRAW_WALL_L1:
+DRAW_WALL_FL1_A:
     LD          HL,CHRRAM_WALL_FL1_A_IDX            ; Point to L1 character area
     LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
     LD          A,$20                               ; SPACE character (32 / $20)
@@ -859,7 +859,7 @@ DRAW_WALL_L1:
 ; Calls: DRAW_WALL_L1, falls through to DRAW_DOOR_L1
 ;==============================================================================
 DRAW_DOOR_L1_NORMAL:
-    CALL        DRAW_WALL_L1                        ; Draw L1 wall background
+    CALL        DRAW_WALL_FL1_A                     ; Draw L1 wall background
     LD          A,COLOR(DKGRN,DKGRN)                ; DKGRN on DKGRN (normal door)
 
 ;==============================================================================
@@ -901,7 +901,7 @@ DRAW_DOOR_L1:
 ; Calls: DRAW_WALL_L1, jumps to DRAW_DOOR_L1
 ;==============================================================================
 DRAW_DOOR_L1_HIDDEN:
-    CALL        DRAW_WALL_L1                        ; Draw L1 wall background
+    CALL        DRAW_WALL_FL1_A                     ; Draw L1 wall background
     XOR         A                                   ; A = 0 (BLK on BLK - hidden door)
     JP          DRAW_DOOR_L1                        ; Draw door with black color
 
@@ -967,11 +967,28 @@ SUB_ram_c9f9:
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (door opening)
     JP          DRAW_CHRCOLS                        ; Fill door area
 
-DRAW_WALL_FL22:
-    LD          HL,COLRAM_FL22_WALL_IDX             ; Point to FL22 wall color area
-    LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
-    LD          A,COLOR(DKGRY,DKGRY)                ; DKGRY on DKGRY (far wall)
-    JP          FILL_CHRCOL_RECT                    ; Fill wall area
+;==============================================================================
+; DRAW_L1_WALL
+;==============================================================================
+; Draws left wall at mid-distance (L1) - complex wall with character and color
+; layers. Creates 4x8 wall section with corner patterns and edge characters.
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = CHRRAM_L1_UR_WALL_IDX, then COLRAM_L1_UR_WALL_IDX
+;   BC = RECT(4,8)
+;   A  = CHAR_LT_ANGLE, $20, CHAR_RT_ANGLE, then colors
+;   DE = stride adjustments ($28, $29, $27)
+; ---  End  ---
+;   Jumps to DRAW_VERTICAL_LINE_3_UP
+;   RET after jump (unreachable)
+;
+; Memory Modified: CHRRAM and COLRAM at L1 wall positions
+; Calls: DRAW_DOOR_BOTTOM_SETUP, DRAW_DL_3X3_CORNER, DRAW_CHRCOLS,
+;        DRAW_UL_3X3_CORNER, DRAW_VERTICAL_LINE_3_UP (jump)
+;==============================================================================
 DRAW_L1_WALL:
     LD          HL,CHRRAM_L1_UR_WALL_IDX            ; Point to L1 upper-right character area
     LD          A,CHAR_LT_ANGLE                     ; Left angle bracket character
@@ -1007,6 +1024,25 @@ DRAW_L1_WALL:
     DEC         DE                                  ; Decrease stride to 39
     JP          DRAW_VERTICAL_LINE_3_UP             ; Draw bottom wall colors
     RET                                             ; (Unreachable - dead code)
+
+;==============================================================================
+; DRAW_FL1_DOOR
+;==============================================================================
+; Draws front-left hidden door at L1 distance - wall background with door
+; overlay using stacked colors for blending effect.
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = COLOR(DKGRY,BLK), COLOR(DKBLU,BLK), COLOR(BLK,DKBLU)
+;   Stack = door colors
+; ---  End  ---
+;   Jumps to DRAW_L1_DOOR
+;
+; Memory Modified: L1 wall and door areas
+; Calls: DRAW_L1_WALL, jumps to DRAW_L1_DOOR
+;==============================================================================
 DRAW_FL1_DOOR:
     CALL        DRAW_L1_WALL                        ; Draw L1 wall background
     LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (door edge color)
@@ -1015,6 +1051,25 @@ DRAW_FL1_DOOR:
     PUSH        AF                                  ; Save to stack for later
     LD          A,COLOR(BLK,DKBLU)                  ; BLK on DKBLU (door body color)
     JP          DRAW_L1_DOOR                        ; Draw door with stacked colors
+
+;==============================================================================
+; DRAW_L1
+;==============================================================================
+; Draws normal visible door at L1 distance - wall background with green door
+; overlay using stacked colors.
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = COLOR(DKGRY,DKGRN), COLOR(GRN,DKGRN), COLOR(DKGRN,DKBLU)
+;   Stack = door colors
+; ---  End  ---
+;   Falls through to DRAW_L1_DOOR
+;
+; Memory Modified: L1 wall and door areas
+; Calls: DRAW_L1_WALL, falls through to DRAW_L1_DOOR
+;==============================================================================
 DRAW_L1:
     CALL        DRAW_L1_WALL                        ; Draw L1 wall background
     LD          A,COLOR(DKGRY,DKGRN)                ; DKGRY on DKGRN (door edge color)
@@ -1022,10 +1077,31 @@ DRAW_L1:
     LD          A,COLOR(GRN,DKGRN)                  ; GRN on DKGRN (door frame color)
     PUSH        AF                                  ; Save to stack for later
     LD          A,COLOR(DKGRN,DKBLU)                ; DKGRN on DKBLU (door body color)
+
+;==============================================================================
+; DRAW_L1_DOOR
+;==============================================================================
+; Draws L1 door overlay - 2x7 door with diagonal fill pattern and left angle
+; bracket characters. Uses stack-based color system.
+;
+; Registers:
+; --- Start ---
+;   A  = first door color
+;   Stack = additional colors from caller
+; --- In Process ---
+;   HL = COLRAM_L1_DOOR_IDX, then CHRRAM_L1_DOOR_IDX
+;   BC = RECT(2,7)
+;   DE = $29 (stride 41)
+; ---  End  ---
+;   Returns to caller
+;
+; Memory Modified: COLRAM and CHRRAM at L1 door positions
+; Calls: DRAW_LEFT_DOOR
+;==============================================================================
 DRAW_L1_DOOR:
     LD          HL,COLRAM_L1_DOOR_IDX               ; Point to L1 door color area
     LD          BC,RECT(2,7)                        ; 2 x 7 rectangle
-    CALL        SUB_ram_cb1c                        ; Fill door with stacked colors
+    CALL        DRAW_LEFT_DOOR                      ; Draw lefthand door
     LD          HL,CHRRAM_L1_DOOR_IDX               ; Point to L1 door character area
     LD          A,CHAR_LT_ANGLE                     ; Left angle bracket character
     LD          (HL),A                              ; Draw left angle at top
@@ -1169,7 +1245,7 @@ DRAW_WALL_FL2_EMPTY:
 ;   Returns to caller
 ;
 ; Memory Modified: CHRRAM and COLRAM at L2 positions via diagonal pattern
-; Calls: SUB_ram_cb1c (twice for chars and colors)
+; Calls: DRAW_LEFT_DOOR (twice for chars and colors)
 ;==============================================================================
 DRAW_WALL_L2:
     LD          A,$ca                               ; Right slash character
@@ -1179,7 +1255,7 @@ DRAW_WALL_L2:
     LD          HL,CHRRAM_F1_WALL_IDX               ; Point to F1 character area
     LD          A,CHAR_LT_ANGLE                     ; Left angle bracket character
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
-    CALL        SUB_ram_cb1c                        ; Fill with stacked characters
+    CALL        DRAW_LEFT_DOOR                      ; Draw lefthand door
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
     PUSH        AF                                  ; Save to stack for later
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
@@ -1187,42 +1263,51 @@ DRAW_WALL_L2:
     LD          HL,COLRAM_F0_DOOR_IDX               ; Point to F0 door color area
     LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (wall edge color)
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
-    CALL        SUB_ram_cb1c                        ; Fill with stacked colors
+    CALL        DRAW_LEFT_DOOR                      ; Draw lefthand door
     RET                                             ; Return to caller
 
 ;==============================================================================
-; SUB_ram_cb1c
+; DRAW_LEFT_DOOR
 ;==============================================================================
 ; Stack-based diagonal fill pattern routine. Pops return address to IX, then
 ; draws diagonal pattern using 3 values from stack. Creates 2x4+ diagonal shape.
 ;
-; Stack Usage (caller pushes in reverse order):
-;   [Top] Third value (bottom corners)
-;   Second value (middle fill via DRAW_CHRCOLS)
-;   [Bottom] Return address (moved to IX)
+; Values: P=first (in register A), Q=second (stack), R=third (stack)
 ;
-; Pattern Created:
-;   A  2nd    (top-left and top-right diagonal)
-;   2nd 2nd   (middle section via DRAW_CHRCOLS)
-;   2nd 2nd
-;   3rd A     (bottom corners)
+; Stack Usage (caller pushes in reverse order):
+;   R (third value - bottom corners)
+;   Q (second value - middle fill via DRAW_CHRCOLS)
+;   Return address (moved to IX)
+;
+; Pattern (2-column width, variable height via BC):
+; Row 0:   P .      (Step 1 at column 0)
+; Row 1:   Q P      (Step 3 at col 0, Step 2 at col 1)
+; Row 2:   Q Q  ┐
+; Row 3:   Q Q  │
+; Row 4:   Q Q  ├─ DRAW_CHRCOLS fills 2-wide x C-height with Q
+; Row 5:   Q Q  │
+; Row n:   Q Q  ┘   (last row of DRAW_CHRCOLS)
+; Row n+1: . Q      (Step 5 at col 1)
+; Row n+2: R Q R    (Step 4 at col 0, Step 6 at col 2)
+;
+; Note: Actual height depends on C parameter in BC. Example shows C=7.
 ;
 ; Registers:
 ; --- Start ---
 ;   HL = top-left position
-;   A  = first value
+;   A  = first value (P)
 ;   BC = dimensions
 ; --- In Process ---
 ;   IX = return address
 ;   DE = $29, then $28 (stride adjustments)
-;   Stack popped for 2nd and 3rd values
+;   Stack popped for 2nd (Q) and 3rd (R) values
 ; ---  End  ---
 ;   Returns via JP (IX)
 ;
 ; Memory Modified: Diagonal pattern at and below HL
 ; Calls: DRAW_CHRCOLS
 ;==============================================================================
-SUB_ram_cb1c:
+DRAW_LEFT_DOOR:
     POP         IX                                  ; Save return address to IX
     LD          (HL),A                              ; Draw character at position
     LD          DE,$29                              ; Diagonal DR step (stride 41)
@@ -1834,12 +1919,12 @@ DRAW_DOOR_R1_NORMAL:
 ;   Returns to caller
 ;
 ; Memory Modified: COLRAM and CHRRAM at R1 door positions
-; Calls: SUB_ram_cd07
+; Calls: DRAW_RIGHT_DOOR
 ;==============================================================================
 DRAW_DOOR_R1:
     LD          HL,DAT_ram_357a                     ; Point to R1 door area
     LD          BC,RECT(2,7)                        ; 2 x 7 rectangle
-    CALL        SUB_ram_cd07                        ; Fill door with stacked colors
+    CALL        DRAW_RIGHT_DOOR                     ; Draw righthand door
     LD          HL,DAT_ram_317a                     ; Point to R1 door character area
     LD          A,CHAR_RT_ANGLE                     ; Right angle character
     LD          (HL),A                              ; Draw right angle at top
@@ -2012,13 +2097,13 @@ DRAW_WALL_FR2_EMPTY:
 ;   HL = DAT_ram_3577 (colors), then character positions
 ;   BC = RECT(2,4)
 ;   A  = various colors, then $da (left slash), then CHAR_RT_ANGLE
-;   DE = stride from SUB_ram_cd07, then decremented
+;   DE = stride from DRAW_RIGHT_DOOR, then decremented
 ;   Stack = two wall colors
 ; ---  End  ---
 ;   Returns to caller
 ;
 ; Memory Modified: COLRAM and CHRRAM at R2 positions via diagonal pattern
-; Calls: SUB_ram_cd07
+; Calls: DRAW_RIGHT_DOOR
 ;==============================================================================
 DRAW_WALL_R2:
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
@@ -2028,7 +2113,7 @@ DRAW_WALL_R2:
     LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (edge color)
     LD          HL,DAT_ram_3577                     ; Point to R2 wall area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
-    CALL        SUB_ram_cd07                        ; Fill with stacked colors
+    CALL        DRAW_RIGHT_DOOR                     ; Draw righthand door
     LD          HL,DAT_ram_3266                     ; Point to character area
     LD          A,$da                               ; Left slash character
     LD          (HL),A                              ; Draw left slash at position
@@ -2044,33 +2129,48 @@ DRAW_WALL_R2:
     RET                                             ; Return to caller
 
 ;==============================================================================
-; SUB_ram_cd07
+; DRAW_RIGHT_DOOR
 ;==============================================================================
-; Stack-based diagonal fill pattern for right-side walls. Similar to SUB_ram_cb1c
-; but uses stride $27 (39) and fills opposite diagonal direction.
+; Stack-based diagonal fill pattern for right-side angled walls/doors.
+; Mirror of DRAW_LEFT_DOOR - creates down-right diagonal using stride $27 (39).
+;
+; Values: P=first (in register A), Q=second (stack), R=third (stack)
 ;
 ; Stack Usage (caller pushes in reverse order):
-;   [Top] Third value (bottom corners)
-;   Second value (middle fill via DRAW_CHRCOLS)
-;   [Bottom] Return address (moved to IX)
+;   R (third value - bottom corners)
+;   Q (second value - middle fill via DRAW_CHRCOLS)
+;   Return address (moved to IX)
+;
+; Pattern (2-column width, variable height via BC):
+; Row 0:   . P      (Step 1 at column 1)
+; Row 1:   P Q      (Step 2 at col 0, Step 3 at col 1)
+; Row 2:   Q Q  ┐
+; Row 3:   Q Q  │
+; Row 4:   Q Q  ├─ DRAW_CHRCOLS fills 2-wide x C-height with Q
+; Row 5:   Q Q  │
+; Row n:   Q Q  ┘   (last row of DRAW_CHRCOLS)
+; Row n+1: R Q      (Step 5 at col 0, Step 4 at col 1)
+; Row n+2: R .      (Step 6 at col 0)
+;
+; Note: Actual height depends on C parameter in BC. Example shows C=7.
 ;
 ; Registers:
 ; --- Start ---
-;   HL = start position
-;   A  = first value
+;   HL = top-right position (column 1)
+;   A  = first value (P)
 ;   BC = dimensions
 ; --- In Process ---
 ;   IX = return address
-;   DE = $27, then $28, then $29 (stride progression)
-;   Stack popped for 2nd and 3rd values
+;   DE = $27, then $28, then $29 (stride progression: 39→40→41)
+;   Stack popped for 2nd (Q) and 3rd (R) values
 ; ---  End  ---
 ;   DE = $29 (final stride)
 ;   Returns via JP (IX)
 ;
-; Memory Modified: Diagonal pattern at and around HL
+; Memory Modified: Diagonal pattern at and below HL
 ; Calls: DRAW_CHRCOLS
 ;==============================================================================
-SUB_ram_cd07:
+DRAW_RIGHT_DOOR:
     POP         IX                                  ; Save return address to IX
     LD          (HL),A                              ; Draw color at position
     LD          DE,$27                              ; Stride is 39 / $27
