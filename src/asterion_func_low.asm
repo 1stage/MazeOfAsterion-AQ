@@ -730,7 +730,6 @@ DRAW_WALL_L0:
     INC         DE                                  ; Increase stride to 40
     INC         DE                                  ; Increase stride to 41
     JP          DRAW_VERTICAL_LINE_4_DOWN           ; Draw vertical line characters
-    RET                                             ; (Unreachable - dead code)
 
 ;==============================================================================
 ; DRAW_DOOR_L0_HIDDEN
@@ -816,7 +815,6 @@ DRAW_DOOR_L0:
     INC         DE                                  ; Increase stride to 40
     INC         DE                                  ; Increase stride to 41
     JP          CONTINUE_VERTICAL_LINE_DOWN         ; Draw door characters
-    RET                                             ; (Unreachable - dead code)
 
 ;==============================================================================
 ; DRAW_WALL_FL0
@@ -1053,7 +1051,6 @@ DRAW_WALL_L1:
     LD          A,COLOR(DKGRY,DKBLU)                ; DKGRY on DKBLU (wall edge color)
     DEC         DE                                  ; Decrease stride to 39
     JP          DRAW_VERTICAL_LINE_3_UP             ; Draw bottom wall colors
-    RET                                             ; (Unreachable - dead code)
 
 ;==============================================================================
 ; DRAW_FL1_DOOR
@@ -3051,7 +3048,6 @@ DRAW_BKGD:
     ADD         HL,DE                               ; Move to next row
     LD          A,COLOR(DKGRN,DKGRY)                ; DKGRN on DKGRY (floor)
     CALL        DRAW_CHRCOLS                        ; Fill floor rows
-; NEW STUFF
     ADD         HL,DE                               ; Move to next row
     LD          A,L                                 ; Load low byte of HL
     ADD         A,6                                 ; Add 6 to offset
@@ -3285,7 +3281,7 @@ TOGGLE_SHIFT_MODE:
     JP          NZ,RESET_SHIFT_MODE                 ; If set, reset shift mode
 
 ;==============================================================================
-; SET_SHIFT_MODE
+; SET_SHIFT_MODE - (Fall-through from above routine)
 ;==============================================================================
 ; Activates shift mode by setting bit 1 in GAME_BOOLEANS and updating the
 ; on-screen indicator to dark green.
@@ -3355,7 +3351,7 @@ RESET_SHIFT_MODE:
 ;==============================================================================
 SHOW_AUTHOR:
     LD          HL,CHRRAM_AUTHORS_IDX               ; Point to author text area
-    LD          DE,AUTHORS                          ; = "   Originally programmed by Tom L...
+    LD          DE,AUTHORS                          ; Authors text
     LD          B,$20                               ; Set length to 32 bytes
     CALL        GFX_DRAW                            ; Draw author text
     LD          A,$ff                               ; Load value 255
