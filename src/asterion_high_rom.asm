@@ -4353,7 +4353,7 @@ LAB_ram_ebc0:
     CALL        REDRAW_START                        ; Refresh non-viewport UI elements
     CALL        REDRAW_VIEWPORT                     ; Render 3D maze view with new facing
 LAB_ram_ebc6:
-    CALL        SUB_ram_cd5f                        ; Prepare combat state/encounter
+    CALL        PLAY_MONSTER_GROWL                  ; Play monster growl sound
     JP          INIT_MONSTER_COMBAT                 ; Initialize combat sequence
 LAB_ram_ebcc:
     LD          A,(WALL_F0_STATE)                   ; Load forward wall state (B was 4)
@@ -10315,7 +10315,7 @@ UPDATE_SCR_SAVER_TIMER:
 ;   Control transfers to SCREEN_SAVER_FULL_SCREEN (no return)
 ;
 ; Memory Modified: INPUT_HOLDER (cleared), CHRRAM/COLRAM (full screen), player stats
-; Calls: DRAW_BKGD, GFX_DRAW, MAKE_RANDOM_BYTE, TOTAL_HEAL, REDRAW_STATS, SUB_ram_cd5f, END_OF_GAME_SOUND, SCREEN_SAVER_FULL_SCREEN
+; Calls: DRAW_BKGD, GFX_DRAW, MAKE_RANDOM_BYTE, TOTAL_HEAL, REDRAW_STATS, PLAY_MONSTER_GROWL, END_OF_GAME_SOUND, SCREEN_SAVER_FULL_SCREEN
 ;==============================================================================
 MINOTAUR_DEAD:
     CALL        DRAW_BKGD                           ; Draw background
@@ -10345,7 +10345,7 @@ MINOTAUR_DEAD:
     LD          B,0x2                               ; B = 2 (sound loop count, was 6)
 MINOTAUR_DEAD_SOUND_LOOP:
     EXX                                             ; Switch to alternate register set
-    CALL        SUB_ram_cd5f                        ; Play sound effect part 1
+    CALL        PLAY_MONSTER_GROWL                  ; Play monster growl sound
     CALL        END_OF_GAME_SOUND                   ; Play end game sound
     EXX                                             ; Switch back to main registers
     DJNZ        MINOTAUR_DEAD_SOUND_LOOP            ; Loop B times

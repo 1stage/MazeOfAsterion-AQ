@@ -2334,10 +2334,10 @@ LAB_ram_cd54:
     RET                                             ; Return to caller
 
 ;==============================================================================
-; SUB_ram_cd5f (Sound Routine 3)
+; PLAY_MONSTER_GROWL
 ;==============================================================================
-; Plays repeating sound sequence - SOUND_04, SOUND_05. Loops 10 times then
-; jumps to SUB_ram_cdbf for additional sound processing.
+; Plays monster growl sound effect. Loops SOUND_04+SOUND_05 10 times to create
+; growl character, then jumps to SUB_ram_cdbf for pitch-down tail.
 ;
 ; Registers:
 ; --- Start ---
@@ -2353,16 +2353,16 @@ LAB_ram_cd54:
 ; Memory Modified: SOUND_REPEAT_COUNT
 ; Calls: SOUND_04, SOUND_05, jumps to SUB_ram_cdbf
 ;==============================================================================
-SUB_ram_cd5f:
+PLAY_MONSTER_GROWL:
     LD          A,0xa                               ; Load sound repeat count
     LD          (SOUND_REPEAT_COUNT),A              ; Store repeat count
     LD          B,A                                 ; Set loop counter to 10
-LAB_ram_cd65:
+MONSTER_GROWL_LOOP:
     PUSH        BC                                  ; Save loop counter
     CALL        SOUND_04                            ; Play sound 4
     CALL        SOUND_05                            ; Play sound 5
     POP         BC                                  ; Restore loop counter
-    DJNZ        LAB_ram_cd65                        ; Repeat B times
+    DJNZ        MONSTER_GROWL_LOOP                  ; Repeat B times
     JP          SUB_ram_cdbf                        ; Jump to next routine
 
 ;==============================================================================
