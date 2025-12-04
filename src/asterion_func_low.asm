@@ -21,39 +21,101 @@
 ;==============================================================================
 
 ;==============================================================================
-; DRAW_DOOR_BOTTOM_SETUP - Set up color for door bottom drawing
+; DRAW_DOOR_BOTTOM_SETUP
 ;==============================================================================
-; PURPOSE: Prepares door bottom color and falls through to
-;          DRAW_SINGLE_CHAR_UP to draw door frame elements
-; INPUT:   HL = screen position, A = character to draw
-; OUTPUT:  DE = door bottom color, character drawn, HL modified
+; Prepares door bottom color and falls through to DRAW_SINGLE_CHAR_UP to draw
+; door frame elements.
+;
+; Inputs:
+;   HL = screen position
+;   A  = character to draw
+;
+; Outputs:
+;   DE = COLOR(GRN,DKCYN) door bottom/frame color
+;   Character drawn at (HL), HL adjusted
+;
+; Registers:
+; --- Start ---
+;   HL = screen position
+;   A  = character
+; --- In Process ---
+;   DE = color value
+; ---  End  ---
+;   DE = COLOR(GRN,DKCYN)
+;   Falls through to DRAW_SINGLE_CHAR_UP
+;
+; Memory Modified: (HL)
+; Calls: Falls through to DRAW_SINGLE_CHAR_UP
 ;==============================================================================
 DRAW_DOOR_BOTTOM_SETUP:
     LD          DE,COLOR(GRN,DKCYN)                 ; GRN on DKCYN (door bottom/frame color)
                                                     ; (bottom of closed door)
 
-;------------------------------------------------------------------------------
-; DRAW_SINGLE_CHAR_UP - Draw single character moving cursor up
-;------------------------------------------------------------------------------
-; INPUT:  HL = position, A = character, DE = color or row stride
-; OUTPUT: HL = position moved up by DE, character drawn
-; PATTERN: X    Execution order: 1
-; REGISTERS MODIFIED: HL (moved up by DE amount)
-;------------------------------------------------------------------------------
+;==============================================================================
+; DRAW_SINGLE_CHAR_UP
+;==============================================================================
+; Draws single character at current position and moves cursor up by DE amount.
+;
+; Inputs:
+;   HL = screen position
+;   A  = character to draw
+;   DE = row stride (amount to move cursor up)
+;
+; Outputs:
+;   Character drawn at original (HL)
+;   HL = HL - DE (cursor moved up)
+;
+; Registers:
+; --- Start ---
+;   HL = position
+;   A  = character
+;   DE = stride
+; --- In Process ---
+;   F  = carry cleared via SCF/CCF
+; ---  End  ---
+;   HL = HL - DE
+;   A  = unchanged
+;   DE = unchanged
+;   F  = result of SBC
+;
+; Memory Modified: (HL) = A
+; Calls: None
+;==============================================================================
 DRAW_SINGLE_CHAR_UP:
     LD          (HL),A                              ; Draw character at current position
     SCF                                             ; Set carry flag 
     CCF                                             ; Clear carry flag (prepare for SBC)
-    SBC         HL,DE                               ; Move cursor up by DE amount;------------------------------------------------------------------------------
-; DRAW_VERTICAL_LINE_3_UP - Draw 3-character vertical line moving upward
-;------------------------------------------------------------------------------
-; INPUT:  HL = starting position, A = character, DE = row stride
-; OUTPUT: HL = position 3 rows up, 3 characters drawn vertically
-; PATTERN: X    Execution order: 3
-;          X                     2  
-;          X                     1
-; REGISTERS MODIFIED: HL (moved up 3 rows)
-;------------------------------------------------------------------------------
+    SBC         HL,DE                               ; Move cursor up by DE amount;==============================================================================
+; DRAW_VERTICAL_LINE_3_UP
+;==============================================================================
+; Draws 3-character vertical line moving upward from starting position.
+; Execution order: bottom (1) → middle (2) → top (3).
+;
+; Inputs:
+;   HL = starting position (bottom)
+;   A  = character to draw
+;   DE = row stride (typically $28=40)
+;
+; Outputs:
+;   3 characters drawn vertically
+;   HL = position 3 rows up from start
+;
+; Registers:
+; --- Start ---
+;   HL = starting position
+;   A  = character
+;   DE = row stride
+; --- In Process ---
+;   F  = carry cleared for SBC operations
+; ---  End  ---
+;   HL = HL - (DE * 2) final position
+;   A  = unchanged
+;   DE = unchanged
+;   F  = result of final SBC
+;
+; Memory Modified: (HL), (HL-DE), (HL-DE*2)
+; Calls: None
+;==============================================================================
 DRAW_VERTICAL_LINE_3_UP:
     LD          (HL),A                              ; Draw character at current position
     SCF                                             ; Set carry flag
@@ -68,20 +130,68 @@ DRAW_VERTICAL_LINE_3_UP:
 ;    LD          DE,COLOR(GRN,DKCYN)					; GRN on DKCYN (door frame setup)
 								                    ; (bottom of closed door)
 
-;------------------------------------------------------------------------------
-; DRAW_VERTICAL_LINE_4_DOWN - Draw 4-character vertical line moving downward
-;------------------------------------------------------------------------------
-; INPUT:  HL = starting position, A = character, DE = row stride  
-; OUTPUT: HL = position 3 rows down, 4 characters drawn vertically
-; PATTERN: X    Execution order: 1
-;          X                     2
-;          X                     3  
-;          X                     4
-; REGISTERS MODIFIED: HL (moved down 3 rows)
-;------------------------------------------------------------------------------
+;==============================================================================
+; DRAW_VERTICAL_LINE_4_DOWN
+;==============================================================================
+; Draws 4-character vertical line moving downward from starting position.
+; Execution order: top (1) → (2) → (3) → bottom (4).
+;
+; Inputs:
+;   HL = starting position (top)
+;   A  = character to draw
+;   DE = row stride (typically $28=40)
+;
+; Outputs:
+;   4 characters drawn vertically
+;   HL = position 3 rows down from start
+;
+; Registers:
+; --- Start ---
+;   HL = starting position
+;   A  = character
+;   DE = row stride
+; --- In Process ---
+;   HL = incremented by DE each iteration
+; ---  End  ---
+;   HL = HL + (DE * 3) final position
+;   A  = unchanged
+;   DE = unchanged
+;
+; Memory Modified: (HL), (HL+DE), (HL+DE*2), (HL+DE*3)
+; Calls: Falls through to CONTINUE_VERTICAL_LINE_DOWN
+;==============================================================================
 DRAW_VERTICAL_LINE_4_DOWN:
     LD          (HL),A                              ; Draw character at current position
     ADD         HL,DE                               ; Move cursor down one row
+
+;==============================================================================
+; CONTINUE_VERTICAL_LINE_DOWN
+;==============================================================================
+; Continues vertical line drawing for 3 more characters downward.
+; Alternative entry point for drawing 3-character vertical line.
+;
+; Inputs:
+;   HL = current position
+;   A  = character to draw
+;   DE = row stride
+;
+; Outputs:
+;   3 characters drawn vertically
+;   HL = position 2 rows down from entry
+;
+; Registers:
+; --- Start ---
+;   HL = position
+;   A  = character
+;   DE = stride
+; ---  End  ---
+;   HL = HL + (DE * 2)
+;   A  = unchanged
+;   DE = unchanged
+;
+; Memory Modified: (HL), (HL+DE), (HL+DE*2)
+; Calls: None
+;==============================================================================
 CONTINUE_VERTICAL_LINE_DOWN:
     LD          (HL),A                              ; Draw character at new position
     ADD         HL,DE                               ; Move cursor down another row
@@ -90,22 +200,41 @@ CONTINUE_VERTICAL_LINE_DOWN:
     LD          (HL),A                              ; Draw character at final position
     RET                                             ; Return with cursor 3 rows down
 
-;------------------------------------------------------------------------------
-; DRAW_DL_3X3_CORNER - Draw bottom-left corner fill pattern
-;------------------------------------------------------------------------------
-; INPUT:  HL = top-left position, A = char/color, DE = row stride (VARIABLE!)
-; OUTPUT: HL = bottom-left position of filled area
-; 
-; DE=$28 (40): Standard DL corner pattern (normal screen row width)
-; X . .    Execution order: 1 . .
-; X X .                     2 3 . 
-; X X X                     6 5 4
+;==============================================================================
+; DRAW_DL_3X3_CORNER
+;==============================================================================
+; Draws bottom-left corner fill pattern (3x3 characters). Draws DOWNWARD using
+; ADD HL,DE operations despite visual pattern name.
 ;
-; NOTE: All corner functions draw downward using ADD HL,DE operations.
-; Different DE values enable precise positioning for various screen contexts.
+; Pattern (DE=$28/40 standard):  Execution order:
+; X . .                          1 . .
+; X X .                          2 3 .
+; X X X                          6 5 4
 ;
-; REGISTERS MODIFIED: HL (points to bottom-left when done)
-;------------------------------------------------------------------------------
+; Inputs:
+;   HL = top-left starting position
+;   A  = character/color value to draw
+;   DE = row stride (variable: $27=39, $28=40, $26=38 for different contexts)
+;
+; Outputs:
+;   3x3 bottom-left corner pattern drawn
+;   HL = bottom-left position of filled area
+;
+; Registers:
+; --- Start ---
+;   HL = top-left position (0,0)
+;   A  = fill value
+;   DE = row stride
+; --- In Process ---
+;   HL = moved via ADD/INC/DEC operations
+; ---  End  ---
+;   HL = bottom-left position (0,2)
+;   A  = unchanged
+;   DE = unchanged
+;
+; Memory Modified: 6 positions forming DL corner pattern
+; Calls: None
+;==============================================================================
 DRAW_DL_3X3_CORNER:
     LD          (HL),A                              ; 1: Draw top-left (0,0)
     ADD         HL,DE                               ; Move down one row  
@@ -121,28 +250,46 @@ DRAW_DL_3X3_CORNER:
     LD          (HL),A                              ; 6: Draw bottom-left (0,2)
     RET                                             ; Return with cursor positioned bottom-left
 
-;------------------------------------------------------------------------------
-; DRAW_DR_3X3_CORNER - Draw bottom-right corner fill pattern
-;------------------------------------------------------------------------------
-; INPUT:  HL = top-right position, A = char/color, DE = row stride (VARIABLE!)  
-; OUTPUT: HL = bottom-left position of filled area
-; 
-; DE=$28 (40): Standard DR corner pattern (normal screen row width)
-; . . X . .    Execution order: . . 1 . .  
-; . X X . .                     . 3 2 . .    
-; X X X . .                     6 5 4 . .    
+;==============================================================================
+; DRAW_DR_3X3_CORNER
+;==============================================================================
+; Draws bottom-right corner fill pattern (3x3 characters). Draws DOWNWARD using
+; ADD HL,DE operations. Supports variable stride for different pattern shifts.
 ;
-; DE=$26 (38): Creates STRONG LEFT-SHIFT pattern (stride -2) - RARELY USED
-; . . . . . . X . .    Execution order: . . . . . . 1 . .
-; . . . . 3 2 . . .                     . . . . 3 2 . . .
-; 6 5 4 . . . . . .                     6 5 4 . . . . . .
-; (Note: This pattern exists in code but may not be visually rendered in normal gameplay)
+; Pattern (DE=$28/40 standard):  Execution order:
+; . . X                          . . 1
+; . X X                          . 3 2
+; X X X                          6 5 4
 ;
-; NOTE: All corner functions draw downward using ADD HL,DE operations.
-; Different DE values enable creating multiple pattern variants from same function.
+; Pattern (DE=$26/38 strong left-shift - RARELY USED):
+; . . . . . . X . .              Creates strong left-shift
+; . . . . 3 2 . . .              (may not appear in normal gameplay)
+; 6 5 4 . . . . . .
 ;
-; REGISTERS MODIFIED: HL (points to bottom-left when done)
-;------------------------------------------------------------------------------
+; Inputs:
+;   HL = top-right starting position
+;   A  = character/color value to draw
+;   DE = row stride (variable: $26=38, $28=40 for different pattern shifts)
+;
+; Outputs:
+;   3x3 bottom-right corner pattern drawn
+;   HL = bottom-left position of filled area
+;
+; Registers:
+; --- Start ---
+;   HL = top-right position (2,0)
+;   A  = fill value
+;   DE = row stride
+; --- In Process ---
+;   HL = moved via ADD/INC/DEC operations
+; ---  End  ---
+;   HL = bottom-left position (0,2)
+;   A  = unchanged
+;   DE = unchanged
+;
+; Memory Modified: 6 positions forming DR corner pattern
+; Calls: None
+;==============================================================================
 DRAW_DR_3X3_CORNER:
     LD          (HL),A                              ; 1: Draw top-right (2,0)
     ADD         HL,DE                               ; Move down one row
@@ -158,25 +305,41 @@ DRAW_DR_3X3_CORNER:
     LD          (HL),A                              ; 6: Draw bottom-left (0,2)
     RET                                             ; Return with cursor positioned bottom-left
 
-;------------------------------------------------------------------------------
-; DRAW_UL_3X3_CORNER - Draw upper-left corner fill pattern
-;------------------------------------------------------------------------------
-; INPUT:  HL = top-left starting position, A = character, DE = row stride (VARIABLE!)
-; OUTPUT: HL = final position after drawing pattern
-; PATTERN: X X X    Execution order: 1 2 3
-;          X X .                     5 4 .
-;          X . .                     6 . .
-; 
-; Creates upper-leftt corner pattern by starting at top-left and drawing:
-; 1. Full horizontal line (3 chars right)
-; 2. Moving DOWN one row, draw 2 chars from center-left  
-; 3. Moving DOWN another row, draw 1 char at left
+;==============================================================================
+; DRAW_UL_3X3_CORNER
+;==============================================================================
+; Draws upper-left corner fill pattern (3x3 characters). Draws DOWNWARD despite
+; creating "upper" corner visual pattern.
 ;
-; NOTE: This draws DOWNWARD despite creating "upper" corner visual pattern.
-; Part of complete corner function set with variable DE stride support.
+; Pattern (DE=$28/40):  Execution order:
+; X X X                 1 2 3
+; X X .                 5 4 .
+; X . .                 6 . .
 ;
-; REGISTERS MODIFIED: HL (moved to final drawn position)
-;------------------------------------------------------------------------------
+; Inputs:
+;   HL = top-left starting position
+;   A  = character/color value to draw
+;   DE = row stride (variable: typically $28=40)
+;
+; Outputs:
+;   3x3 upper-left corner pattern drawn
+;   HL = bottom-left position (0,2)
+;
+; Registers:
+; --- Start ---
+;   HL = top-left position (0,0)
+;   A  = fill value
+;   DE = row stride
+; --- In Process ---
+;   HL = moved via ADD/INC operations
+; ---  End  ---
+;   HL = bottom-left position (0,2)
+;   A  = unchanged
+;   DE = unchanged
+;
+; Memory Modified: 6 positions forming UL corner pattern
+; Calls: None
+;==============================================================================
 DRAW_UL_3X3_CORNER:
     LD          (HL),A                              ; 1: Draw top-left (0,0)
     INC         HL                                  ; Move right one position
@@ -192,25 +355,41 @@ DRAW_UL_3X3_CORNER:
     LD          (HL),A                              ; 6: Draw bottom-left (0,2)
     RET                                             ; Return with cursor at bottom-left
 
-;------------------------------------------------------------------------------
-; DRAW_UR_3X3_CORNER - Draw upper-right corner fill pattern
-;------------------------------------------------------------------------------
-; INPUT:  HL = top-left starting position, A = character, DE = row stride (VARIABLE!)
-; OUTPUT: HL = final position after drawing pattern  
-; PATTERN: X X X    Execution order: 1 2 3
-;          . X X                     . 4 5
-;          . . X                     . . 6
+;==============================================================================
+; DRAW_UR_3X3_CORNER
+;==============================================================================
+; Draws upper-right corner fill pattern (3x3 characters). Draws DOWNWARD despite
+; creating "upper" corner visual pattern.
 ;
-; Creates upper-left corner pattern by starting at top-left and drawing:
-; 1. Full horizontal line (3 chars right)
-; 2. Moving DOWN one row, draw 2 chars from center-right
-; 3. Moving DOWN another row, draw 1 char at right
+; Pattern (DE=$28/40):  Execution order:
+; X X X                 1 2 3
+; . X X                 . 4 5
+; . . X                 . . 6
 ;
-; NOTE: This draws DOWNWARD despite creating "upper" corner visual pattern.
-; Part of complete corner function set with variable DE stride support.
+; Inputs:
+;   HL = top-left starting position
+;   A  = character/color value to draw
+;   DE = row stride (variable: typically $28=40)
 ;
-; REGISTERS MODIFIED: HL (moved to final drawn position)
-;------------------------------------------------------------------------------
+; Outputs:
+;   3x3 upper-right corner pattern drawn
+;   HL = bottom-right position (2,2)
+;
+; Registers:
+; --- Start ---
+;   HL = top-left position (0,0)
+;   A  = fill value
+;   DE = row stride
+; --- In Process ---
+;   HL = moved via ADD/INC/DEC operations
+; ---  End  ---
+;   HL = bottom-right position (2,2)
+;   A  = unchanged
+;   DE = unchanged
+;
+; Memory Modified: 6 positions forming UR corner pattern
+; Calls: None
+;==============================================================================
 DRAW_UR_3X3_CORNER:
     LD          (HL),A                              ; 1: Draw top-left (0,0)
     INC         HL                                  ; Move right one position
@@ -226,15 +405,38 @@ DRAW_UR_3X3_CORNER:
     LD          (HL),A                              ; 6: Draw bottom-right (2,2)
     RET                                             ; Return with cursor at bottom-right
 
-;------------------------------------------------------------------------------
-; DRAW_ROW - Fill single row with byte value (helper for FILL_CHRCOL_RECT)
-;------------------------------------------------------------------------------
-; INPUT:  HL = starting position, B = width, A = fill value
-; OUTPUT: HL = position after last byte, B = 0, A = unchanged
-; PATTERN: Horizontal line (width B)
-; X X ... X    Execution order: 1 2 ... B
-; REGISTERS MODIFIED: HL (advanced by B positions), B (decremented to 0)
-;------------------------------------------------------------------------------
+;==============================================================================
+; DRAW_ROW
+;==============================================================================
+; Fills single horizontal row with specified byte value (character or color).
+; Helper routine for FILL_CHRCOL_RECT. Recursive implementation.
+;
+; Inputs:
+;   HL = starting position
+;   B  = width (number of positions to fill)
+;   A  = fill value (character code or color byte)
+;
+; Outputs:
+;   Row filled with value A
+;   HL = position after last byte written
+;   B  = 0
+;
+; Registers:
+; --- Start ---
+;   HL = start position
+;   B  = width
+;   A  = fill value
+; --- In Process ---
+;   HL = incremented each iteration
+;   B  = decremented each iteration
+; ---  End  ---
+;   HL = start + width
+;   B  = 0
+;   A  = unchanged
+;
+; Memory Modified: width bytes starting at HL
+; Calls: Self (recursive)
+;==============================================================================
 DRAW_ROW:
     LD          (HL),A                              ; Write character/color to current position
     DEC         B                                   ; Decrement remaining width
@@ -242,19 +444,41 @@ DRAW_ROW:
     INC         HL                                  ; Move to next position in row
     JP          DRAW_ROW                            ; Continue filling row
 
-;------------------------------------------------------------------------------
-; DRAW_COLUMN - Fill single column with byte value (vertical line drawing)
-;------------------------------------------------------------------------------
-; INPUT:  HL = starting position, C = height, A = fill value, DE = $28 (row stride)
-; OUTPUT: HL = position after last byte, C = 0, A = unchanged
-; PATTERN: Vertical line (height C)
-; X    Execution order: 1
-; X                     2
-; .                     .
-; .                     .
-; X                     C
-; REGISTERS MODIFIED: HL (advanced by C*DE positions), C (decremented to 0)
-;------------------------------------------------------------------------------
+;==============================================================================
+; DRAW_COLUMN
+;==============================================================================
+; Fills single vertical column with specified byte value (character or color).
+; Moves downward by row stride (DE, typically $28=40). Recursive implementation.
+;
+; Inputs:
+;   HL = starting position (top)
+;   C  = height (number of rows to fill)
+;   A  = fill value (character code or color byte)
+;   DE = row stride (typically $28=40 for standard screen width)
+;
+; Outputs:
+;   Column filled with value A
+;   HL = position after last byte written
+;   C  = 0
+;
+; Registers:
+; --- Start ---
+;   HL = start position
+;   C  = height
+;   A  = fill value
+;   DE = row stride
+; --- In Process ---
+;   HL = incremented by DE each iteration
+;   C  = decremented each iteration
+; ---  End  ---
+;   HL = start + (height * DE)
+;   C  = 0
+;   A  = unchanged
+;   DE = unchanged
+;
+; Memory Modified: height bytes at HL, HL+DE, HL+2*DE, ...
+; Calls: Self (recursive)
+;==============================================================================
 DRAW_COLUMN:
     LD          (HL),A                              ; Write character/color to current position
     DEC         C                                   ; Decrement remaining height
@@ -303,6 +527,35 @@ DRAW_CHRCOLS:
     ADD         HL,DE                               ; Move to start of next row (+40 characters)
     JP          DRAW_CHRCOLS                        ; Continue with next row
 
+;==============================================================================
+; DRAW_F0_WALL
+;==============================================================================
+; Draws far distance (F0) wall - large 16x15 solid blue rectangle with bottom
+; accent row.
+;
+; Inputs:
+;   None (uses fixed screen positions)
+;
+; Outputs:
+;   F0 wall drawn as solid blue block
+;   Bottom accent row drawn (12 chars wide)
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_F0_WALL_IDX, then bottom row position
+;   BC = RECT(16,15), then width for bottom row
+;   A  = COLOR(BLU,BLU)
+; ---  End  ---
+;   HL = end of bottom row
+;   B  = 0
+;   A  = unchanged
+;   Jumps to DRAW_ROW
+;
+; Memory Modified: COLRAM at F0 wall area (16x15 + bottom row)
+; Calls: FILL_CHRCOL_RECT, jumps to DRAW_ROW
+;==============================================================================
 DRAW_F0_WALL:
     LD          HL,COLRAM_F0_WALL_IDX               ; Point to far wall color area
     LD          BC,RECT(16,15)                      ; 16 x 16 rectangle
@@ -312,20 +565,114 @@ DRAW_F0_WALL:
     LD          B,12
     JP          DRAW_ROW
 
+;==============================================================================
+; DRAW_F0_WALL_AND_CLOSED_DOOR
+;==============================================================================
+; Draws F0 wall with closed door overlay - wall background plus green door.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   F0 wall with closed door drawn
+;   Falls through to DRAW_DOOR_F0 with green color
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = COLOR(GRN,GRN) after wall drawn
+; ---  End  ---
+;   Falls through to DRAW_DOOR_F0
+;
+; Memory Modified: F0 wall and door areas
+; Calls: DRAW_F0_WALL, falls through to DRAW_DOOR_F0
+;==============================================================================
 DRAW_F0_WALL_AND_CLOSED_DOOR:
     CALL        DRAW_F0_WALL                        ; Draw the wall background first
     LD          A,COLOR(GRN,GRN)                    ; GRN on GRN (closed door color)
 
+;==============================================================================
+; DRAW_DOOR_F0
+;==============================================================================
+; Draws F0 door overlay - fills 8x12 door area with color in A register.
+; Used for both closed doors (green) and open doors (passage color).
+;
+; Inputs:
+;   A = door color (GRN,GRN for closed; DKGRY,BLK for open)
+;
+; Outputs:
+;   Door area filled with specified color
+;
+; Registers:
+; --- Start ---
+;   A  = door color
+; --- In Process ---
+;   HL = COLRAM_F0_DOOR_IDX
+;   BC = RECT(8,12)
+; ---  End  ---
+;   Jumps to FILL_CHRCOL_RECT
+;
+; Memory Modified: COLRAM at F0 door position (8x12 rectangle)
+; Calls: Jumps to FILL_CHRCOL_RECT
+;==============================================================================
 DRAW_DOOR_F0:
     LD          HL,COLRAM_F0_DOOR_IDX               ; Point to door area within wall
     LD          BC,RECT(8,12)                       ; 8 x 12 rectangle (door size)
     JP          FILL_CHRCOL_RECT                    ; Fill door area with specified color
 
+;==============================================================================
+; DRAW_WALL_F0_AND_OPEN_DOOR
+;==============================================================================
+; Draws F0 wall with open door - wall background plus dark passage opening.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   F0 wall with open door/passage drawn
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = COLOR(DKGRY,BLK)
+; ---  End  ---
+;   Jumps to DRAW_DOOR_F0
+;
+; Memory Modified: F0 wall and door areas
+; Calls: DRAW_F0_WALL, jumps to DRAW_DOOR_F0
+;==============================================================================
 DRAW_WALL_F0_AND_OPEN_DOOR:
     CALL        DRAW_F0_WALL                        ; Draw the wall background first
     LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (open door/passage color)
     JP          DRAW_DOOR_F0                        ; Fill door area showing passage through
 
+;==============================================================================
+; DRAW_WALL_F1
+;==============================================================================
+; Draws mid-distance (F1) wall - 8x8 rectangle with space chars and blue colors.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   F1 wall drawn (chars cleared, colors set to BLU/DKBLU)
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = CHRRAM_F1_WALL_IDX, then COLRAM_F0_DOOR_IDX
+;   BC = RECT(8,8)
+;   A  = $20 (SPACE), then COLOR(BLU,DKBLU)
+;   C  = 8 (height reset after FILL_CHRCOL_RECT)
+; ---  End  ---
+;   Jumps to DRAW_CHRCOLS
+;
+; Memory Modified: CHRRAM and COLRAM at F1 wall position (8x8)
+; Calls: FILL_CHRCOL_RECT, jumps to DRAW_CHRCOLS
+;==============================================================================
 DRAW_WALL_F1:
     LD          HL,CHRRAM_F1_WALL_IDX               ; Point to F1 wall character area
     LD          BC,RECT(8,8)                        ; 8 x 8 rectangle (mid-distance wall size)
@@ -336,20 +683,114 @@ DRAW_WALL_F1:
     LD          A,COLOR(BLU,DKBLU)                  ; BLU on DKBLU (wall color scheme)
     JP          DRAW_CHRCOLS                        ; Fill color area for wall
 
+;==============================================================================
+; DRAW_WALL_F1_AND_CLOSED_DOOR
+;==============================================================================
+; Draws F1 wall with closed door overlay - wall background plus green door.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   F1 wall with closed door drawn
+;   Falls through to DRAW_DOOR_F1 with green color
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = COLOR(GRN,DKGRN) after wall drawn
+; ---  End  ---
+;   Falls through to DRAW_DOOR_F1
+;
+; Memory Modified: F1 wall and door areas
+; Calls: DRAW_WALL_F1, falls through to DRAW_DOOR_F1
+;==============================================================================
 DRAW_WALL_F1_AND_CLOSED_DOOR:
     CALL        DRAW_WALL_F1                        ; Draw the F1 wall background first
     LD          A,COLOR(GRN,DKGRN)                  ; GRN on DKGRN (closed door at F1 distance)
 
+;==============================================================================
+; DRAW_DOOR_F1
+;==============================================================================
+; Draws F1 door overlay - fills 4x6 door area with color in A register.
+; Smaller door size for mid-distance view.
+;
+; Inputs:
+;   A = door color (GRN,DKGRN for closed; BLK,BLK for open)
+;
+; Outputs:
+;   Door area filled with specified color
+;
+; Registers:
+; --- Start ---
+;   A  = door color
+; --- In Process ---
+;   HL = COLRAM_F1_DOOR_IDX
+;   BC = RECT(4,6)
+; ---  End  ---
+;   Jumps to FILL_CHRCOL_RECT
+;
+; Memory Modified: COLRAM at F1 door position (4x6 rectangle)
+; Calls: Jumps to FILL_CHRCOL_RECT
+;==============================================================================
 DRAW_DOOR_F1:
     LD          HL,COLRAM_F1_DOOR_IDX               ; Point to door area within F1 wall
     LD          BC,RECT(4,6)                        ; 4 x 6 rectangle (smaller door at mid-distance)
     JP          FILL_CHRCOL_RECT                    ; Fill door area with specified color
 
+;==============================================================================
+; DRAW_WALL_F1_AND_OPEN_DOOR
+;==============================================================================
+; Draws F1 wall with open door - wall background plus black passage opening.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   F1 wall with open door/passage drawn
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = COLOR(BLK,BLK)
+; ---  End  ---
+;   Jumps to DRAW_DOOR_F1
+;
+; Memory Modified: F1 wall and door areas
+; Calls: DRAW_WALL_F1, jumps to DRAW_DOOR_F1
+;==============================================================================
 DRAW_WALL_F1_AND_OPEN_DOOR:
     CALL        DRAW_WALL_F1                        ; Draw F1 wall background
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (open door/darkness)
     JP          DRAW_DOOR_F1                        ; Fill door area with black
 
+;==============================================================================
+; DRAW_WALL_F2
+;==============================================================================
+; Draws far distance (F2) wall - small 4x4 rectangle with thin base line.
+; Very distant wall appearance.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   F2 wall drawn (4x4 colored area + base line chars)
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_F2_WALL_IDX, then $323a (base line)
+;   BC = RECT(4,4), then RECT(4,1)
+;   A  = COLOR(BLK,DKGRY), then $90 (base line char)
+; ---  End  ---
+;   Jumps to FILL_CHRCOL_RECT
+;
+; Memory Modified: COLRAM at F2 wall + CHRRAM base line
+; Calls: FILL_CHRCOL_RECT, jumps to FILL_CHRCOL_RECT
+;==============================================================================
 DRAW_WALL_F2:
     LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
     LD          HL,COLRAM_F2_WALL_IDX               ; Point to F2 wall color area
@@ -360,14 +801,93 @@ DRAW_WALL_F2:
     LD          A,$90                               ; Thin base line character
     JP          FILL_CHRCOL_RECT                    ; Draw base line
 
+;==============================================================================
+; DRAW_WALL_F2_EMPTY
+;==============================================================================
+; Draws empty F2 area - black 4x4 rectangle for empty/dark corridor.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   F2 area filled with black
+;   Falls through to UPDATE_F0_ITEM
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_F2_WALL_IDX
+;   A  = COLOR(BLK,BLK)
+; ---  End  ---
+;   Falls through to UPDATE_F0_ITEM
+;
+; Memory Modified: COLRAM at F2 position (4x4)
+; Calls: Falls through to UPDATE_F0_ITEM
+;==============================================================================
 DRAW_WALL_F2_EMPTY:
     LD          HL,COLRAM_F2_WALL_IDX               ; Point to F2 wall color area
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
 
+;==============================================================================
+; UPDATE_F0_ITEM
+;==============================================================================
+; Generic utility for filling 4x4 color rectangle. Reused by multiple routines
+; for item/wall updates at F0 distance.
+;
+; Inputs:
+;   HL = starting color RAM position
+;   A  = color value to fill
+;
+; Outputs:
+;   4x4 area filled with color
+;
+; Registers:
+; --- Start ---
+;   HL = position
+;   A  = color
+; --- In Process ---
+;   BC = RECT(4,4)
+; ---  End  ---
+;   Jumps to FILL_CHRCOL_RECT
+;
+; Memory Modified: 4x4 color rectangle at HL
+; Calls: Jumps to FILL_CHRCOL_RECT
+;==============================================================================
 UPDATE_F0_ITEM:
     LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
     JP          FILL_CHRCOL_RECT                    ; Fill area with color in A
 
+;==============================================================================
+; DRAW_WALL_L0
+;==============================================================================
+; Draws left wall at closest distance (L0) - large 4x15 wall with top color
+; transition, corner pattern, and left angle bracket characters.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   L0 left wall drawn with colors and angle bracket characters
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = various positions (COLRAM_L0_WALL_IDX, CHRRAM_L0_WALL_IDX)
+;   A  = various colors and CHAR_LT_ANGLE
+;   DE = stride adjustments ($28, $29, $27)
+;   BC = RECT(4,15)
+; ---  End  ---
+;   Jumps to DRAW_VERTICAL_LINE_4_DOWN
+;   A  = CHAR_LT_ANGLE
+;   DE = $29 (stride 41)
+;   RET after jump (unreachable)
+;
+; Memory Modified: COLRAM and CHRRAM at L0 left wall positions
+; Calls: DRAW_DOOR_BOTTOM_SETUP, DRAW_DL_3X3_CORNER, DRAW_CHRCOLS,
+;        jumps to DRAW_VERTICAL_LINE_4_DOWN
+;==============================================================================
 DRAW_WALL_L0:
     LD          HL,COLRAM_L0_WALL_IDX               ; Point to L0 wall color area
     LD          A,COLOR(BLU,BLK)                    ; BLU on BLK (wall top color)
@@ -386,18 +906,95 @@ DRAW_WALL_L0:
     INC         DE                                  ; Increase stride to 41
     JP          DRAW_VERTICAL_LINE_4_DOWN           ; Draw vertical line characters
     RET                                             ; (Unreachable - dead code)
+
+;==============================================================================
+; DRAW_DOOR_L0_HIDDEN
+;==============================================================================
+; Draws hidden door at L0 position - appears as wall but with subtle coloring.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   L0 wall with hidden door overlay drawn
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = COLOR(DKGRY,BLK) saved to AF', then COLOR(BLK,BLU)
+; ---  End  ---
+;   Jumps to DRAW_DOOR_L0
+;
+; Memory Modified: L0 wall and door areas
+; Calls: DRAW_WALL_L0, jumps to DRAW_DOOR_L0
+;==============================================================================
 DRAW_DOOR_L0_HIDDEN:
     CALL        DRAW_WALL_L0                        ; Draw L0 wall background
     LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (hidden door)
     EX          AF,AF'                              ; Save door color to alternate
     LD          A,COLOR(BLK,BLU)                    ; BLK on BLU (wall color)
     JP          DRAW_DOOR_L0                        ; Draw door with saved color
+
+;==============================================================================
+; DRAW_DOOR_L0_NORMAL
+;==============================================================================
+; Draws normal visible door at L0 position - green door on blue wall.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   L0 wall with normal door overlay drawn
+;   Falls through to DRAW_DOOR_L0
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = COLOR(DKGRY,GRN) saved to AF', then COLOR(GRN,BLU)
+; ---  End  ---
+;   Falls through to DRAW_DOOR_L0
+;
+; Memory Modified: L0 wall and door areas
+; Calls: DRAW_WALL_L0, falls through to DRAW_DOOR_L0
+;==============================================================================
 DRAW_DOOR_L0_NORMAL:
     CALL        DRAW_WALL_L0                        ; Draw L0 wall background
     LD          A,COLOR(DKGRY,GRN)                  ; DKGRY on GRN (normal door)
     EX          AF,AF'                              ; Save door color to alternate
     LD          A,COLOR(GRN,BLU)                    ; GRN on BLU (door frame color)
 
+;==============================================================================
+; DRAW_DOOR_L0
+;==============================================================================
+; Draws L0 door overlay - 3x11 door with corner pattern, vertical color fill,
+; and left angle bracket characters. Uses alternate AF register for door color.
+;
+; Inputs:
+;   A   = frame color (COLOR(GRN,BLU) or COLOR(BLK,BLU))
+;   AF' = door body color (from caller's EX AF,AF')
+;
+; Outputs:
+;   L0 door drawn with colors and characters
+;
+; Registers:
+; --- Start ---
+;   A   = frame color
+;   AF' = door body color
+; --- In Process ---
+;   HL = COLRAM_L0_DOOR_IDX, then CHRRAM_L0_DOOR_IDX
+;   DE = stride adjustments ($28, $29)
+;   BC = RECT(3,11)
+;   A  = swapped via EX AF,AF', then CHAR_LT_ANGLE
+; ---  End  ---
+;   Jumps to CONTINUE_VERTICAL_LINE_DOWN
+;   RET after jump (unreachable)
+;
+; Memory Modified: COLRAM and CHRRAM at L0 door positions
+; Calls: DRAW_VERTICAL_LINE_3_UP, DRAW_DL_3X3_CORNER, DRAW_CHRCOLS,
+;        jumps to CONTINUE_VERTICAL_LINE_DOWN
+;==============================================================================
 DRAW_DOOR_L0:
     LD          HL,COLRAM_L0_DOOR_IDX               ; Point to L0 door color area
     CALL        DRAW_VERTICAL_LINE_3_UP             ; Draw vertical line (stride 41)
@@ -416,12 +1013,62 @@ DRAW_DOOR_L0:
     JP          CONTINUE_VERTICAL_LINE_DOWN         ; Draw door characters
     RET                                             ; (Unreachable - dead code)
 
+;==============================================================================
+; DRAW_WALL_FL0
+;==============================================================================
+; Draws front-left wall at closest distance (FL0) - 4x15 blue wall section.
+;
+; Inputs:
+;   None (uses fixed position)
+;
+; Outputs:
+;   FL0 wall drawn with blue color
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = DAT_ram_34c8
+;   BC = RECT(4,15)
+;   A  = COLOR(BLK,BLU)
+; ---  End  ---
+;   Jumps to FILL_CHRCOL_RECT
+;
+; Memory Modified: COLRAM at FL0 position (4x15)
+; Calls: Jumps to FILL_CHRCOL_RECT
+;==============================================================================
 DRAW_WALL_FL0:
     LD          HL,DAT_ram_34c8                     ; Point to FL0 wall color area
     LD          A,COLOR(BLK,BLU)                    ; BLK on BLU (wall color)
     LD          BC,RECT(4,15)                       ; 4 x 15 rectangle (was 16)
     JP          FILL_CHRCOL_RECT                    ; Fill wall area
 
+;==============================================================================
+; DRAW_WALL_L1
+;==============================================================================
+; Draws left wall at mid-distance (L1) - 4x8 rectangle with space chars and
+; blue/dark-blue colors.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   L1 wall drawn (chars cleared, colors set)
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = CHRRAM_WALL_FL1_A_IDX, then COLRAM_WALL_FL1_A_IDX
+;   BC = RECT(4,8)
+;   A  = $20 (SPACE), then COLOR(BLU,DKBLU)
+;   C  = 8 (height reset)
+; ---  End  ---
+;   Jumps to DRAW_CHRCOLS
+;
+; Memory Modified: CHRRAM and COLRAM at L1 wall positions (4x8)
+; Calls: FILL_CHRCOL_RECT, jumps to DRAW_CHRCOLS
+;==============================================================================
 DRAW_WALL_L1:
     LD          HL,CHRRAM_WALL_FL1_A_IDX            ; Point to L1 character area
     LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
@@ -431,17 +1078,119 @@ DRAW_WALL_L1:
     LD          C,0x8                               ; Set height to 8
     LD          A,COLOR(BLU,DKBLU)                  ; BLU on DKBLU (wall color)
     JP          DRAW_CHRCOLS                        ; Fill color columns
+
+;==============================================================================
+; DRAW_DOOR_L1_NORMAL
+;==============================================================================
+; Draws normal visible door at L1 position - dark green door overlay.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   L1 wall with normal door drawn
+;   Falls through to DRAW_DOOR_L1
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = COLOR(DKGRN,DKGRN)
+; ---  End  ---
+;   Falls through to DRAW_DOOR_L1
+;
+; Memory Modified: L1 wall and door areas
+; Calls: DRAW_WALL_L1, falls through to DRAW_DOOR_L1
+;==============================================================================
 DRAW_DOOR_L1_NORMAL:
     CALL        DRAW_WALL_L1                        ; Draw L1 wall background
     LD          A,COLOR(DKGRN,DKGRN)                ; DKGRN on DKGRN (normal door)
+
+;==============================================================================
+; DRAW_DOOR_L1
+;==============================================================================
+; Draws L1 door overlay - fills 2x6 door area with color in A register.
+;
+; Inputs:
+;   A = door color (DKGRN,DKGRN for normal; BLK,BLK for hidden)
+;
+; Outputs:
+;   Door area filled with specified color
+;
+; Registers:
+; --- Start ---
+;   A  = door color
+; --- In Process ---
+;   HL = COLRAM_L1_DOOR_PATTERN_IDX
+;   BC = RECT(2,6)
+; ---  End  ---
+;   Jumps to DRAW_CHRCOLS
+;
+; Memory Modified: COLRAM at L1 door position (2x6)
+; Calls: Jumps to DRAW_CHRCOLS
+;==============================================================================
 DRAW_DOOR_L1:
     LD          HL,COLRAM_L1_DOOR_PATTERN_IDX       ; Point to L1 door pattern area
     LD          BC,RECT(2,6)                        ; 2 x 6 rectangle
     JP          DRAW_CHRCOLS                        ; Fill door area
+
+;==============================================================================
+; DRAW_DOOR_L1_HIDDEN
+;==============================================================================
+; Draws hidden door at L1 position - appears as wall with black overlay.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   L1 wall with hidden door (black) drawn
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 0 (BLK on BLK)
+; ---  End  ---
+;   Jumps to DRAW_DOOR_L1
+;
+; Memory Modified: L1 wall and door areas
+; Calls: DRAW_WALL_L1, jumps to DRAW_DOOR_L1
+;==============================================================================
 DRAW_DOOR_L1_HIDDEN:
     CALL        DRAW_WALL_L1                        ; Draw L1 wall background
     XOR         A                                   ; A = 0 (BLK on BLK - hidden door)
     JP          DRAW_DOOR_L1                        ; Draw door with black color
+
+;==============================================================================
+; SUB_ram_c9f9
+;==============================================================================
+; Draws L1 wall edge characters and colors with complex pattern of angle brackets
+; and color gradients. Creates visible edges and door opening in middle.
+;
+; Inputs:
+;   None (uses fixed memory addresses)
+;
+; Outputs:
+;   L1 wall edge graphics drawn
+;   L1 door opening colored
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = various CHRRAM and COLRAM addresses
+;   A  = character codes and color values
+;   DE = $28 (row stride)
+;   BC = RECT(2,4) for middle section
+; ---  End  ---
+;   HL = COLRAM_L1_DOOR_PATTERN_IDX
+;   C  = 4
+;   A  = COLOR(BLK,BLK)
+;   Falls through to DRAW_CHRCOLS
+;
+; Memory Modified: CHRRAM and COLRAM at L1 wall edges and door area
+; Calls: DRAW_CHRCOLS (falls through)
+;==============================================================================
 SUB_ram_c9f9:
     LD          HL,CHRRAM_L1_WALL_IDX               ; Point to L1 wall character area
     LD          A,CHAR_LT_ANGLE                     ; Left angle bracket character
@@ -547,6 +1296,33 @@ DRAW_L1_DOOR:
     ADD         HL,DE                               ; Move to next row
     LD          (HL),A                              ; Draw left angle again
     RET                                             ; Return to caller
+
+;==============================================================================
+; DRAW_WALL_FL1_B
+;==============================================================================
+; Draws front-left wall variant B at mid-distance (FL1_B) - 4x8 with colors
+; then space chars.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   FL1_B wall drawn (colors then chars)
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_WALL_FL1_B_IDX, then CHRRAM_WALL_FL1_B_IDX
+;   BC = RECT(4,8)
+;   A  = COLOR(BLU,DKBLU), then $20 (SPACE)
+;   C  = 8 (height reset)
+; ---  End  ---
+;   Jumps to DRAW_CHRCOLS
+;
+; Memory Modified: COLRAM and CHRRAM at FL1_B positions (4x8)
+; Calls: FILL_CHRCOL_RECT, jumps to DRAW_CHRCOLS
+;==============================================================================
 DRAW_WALL_FL1_B:
     LD          HL,COLRAM_WALL_FL1_B_IDX            ; Point to FL1_B wall color area
     LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
@@ -556,23 +1332,145 @@ DRAW_WALL_FL1_B:
     LD          C,0x8                               ; Set height to 8
     LD          A,$20                               ; SPACE character (32 / $20)
     JP          DRAW_CHRCOLS                        ; Fill character area
+
+;==============================================================================
+; DRAW_DOOR_FL1_B_HIDDEN
+;==============================================================================
+; Draws hidden door at FL1_B position - appears as wall with black overlay.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   FL1_B wall with hidden door (black) drawn
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 0 (BLK on BLK)
+; ---  End  ---
+;   Jumps to DRAW_DOOR_FL1_B
+;
+; Memory Modified: FL1_B wall and door areas
+; Calls: DRAW_WALL_FL1_B, jumps to DRAW_DOOR_FL1_B
+;==============================================================================
 DRAW_DOOR_FL1_B_HIDDEN:
     CALL        DRAW_WALL_FL1_B                     ; Draw FL1_B wall background
     XOR         A                                   ; A = 0 (BLK on BLK - hidden door)
     JP          DRAW_DOOR_FL1_B                     ; Draw door with black
+
+;==============================================================================
+; DRAW_DOOR_FL1_B_NORMAL
+;==============================================================================
+; Draws normal door at FL1_B position - dark green overlay.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   FL1_B wall with normal door drawn
+;   Falls through to DRAW_DOOR_FL1_B
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = COLOR(DKGRN,DKGRN)
+; ---  End  ---
+;   Falls through to DRAW_DOOR_FL1_B
+;
+; Memory Modified: FL1_B wall and door areas
+; Calls: DRAW_WALL_FL1_B, falls through to DRAW_DOOR_FL1_B
+;==============================================================================
 DRAW_DOOR_FL1_B_NORMAL:
     CALL        DRAW_WALL_FL1_B                     ; Draw FL1_B wall background
     LD          A,COLOR(DKGRN,DKGRN)                ; DKGRN on DKGRN (normal door)
+
+;==============================================================================
+; DRAW_DOOR_FL1_B
+;==============================================================================
+; Draws FL1_B door overlay - fills 2x6 door area at FL2 position.
+;
+; Inputs:
+;   A = door color (DKGRN,DKGRN for normal; BLK,BLK for hidden)
+;
+; Outputs:
+;   Door area filled with specified color
+;
+; Registers:
+; --- Start ---
+;   A  = door color
+; --- In Process ---
+;   HL = COLRAM_FL2_WALL_IDX
+;   BC = RECT(2,6)
+; ---  End  ---
+;   Jumps to DRAW_CHRCOLS
+;
+; Memory Modified: COLRAM at FL2 position (2x6)
+; Calls: Jumps to DRAW_CHRCOLS
+;==============================================================================
 DRAW_DOOR_FL1_B:
     LD          HL,COLRAM_FL2_WALL_IDX              ; Point to FL2 wall area for door
     LD          BC,RECT(2,6)                        ; 2 x 6 rectangle
     JP          DRAW_CHRCOLS                        ; Fill door area
 
+;==============================================================================
+; DRAW_WALL_FL2_EMPTY
+;==============================================================================
+; Draws empty FL2 area - black 4x4 rectangle for empty/dark corridor.
+;
+; Inputs:
+;   None (uses fixed position)
+;
+; Outputs:
+;   FL2 area filled with black
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_FL2_WALL_IDX
+;   BC = RECT(4,4)
+;   A  = COLOR(BLK,BLK)
+; ---  End  ---
+;   Jumps to FILL_CHRCOL_RECT
+;
+; Memory Modified: COLRAM at FL2 position (4x4)
+; Calls: Jumps to FILL_CHRCOL_RECT
+;==============================================================================
 DRAW_WALL_FL2_EMPTY:
     LD          HL,COLRAM_FL2_WALL_IDX              ; Point to FL2 wall color area
     LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
     JP          FILL_CHRCOL_RECT                    ; Fill area with black
+
+;==============================================================================
+; DRAW_WALL_L2
+;==============================================================================
+; Draws left wall at far distance (L2) - uses diagonal pattern with stacked
+; characters and colors. Complex multi-layer rendering.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   L2 wall drawn with diagonal character and color patterns
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = CHRRAM_F1_WALL_IDX, then COLRAM_F0_DOOR_IDX
+;   BC = RECT(2,4)
+;   A  = various characters and colors
+;   Stack = right slash, space, two color values
+; ---  End  ---
+;   Returns to caller
+;
+; Memory Modified: CHRRAM and COLRAM at L2 positions via diagonal pattern
+; Calls: SUB_ram_cb1c (twice for chars and colors)
+;==============================================================================
 DRAW_WALL_L2:
     LD          A,$ca                               ; Right slash character
     PUSH        AF                                  ; Save to stack for later
@@ -591,6 +1489,49 @@ DRAW_WALL_L2:
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     CALL        SUB_ram_cb1c                        ; Fill with stacked colors
     RET                                             ; Return to caller
+
+;==============================================================================
+; SUB_ram_cb1c
+;==============================================================================
+; Stack-based diagonal fill pattern routine. Pops return address to IX, then
+; draws diagonal pattern using 3 values from stack. Creates 2x4+ diagonal shape.
+;
+; Stack Usage (caller pushes in reverse order):
+;   [Top] Third value (bottom corners)
+;   Second value (middle fill via DRAW_CHRCOLS)
+;   [Bottom] Return address (moved to IX)
+;
+; Pattern Created:
+;   A  2nd    (top-left and top-right diagonal)
+;   2nd 2nd   (middle section via DRAW_CHRCOLS)
+;   2nd 2nd
+;   3rd A     (bottom corners)
+;
+; Inputs:
+;   HL = top-left starting position
+;   A  = first value (top-left and bottom-right corners)
+;   BC = rectangle dimensions for middle section
+;   Stack = [RetAddr][2nd value][3rd value]
+;
+; Outputs:
+;   Diagonal pattern drawn
+;   Returns to caller (via JP (IX))
+;
+; Registers:
+; --- Start ---
+;   HL = top-left position
+;   A  = first value
+;   BC = dimensions
+; --- In Process ---
+;   IX = return address
+;   DE = $29, then $28 (stride adjustments)
+;   Stack popped for 2nd and 3rd values
+; ---  End  ---
+;   Returns via JP (IX)
+;
+; Memory Modified: Diagonal pattern at and below HL
+; Calls: DRAW_CHRCOLS
+;==============================================================================
 SUB_ram_cb1c:
     POP         IX                                  ; Save return address to IX
     LD          (HL),A                              ; Draw character at position
@@ -614,6 +1555,31 @@ SUB_ram_cb1c:
     INC         HL                                  ; Move right one cell
     LD          (HL),A                              ; Draw character at position
     JP          (IX)                                ; Return to caller
+
+;==============================================================================
+; DRAW_WALL_L2_LEFT
+;==============================================================================
+; Draws left side section of L2 wall - 2x4 colored area with bottom edge line.
+;
+; Inputs:
+;   None (uses fixed position)
+;
+; Outputs:
+;   L2 left section drawn with colors and bottom line
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_L2_LEFT, then $3238 (bottom edge)
+;   BC = RECT(2,4), then RECT(2,1)
+;   A  = COLOR(BLK,DKGRY), then CHAR_BOTTOM_LINE
+; ---  End  ---
+;   Jumps to FILL_CHRCOL_RECT
+;
+; Memory Modified: COLRAM at L2 left + CHRRAM bottom edge
+; Calls: FILL_CHRCOL_RECT, jumps to FILL_CHRCOL_RECT
+;==============================================================================
 DRAW_WALL_L2_LEFT:
     LD          HL,COLRAM_L2_LEFT                   ; Point to L2 left wall color area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
@@ -623,11 +1589,67 @@ DRAW_WALL_L2_LEFT:
     LD          BC,RECT(2,1)                        ; 2 x 1 rectangle
     LD          A,CHAR_BOTTOM_LINE                  ; Bottom line character
     JP          FILL_CHRCOL_RECT                    ; Fill bottom edge
+
+;==============================================================================
+; DRAW_WALL_L2_LEFT_EMPTY
+;==============================================================================
+; Draws empty L2 left section - black 2x4 rectangle for empty corridor.
+;
+; Inputs:
+;   None (uses fixed position)
+;
+; Outputs:
+;   L2 left area filled with black
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_L2_LEFT
+;   BC = RECT(2,4)
+;   A  = COLOR(BLK,BLK)
+; ---  End  ---
+;   Jumps to FILL_CHRCOL_RECT
+;
+; Memory Modified: COLRAM at L2 left position (2x4)
+; Calls: Jumps to FILL_CHRCOL_RECT
+;==============================================================================
 DRAW_WALL_L2_LEFT_EMPTY:
     LD          HL,COLRAM_L2_LEFT                   ; Point to L2 left wall color area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
     JP          FILL_CHRCOL_RECT                    ; Fill area with black
+
+;==============================================================================
+; DRAW_WALL_R0
+;==============================================================================
+; Draws right wall at closest distance (R0) - large 4x15 wall with corner
+; pattern and right angle bracket characters. Mirror of DRAW_WALL_L0.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   R0 right wall drawn with colors and angle bracket characters
+;   A = CHAR_LT_ANGLE, DE = $29 on return
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = DAT_ram_34b4 (colors), then DAT_ram_303f (chars)
+;   BC = RECT(4,15)
+;   A  = various colors, then CHAR_RT_ANGLE, finally CHAR_LT_ANGLE
+;   DE = stride $27 (39), then $28, $29
+;   Stack = edge color, wall color
+; ---  End  ---
+;   A  = CHAR_LT_ANGLE ($c1)
+;   DE = $29 (stride 41)
+;   Returns to caller
+;
+; Memory Modified: COLRAM and CHRRAM at R0 right wall positions
+; Calls: DRAW_R0_CORNERS, DRAW_VERTICAL_LINE_4_DOWN
+;==============================================================================
 DRAW_WALL_R0:
     LD          A,COLOR(DKGRY,BLU)                  ; DKGRY on BLU (wall edge color)
     PUSH        AF                                  ; Save to stack for later
@@ -646,17 +1668,97 @@ DRAW_WALL_R0:
     INC         DE                                  ; Increment pitch to 40 / $28
     INC         DE                                  ; Increment pitch to 41 / $29
     RET                                             ; Return to caller
+
+;==============================================================================
+; DRAW_R0_DOOR_HIDDEN
+;==============================================================================
+; Draws hidden door at R0 position - appears as wall with subtle coloring.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   R0 wall with hidden door overlay drawn
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = COLOR(DKGRY,BLK) saved to AF', then COLOR(BLK,BLU)
+; ---  End  ---
+;   Jumps to DRAW_R0_DOOR
+;
+; Memory Modified: R0 wall and door areas
+; Calls: DRAW_WALL_R0, jumps to DRAW_R0_DOOR
+;==============================================================================
 DRAW_R0_DOOR_HIDDEN:
     CALL        DRAW_WALL_R0                        ; Draw R0 wall background
     LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (hidden door edge)
     EX          AF,AF'                              ; Save to alternate AF
     LD          A,COLOR(BLK,BLU)                    ; BLK on BLU (hidden door body)
     JP          DRAW_R0_DOOR                        ; Draw door with hidden colors
+
+;==============================================================================
+; DRAW_R0_DOOR_NORMAL
+;==============================================================================
+; Draws normal visible door at R0 position - green door on blue wall.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   R0 wall with normal door overlay drawn
+;   Falls through to DRAW_R0_DOOR
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = COLOR(DKGRY,GRN) saved to AF', then COLOR(GRN,BLU)
+; ---  End  ---
+;   Falls through to DRAW_R0_DOOR
+;
+; Memory Modified: R0 wall and door areas
+; Calls: DRAW_WALL_R0, falls through to DRAW_R0_DOOR
+;==============================================================================
 DRAW_R0_DOOR_NORMAL:
     CALL        DRAW_WALL_R0                        ; Draw R0 wall background
     LD          A,COLOR(DKGRY,GRN)                  ; DKGRY on GRN (normal door edge)
     EX          AF,AF'                              ; Save to alternate AF
     LD          A,COLOR(GRN,BLU)                    ; GRN on BLU (normal door body)
+
+;==============================================================================
+; DRAW_R0_DOOR
+;==============================================================================
+; Draws R0 door overlay - 3x11 door with corner pattern, vertical color fill,
+; and right angle bracket characters. Uses alternate AF for door color.
+; Mirror of DRAW_DOOR_L0.
+;
+; Inputs:
+;   A   = frame color (COLOR(GRN,BLU) or COLOR(BLK,BLU))
+;   AF' = door body color (from caller's EX AF,AF')
+;   DE  = $29 (stride from DRAW_WALL_R0)
+;
+; Outputs:
+;   R0 door drawn with colors and characters
+;
+; Registers:
+; --- Start ---
+;   A   = frame color
+;   AF' = door body color
+;   DE  = $29
+; --- In Process ---
+;   HL = DAT_ram_352d (colors), then DAT_ram_30df (chars)
+;   DE = stride adjustments ($27, $28, $29)
+;   BC = RECT(3,11)
+;   A  = swapped via EX AF,AF', then CHAR_RT_ANGLE
+; ---  End  ---
+;   Jumps to CONTINUE_VERTICAL_LINE_DOWN
+;
+; Memory Modified: COLRAM and CHRRAM at R0 door positions
+; Calls: DRAW_VERTICAL_LINE_3_UP, DRAW_DR_3X3_CORNER, DRAW_CHRCOLS,
+;        jumps to CONTINUE_VERTICAL_LINE_DOWN
+;==============================================================================
 DRAW_R0_DOOR:
     LD          HL,DAT_ram_352d                     ; R0 door top left COLRAM IDX
     DEC         DE                                  ; Decrement pitch to 40
@@ -675,11 +1777,63 @@ DRAW_R0_DOOR:
     DEC         DE                                  ; Decrement pitch to 39
     JP          CONTINUE_VERTICAL_LINE_DOWN         ; Draw top of door angles
 
+;==============================================================================
+; DRAW_WALL_FR0
+;==============================================================================
+; Draws front-right wall at closest distance (FR0) - 4x15 blue wall section.
+; Mirror of DRAW_WALL_FL0.
+;
+; Inputs:
+;   None (uses fixed position)
+;
+; Outputs:
+;   FR0 wall drawn with blue color
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = DAT_ram_34dc
+;   BC = RECT(4,15)
+;   A  = COLOR(BLK,BLU)
+; ---  End  ---
+;   Jumps to FILL_CHRCOL_RECT
+;
+; Memory Modified: COLRAM at FR0 position (4x15)
+; Calls: Jumps to FILL_CHRCOL_RECT
+;==============================================================================
 DRAW_WALL_FR0:
     LD          HL,DAT_ram_34dc                     ; Point to FR0 wall area
     LD          A,COLOR(BLK,BLU)                    ; BLK on BLU (wall color)
     LD          BC,RECT(4,15)                       ; 4 x 15 rectangle (was 16)
     JP          FILL_CHRCOL_RECT                    ; Fill wall area
+
+;==============================================================================
+; DRAW_WALL_FR1_B
+;==============================================================================
+; Draws front-right wall variant B at mid-distance (FR1_B) - 4x8 with space
+; chars then colors. Mirror of DRAW_WALL_FL1_B.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   FR1_B wall drawn (chars then colors)
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = DAT_ram_317c (chars), then DAT_ram_357c (colors)
+;   BC = RECT(4,8)
+;   A  = $20 (SPACE), then COLOR(BLU,DKBLU)
+;   C  = 8 (height reset)
+; ---  End  ---
+;   Jumps to DRAW_CHRCOLS
+;
+; Memory Modified: CHRRAM and COLRAM at FR1_B positions (4x8)
+; Calls: FILL_CHRCOL_RECT, jumps to DRAW_CHRCOLS
+;==============================================================================
 DRAW_WALL_FR1_B:
     LD          HL,DAT_ram_317c                     ; Point to FR1_B character area
     LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
@@ -690,13 +1844,83 @@ DRAW_WALL_FR1_B:
     LD          A,COLOR(BLU,DKBLU)                  ; BLU on DKBLU (wall color)
     JP          DRAW_CHRCOLS                        ; Fill color area
 
+;==============================================================================
+; DRAW_DOOR_FR1_B_HIDDEN
+;==============================================================================
+; Draws hidden door at FR1_B position - appears as wall with black overlay.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   FR1_B wall with hidden door (black) drawn
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 0 (BLK on BLK)
+; ---  End  ---
+;   Jumps to DRAW_DOOR_FR1_B
+;
+; Memory Modified: FR1_B wall and door areas
+; Calls: DRAW_WALL_FR1_B, jumps to DRAW_DOOR_FR1_B
+;==============================================================================
 DRAW_DOOR_FR1_B_HIDDEN:
     CALL        DRAW_WALL_FR1_B                     ; Draw FR1_B wall background
     XOR         A                                   ; A = 0 (BLK on BLK - hidden door)
     JP          DRAW_DOOR_FR1_B                     ; Draw door with black
+
+;==============================================================================
+; DRAW_DOOR_FR1_B_NORMAL
+;==============================================================================
+; Draws normal door at FR1_B position - dark green overlay.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   FR1_B wall with normal door drawn
+;   Falls through to DRAW_DOOR_FR1_B
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = COLOR(DKGRN,DKGRN)
+; ---  End  ---
+;   Falls through to DRAW_DOOR_FR1_B
+;
+; Memory Modified: FR1_B wall and door areas
+; Calls: DRAW_WALL_FR1_B, falls through to DRAW_DOOR_FR1_B
+;==============================================================================
 DRAW_DOOR_FR1_B_NORMAL:
     CALL        DRAW_WALL_FR1_B                     ; Draw FR1_B wall background
     LD          A,COLOR(DKGRN,DKGRN)                ; DKGRN on DKGRN (normal door)
+
+;==============================================================================
+; DRAW_DOOR_FR1_B
+;==============================================================================
+; Draws FR1_B door overlay - fills 2x6 door area at FR22 position.
+;
+; Inputs:
+;   A = door color (DKGRN,DKGRN for normal; BLK,BLK for hidden)
+;
+; Outputs:
+;   Door area filled with specified color
+;
+; Registers:
+; --- Start ---
+;   A  = door color
+; --- In Process ---
+;   HL = COLRAM_FR22_WALL_IDX
+;   BC = RECT(2,6)
+; ---  End  ---
+;   Jumps to DRAW_CHRCOLS
+;
+; Memory Modified: COLRAM at FR22 position (2x6)
+; Calls: Jumps to DRAW_CHRCOLS
+;==============================================================================
 DRAW_DOOR_FR1_B:
     LD          HL,COLRAM_FR22_WALL_IDX             ; Point to FR22 wall area for door
     LD          BC,RECT(2,6)                        ; 2 x 6 rectangle
@@ -887,6 +2111,43 @@ DRAW_WALL_R2:
     LD          (HL),A                              ; Draw right angle again
     RET                                             ; Return to caller
 
+;==============================================================================
+; SUB_ram_cd07
+;==============================================================================
+; Stack-based diagonal fill pattern for right-side walls. Similar to SUB_ram_cb1c
+; but uses stride $27 (39) and fills opposite diagonal direction.
+;
+; Stack Usage (caller pushes in reverse order):
+;   [Top] Third value (bottom corners)
+;   Second value (middle fill via DRAW_CHRCOLS)
+;   [Bottom] Return address (moved to IX)
+;
+; Inputs:
+;   HL = starting position
+;   A  = first value (corners)
+;   BC = rectangle dimensions for middle section
+;   Stack = [RetAddr][2nd value][3rd value]
+;
+; Outputs:
+;   Diagonal pattern drawn for right wall
+;   Returns to caller (via JP (IX))
+;
+; Registers:
+; --- Start ---
+;   HL = start position
+;   A  = first value
+;   BC = dimensions
+; --- In Process ---
+;   IX = return address
+;   DE = $27, then $28, then $29 (stride progression)
+;   Stack popped for 2nd and 3rd values
+; ---  End  ---
+;   DE = $29 (final stride)
+;   Returns via JP (IX)
+;
+; Memory Modified: Diagonal pattern at and around HL
+; Calls: DRAW_CHRCOLS
+;==============================================================================
 SUB_ram_cd07:
     POP         IX                                  ; Save return address to IX
     LD          (HL),A                              ; Draw color at position
@@ -958,15 +2219,88 @@ LAB_ram_cd65:
     POP         BC                                  ; Restore loop counter
     DJNZ        LAB_ram_cd65                        ; Repeat B times
     JP          SUB_ram_cdbf                        ; Jump to next routine
+
+;==============================================================================
+; POOF_SOUND
+;==============================================================================
+; Plays "poof" disappearance sound effect. Used when items/monsters disappear.
+; Short single-iteration doink sound.
+;
+; Inputs:
+;   None
+;
+; Outputs:
+;   Sound played
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 7 (sound repeat count)
+;   B  = 1 (loop counter)
+; ---  End  ---
+;   Falls through to DOINK_SOUND
+;
+; Memory Modified: SOUND_REPEAT_COUNT
+; Calls: DOINK_SOUND (fall-through)
+;==============================================================================
 POOF_SOUND:
     LD          A,0x7                               ; Load sound repeat count
     LD          (SOUND_REPEAT_COUNT),A              ; Store repeat count
     LD          B,0x1                               ; Set loop counter to 1
     JP          DOINK_SOUND                         ; Jump to doink sound routine
+
+;==============================================================================
+; END_OF_GAME_SOUND
+;==============================================================================
+; Plays end-of-game sound effect. Multi-iteration doink sound sequence.
+;
+; Inputs:
+;   None
+;
+; Outputs:
+;   Sound played
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 4 (sound repeat count)
+;   B  = 4 (loop counter)
+; ---  End  ---
+;   Falls through to DOINK_SOUND
+;
+; Memory Modified: SOUND_REPEAT_COUNT
+; Calls: DOINK_SOUND (fall-through)
+;==============================================================================
 END_OF_GAME_SOUND:
     LD          A,0x4                               ; Load sound repeat count (was 0x7)
     LD          (SOUND_REPEAT_COUNT),A              ; Store repeat count
     LD          B,A                                 ; Set loop counter to 4
+
+;==============================================================================
+; DOINK_SOUND
+;==============================================================================
+; Plays "doink" sound effect with delay. Core sound routine used by POOF_SOUND
+; and END_OF_GAME_SOUND. Loops B times playing SOUND_02, delay, then SOUND_03.
+;
+; Inputs:
+;   B = loop counter (number of doink iterations)
+;
+; Outputs:
+;   Sound sequence played B times
+;
+; Registers:
+; --- Start ---
+;   B  = loop counter
+; --- In Process ---
+;   BC = pushed/popped each iteration
+; ---  End  ---
+;   B  = 0
+;
+; Memory Modified: None directly (sound routines modify sound registers)
+; Calls: SOUND_02, SUB_ram_cde7, SOUND_03
+;==============================================================================
 DOINK_SOUND:
     PUSH        BC                                  ; Save loop counter
     CALL        SOUND_02                            ; Play sound 2
@@ -975,22 +2309,35 @@ DOINK_SOUND:
     POP         BC                                  ; Restore loop counter
     DJNZ        DOINK_SOUND                         ; Repeat B times
     RET                                             ; Return to caller
-    CALL        SUB_ram_cde7                        ; Call delay routine
-    CALL        SUB_ram_cde7                        ; Call delay routine
-    CALL        SUB_ram_cde7                        ; Call delay routine
-    CALL        SUB_ram_cde7                        ; Call delay routine
-    CALL        SUB_ram_cde7                        ; Call delay routine
-    CALL        SUB_ram_cde7                        ; Call delay routine
-    CALL        SUB_ram_cde7                        ; Call delay routine
-    CALL        SUB_ram_cde7                        ; Call delay routine
-    CALL        SUB_ram_cde7                        ; Call delay routine
-    CALL        SUB_ram_cde7                        ; Call delay routine
-    CALL        SUB_ram_cde7                        ; Call delay routine
-    CALL        SOUND_05                            ; Play sound 5
-    CALL        SOUND_05                            ; Play sound 5
-    CALL        SOUND_05                            ; Play sound 5
-    CALL        SOUND_05                            ; Play sound 5
-    JP          SOUND_05                            ; Play sound 5 and return
+
+;==============================================================================
+; SUB_ram_cdbf
+;==============================================================================
+; Sound delay/pitch routine with specific parameters. Sets up pitch change
+; parameters and falls through to PLAY_PITCH_CHANGE.
+;
+; Inputs:
+;   None (uses fixed parameter values)
+;
+; Outputs:
+;   Sound played with specific pitch characteristics
+;   Falls through to PLAY_PITCH_CHANGE
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 0
+;   BC = $40 (64 duration)
+;   DE = $15 (21 pitch step)
+;   HL = $400 (1024 cycle count)
+; ---  End  ---
+;   PITCH_UP_BOOL = 0 (pitch down)
+;   Falls through to PLAY_PITCH_CHANGE
+;
+; Memory Modified: PITCH_UP_BOOL, stack
+; Calls: PLAY_PITCH_CHANGE (fall-through)
+;==============================================================================
 SUB_ram_cdbf:
     LD          A,0x0                               ; Load value 0
     PUSH        AF                                  ; Save to stack
@@ -1000,6 +2347,35 @@ SUB_ram_cdbf:
     LD          A,0x0                               ; Load value 0
     LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to down
     JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
+
+;==============================================================================
+; SUB_ram_cdd3
+;==============================================================================
+; Sound delay/pitch routine with alternate parameters. Sets up different pitch
+; change characteristics than SUB_ram_cdbf.
+;
+; Inputs:
+;   None (uses fixed parameter values)
+;
+; Outputs:
+;   Sound played with specific pitch characteristics
+;   Falls through to PLAY_PITCH_CHANGE
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 0
+;   BC = $a0 (160 duration)
+;   DE = $8 (8 pitch step)
+;   HL = $800 (2048 cycle count)
+; ---  End  ---
+;   PITCH_UP_BOOL = 0 (pitch down)
+;   Falls through to PLAY_PITCH_CHANGE
+;
+; Memory Modified: PITCH_UP_BOOL, stack
+; Calls: PLAY_PITCH_CHANGE (fall-through)
+;==============================================================================
 SUB_ram_cdd3:
     LD          A,0x0                               ; Load value 0
     PUSH        AF                                  ; Save to stack
@@ -1009,6 +2385,34 @@ SUB_ram_cdd3:
     LD          A,0x0                               ; Load value 0
     LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to down
     JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
+
+;==============================================================================
+; SUB_ram_cde7
+;==============================================================================
+; Short delay/pitch routine with minimal parameters. Used for brief sound delays.
+;
+; Inputs:
+;   None (uses fixed parameter values)
+;
+; Outputs:
+;   Brief sound/delay played
+;   Falls through to PLAY_PITCH_CHANGE
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 0
+;   BC = $a0 (160 duration)
+;   DE = $1 (1 pitch step - minimal change)
+;   HL = $2 (2 cycle count - very short)
+; ---  End  ---
+;   PITCH_UP_BOOL = 0 (pitch down)
+;   Falls through to PLAY_PITCH_CHANGE
+;
+; Memory Modified: PITCH_UP_BOOL, stack
+; Calls: PLAY_PITCH_CHANGE (fall-through)
+;==============================================================================
 SUB_ram_cde7:
     LD          A,0x0                               ; Load value 0
     PUSH        AF                                  ; Save to stack
@@ -1265,10 +2669,44 @@ DO_HC_SHIFT_ACTIONS:
     LD          A,$c6                               ; Compare to K4 + DL chord
     CP          L                                   ; Check L register
     JP          Z,DO_TELEPORT                       ; Teleport if matched
-    CP          H                                   ; Check H register
-    JP          Z,DO_TELEPORT                       ; Teleport if matched
     JP          NO_ACTION_TAKEN                     ; No action matched
 
+;==============================================================================
+; DRAW_BKGD
+;==============================================================================
+; Draws viewport background including ceiling gradient, floor, and checks for
+; active battle to display monster health bar.
+;
+; Background Layers:
+; - Clears viewport with spaces (24x24 character area)
+; - Upper ceiling: 8 rows DKGRY on BLK
+; - Lower ceiling: 6 rows BLK on BLK  
+; - Upper floor: 5 rows DKGRN on DKGRY
+; - Lower floor: 5 rows BLK on DKGRY (12 wide centered)
+; - Battle check: If monster active, redraw health bar
+;
+; Inputs:
+;   None (uses fixed viewport addresses)
+;
+; Outputs:
+;   Viewport background drawn
+;   Monster health bar updated if in battle
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = fill values and color codes
+;   HL = CHRRAM/COLRAM viewport addresses
+;   BC = rectangle dimensions
+;   C  = row counts
+;   DE = $28 row stride (from DRAW_CHRCOLS)
+; ---  End  ---
+;   All registers modified
+;
+; Memory Modified: CHRRAM and COLRAM viewport area
+; Calls: FILL_CHRCOL_RECT, DRAW_CHRCOLS, REDRAW_MONSTER_HEALTH (conditional)
+;==============================================================================
 DRAW_BKGD:
     LD          A,$20                               ; Set VIEWPORT fill chars to SPACE
     LD          HL,CHRRAM_VIEWPORT_IDX              ; Set CHRRAM starting point at the beginning of the VIEWPORT
@@ -1306,10 +2744,65 @@ DRAW_BKGD:
     RET                                             ; Return to caller
 NOT_IN_BATTLE:
     RET                                             ; Return to caller
+
+;==============================================================================
+; WIPE_VARIABLE_SPACE
+;==============================================================================
+; Clears variable storage space in RAM ($3900-$3AFF). Writes zeros to 765 bytes
+; (255 iterations \u00d7 3 bytes each), then initializes blink timer.
+;
+; Inputs:
+;   None
+;
+; Outputs:
+;   Variable space cleared to zero
+;   NEXT_BLINK_CHECK initialized to $3A62
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 0
+;   HL = $3900, incremented through variable space
+;   B  = $FF (255), decremented to 0
+; ---  End  ---
+;   A  = 0
+;   HL = $3A62
+;   B  = 0
+;
+; Memory Modified: $3900-$3AFF (variable space), NEXT_BLINK_CHECK
+; Calls: Falls through to CLEAR_MAP_SPACE loop
+;==============================================================================
 WIPE_VARIABLE_SPACE:
     LD          A,0x0                               ; Load value 0
     LD          HL,$3900                            ; Point to start of variable space
     LD          B,$ff                               ; Set loop counter to 255
+
+;==============================================================================
+; CLEAR_MAP_SPACE
+;==============================================================================
+; Loop that clears 3 bytes per iteration. Alternative entry point for map clearing.
+;
+; Inputs:
+;   A  = 0 (value to write)
+;   HL = starting address
+;   B  = iteration count
+;
+; Outputs:
+;   3\u00d7B bytes cleared
+;   HL advanced by 3\u00d7B
+;
+; Registers:
+; --- In Process ---
+;   HL = incremented by 3 each iteration
+;   B  = decremented each iteration
+; ---  End  ---
+;   HL = start + (3 \u00d7 iterations)
+;   B  = 0
+;
+; Memory Modified: 3\u00d7B bytes starting at HL
+; Calls: None
+;==============================================================================
 CLEAR_MAP_SPACE:
     LD          (HL),A                              ; Clear byte at HL
     INC         HL                                  ; Move to next byte
@@ -1322,6 +2815,42 @@ CLEAR_MAP_SPACE:
     LD          (NEXT_BLINK_CHECK),HL               ; Store blink check timer
     RET                                             ; Return to caller
 
+;==============================================================================
+; PLAY_POOF_ANIM
+;==============================================================================
+; Plays multi-frame "poof" disappearance animation with sound. Draws 6 frames
+; of animation at specified screen position with color transitions and delays.
+;
+; Animation Sequence:
+; 1. Frame 1: WHT on BLK (with POOF_SOUND)
+; 2. Frame 2: WHT on BLK
+; 3. Frame 3: WHT on BLK (position adjusted up by $29)
+; 4. Frame 4: BLK on BLK (fadeout)
+; 5. Frame 5: BLK on BLK
+; 6. Frame 6: DKGRN on BLK (final)
+;
+; Inputs:
+;   HL = screen position for animation center
+;
+; Outputs:
+;   Animation played at HL position
+;   AF' swapped at end
+;
+; Registers:
+; --- Start ---
+;   HL = screen position
+; --- In Process ---
+;   DE = POOF_1 graphics data
+;   B  = color values ($70, $80, $d0)
+;   HL = pushed/popped, adjusted by $29
+;   BC'/DE'/HL' = swapped for sound/delay
+; ---  End  ---
+;   HL = original position (restored from stack)
+;   AF' = swapped
+;
+; Memory Modified: Screen area around HL
+; Calls: POOF_SOUND, GFX_DRAW, TOGGLE_ITEM_POOF_AND_WAIT
+;==============================================================================
 PLAY_POOF_ANIM:
     PUSH        HL                                  ; Save HL register value
     LD          DE,POOF_1                           ; DE = Start of POOF animation graphic
@@ -1356,12 +2885,68 @@ PLAY_POOF_ANIM:
     CALL        GFX_DRAW                            ; Draw final frame
     EX          AF,AF'                              ; Swap AF with AF'
     RET                                             ; Return to caller
+
+;==============================================================================
+; TOGGLE_ITEM_POOF_AND_WAIT
+;==============================================================================
+; Frame delay routine for poof animation. Swaps to alternate register set,
+; performs SLEEP delay, then swaps back.
+;
+; Inputs:
+;   None (uses alternate register set)
+;
+; Outputs:
+;   Delay executed
+;
+; Registers:
+; --- Start ---
+;   Main registers preserved via EXX
+; --- In Process ---
+;   BC' = DAT_ram_3200 (delay cycle count)
+;   Alternate registers used by SLEEP
+; ---  End  ---
+;   Main registers restored via EXX
+;
+; Memory Modified: None directly (SLEEP may modify timer state)
+; Calls: SLEEP
+;==============================================================================
 TOGGLE_ITEM_POOF_AND_WAIT:
     EXX                                             ; Swap BC DE HL with BC' DE' HL'
     LD          BC,DAT_ram_3200                     ; Load cycle count for delay
     CALL        SLEEP                               ; byte SLEEP(short cycleCount)
     EXX                                             ; Swap BC DE HL with BC' DE' HL'
     RET                                             ; Return to caller
+
+;==============================================================================
+; MONSTER_KILLED
+;==============================================================================
+; Handles monster death sequence. Plays poof animation, removes monster from
+; item map, clears monster stats, and updates viewport. Special handling for
+; Minotaur death (final boss).
+;
+; Inputs:
+;   PLAYER_MAP_POS = current player position
+;   DIR_FACING_HI = direction offset (high byte)
+;
+; Outputs:
+;   Monster removed from map
+;   Monster stats cleared
+;   Viewport updated
+;   Jumps to MINOTAUR_DEAD if monster is Minotaur ($9F)
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = CHRRAM_MONSTER_POOF_IDX, then DIR_FACING_HI
+;   A  = player position calculations, item number
+;   BC = item map RAM location (from ITEM_MAP_CHECK)
+; ---  End  ---
+;   Jumps to MINOTAUR_DEAD or UPDATE_VIEWPORT
+;
+; Memory Modified: Item map entry (set to $FE), monster stats cleared
+; Calls: PLAY_POOF_ANIM, ITEM_MAP_CHECK, CLEAR_MONSTER_STATS, UPDATE_VIEWPORT (jump)
+;==============================================================================
 MONSTER_KILLED:
     LD          HL,CHRRAM_MONSTER_POOF_IDX          ; Point to monster poof position
     CALL        PLAY_POOF_ANIM                      ; Play poof animation
@@ -1380,16 +2965,98 @@ MONSTER_KILLED:
     CALL        CLEAR_MONSTER_STATS                 ; Clear monster statistics
     POP         HL                                  ; Restore HL
     JP          UPDATE_VIEWPORT                     ; Update viewport display
+
+;==============================================================================
+; TOGGLE_SHIFT_MODE
+;==============================================================================
+; Toggles shift mode on/off and updates shift mode indicator color. If shift
+; mode is currently active, resets it; otherwise sets it.
+;
+; Shift Mode States:
+; - Off: Bit 1 of GAME_BOOLEANS = 0, indicator = WHT on BLK ($F0)
+; - On:  Bit 1 of GAME_BOOLEANS = 1, indicator = DKGRN on BLK ($D0)
+;
+; Inputs:
+;   GAME_BOOLEANS = current game state flags
+;
+; Outputs:
+;   Shift mode toggled
+;   Indicator color updated
+;   Jumps to INPUT_DEBOUNCE
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = GAME_BOOLEANS value, then indicator color
+; ---  End  ---
+;   Jumps to SET_SHIFT_MODE or RESET_SHIFT_MODE
+;
+; Memory Modified: GAME_BOOLEANS (bit 1), COLRAM_SHIFT_MODE_IDX
+; Calls: SET_SHIFT_MODE or RESET_SHIFT_MODE (fall-through)
+;==============================================================================
 TOGGLE_SHIFT_MODE:
     LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
     BIT         0x1,A                               ; NZ if SHIFT MODE active
     JP          NZ,RESET_SHIFT_MODE                 ; If set, reset shift mode
+
+;==============================================================================
+; SET_SHIFT_MODE
+;==============================================================================
+; Activates shift mode by setting bit 1 in GAME_BOOLEANS and updating the
+; on-screen indicator to dark green.
+;
+; Inputs:
+;   A = GAME_BOOLEANS (from TOGGLE_SHIFT_MODE)
+;
+; Outputs:
+;   Shift mode activated
+;   Indicator updated to DKGRN on BLK
+;   Jumps to INPUT_DEBOUNCE
+;
+; Registers:
+; --- Start ---
+;   A  = GAME_BOOLEANS
+; --- In Process ---
+;   A  = modified flags, then $D0
+; ---  End  ---
+;   Jumps to INPUT_DEBOUNCE
+;
+; Memory Modified: GAME_BOOLEANS (bit 1 set), COLRAM_SHIFT_MODE_IDX
+; Calls: INPUT_DEBOUNCE (jump)
+;==============================================================================
 SET_SHIFT_MODE:
     SET         0x1,A                               ; Set SHIFT MODE boolean
     LD          (GAME_BOOLEANS),A                   ; Store updated flags
     LD          A,$d0                               ; DKGRN on BLK (shift indicator)
     LD          (COLRAM_SHIFT_MODE_IDX),A           ; Update shift mode color
     JP          INPUT_DEBOUNCE                      ; Debounce input
+
+;==============================================================================
+; RESET_SHIFT_MODE
+;==============================================================================
+; Deactivates shift mode by clearing bit 1 in GAME_BOOLEANS and updating the
+; on-screen indicator to white.
+;
+; Inputs:
+;   None
+;
+; Outputs:
+;   Shift mode deactivated
+;   Indicator updated to WHT on BLK
+;   Jumps to INPUT_DEBOUNCE
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = GAME_BOOLEANS, modified flags, then $F0
+; ---  End  ---
+;   Jumps to INPUT_DEBOUNCE
+;
+; Memory Modified: GAME_BOOLEANS (bit 1 cleared), COLRAM_SHIFT_MODE_IDX
+; Calls: INPUT_DEBOUNCE (jump)
+;==============================================================================
 RESET_SHIFT_MODE:
     LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
     RES         0x1,A                               ; Reset SHIFT MODE boolean
@@ -1397,6 +3064,34 @@ RESET_SHIFT_MODE:
     LD          A,$f0                               ; WHT on BLK (normal indicator)
     LD          (COLRAM_SHIFT_MODE_IDX),A           ; Update shift mode color
     JP          INPUT_DEBOUNCE                      ; Debounce input
+
+;==============================================================================
+; SHOW_AUTHOR
+;==============================================================================
+; Displays author/credits text and waits for input. Shows "Originally programmed
+; by Tom L..." message.
+;
+; Inputs:
+;   None
+;
+; Outputs:
+;   Author text displayed
+;   Jumps to WAIT_FOR_INPUT
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = CHRRAM_AUTHORS_IDX
+;   DE = AUTHORS text pointer
+;   B  = $20 (32 bytes length)
+;   A  = $FF
+; ---  End  ---
+;   Jumps to WAIT_FOR_INPUT
+;
+; Memory Modified: CHRRAM author text area
+; Calls: GFX_DRAW, WAIT_FOR_INPUT (jump)
+;==============================================================================
 SHOW_AUTHOR:
     LD          HL,CHRRAM_AUTHORS_IDX               ; Point to author text area
     LD          DE,AUTHORS                          ; = "   Originally programmed by Tom L...
@@ -1404,12 +3099,67 @@ SHOW_AUTHOR:
     CALL        GFX_DRAW                            ; Draw author text
     LD          A,$ff                               ; Load value 255
     JP          WAIT_FOR_INPUT                      ; Wait for input
+
+;==============================================================================
+; TIMER_UPDATE
+;==============================================================================
+; Increments TIMER_A by 1. Simple timer maintenance routine.
+;
+; Inputs:
+;   TIMER_A = current timer value (16-bit)
+;
+; Outputs:
+;   TIMER_A incremented by 1
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = TIMER_A value
+;   BC = 1
+; ---  End  ---
+;   HL = TIMER_A + 1
+;   BC = 1
+;
+; Memory Modified: TIMER_A
+; Calls: None
+;==============================================================================
 TIMER_UPDATE:
     LD          HL,(TIMER_A)                        ; Load TIMER_A value
     LD          BC,0x1                              ; Load increment value 1
     ADD         HL,BC                               ; Increment timer
     LD          (TIMER_A),HL                        ; Store updated timer
     RET                                             ; Return to caller
+
+;==============================================================================
+; BLINK_ROUTINE
+;==============================================================================
+; Title screen eye blink animation handler. Checks if on title screen (game not
+; started), then randomly blinks eyes if timer threshold reached.
+;
+; Inputs:
+;   GAME_BOOLEANS = bit 0 indicates if game started
+;   TIMER_B = current timer value
+;   NEXT_BLINK_CHECK = next blink trigger time
+;
+; Outputs:
+;   Eyes blinked if on title and timer threshold met
+;   Returns early if game already started
+;
+; Registers:
+; --- Start ---
+;   AF = pushed to stack
+; --- In Process ---
+;   A  = GAME_BOOLEANS, TIMER_B, NEXT_BLINK_CHECK, R (random)
+;   BC = pushed (if blinking), $8000 (delay)
+;   HL = pushed (if blinking)
+;   DE = pushed (if blinking)
+; ---  End  ---
+;   All registers restored via exit paths
+;
+; Memory Modified: NEXT_BLINK_CHECK (if blinking), screen eye areas
+; Calls: DO_CLOSE_EYES, SLEEP, DO_OPEN_EYES (if blinking)
+;==============================================================================
 BLINK_ROUTINE:
     PUSH        AF                                  ; Save AF register
     LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
@@ -1440,6 +3190,34 @@ STILL_ON_TITLE:
     CALL        SLEEP                               ; byte SLEEP(short cycleCount)
     CALL        DO_OPEN_EYES                        ; Open eyes animation
     JP          BLINK_EXIT_ALL                      ; Exit and restore all registers
+
+;==============================================================================
+; DO_OPEN_EYES
+;==============================================================================
+; Draws open eyes on title screen by copying character and color data from
+; TITLE_SCREEN ROM to screen RAM.
+;
+; Inputs:
+;   None (uses fixed ROM and RAM addresses)
+;
+; Outputs:
+;   Open eyes drawn on title screen
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   DE = target addresses ($32d6, $36d6)
+;   HL = source addresses (TS_EYES_OPEN_CHR, TS_EYES_OPTN_COL)
+;   BC = $44 (68 bytes to copy)
+; ---  End  ---
+;   DE = $36d6 + 68
+;   HL = TS_EYES_OPTN_COL + 68
+;   BC = 0
+;
+; Memory Modified: Character area $32d6-$331A, color area $36d6-$371A
+; Calls: None (uses LDIR)
+;==============================================================================
 DO_OPEN_EYES:
     LD          DE,$32d6                            ; Point to eyes character area
     LD          HL,TS_EYES_OPEN_CHR                 ; Pinned to TITLE_SCREEN (0xD800) + 726; WAS 0xdad6
@@ -1450,6 +3228,39 @@ DO_OPEN_EYES:
     LD          BC,$44                              ; Set byte count to 68
     LDIR                                            ; Copy open eyes colors
     RET                                             ; Return to caller
+
+;==============================================================================
+; DO_CLOSE_EYES
+;==============================================================================
+; Draws closed eyes on title screen by writing closed eye characters and colors
+; directly to screen RAM. Uses BC register pair as character/color source.
+;
+; BC Values:
+; - B = $D1 (closed eye character for most positions)
+; - C = $D0 (closed eye character variant)
+; - B = $F0, C = $0F (color values for closed eyes)
+;
+; Inputs:
+;   None (uses fixed screen addresses)
+;
+; Outputs:
+;   Closed eyes drawn on title screen
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = screen positions ($32d6, $32fe, $36d6, $36fe)
+;   BC = $D1D0 (characters), then $F00F (colors)
+;   DE = $1A (row offset)
+; ---  End  ---
+;   HL = $36fe area
+;   BC = $F00F
+;   DE = $1A
+;
+; Memory Modified: Character areas at $32d6 and $32fe, color areas at $36d6 and $36fe
+; Calls: None
+;==============================================================================
 DO_CLOSE_EYES:
     LD          HL,$32d6                            ; Point to eyes character area
     LD          BC,$d1d0                            ; Value, not an address (closed eye chars)
@@ -1487,6 +3298,44 @@ DO_CLOSE_EYES:
     DEC         HL                                  ; Move back one position
     LD          (HL),B                              ; Set color for closed eye
     RET                                             ; Return to caller
+
+;==============================================================================
+; DRAW_ICON_BAR
+;==============================================================================
+; Draws UI icon bar characters across bottom of screen. Displays level indicator,
+; navigation arrow, ladder, item, monster, map, armor, helmet, and ring icons.
+;
+; Icon Layout (left to right):
+; - Halftone borders ($85, $95)
+; - Up arrow (8)
+; - Ladder ($48 'H')
+; - Item ($D3)
+; - Monster ($93)
+; - Halftone border ($85)
+; - Map ($D1)
+; - Armor ($9D)
+; - Helmet ($0E)
+; - Ring ($6F 'o')
+;
+; Inputs:
+;   None (uses fixed screen address)
+;
+; Outputs:
+;   Icon bar drawn to CHRRAM
+;
+; Registers:
+; --- Start ---
+;   AF = pushed to stack
+;   HL = pushed to stack
+; --- In Process ---
+;   HL = CHRRAM_LEVEL_IND_L, incremented through icon positions
+; ---  End  ---
+;   AF = restored
+;   HL = restored
+;
+; Memory Modified: CHRRAM icon bar area (CHRRAM_LEVEL_IND_L + offsets)
+; Calls: None
+;==============================================================================
 DRAW_ICON_BAR:
     PUSH        AF                                  ; Save AF register
     PUSH        HL                                  ; Save HL register
@@ -1527,6 +3376,31 @@ DRAW_ICON_BAR:
     POP         HL                                  ; Restore HL register
     POP         AF                                  ; Restore AF register
     RET                                             ; Return to caller
+
+;==============================================================================
+; DRAW_COMPASS
+;==============================================================================
+; Draws compass direction indicator ('n' for north) on screen with DKBLU color.
+;
+; Inputs:
+;   None (uses fixed addresses)
+;
+; Outputs:
+;   Compass drawn at DAT_ram_31af with color at DAT_ram_35d8
+;
+; Registers:
+; --- Start ---
+;   AF, BC, HL, DE = pushed to stack
+; --- In Process ---
+;   B  = $B0 (DKBLU on BLK color)
+;   HL = DAT_ram_31af, then DAT_ram_35d8
+;   DE = COMPASS graphics data
+; ---  End  ---
+;   All registers restored
+;
+; Memory Modified: CHRRAM at DAT_ram_31af, COLRAM at DAT_ram_35d8 = $10
+; Calls: GFX_DRAW
+;==============================================================================
 DRAW_COMPASS:
     PUSH        AF                                  ; Save AF register (DKBLU on BLK)
     PUSH        BC                                  ; Save BC register
@@ -1543,6 +3417,35 @@ DRAW_COMPASS:
     POP         BC                                  ; Restore BC register
     POP         AF                                  ; Restore AF register
     RET                                             ; Return to caller
+
+;==============================================================================
+; WIPE_WALLS
+;==============================================================================
+; Clears wall data area ($3800) by writing zeros to 256 bytes, then updates
+; viewport display and debounces input.
+;
+; Inputs:
+;   None
+;
+; Outputs:
+;   Wall data cleared
+;   Viewport updated
+;   Jumps to INPUT_DEBOUNCE
+;
+; Registers:
+; --- Start ---
+;   AF, BC, HL = pushed to stack
+; --- In Process ---
+;   HL = $3800, incremented to $3900
+;   BC = 0 (B used as loop counter: 256 iterations)
+;   A  = 0
+; ---  End  ---
+;   AF, BC, HL = restored
+;   Jumps to INPUT_DEBOUNCE
+;
+; Memory Modified: $3800-$38FF (256 bytes)
+; Calls: UPDATE_VIEWPORT, INPUT_DEBOUNCE (jump)
+;==============================================================================
 WIPE_WALLS:
     PUSH        AF                                  ; Save AF register
     PUSH        BC                                  ; Save BC register
@@ -1579,6 +3482,37 @@ DRAW_WALL_FL2:
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
     JP          DRAW_CHRCOLS                        ; Fill right wall
 
+;==============================================================================
+; FIX_ICON_COLORS
+;==============================================================================
+; Sets icon bar colors based on INPUT_HOLDER value. Updates level indicator
+; colors (4 positions) and fills remaining icon area with WHT on BLK.
+;
+; Color Calculation:
+; - Level indicator color = (INPUT_HOLDER * 2) - 1
+; - Remaining icons = $F0 (WHT on BLK) for 19 positions
+;
+; Inputs:
+;   INPUT_HOLDER = input mode value
+;
+; Outputs:
+;   Icon bar colors updated
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_LEVEL_IDX_L, COLRAM_SHIFT_MODE_IDX
+;   A  = calculated color value, then $F0
+;   BC = $1300 (B=19 loop counter, C=0)
+; ---  End  ---
+;   HL = end of icon color area
+;   B  = 0
+;   A  = $F0
+;
+; Memory Modified: COLRAM icon bar area (level indicator + 19 icon positions)
+; Calls: None
+;==============================================================================
 FIX_ICON_COLORS:
     LD          HL,COLRAM_LEVEL_IDX_L               ; Point to level indicator color area
     LD          A,(INPUT_HOLDER)                    ; Load input holder value
