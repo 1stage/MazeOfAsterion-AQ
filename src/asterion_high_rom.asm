@@ -9932,14 +9932,14 @@ LAB_ram_f94c:
     RRCA                                            ; Test bit 2 (door open flag)
     JP          NC,LAB_ram_f986                     ; If door closed, continue
 LAB_ram_f95f:
-    CALL        SUB_ram_ccaf                        ; Draw hidden door on FR1
+    CALL        DRAW_DOOR_FR1_A_HIDDEN              ; Draw hidden door on FR1
     JP          LAB_ram_f986                        ; Continue to F1 item check
 LAB_ram_f965:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          NC,LAB_ram_f973                     ; If no wall, check FR2
     RRCA                                            ; Test bit 2 (door open flag)
     JP          C,LAB_ram_f95f                      ; If door open, draw door
-    CALL        SUB_ram_ccb5                        ; Draw normal door on FR1
+    CALL        DRAW_DOOR_FR1_A_NORMAL              ; Draw normal door on FR1
     JP          LAB_ram_f986                        ; Continue to F1 item check
 LAB_ram_f973:
     INC         E                                   ; Move to FR2 wall state

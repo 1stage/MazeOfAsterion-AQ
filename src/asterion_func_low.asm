@@ -1665,7 +1665,7 @@ DRAW_DOOR_FR1_B:
 ;==============================================================================
 ; Draws FR1 wall edge characters and colors with angle brackets and color
 ; gradients. Creates visible edges and door opening in middle. Mirror of
-; SUB_ram_c9f9 for right side.
+; DRAW_WALL_L1_SIMPLE for right side.
 ;
 ; Registers:
 ; --- Start ---
@@ -1994,7 +1994,7 @@ DRAW_WALL_FR1_A:
     JP          DRAW_CHRCOLS                        ; Fill character area
 
 ;==============================================================================
-; SUB_ram_ccaf
+; DRAW_DOOR_FR1_A_HIDDEN
 ;==============================================================================
 ; Draws hidden door at FR1_A position - appears as wall with black overlay.
 ;
@@ -2004,18 +2004,18 @@ DRAW_WALL_FR1_A:
 ; --- In Process ---
 ;   A  = 0 (BLK on BLK)
 ; ---  End  ---
-;   Jumps to LAB_ram_ccba
+;   Jumps to DRAW_DOOR_FR1_A
 ;
 ; Memory Modified: FR1_A wall and door areas
-; Calls: DRAW_WALL_FR1_A, jumps to LAB_ram_ccba
+; Calls: DRAW_WALL_FR1_A, jumps to DRAW_DOOR_FR1_A1_A
 ;==============================================================================
-SUB_ram_ccaf:
+DRAW_DOOR_FR1_A_HIDDEN:
     CALL        DRAW_WALL_FR1_A                     ; Draw FR1_A wall background
     XOR         A                                   ; A = 0 (BLK on BLK - hidden)
-    JP          LAB_ram_ccba                        ; Jump to door drawing
+    JP          DRAW_DOOR_FR1_A                     ; Jump to door drawing
 
 ;==============================================================================
-; SUB_ram_ccb5
+; DRAW_DOOR_FR1_A_NORMAL
 ;==============================================================================
 ; Draws normal door at FR1_A position - dark green overlay.
 ;
@@ -2025,17 +2025,17 @@ SUB_ram_ccaf:
 ; --- In Process ---
 ;   A  = COLOR(DKGRN,DKGRN)
 ; ---  End  ---
-;   Falls through to LAB_ram_ccba
+;   Falls through to DRAW_DOOR_FR1_A
 ;
 ; Memory Modified: FR1_A wall and door areas
-; Calls: DRAW_WALL_FR1_A, falls through to LAB_ram_ccba
+; Calls: DRAW_WALL_FR1_A, falls through to DRAW_DOOR_FR1_A1_A
 ;==============================================================================
-SUB_ram_ccb5:
+DRAW_DOOR_FR1_A_NORMAL:
     CALL        DRAW_WALL_FR1_A                     ; Draw FR1_A wall background
     LD          A,COLOR(DKGRN,DKGRN)                ; DKGRN on DKGRN (normal door)
 
 ;==============================================================================
-; LAB_ram_ccba
+; DRAW_DOOR_FR1_A
 ;==============================================================================
 ; Draws FR1_A door overlay - fills 2x6 door area with color in A register.
 ;
@@ -2051,7 +2051,7 @@ SUB_ram_ccb5:
 ; Memory Modified: COLRAM at door position (2x6)
 ; Calls: Jumps to DRAW_CHRCOLS
 ;==============================================================================
-LAB_ram_ccba:
+DRAW_DOOR_FR1_A:
     LD          HL,DAT_ram_35ca                     ; Point to door area
     LD          BC,RECT(2,6)                        ; 2 x 6 rectangle
     JP          DRAW_CHRCOLS                        ; Fill door area
