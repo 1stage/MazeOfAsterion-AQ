@@ -46,7 +46,9 @@ DRAW_SINGLE_CHAR_UP:
     LD          (HL),A                              ; Draw character at current position
     SCF                                             ; Set carry flag 
     CCF                                             ; Clear carry flag (prepare for SBC)
-    SBC         HL,DE                               ; Move cursor up by DE amount;==============================================================================
+    SBC         HL,DE                               ; Move cursor up by DE amount
+    
+;==============================================================================
 ; DRAW_VERTICAL_LINE_3_UP
 ;==============================================================================
 ; Draws 3-character vertical line moving upward from starting position.
@@ -1659,7 +1661,7 @@ DRAW_DOOR_FR1_B:
     JP          DRAW_CHRCOLS                        ; Fill door area
 
 ;==============================================================================
-; SUB_ram_cbe2
+; DRAW_WALL_R1_SIMPLE
 ;==============================================================================
 ; Draws FR1 wall edge characters and colors with angle brackets and color
 ; gradients. Creates visible edges and door opening in middle. Mirror of
@@ -1682,46 +1684,46 @@ DRAW_DOOR_FR1_B:
 ; Memory Modified: CHRRAM and COLRAM at FR1 wall edges and door area
 ; Calls: DRAW_CHRCOLS, jumps to DRAW_CHRCOLS
 ;==============================================================================
-SUB_ram_cbe2:
-    LD          HL,DAT_ram_317f
-    LD          A,CHAR_RT_ANGLE						; Right angle char
-    LD          (HL),A
-    LD          DE,$28                              ; Stride is 40
-    ADD         HL,DE
-    DEC         HL
-    LD          (HL),A
-    LD          HL,DAT_ram_326e
-    LD          A,CHAR_LT_ANGLE						; Left angle char
-    LD          (HL),A
-    ADD         HL,DE
-    INC         HL
-    LD          (HL),A
-    LD          HL,DAT_ram_357f
+DRAW_WALL_R1_SIMPLE:
+    LD          HL,DAT_ram_317f                     ; Point to top-right character position
+    LD          A,CHAR_RT_ANGLE						; Right angle bracket character
+    LD          (HL),A                              ; Draw right angle at top-right
+    LD          DE,$28                              ; Set stride to 40
+    ADD         HL,DE                               ; Move down one row
+    DEC         HL                                  ; Move left one cell (stride 39)
+    LD          (HL),A                              ; Draw right angle again
+    LD          HL,DAT_ram_326e                     ; Point to top-left character position
+    LD          A,CHAR_LT_ANGLE						; Left angle bracket character
+    LD          (HL),A                              ; Draw left angle at top-left
+    ADD         HL,DE                               ; Move down one row
+    INC         HL                                  ; Move right one cell (stride 41)
+    LD          (HL),A                              ; Draw left angle again
+    LD          HL,DAT_ram_357f                     ; Point to top-right color position
     LD          A,COLOR(DKBLU,DKGRY)			    ; DKBLU on DKGRY
-    LD          (HL),A
-    ADD         HL,DE
-    DEC         HL
-    LD          (HL),A
-    INC         HL
+    LD          (HL),A                              ; Set color at top-right
+    ADD         HL,DE                               ; Move down one row
+    DEC         HL                                  ; Move left one cell
+    LD          (HL),A                              ; Set color at next position
+    INC         HL                                  ; Move right one cell
     LD          A,COLOR(BLK,DKGRY)			    	; BLK on DKGRY
-    LD          (HL),A
+    LD          (HL),A                              ; Set color
     LD          BC,RECT(2,4)					    ; 2 x 4 rectangle
-    ADD         HL,DE
-    DEC         HL
-    CALL        DRAW_CHRCOLS
-    ADD         HL,DE
-    INC         HL
-    LD          (HL),A
-    DEC         HL
+    ADD         HL,DE                               ; Move to next row
+    DEC         HL                                  ; Move left one cell
+    CALL        DRAW_CHRCOLS                        ; Fill middle section
+    ADD         HL,DE                               ; Move to next row
+    INC         HL                                  ; Move right one cell
+    LD          (HL),A                              ; Set color at bottom-right
+    DEC         HL                                  ; Move left one cell
     LD          A,COLOR(BLK,DKGRY)					; BLK on DKGRY
-    LD          (HL),A
-    ADD         HL,DE
-    INC         HL
-    LD          (HL),A
-    LD          HL,COLRAM_FR22_WALL_IDX
-    LD          C,0x4
-    LD          A,COLOR(BLK,BLK)
-    JP          DRAW_CHRCOLS
+    LD          (HL),A                              ; Set color at bottom-left
+    ADD         HL,DE                               ; Move to next row
+    INC         HL                                  ; Move right one cell
+    LD          (HL),A                              ; Set final color
+    LD          HL,COLRAM_FR22_WALL_IDX             ; Point to FR22 door area
+    LD          C,0x4                               ; Set height to 4
+    LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (door opening)
+    JP          DRAW_CHRCOLS                        ; Fill door area
 
 ;==============================================================================
 ; DRAW_WALL_FR22_EMPTY
