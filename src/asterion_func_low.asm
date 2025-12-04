@@ -2223,7 +2223,7 @@ DRAW_RIGHT_DOOR:
     JP          (IX)                                ; Return to caller
 
 ;==============================================================================
-; SUB_ram_cd21
+; DRAW_WALL_FR2_A
 ;==============================================================================
 ; Draws FR2 left solid wall section - 2x4 colored area with bottom edge line.
 ;
@@ -2240,7 +2240,7 @@ DRAW_RIGHT_DOOR:
 ; Memory Modified: COLRAM at FR2 left + CHRRAM bottom edge
 ; Calls: FILL_CHRCOL_RECT, jumps to DRAW_CHRCOLS
 ;==============================================================================
-SUB_ram_cd21:
+DRAW_WALL_FR2_A:
     LD          HL,COLRAM_FR2_LEFT                  ; FR2_LEFT_SOLID area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
@@ -2251,7 +2251,7 @@ SUB_ram_cd21:
     JP          DRAW_CHRCOLS                        ; Fill bottom edge
 
 ;==============================================================================
-; SUB_ram_cd2c
+; DRAW_WALL_FR2_A_EMPTY
 ;==============================================================================
 ; Draws FR2 left open/empty section - black 2x4 rectangle for empty corridor.
 ;
@@ -2268,7 +2268,7 @@ SUB_ram_cd21:
 ; Memory Modified: COLRAM at FR2 left position (2x4)
 ; Calls: Jumps to FILL_CHRCOL_RECT
 ;==============================================================================
-SUB_ram_cd2c:
+DRAW_WALL_FR2_A_EMPTY:
     LD          HL,COLRAM_FR2_LEFT                  ; FR2_LEFT_OPEN area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)

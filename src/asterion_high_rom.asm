@@ -9831,12 +9831,12 @@ LAB_ram_f8a0:
     RRCA                                            ; Test bit 0 (hidden door flag)
     JP          NC,LAB_ram_f8b0                     ; If no hidden door, check bit 1
 LAB_ram_f8aa:
-    CALL        SUB_ram_cd21                        ; Draw R2 right wall
+    CALL        DRAW_WALL_FR2_A                     ; Draw R2 right wall
     JP          LAB_ram_f8b7                        ; Continue to F2 item check
 LAB_ram_f8b0:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          C,LAB_ram_f8aa                      ; If wall exists, draw it
-    CALL        SUB_ram_cd2c                        ; Draw empty R2 right space
+    CALL        DRAW_WALL_FR2_A_EMPTY               ; Draw empty R2 right space
 LAB_ram_f8b7:
     LD          A,(ITEM_F2)                         ; Load item at F2 position
     LD          BC,$48a                             ; BC = distance/size parameters
