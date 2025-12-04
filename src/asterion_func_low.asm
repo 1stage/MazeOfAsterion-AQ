@@ -1925,6 +1925,38 @@ DRAW_DOOR_FR1_B:
     LD          HL,COLRAM_FR22_WALL_IDX             ; Point to FR22 wall area for door
     LD          BC,RECT(2,6)                        ; 2 x 6 rectangle
     JP          DRAW_CHRCOLS                        ; Fill door area
+
+;==============================================================================
+; SUB_ram_cbe2
+;==============================================================================
+; Draws FR1 wall edge characters and colors with angle brackets and color
+; gradients. Creates visible edges and door opening in middle. Mirror of
+; SUB_ram_c9f9 for right side.
+;
+; Inputs:
+;   None (uses fixed memory addresses)
+;
+; Outputs:
+;   FR1 wall edge graphics drawn
+;   FR1 door opening colored
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = various CHRRAM and COLRAM addresses
+;   A  = character codes and color values
+;   DE = $28 (row stride)
+;   BC = RECT(2,4) for middle section
+; ---  End  ---
+;   HL = COLRAM_FR22_WALL_IDX
+;   C  = 4
+;   A  = COLOR(BLK,BLK)
+;   Jumps to DRAW_CHRCOLS
+;
+; Memory Modified: CHRRAM and COLRAM at FR1 wall edges and door area
+; Calls: DRAW_CHRCOLS, jumps to DRAW_CHRCOLS
+;==============================================================================
 SUB_ram_cbe2:
     LD          HL,DAT_ram_317f
     LD          A,CHAR_RT_ANGLE						; Right angle char
@@ -1965,11 +1997,64 @@ SUB_ram_cbe2:
     LD          C,0x4
     LD          A,COLOR(BLK,BLK)
     JP          DRAW_CHRCOLS
+
+;==============================================================================
+; DRAW_WALL_FR22_EMPTY
+;==============================================================================
+; Draws empty FR22 area - black 4x4 rectangle for empty/dark corridor.
+;
+; Inputs:
+;   None (uses fixed position)
+;
+; Outputs:
+;   FR22 area filled with black
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_FR22_WALL_IDX
+;   BC = RECT(4,4)
+;   A  = COLOR(BLK,BLK)
+; ---  End  ---
+;   Jumps to FILL_CHRCOL_RECT
+;
+; Memory Modified: COLRAM at FR22 position (4x4)
+; Calls: Jumps to FILL_CHRCOL_RECT
+;==============================================================================
 DRAW_WALL_FR22_EMPTY:
     LD          HL,COLRAM_FR22_WALL_IDX             ; Point to FR22 wall color area
     LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
     JP          FILL_CHRCOL_RECT                    ; Fill area with black
+
+;==============================================================================
+; DRAW_WALL_R1
+;==============================================================================
+; Draws right wall at mid-distance (R1) - uses stack-based corner pattern with
+; characters and colors. Mirror of DRAW_L1_WALL.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   R1 wall drawn with corner patterns in characters and colors
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = CHRRAM_R1_WALL_IDX, then COLRAM_R1_WALL_IDX
+;   BC = RECT(4,8)
+;   A  = various characters and colors
+;   C  = 8 (height)
+;   Stack = left angle, space, edge color, wall color
+; ---  End  ---
+;   Returns to caller
+;
+; Memory Modified: CHRRAM and COLRAM at R1 wall positions
+; Calls: DRAW_R1_CORNERS (twice for chars and colors)
+;==============================================================================
 DRAW_WALL_R1:
     LD          A,CHAR_LT_ANGLE                     ; Left angle character
     PUSH        AF                                  ; Save to stack for later
@@ -1988,6 +2073,45 @@ DRAW_WALL_R1:
     LD          HL,COLRAM_R1_WALL_IDX               ; Point to R1 wall color area
     CALL        DRAW_R1_CORNERS                     ; Draw colors
     RET                                             ; Return to caller
+
+;==============================================================================
+; DRAW_R0_CORNERS
+;==============================================================================
+; Helper routine for drawing R0 wall corner patterns. Uses stack for colors
+; and IX for return address. Draws top char, upper corner, middle fill.
+;
+; Stack Usage (caller pushes in reverse order):
+;   [Top] Edge color (for top char)
+;   Wall color (for middle fill)
+;   [Bottom] Return address (moved to IX)
+;
+; Inputs:
+;   HL = starting position
+;   A  = character/color for top and corners
+;   BC = dimensions for DRAW_CHRCOLS
+;   Stack = [RetAddr][wall color][edge color]
+;
+; Outputs:
+;   Corner pattern drawn
+;   Returns to caller (via JP (IX))
+;   DE = $29 on return
+;
+; Registers:
+; --- Start ---
+;   HL = position
+;   A  = value
+;   BC = dimensions
+; --- In Process ---
+;   IX = return address
+;   DE = $27, $28, $29 (stride adjustments)
+;   Stack popped for colors
+; ---  End  ---
+;   DE = $29
+;   Returns via JP (IX)
+;
+; Memory Modified: Corner pattern at and below HL
+; Calls: DRAW_SINGLE_CHAR_UP, DRAW_DR_3X3_CORNER, DRAW_CHRCOLS
+;==============================================================================
 DRAW_R0_CORNERS:
     POP         IX                                  ; Save RET address to IX
     LD          DE,$27                              ; Stride is 39 / $27
@@ -2003,6 +2127,44 @@ DRAW_R0_CORNERS:
     INC         DE                                  ; Increase stride to 41
     JP          (IX)                                ; Return to caller
 
+;==============================================================================
+; DRAW_R1_CORNERS
+;==============================================================================
+; Helper routine for drawing R1 wall corner patterns. Uses stack and IX.
+; More complex than R0: draws top, upper corner, middle fill, lower corner,
+; and bottom vertical line.
+;
+; Stack Usage (caller pushes in reverse order):
+;   [Top] Value for bottom line
+;   Second value (middle fill)
+;   [Bottom] Return address (moved to IX)
+;
+; Inputs:
+;   HL = starting position
+;   A  = character/color for top
+;   BC = dimensions (typically RECT(4,8))
+;   Stack = [RetAddr][2nd value][bottom value]
+;
+; Outputs:
+;   R1 corner pattern drawn
+;   Returns to caller (via JP (IX))
+;
+; Registers:
+; --- Start ---
+;   HL = position
+;   A  = value
+;   BC = dimensions
+; --- In Process ---
+;   IX = return address
+;   DE = $27, $28, $29 (stride adjustments)
+;   Stack popped for values
+; ---  End  ---
+;   Returns via JP (IX)
+;
+; Memory Modified: R1 corner pattern at and below HL
+; Calls: DRAW_SINGLE_CHAR_UP, DRAW_DR_3X3_CORNER, DRAW_CHRCOLS,
+;        DRAW_UR_3X3_CORNER, DRAW_VERTICAL_LINE_3_UP
+;==============================================================================
 DRAW_R1_CORNERS:
     POP         IX                                  ; Save RET address to IX
     LD          DE,$27                              ; Stride is 39 / $27
@@ -2023,6 +2185,29 @@ DRAW_R1_CORNERS:
     CALL        DRAW_VERTICAL_LINE_3_UP             ; Draw vertical line
     JP          (IX)                                ; Return to caller
 
+;==============================================================================
+; DRAW_DOOR_R1_HIDDEN
+;==============================================================================
+; Draws hidden door at R1 position - appears as wall with subtle coloring.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   R1 wall with hidden door overlay drawn
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = various colors pushed to stack
+;   Stack = edge, body, background colors
+; ---  End  ---
+;   Jumps to DRAW_DOOR_R1
+;
+; Memory Modified: R1 wall and door areas
+; Calls: DRAW_WALL_R1, jumps to DRAW_DOOR_R1
+;==============================================================================
 DRAW_DOOR_R1_HIDDEN:
     CALL        DRAW_WALL_R1                        ; Draw R1 wall background
     LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (hidden door edge)
@@ -2031,6 +2216,31 @@ DRAW_DOOR_R1_HIDDEN:
     PUSH        AF                                  ; Save to stack for later
     LD          A,COLOR(BLK,DKBLU)                  ; BLK on DKBLU (background)
     JP          DRAW_DOOR_R1                        ; Draw door with hidden colors
+
+;==============================================================================
+; DRAW_DOOR_R1_NORMAL
+;==============================================================================
+; Draws normal visible door at R1 position - green door overlay.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   R1 wall with normal door overlay drawn
+;   Falls through to DRAW_DOOR_R1
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = various colors pushed to stack
+;   Stack = edge, frame, body colors
+; ---  End  ---
+;   Falls through to DRAW_DOOR_R1
+;
+; Memory Modified: R1 wall and door areas
+; Calls: DRAW_WALL_R1, falls through to DRAW_DOOR_R1
+;==============================================================================
 DRAW_DOOR_R1_NORMAL:
     CALL        DRAW_WALL_R1                        ; Draw R1 wall background
     LD          A,COLOR(DKGRY,DKGRN)                ; DKGRY on DKGRN (normal door edge)
@@ -2038,6 +2248,35 @@ DRAW_DOOR_R1_NORMAL:
     LD          A,COLOR(GRN,DKGRN)                  ; GRN on DKGRN (normal door frame)
     PUSH        AF                                  ; Save to stack for later
     LD          A,COLOR(DKGRN,DKBLU)                ; DKGRN on DKBLU (door body)
+
+;==============================================================================
+; DRAW_DOOR_R1
+;==============================================================================
+; Draws R1 door overlay - 2x7 door with diagonal fill pattern using stacked
+; colors, plus right angle bracket characters. Mirror of DRAW_L1_DOOR.
+;
+; Inputs:
+;   A = first color value for diagonal pattern
+;   Stack = two color values for SUB_ram_cd07
+;
+; Outputs:
+;   R1 door drawn with colors and characters
+;
+; Registers:
+; --- Start ---
+;   A = first color
+;   Stack = [2nd color][3rd color]
+; --- In Process ---
+;   HL = DAT_ram_357a (colors), then DAT_ram_317a (chars)
+;   BC = RECT(2,7)
+;   DE = $27 (stride 39)
+;   A  = CHAR_RT_ANGLE
+; ---  End  ---
+;   Returns to caller
+;
+; Memory Modified: COLRAM and CHRRAM at R1 door positions
+; Calls: SUB_ram_cd07
+;==============================================================================
 DRAW_DOOR_R1:
     LD          HL,DAT_ram_357a                     ; Point to R1 door area
     LD          BC,RECT(2,7)                        ; 2 x 7 rectangle
@@ -2049,6 +2288,33 @@ DRAW_DOOR_R1:
     ADD         HL,DE                               ; Move to next row
     LD          (HL),A                              ; Draw right angle again
     RET                                             ; Return to caller
+
+;==============================================================================
+; DRAW_WALL_FR1_A
+;==============================================================================
+; Draws front-right wall variant A at mid-distance (FR1_A) - 4x8 with colors
+; then space chars.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   FR1_A wall drawn (colors then chars)
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_WALL_FR1_A_IDX, then CHRRAM_WALL_FR1_A_IDX
+;   BC = RECT(4,8)
+;   A  = COLOR(BLU,DKBLU), then $20 (SPACE)
+;   C  = 8 (height reset)
+; ---  End  ---
+;   Jumps to DRAW_CHRCOLS
+;
+; Memory Modified: COLRAM and CHRRAM at FR1_A positions (4x8)
+; Calls: FILL_CHRCOL_RECT, jumps to DRAW_CHRCOLS
+;==============================================================================
 DRAW_WALL_FR1_A:
     LD          HL,COLRAM_WALL_FR1_A_IDX            ; Point to FR1_A wall color area
     LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
@@ -2058,17 +2324,115 @@ DRAW_WALL_FR1_A:
     LD          C,0x8                               ; Set height to 8
     LD          A,$20                               ; SPACE character (32 / $20)
     JP          DRAW_CHRCOLS                        ; Fill character area
+
+;==============================================================================
+; SUB_ram_ccaf
+;==============================================================================
+; Draws hidden door at FR1_A position - appears as wall with black overlay.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   FR1_A wall with hidden door (black) drawn
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 0 (BLK on BLK)
+; ---  End  ---
+;   Jumps to LAB_ram_ccba
+;
+; Memory Modified: FR1_A wall and door areas
+; Calls: DRAW_WALL_FR1_A, jumps to LAB_ram_ccba
+;==============================================================================
 SUB_ram_ccaf:
     CALL        DRAW_WALL_FR1_A                     ; Draw FR1_A wall background
     XOR         A                                   ; A = 0 (BLK on BLK - hidden)
     JP          LAB_ram_ccba                        ; Jump to door drawing
+
+;==============================================================================
+; SUB_ram_ccb5
+;==============================================================================
+; Draws normal door at FR1_A position - dark green overlay.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   FR1_A wall with normal door drawn
+;   Falls through to LAB_ram_ccba
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = COLOR(DKGRN,DKGRN)
+; ---  End  ---
+;   Falls through to LAB_ram_ccba
+;
+; Memory Modified: FR1_A wall and door areas
+; Calls: DRAW_WALL_FR1_A, falls through to LAB_ram_ccba
+;==============================================================================
 SUB_ram_ccb5:
     CALL        DRAW_WALL_FR1_A                     ; Draw FR1_A wall background
     LD          A,COLOR(DKGRN,DKGRN)                ; DKGRN on DKGRN (normal door)
+
+;==============================================================================
+; LAB_ram_ccba
+;==============================================================================
+; Draws FR1_A door overlay - fills 2x6 door area with color in A register.
+;
+; Inputs:
+;   A = door color (DKGRN,DKGRN for normal; BLK,BLK for hidden)
+;
+; Outputs:
+;   Door area filled with specified color
+;
+; Registers:
+; --- Start ---
+;   A  = door color
+; --- In Process ---
+;   HL = DAT_ram_35ca
+;   BC = RECT(2,6)
+; ---  End  ---
+;   Jumps to DRAW_CHRCOLS
+;
+; Memory Modified: COLRAM at door position (2x6)
+; Calls: Jumps to DRAW_CHRCOLS
+;==============================================================================
 LAB_ram_ccba:
     LD          HL,DAT_ram_35ca                     ; Point to door area
     LD          BC,RECT(2,6)                        ; 2 x 6 rectangle
     JP          DRAW_CHRCOLS                        ; Fill door area
+
+;==============================================================================
+; DRAW_WALL_FR2
+;==============================================================================
+; Draws front-right wall at far distance (FR2) - left and right 2x4 sections
+; with bottom edge line.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   FR2 left and right wall sections drawn with bottom line
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = DAT_ram_35ca (left), then COLRAM_FR2_RIGHT, then bottom chars
+;   BC = RECT(2,4), then RECT(4,1)
+;   A  = COLOR(BLK,DKGRY), then CHAR_BOTTOM_LINE
+;   C  = 4 (height reset)
+; ---  End  ---
+;   Jumps to DRAW_CHRCOLS
+;
+; Memory Modified: COLRAM at FR2 positions + CHRRAM bottom edge
+; Calls: FILL_CHRCOL_RECT, DRAW_CHRCOLS, jumps to DRAW_CHRCOLS
+;==============================================================================
 DRAW_WALL_FR2:
     LD          HL,DAT_ram_35ca                     ; Point to FR2 left wall area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
@@ -2083,11 +2447,63 @@ DRAW_WALL_FR2:
     LD          A,CHAR_BOTTOM_LINE                  ; Bottom line character
     JP          DRAW_CHRCOLS                        ; Fill bottom edge
 
+;==============================================================================
+; DRAW_WALL_FR2_EMPTY
+;==============================================================================
+; Draws empty FR2 right area - black 4x4 rectangle for empty/dark corridor.
+;
+; Inputs:
+;   None (uses fixed position)
+;
+; Outputs:
+;   FR2 right area filled with black
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_FR2_RIGHT
+;   BC = RECT(4,4)
+;   A  = COLOR(BLK,BLK)
+; ---  End  ---
+;   Jumps to FILL_CHRCOL_RECT
+;
+; Memory Modified: COLRAM at FR2 right position (4x4)
+; Calls: Jumps to FILL_CHRCOL_RECT
+;==============================================================================
 DRAW_WALL_FR2_EMPTY:
     LD          HL,COLRAM_FR2_RIGHT                 ; Point to FR2 right wall area
     LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
     JP          FILL_CHRCOL_RECT                    ; Fill area with black
+
+;==============================================================================
+; DRAW_WALL_R2
+;==============================================================================
+; Draws right wall at far distance (R2) - uses diagonal pattern with stacked
+; colors and slash/angle characters. Mirror of DRAW_WALL_L2.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   R2 wall drawn with diagonal color pattern and characters
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = DAT_ram_3577 (colors), then character positions
+;   BC = RECT(2,4)
+;   A  = various colors, then $da (left slash), then CHAR_RT_ANGLE
+;   DE = stride from SUB_ram_cd07, then decremented
+;   Stack = two wall colors
+; ---  End  ---
+;   Returns to caller
+;
+; Memory Modified: COLRAM and CHRRAM at R2 positions via diagonal pattern
+; Calls: SUB_ram_cd07
+;==============================================================================
 DRAW_WALL_R2:
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
     PUSH        AF                                  ; Save to stack for later
@@ -2169,6 +2585,31 @@ SUB_ram_cd07:
     ADD         HL,DE                               ; Move to next row
     LD          (HL),A                              ; Draw color at position
     JP          (IX)                                ; Return to caller
+
+;==============================================================================
+; SUB_ram_cd21
+;==============================================================================
+; Draws FR2 left solid wall section - 2x4 colored area with bottom edge line.
+;
+; Inputs:
+;   None (uses fixed position)
+;
+; Outputs:
+;   FR2 left section drawn with colors and bottom line
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_FR2_LEFT, then bottom row chars
+;   BC = RECT(2,4), then RECT(4,1)
+;   A  = COLOR(BLK,DKGRY), then CHAR_BOTTOM_LINE
+; ---  End  ---
+;   Jumps to DRAW_CHRCOLS
+;
+; Memory Modified: COLRAM at FR2 left + CHRRAM bottom edge
+; Calls: FILL_CHRCOL_RECT, jumps to DRAW_CHRCOLS
+;==============================================================================
 SUB_ram_cd21:
     LD          HL,COLRAM_FR2_LEFT                  ; FR2_LEFT_SOLID area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
@@ -2179,13 +2620,61 @@ SUB_ram_cd21:
     LD          A,CHAR_BOTTOM_LINE                  ; Bottom line character
     JP          DRAW_CHRCOLS                        ; Fill bottom edge
 
+;==============================================================================
+; SUB_ram_cd2c
+;==============================================================================
+; Draws FR2 left open/empty section - black 2x4 rectangle for empty corridor.
+;
+; Inputs:
+;   None (uses fixed position)
+;
+; Outputs:
+;   FR2 left area filled with black
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_FR2_LEFT
+;   BC = RECT(2,4)
+;   A  = COLOR(BLK,BLK)
+; ---  End  ---
+;   Jumps to FILL_CHRCOL_RECT
+;
+; Memory Modified: COLRAM at FR2 left position (2x4)
+; Calls: Jumps to FILL_CHRCOL_RECT
+;==============================================================================
 SUB_ram_cd2c:
     LD          HL,COLRAM_FR2_LEFT                  ; FR2_LEFT_OPEN area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
     JP          FILL_CHRCOL_RECT                    ; Fill with black
 
-
+;==============================================================================
+; LAB_ram_cd3d (Sound Routine 1)
+;==============================================================================
+; Plays repeating sound sequence - SOUND_04, delay, SOUND_02, SOUND_01.
+; Loops 8 times with delays between iterations.
+;
+; Inputs:
+;   None
+;
+; Outputs:
+;   Sound sequence played 8 times
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 8 (sound repeat count and loop counter)
+;   B  = 8 (loop counter, decremented to 0)
+;   BC = pushed/popped each iteration
+; ---  End  ---
+;   B  = 0
+;
+; Memory Modified: SOUND_REPEAT_COUNT
+; Calls: SOUND_04, SUB_ram_cde7, SOUND_02, SOUND_01
+;==============================================================================
     LD          A,0x8                               ; Load sound repeat count
     LD          (SOUND_REPEAT_COUNT),A              ; Store repeat count
     LD          B,A                                 ; Set loop counter to 8
@@ -2198,6 +2687,31 @@ LAB_ram_cd3d:
     POP         BC                                  ; Restore loop counter
     DJNZ        LAB_ram_cd3d                        ; Repeat B times
     RET                                             ; Return to caller
+
+;==============================================================================
+; LAB_ram_cd54 (Sound Routine 2)
+;==============================================================================
+; Plays repeating sound sequence - SOUND_02, SOUND_03. Loops 7 times.
+;
+; Inputs:
+;   None
+;
+; Outputs:
+;   Sound sequence played 7 times
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 7 (sound repeat count and loop counter)
+;   B  = 7 (loop counter, decremented to 0)
+;   BC = pushed/popped each iteration
+; ---  End  ---
+;   B  = 0
+;
+; Memory Modified: SOUND_REPEAT_COUNT
+; Calls: SOUND_02, SOUND_03
+;==============================================================================
     LD          A,0x7                               ; Load sound repeat count
     LD          (SOUND_REPEAT_COUNT),A              ; Store repeat count
     LD          B,A                                 ; Set loop counter to 7
@@ -2208,6 +2722,33 @@ LAB_ram_cd54:
     POP         BC                                  ; Restore loop counter
     DJNZ        LAB_ram_cd54                        ; Repeat B times
     RET                                             ; Return to caller
+
+;==============================================================================
+; SUB_ram_cd5f (Sound Routine 3)
+;==============================================================================
+; Plays repeating sound sequence - SOUND_04, SOUND_05. Loops 10 times then
+; jumps to SUB_ram_cdbf for additional sound processing.
+;
+; Inputs:
+;   None
+;
+; Outputs:
+;   Sound sequence played 10 times, then SUB_ram_cdbf executed
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 10 (sound repeat count and loop counter)
+;   B  = 10 (loop counter, decremented to 0)
+;   BC = pushed/popped each iteration
+; ---  End  ---
+;   B  = 0
+;   Jumps to SUB_ram_cdbf
+;
+; Memory Modified: SOUND_REPEAT_COUNT
+; Calls: SOUND_04, SOUND_05, jumps to SUB_ram_cdbf
+;==============================================================================
 SUB_ram_cd5f:
     LD          A,0xa                               ; Load sound repeat count
     LD          (SOUND_REPEAT_COUNT),A              ; Store repeat count
@@ -2422,9 +2963,62 @@ SUB_ram_cde7:
     LD          A,0x0                               ; Load value 0
     LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to down
     JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
+
+;==============================================================================
+; SETUP_OPEN_DOOR_SOUND
+;==============================================================================
+; Sets up parameters for door opening sound - rising pitch effect.
+;
+; Inputs:
+;   None (uses fixed parameter values)
+;
+; Outputs:
+;   Door opening sound played
+;   Falls through to LO_HI_PITCH_SOUND
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   DE = $f (15 pitch step)
+;   HL = $580 (1408 cycle count)
+; ---  End  ---
+;   Falls through to LO_HI_PITCH_SOUND
+;
+; Memory Modified: None directly
+; Calls: LO_HI_PITCH_SOUND (fall-through)
+;==============================================================================
 SETUP_OPEN_DOOR_SOUND:
     LD          DE,0xf                              ; Set DE to 15
     LD          HL,$580                             ; Set HL to 1408
+
+;==============================================================================
+; LO_HI_PITCH_SOUND
+;==============================================================================
+; Plays rising pitch sound effect (low to high). Sets pitch direction to up
+; and plays pitch change sound.
+;
+; Inputs:
+;   DE = pitch step value (from caller)
+;   HL = cycle count (from caller)
+;
+; Outputs:
+;   Rising pitch sound played
+;
+; Registers:
+; --- Start ---
+;   DE = pitch step
+;   HL = cycle count
+; --- In Process ---
+;   BC = $8 (8 duration)
+;   A  = 0, then 1
+; ---  End  ---
+;   PITCH_UP_BOOL = 1 (pitch up)
+;   Jumps to PLAY_PITCH_CHANGE
+;
+; Memory Modified: PITCH_UP_BOOL, stack
+; Calls: Jumps to PLAY_PITCH_CHANGE
+;==============================================================================
 LO_HI_PITCH_SOUND:
     LD          BC,0x8                              ; Set BC to 8
     LD          A,0x0                               ; Load value 0
@@ -2432,15 +3026,97 @@ LO_HI_PITCH_SOUND:
     LD          A,0x1                               ; Load value 1
     LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to up
     JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
+
+;==============================================================================
+; SETUP_CLOSE_DOOR_SOUND
+;==============================================================================
+; Sets up parameters for door closing sound - falling pitch effect.
+;
+; Inputs:
+;   None (uses fixed parameter values)
+;
+; Outputs:
+;   Door closing sound played
+;   Falls through to HI_LO_PITCH_SOUND
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = $5 (5 cycle count)
+;   DE = $c (12 pitch step)
+; ---  End  ---
+;   Falls through to HI_LO_PITCH_SOUND
+;
+; Memory Modified: None directly
+; Calls: HI_LO_PITCH_SOUND (fall-through)
+;==============================================================================
 SETUP_CLOSE_DOOR_SOUND:
     LD          HL,0x5                              ; Set HL to 5
     LD          DE,0xc                              ; Set DE to 12
+
+;==============================================================================
+; HI_LO_PITCH_SOUND
+;==============================================================================
+; Plays falling pitch sound effect (high to low). Sets pitch direction to down
+; and plays pitch change sound.
+;
+; Inputs:
+;   HL = cycle count (from caller)
+;   DE = pitch step value (from caller)
+;
+; Outputs:
+;   Falling pitch sound played
+;
+; Registers:
+; --- Start ---
+;   HL = cycle count
+;   DE = pitch step
+; --- In Process ---
+;   BC = $e (14 duration)
+;   A  = 0
+; ---  End  ---
+;   PITCH_UP_BOOL = 0 (pitch down)
+;   Jumps to PLAY_PITCH_CHANGE
+;
+; Memory Modified: PITCH_UP_BOOL, stack
+; Calls: Jumps to PLAY_PITCH_CHANGE
+;==============================================================================
 HI_LO_PITCH_SOUND:
     LD          BC,0xe                              ; Set BC to 14
     XOR         A                                   ; A = 0
     PUSH        AF                                  ; Save to stack
     LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to down
     JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
+
+;==============================================================================
+; SOUND_01
+;==============================================================================
+; Basic sound effect 1 - rising pitch with moderate duration.
+;
+; Parameters: BC=$30 (48), DE=$2 (2), HL=$100 (256), pitch up
+;
+; Inputs:
+;   None
+;
+; Outputs:
+;   Sound played
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 0, then 1
+;   BC = $30 (48 duration)
+;   DE = $2 (2 pitch step)
+;   HL = $100 (256 cycles)
+; ---  End  ---
+;   PITCH_UP_BOOL = 1 (pitch up)
+;   Jumps to PLAY_PITCH_CHANGE
+;
+; Memory Modified: PITCH_UP_BOOL, stack
+; Calls: Jumps to PLAY_PITCH_CHANGE
+;==============================================================================
 SOUND_01:
     LD          A,0x0                               ; Load value 0
     PUSH        AF                                  ; Save to stack
@@ -2450,6 +3126,35 @@ SOUND_01:
     LD          A,0x1                               ; Load value 1
     LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to up
     JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
+
+;==============================================================================
+; SOUND_02
+;==============================================================================
+; Sound effect 2 - quick rising pitch with higher step.
+;
+; Parameters: BC=$1a (26), DE=$10 (16), HL=$300 (768), pitch up
+;
+; Inputs:
+;   None
+;
+; Outputs:
+;   Sound played
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 0, then 1
+;   BC = $1a (26 duration)
+;   DE = $10 (16 pitch step)
+;   HL = $300 (768 cycles)
+; ---  End  ---
+;   PITCH_UP_BOOL = 1 (pitch up)
+;   Jumps to PLAY_PITCH_CHANGE
+;
+; Memory Modified: PITCH_UP_BOOL, stack
+; Calls: Jumps to PLAY_PITCH_CHANGE
+;==============================================================================
 SOUND_02:
     LD          A,0x0                               ; Load value 0
     PUSH        AF                                  ; Save to stack
@@ -2459,6 +3164,35 @@ SOUND_02:
     LD          A,0x1                               ; Load value 1
     LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to up
     JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
+
+;==============================================================================
+; SOUND_03
+;==============================================================================
+; Sound effect 3 - quick falling pitch, very short duration.
+;
+; Parameters: BC=$2a (42), DE=$a (10), HL=$4 (4), pitch down
+;
+; Inputs:
+;   None
+;
+; Outputs:
+;   Sound played
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 0
+;   BC = $2a (42 duration)
+;   DE = $a (10 pitch step)
+;   HL = $4 (4 cycles - very short)
+; ---  End  ---
+;   PITCH_UP_BOOL = 0 (pitch down)
+;   Jumps to PLAY_PITCH_CHANGE
+;
+; Memory Modified: PITCH_UP_BOOL, stack
+; Calls: Jumps to PLAY_PITCH_CHANGE
+;==============================================================================
 SOUND_03:
     LD          A,0x0                               ; Load value 0
     PUSH        AF                                  ; Save to stack
@@ -2468,6 +3202,35 @@ SOUND_03:
     LD          A,0x0                               ; Load value 0
     LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to down
     JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
+
+;==============================================================================
+; SOUND_04
+;==============================================================================
+; Sound effect 4 - short rising blip, low pitch.
+;
+; Parameters: BC=$20 (32), DE=$2 (2), HL=$55 (85), pitch up
+;
+; Inputs:
+;   None
+;
+; Outputs:
+;   Sound played
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 0, then 1
+;   BC = $20 (32 duration)
+;   DE = $2 (2 pitch step)
+;   HL = $55 (85 cycles)
+; ---  End  ---
+;   PITCH_UP_BOOL = 1 (pitch up)
+;   Jumps to PLAY_PITCH_CHANGE
+;
+; Memory Modified: PITCH_UP_BOOL, stack
+; Calls: Jumps to PLAY_PITCH_CHANGE
+;==============================================================================
 SOUND_04:
     LD          A,0x0                               ; Load value 0
     PUSH        AF                                  ; Save to stack
@@ -2477,6 +3240,35 @@ SOUND_04:
     LD          A,0x1                               ; Load value 1
     LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to up
     JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
+
+;==============================================================================
+; SOUND_05
+;==============================================================================
+; Sound effect 5 - minimal tick/click sound, very brief.
+;
+; Parameters: BC=$30 (48), DE=$1 (1), HL=$1 (1), pitch down
+;
+; Inputs:
+;   None
+;
+; Outputs:
+;   Sound played
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = 0
+;   BC = $30 (48 duration)
+;   DE = $1 (1 pitch step - minimal)
+;   HL = $1 (1 cycle - instant)
+; ---  End  ---
+;   PITCH_UP_BOOL = 0 (pitch down)
+;   Jumps to PLAY_PITCH_CHANGE
+;
+; Memory Modified: PITCH_UP_BOOL, stack
+; Calls: Jumps to PLAY_PITCH_CHANGE
+;==============================================================================
 SOUND_05:
     LD          A,0x0                               ; Load value 0
     PUSH        AF                                  ; Save to stack
@@ -2486,6 +3278,41 @@ SOUND_05:
     LD          A,0x0                               ; Load value 0
     LD          (PITCH_UP_BOOL),A                   ; Set pitch direction to down
     JP          PLAY_PITCH_CHANGE                   ; Play pitch change sound
+
+;==============================================================================
+; PLAY_PITCH_CHANGE
+;==============================================================================
+; Core sound engine - plays tone with dynamic pitch change (rising or falling).
+; Uses speaker toggle with variable cycle delays to produce pitch effects.
+;
+; Inputs:
+;   BC = duration (number of speaker toggles)
+;   DE = pitch step (cycle change per iteration)
+;   HL = initial cycle count (determines starting pitch)
+;   PITCH_UP_BOOL = direction (1=rising, 0=falling)
+;   Stack bottom = speaker state (0/1)
+;
+; Outputs:
+;   Sound played with pitch modulation
+;
+; Registers:
+; --- Start ---
+;   BC = duration counter
+;   DE = pitch step
+;   HL = initial cycles
+;   Stack = [speaker state]
+; --- In Process ---
+;   HL = current cycle count (modified each iteration)
+;   A  = temp for zero checks and speaker toggle
+;   Stack = speaker state (toggled 0/1)
+; ---  End  ---
+;   BC = 0 (exhausted)
+;   HL = original cycle count (restored from SND_CYCLE_HOLDER)
+;   F  = set from final OR
+;
+; Memory Modified: SND_CYCLE_HOLDER, SPEAKER port
+; Calls: INCREASE_PITCH or DECREASE_PITCH (internal jumps)
+;==============================================================================
 PLAY_PITCH_CHANGE:
     LD          (SND_CYCLE_HOLDER),HL               ; Store cycle count
 PLAY_PITCH_CHANGE_LOOP:
@@ -2504,6 +3331,36 @@ PLAY_PITCH_CHANGE_LOOP:
     POP         AF                                  ; Clean up stack
     LD          HL,(SND_CYCLE_HOLDER)               ; Restore cycle count
     RET                                             ; Return to caller
+
+;==============================================================================
+; INCREASE_PITCH
+;==============================================================================
+; Increases pitch by decreasing cycle count (higher frequency). Only executes
+; if PITCH_UP_BOOL is set.
+;
+; Inputs:
+;   DE = pitch step to subtract
+;   PITCH_UP_BOOL = direction flag (checked)
+;
+; Outputs:
+;   Pitch increased (cycle count decreased)
+;   Jumps back to PLAY_PITCH_CHANGE
+;
+; Registers:
+; --- Start ---
+;   DE = pitch step
+; --- In Process ---
+;   HL = PITCH_UP_BOOL address, then SND_CYCLE_HOLDER value
+;   A  = bit test result (discarded)
+;   F  = Z flag from BIT test
+; ---  End  ---
+;   HL = updated cycle count (decreased by DE)
+;   F  = carry from SBC
+;   Jumps to PLAY_PITCH_CHANGE or DECREASE_PITCH
+;
+; Memory Modified: SND_CYCLE_HOLDER (via PLAY_PITCH_CHANGE)
+; Calls: Jumps to PLAY_PITCH_CHANGE or DECREASE_PITCH
+;==============================================================================
 INCREASE_PITCH:
     LD          HL,PITCH_UP_BOOL                    ; Point to pitch direction flag
     BIT         0x0,(HL)                            ; Check if pitch up is set
@@ -2511,10 +3368,75 @@ INCREASE_PITCH:
     LD          HL,(SND_CYCLE_HOLDER)               ; Load current cycle count
     SBC         HL,DE                               ; Subtract pitch step (increase freq)
     JP          PLAY_PITCH_CHANGE                   ; Continue with new pitch
+
+;==============================================================================
+; DECREASE_PITCH
+;==============================================================================
+; Decreases pitch by increasing cycle count (lower frequency). Default path
+; when PITCH_UP_BOOL is not set.
+;
+; Inputs:
+;   DE = pitch step to add
+;
+; Outputs:
+;   Pitch decreased (cycle count increased)
+;   Jumps back to PLAY_PITCH_CHANGE
+;
+; Registers:
+; --- Start ---
+;   DE = pitch step
+; --- In Process ---
+;   HL = SND_CYCLE_HOLDER value
+; ---  End  ---
+;   HL = updated cycle count (increased by DE)
+;   F  = carry from ADD
+;   Jumps to PLAY_PITCH_CHANGE
+;
+; Memory Modified: SND_CYCLE_HOLDER (via PLAY_PITCH_CHANGE)
+; Calls: Jumps to PLAY_PITCH_CHANGE
+;==============================================================================
 DECREASE_PITCH:
     LD          HL,(SND_CYCLE_HOLDER)               ; Load current cycle count
     ADD         HL,DE                               ; Add pitch step (decrease freq)
     JP          PLAY_PITCH_CHANGE                   ; Continue with new pitch
+
+;==============================================================================
+; HC_JOY_INPUT_COMPARE
+;==============================================================================
+; Hand controller joystick input handler - maps 8-directional disc positions
+; plus button presses to game actions. Checks input mode flag and processes
+; joystick values from HC_INPUT_HOLDER.
+;
+; Direction Mapping:
+;   UP (UUL=$f3, UP=$fb, UUR=$eb)    -> Forward movement
+;   RIGHT (UR=$e9, RUR=$f9, R=$fd)   -> Turn right
+;   LEFT (LUL=$e7, UL=$e3, L=$f7)    -> Turn left
+;   DOWN (DDR=$fc, DOWN=$fe, DDL=$ee) -> Jump back
+;   DL (LDL=$f6, DL=$e6)             -> Glance left
+;   DR (RDR=$ed, DR=$ec)             -> Glance right
+;   K4 ($df)                         -> Toggle shift mode
+;
+; Inputs:
+;   RAM_AE = input mode ($31 = hand controller mode)
+;   HC_INPUT_HOLDER = [H][L] joystick state bytes
+;
+; Outputs:
+;   Jumps to appropriate action routine based on input
+;   Falls through to WAIT_FOR_INPUT if no match
+;
+; Registers:
+; --- Start ---
+;   None specific (loads from RAM)
+; --- In Process ---
+;   A  = mode flag, then joystick comparison values
+;   HL = joystick input bytes from HC_INPUT_HOLDER
+; ---  End  ---
+;   Varies (jumps to action or continues)
+;   F  = from final CP/BIT operations
+;
+; Memory Modified: None directly (action routines modify game state)
+; Calls: Jumps to various action routines or continues to game logic
+;==============================================================================
 HC_JOY_INPUT_COMPARE:
     LD          A,(RAM_AE)                          ; Load input mode flag
     CP          $31                                 ; Compare to "1" (handcontroller mode)
@@ -2635,6 +3557,41 @@ DO_HC_BUTTON_ACTIONS:
     CP          H                                   ; Check H register
     JP          Z,DO_ROTATE_PACK                    ; Rotate pack if matched
     JP          NO_ACTION_TAKEN                     ; No action matched
+
+;==============================================================================
+; DO_HC_SHIFT_ACTIONS
+;==============================================================================
+; Hand controller shift mode action handler - processes button inputs when
+; shift mode is active. Maps K1-K6 buttons to alternate game functions.
+;
+; Shift Mode Button Mapping:
+;   K1 ($bf) -> Use ladder
+;   K2 ($7b) -> No action
+;   K3 ($5f) -> No action
+;   K4 + DR chord ($cc) -> Max health/arrows/food (debug/cheat)
+;   K4 + DL chord ($c6) -> Teleport
+;   K5 ($7d) -> Swap hands
+;   K6 ($7e) -> Rest
+;
+; Inputs:
+;   HC_INPUT_HOLDER = [H][L] joystick state bytes
+;
+; Outputs:
+;   Jumps to appropriate action routine or NO_ACTION_TAKEN
+;
+; Registers:
+; --- Start ---
+;   None specific (loads from HC_INPUT_HOLDER)
+; --- In Process ---
+;   A  = button comparison values
+;   HL = joystick input bytes (from caller context)
+; ---  End  ---
+;   Varies (jumps to action routines)
+;   F  = from final CP operations
+;
+; Memory Modified: None directly (action routines modify game state)
+; Calls: Jumps to action routines (DO_USE_LADDER, DO_SWAP_HANDS, DO_REST, etc.)
+;==============================================================================
 DO_HC_SHIFT_ACTIONS:
     LD          A,$bf                               ; Compare to JOY K1
     CP          L                                   ; Check L register
@@ -3462,12 +4419,65 @@ WIPE_WALLS_LOOP:
     POP         AF                                  ; Restore AF register
     CALL        UPDATE_VIEWPORT                     ; Update viewport display
     JP          INPUT_DEBOUNCE                      ; Debounce input
+
+;==============================================================================
+; DRAW_WALL_FL22_EMPTY
+;==============================================================================
+; Draws empty FL22 (front-left level 2-2) area - black 4x4 rectangle for
+; empty/dark corridor section.
+;
+; Inputs:
+;   None (uses fixed position)
+;
+; Outputs:
+;   FL22 area filled with black
+;   Jumps to FILL_CHRCOL_RECT
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_FL22_WALL_IDX
+;   BC = RECT(4,4)
+;   A  = COLOR(BLK,BLK)
+; ---  End  ---
+;   Jumps to FILL_CHRCOL_RECT
+;
+; Memory Modified: COLRAM at FL22 position (4x4)
+; Calls: Jumps to FILL_CHRCOL_RECT
+;==============================================================================
 DRAW_WALL_FL22_EMPTY:
     LD          HL,COLRAM_FL22_WALL_IDX             ; Point to FL22 wall color area
     LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
     JP          FILL_CHRCOL_RECT                    ; Fill area with black (Was CALL, followed by the commented section)
 
+;==============================================================================
+; DRAW_WALL_FL2
+;==============================================================================
+; Draws front-left wall at far distance (FL2) - left and right 2x4 sections
+; with bottom edge line. Mirror of DRAW_WALL_FR2.
+;
+; Inputs:
+;   None (uses fixed positions)
+;
+; Outputs:
+;   FL2 left and right wall sections drawn with bottom line
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = $3234 (bottom chars), $35bc (left), $35be (right)
+;   BC = RECT(4,1), then RECT(2,4)
+;   A  = CHAR_BOTTOM_LINE, then COLOR(BLK,DKGRY)
+;   C  = 4 (height reset)
+; ---  End  ---
+;   Jumps to DRAW_CHRCOLS
+;
+; Memory Modified: CHRRAM bottom edge + COLRAM at FL2 positions (left/right)
+; Calls: FILL_CHRCOL_RECT, jumps to DRAW_CHRCOLS
+;==============================================================================
 DRAW_WALL_FL2:
     LD          HL,$3234                            ; Bottom CHARRAM IDX of FL2
     LD          BC,RECT(4,1)                        ; 4 x 1 rectangle
