@@ -10049,7 +10049,7 @@ LAB_ram_fa01:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          NC,LAB_ram_fa0f                     ; If no wall, draw empty
 LAB_ram_fa06:
-    CALL        SUB_ram_c9f9                        ; Draw wall
+    CALL        DRAW_WALL_L1                        ; Draw wall
     CALL        SUB_ram_f9e7                        ; Check and draw FL1 item
     JP          LAB_ram_fa19                        ; Continue to R0 walls
 LAB_ram_fa0f:

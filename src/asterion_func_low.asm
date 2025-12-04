@@ -884,7 +884,7 @@ DRAW_WALL_FL1_A:
 ;   Falls through to DRAW_DOOR_L1
 ;
 ; Memory Modified: L1 wall and door areas
-; Calls: DRAW_WALL_L1, falls through to DRAW_DOOR_L1
+; Calls: DRAW_WALL_FL1_A, falls through to DRAW_DOOR_L1
 ;==============================================================================
 DRAW_DOOR_L1_NORMAL:
     CALL        DRAW_WALL_FL1_A                     ; Draw L1 wall background
@@ -926,7 +926,7 @@ DRAW_DOOR_L1:
 ;   Jumps to DRAW_DOOR_L1
 ;
 ; Memory Modified: L1 wall and door areas
-; Calls: DRAW_WALL_L1, jumps to DRAW_DOOR_L1
+; Calls: DRAW_WALL_FL1_A, jumps to DRAW_DOOR_L1
 ;==============================================================================
 DRAW_DOOR_L1_HIDDEN:
     CALL        DRAW_WALL_FL1_A                     ; Draw L1 wall background
@@ -934,7 +934,7 @@ DRAW_DOOR_L1_HIDDEN:
     JP          DRAW_DOOR_L1                        ; Draw door with black color
 
 ;==============================================================================
-; SUB_ram_c9f9
+; DRAW_WALL_L1
 ;==============================================================================
 ; Draws L1 wall edge characters and colors with complex pattern of angle brackets
 ; and color gradients. Creates visible edges and door opening in middle.
@@ -956,7 +956,7 @@ DRAW_DOOR_L1_HIDDEN:
 ; Memory Modified: CHRRAM and COLRAM at L1 wall edges and door area
 ; Calls: DRAW_CHRCOLS (falls through)
 ;==============================================================================
-SUB_ram_c9f9:
+DRAW_WALL_L1:
     LD          HL,CHRRAM_L1_WALL_IDX               ; Point to L1 wall character area
     LD          A,CHAR_LT_ANGLE                     ; Left angle bracket character
     LD          (HL),A                              ; Draw left angle at top
