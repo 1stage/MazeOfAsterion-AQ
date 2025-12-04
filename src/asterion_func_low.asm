@@ -305,6 +305,12 @@ DRAW_UR_3X3_CORNER:
 ; Fills single horizontal row with specified byte value (character or color).
 ; Helper routine for FILL_CHRCOL_RECT. Recursive implementation.
 ;
+; Pattern:                 Execution Order:
+; X X X ... X              1 2 3 ... B
+;
+; Where X = fill value in A, drawn left-to-right until B reaches 0.
+; Note: Actual width depends on B parameter. Example shows conceptual pattern.
+;
 ; Registers:
 ; --- Start ---
 ;   HL = start position
@@ -333,6 +339,17 @@ DRAW_ROW:
 ;==============================================================================
 ; Fills single vertical column with specified byte value (character or color).
 ; Moves downward by row stride (DE, typically $28=40). Recursive implementation.
+;
+; Pattern:    Execution Order:
+; X           1
+; X           2
+; X           3
+; .           .
+; .           .
+; X           C
+;
+; Where X = fill value in A, drawn top-to-bottom until C reaches 0.
+; Note: Actual height depends on C parameter. Example shows conceptual pattern.
 ;
 ; Registers:
 ; --- Start ---
@@ -366,10 +383,21 @@ DRAW_COLUMN:
 ; Used for drawing walls, doors, backgrounds, and UI elements by writing
 ; the same character or color to multiple screen positions in a rectangle.
 ;
+; Pattern:     _            Execution Order:
+; X X X ... X  ^            1    2    3 ... B     (first row)
+; X X X ... X  |            B+1         ... 2B    (second row)
+; X X X ... X  C            2B+1        ... 3B    (third row)
+; . . . ... .  |            ...
+; X X X ... X  v            (C-1)B+1    ... C*B   (last row)
+; |<-- B -->|  -
+;
+; Where X = fill value in A. Draws row-by-row, left-to-right, top-to-bottom.
+; Note: Actual dimensions depend on B (width) and C (height) parameters.
+;
 ; Registers:
 ; --- Start ---
 ;   HL = start address
-;   BC = dimensions
+;   BC = dimensions (B=width, C=height)
 ;   A  = fill value
 ; --- In Process ---
 ;   A  = preserved
