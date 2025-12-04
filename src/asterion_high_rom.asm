@@ -63,9 +63,13 @@ RESET_ITEM_ANIM_VARS_LOOP:
     LD          H,A                                 ; Copy random byte to H
     LD          (RNDHOLD_AA),HL                     ; Seed random hold variable
     
-; PSG_MIXER_RESET - Initialize PSG mixer and silence all channels
+;==============================================================================
+; PSG_MIXER_RESET
+;==============================================================================
+; Initialize PSG mixer and silence all channels
 ;   - Selects AY/PSG register 7 (mixer control)
 ;   - Writes mask $3F disabling tone + noise on A/B/C
+;
 ; Registers:
 ; --- Start ---
 ;   BC = $007F (port latch), A = $07 (register select)
@@ -74,6 +78,10 @@ RESET_ITEM_ANIM_VARS_LOOP:
 ; --- End ---
 ;   All mixer outputs disabled (silenced)
 ;   Falls through to COLRAM clear and title setup
+;
+; Memory Modified: PSG registers via ports $7F/$7E
+; Calls: None (falls through to subsequent code)
+;==============================================================================
 PSG_MIXER_RESET:
     LD          BC,$7f                              ; Select PSG mixer register (B holds high port, C=$7F latch)
     LD          A,0x7                               ; A = PSG register select value
@@ -111,10 +119,14 @@ CLEAR_COLRAM_DEFAULT:
     CALL        DRAW_TITLE                          ; Draw title screen (CHR + COLRAM)
     JP          INPUT_DEBOUNCE                      ; Transfer to input debounce handler (no return)
 
-; DRAW_TITLE - Copy title screen graphics to display memory
+;==============================================================================
+; DRAW_TITLE
+;==============================================================================
+; Copy title screen graphics to display memory
 ;   - Copies 1000 bytes of character data from TITLE_SCREEN to CHRRAM
 ;   - Copies 1000 bytes of color data from TITLE_SCREEN_COL to COLRAM
 ;   - Uses Z80 LDIR instruction for fast block memory transfer
+;
 ; Registers:
 ; --- Start ---
 ;   None
@@ -127,6 +139,9 @@ CLEAR_COLRAM_DEFAULT:
 ;   DE = $33E8 (CHRRAM end), then $37E8 (COLRAM end)
 ;   HL = End of source data (TITLE_SCREEN + 1000, TITLE_SCREEN_COL + 1000)
 ;
+; Memory Modified: CHRRAM, COLRAM (1000 bytes each)
+; Calls: None (uses LDIR instruction)
+;==============================================================================
 DRAW_TITLE:
     LD          DE,CHRRAM                           ; DE = destination (CHR screen base)
     LD          HL,TITLE_SCREEN                     ; HL = source character data
@@ -138,13 +153,17 @@ DRAW_TITLE:
     LDIR								            ; Bulk copy colors
     RET								                ; Return to caller
 
-; BLANK_SCRN - Clear screen and initialize game UI elements
+;==============================================================================
+; BLANK_SCRN
+;==============================================================================
+; Clear screen and initialize game UI elements
 ;   - Clears CHRRAM with SPACE characters and COLRAM with DKGRY on BLK
 ;   - Draws stats panel with DKGRN on BLK color scheme
 ;   - Initializes player health (PHYS=48/$30, SPRT=21/$15)
 ;   - Sets starting inventory (FOOD=20, ARROWS=20)
 ;   - Draws starting equipment (BOW left hand, BUCKLER right hand)
 ;   - Generates dungeon map and renders initial viewport
+;
 ; Registers:
 ; --- Start ---
 ;   None
@@ -163,6 +182,9 @@ DRAW_TITLE:
 ;   Initial viewport rendered
 ;   Control transfers to DO_SWAP_HANDS
 ;
+; Memory Modified: CHRRAM, COLRAM, PLAYER_*_HEALTH, FOOD_INV, ARROW_INV, MAPSPACE_WALLS
+; Calls: FILL_FULL_1024, FILL_CHRCOL_RECT, GFX_DRAW, REDRAW_STATS, FIX_ICON_COLORS, DRAW_COMPASS, BUILD_MAP, UPDATE_VIEWPORT, DO_SWAP_HANDS
+;==============================================================================
 BLANK_SCRN:
     LD          HL,CHRRAM                           ; HL = CHR screen start
     LD          B,$20                               ; B = SPACE character value
@@ -212,10 +234,14 @@ BLANK_SCRN:
     LD          B,$10                               ; B = $10 (standard shield base level)
     JP          ADJUST_SHIELD_LEVEL                 ; Continue shield setup
 
-; SET_ALT_SHIELD_BASE - Set base shield level for alternative path
+;==============================================================================
+; SET_ALT_SHIELD_BASE
+;==============================================================================
+; Set base shield level for alternative path
 ;   - Entry point for shield initialization when carry flag is set
 ;   - Sets B register to $30 as base shield level
 ;   - Falls through to ADJUST_SHIELD_LEVEL for final configuration
+;
 ; Registers:
 ; --- Start ---
 ;   A = Carry flag set from previous RRCA
@@ -224,14 +250,21 @@ BLANK_SCRN:
 ; ---  End  ---
 ;   Falls through to ADJUST_SHIELD_LEVEL
 ;
+; Memory Modified: None
+; Calls: None (falls through)
+;==============================================================================
 SET_ALT_SHIELD_BASE:
     LD          B,$30                               ; B = $30 (alternate shield base level)
 
-; ADJUST_SHIELD_LEVEL - Calculate final shield level based on flags
+;==============================================================================
+; ADJUST_SHIELD_LEVEL
+;==============================================================================
+; Calculate final shield level based on flags
 ;   - Tests carry flag from RRCA to determine shield upgrade level
 ;   - If carry set: adds $40 to base shield value in B
 ;   - If carry clear: uses base shield value unchanged
 ;   - Falls through to FINALIZE_STARTUP_STATE for equipment finalization
+;
 ; Registers:
 ; --- Start ---
 ;   A = Value from RIGHT_HAND_ITEM calculation (rotated)
@@ -244,6 +277,9 @@ SET_ALT_SHIELD_BASE:
 ;   B = Final shield level for equipment setup
 ;   Falls through to LAB_ram_e10c
 ;
+; Memory Modified: None (register calculations only)
+; Calls: None (falls through to FINALIZE_STARTUP_STATE)
+;==============================================================================
 ADJUST_SHIELD_LEVEL:
     RRCA								            ; Rotate again; carry indicates upgrade path
     JP          NC,FINALIZE_STARTUP_STATE           ; If no carry, skip upgrade addition
@@ -251,13 +287,17 @@ ADJUST_SHIELD_LEVEL:
     ADD         A,B                                 ; A = base + $40
     LD          B,A                                 ; B = final shield level
 
-; FINALIZE_STARTUP_STATE - Finalize starting equipment and initialize game world
+;==============================================================================
+; FINALIZE_STARTUP_STATE
+;==============================================================================
+; Finalize starting equipment and initialize game world
 ;   - Sets left hand item to BOW ($18)
 ;   - Draws BUCKLER graphic to right hand equipment slot
 ;   - Builds initial dungeon map layout
 ;   - Initializes sound/viewport systems
 ;   - Renders starting game screen
 ;   - Transfers control to DO_SWAP_HANDS
+;
 ; Registers:
 ; --- Start ---
 ;   B = Final shield level from ADJUST_SHIELD_LEVEL
@@ -273,6 +313,9 @@ ADJUST_SHIELD_LEVEL:
 ;   Viewport rendered
 ;   Control transfers to DO_SWAP_HANDS (does not return)
 ;
+; Memory Modified: LEFT_HAND_ITEM, CHRRAM (right hand slot), MAPSPACE_WALLS, ITEM_TABLE
+; Calls: GFX_DRAW, BUILD_MAP, PLAY_PITCH_DOWN_MED, SUB_ram_f2c4, UPDATE_VIEWPORT, DO_SWAP_HANDS
+;==============================================================================
 FINALIZE_STARTUP_STATE:
     LD          A,$18                               ; A = $18 (BOW item code)
     LD          (LEFT_HAND_ITEM),A                  ; Set left hand item to BOW
@@ -382,9 +425,26 @@ DO_JUMP_BACK:
     CALL        CLEAR_MONSTER_STATS                 ; Clear combat UI/state
     JP          INIT_MELEE_ANIM                     ; Re-enter combat animation
 
-; CANNOT_JUMP_BACK - Play error sound when backtrack invalid
+;==============================================================================
+; CANNOT_JUMP_BACK
+;==============================================================================
+; Play error sound when backtrack invalid
 ;   - Called when player at same position as previous (can't backtrack)
 ;   - Plays error tone then checks combat state
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   BC = $500 (sound frequency)
+;   DE = $20 (sound duration)
+;   A  = COMBAT_BUSY_FLAG value
+; ---  End  ---
+;   Control transferred to WAIT_FOR_INPUT or INIT_MELEE_ANIM
+;
+; Memory Modified: None (sound only)
+; Calls: PLAY_SOUND_LOOP, WAIT_FOR_INPUT or INIT_MELEE_ANIM
+;==============================================================================
 CANNOT_JUMP_BACK:
     LD          BC,$500                             ; BC = sound frequency parameter
     LD          DE,$20                              ; DE = sound duration parameter
@@ -3516,9 +3576,10 @@ LAB_ram_eb6f:
     DJNZ        LAB_ram_eb6f                        ; Probe up to 4 positions
     JP          LAB_ram_ebd6                        ; Nothing eligible → continue main loop
 
-;-------------------------------------------------------------------------------
-; LAB_ram_eb7b - Random AI nudge: occasional turn/advance + redraw/engage
-;-------------------------------------------------------------------------------
+;==============================================================================
+; LAB_ram_eb7b
+;==============================================================================
+; Random AI nudge: occasional turn/advance + redraw/engage
 ;   - Low-probability trigger based on TIMER_D and a random carry test
 ;   - Chooses an action based on B (probe index):
 ;       B==1 → consider back cell; turn 180° if passable
@@ -3527,6 +3588,19 @@ LAB_ram_eb6f:
 ;       B==4 → consider forward cell; if blocked, try engage
 ;   - On successful facing change, redraw viewport and possibly enter combat
 ;
+; Registers:
+; --- Start ---
+;   B = Probe index (1-4)
+; --- In Process ---
+;   A  = TIMER_D value, random bytes, wall data
+;   BC = Action parameters
+;   HL = Wall data pointers
+; ---  End  ---
+;   Control may transfer to UPDATE_VIEWPORT or ENGAGE_FROM_FORWARD
+;
+; Memory Modified: PLAYER_FACING, viewport graphics if action taken
+; Calls: MAKE_RANDOM_BYTE, DO_TURN_AROUND, DO_TURN_LEFT, DO_TURN_RIGHT, UPDATE_VIEWPORT, ENGAGE_FROM_FORWARD
+;==============================================================================
 LAB_ram_eb7b:
     LD          A,(TIMER_D)                         ; Load sub-tick timer (short interval)
     CP          0x5                                 ; Compare to threshold (5)
@@ -4738,8 +4812,10 @@ TOTAL_HEAL:
     LD          (PLAYER_SPRT_HEALTH),A              ; Store to current spiritual health (full heal)
     RET                                             ; Return to caller
 
-; REDRAW_STATS_OLD - DEPRECATED FUNCTION (Replaced by REDRAW_STATS)
 ;==============================================================================
+; REDRAW_STATS_OLD
+;==============================================================================
+; DEPRECATED FUNCTION (Replaced by REDRAW_STATS)
 ; This routine has been replaced with the REDRAW_STATS function. It is
 ; preserved here for reference but should not be called in new code.
 ;==============================================================================
@@ -7208,11 +7284,15 @@ REDRAW_START:
     JP          Z,FACING_SOUTH                      ; Dir facing was 3, south
     JP          FACING_WEST                         ; Dir facing was 4, west
 
-; FACING_WEST - Calculate all wall states when player is facing west
+;==============================================================================
+; FACING_WEST
+;==============================================================================
+; Calculate all wall states when player is facing west
 ;   - Calculates wall states for all 18 wall positions (including 4 half-walls) plus B0 behind player
 ;   - Uses map cursor navigation to sample wall data from MAPSPACE_WALLS
 ;   - Calls CALC_HALF_WALLS for FL2, FR2, FL1, FR1 perspective rendering
 ;   - Sets compass direction bytes and stages west-pointing compass text
+;
 ; Registers:
 ; --- Start ---
 ;   DE = Player map position in WALL MAP SPACE ($3800+)
@@ -7227,6 +7307,9 @@ REDRAW_START:
 ;   DE = WEST_TXT pointer for compass rendering
 ;   HL = Final wall state address (WALL_B0_STATE + 1)
 ;
+; Memory Modified: WALL_F0_STATE through WALL_B0_STATE ($33e8-$33fd)
+; Calls: GET_WEST_WALL, GET_NORTH_WALL, CALC_HALF_WALLS, CALC_REDRAW_COMPASS
+;==============================================================================
 FACING_WEST:    
     LD          A,(DE)                              ; Get S0 walls data
     AND         0x7                                 ; Mask to west wall data (F0)
@@ -7316,8 +7399,12 @@ FACING_WEST:
     JP          CALC_REDRAW_COMPASS                 ; Included for code relocatability
                                                     ; even though it currently follows
 
-; CALC_REDRAW_COMPASS - Calculate and redraw compass
+;==============================================================================
+; CALC_REDRAW_COMPASS
+;==============================================================================
+; Calculate and redraw compass
 ;   - Takes current direction and renders it on the compass
+;
 ; Registers:
 ; --- Start ---
 ;   DE = Direction GFX pointer
@@ -7326,13 +7413,20 @@ FACING_WEST:
 ;   DE = Direction GFX pointer
 ;   HL = Compass pointer screen index (CHRRAM)
 ;
+; Memory Modified: CHRRAM_POINTER_IDX (compass display area)
+; Calls: GFX_DRAW
+;==============================================================================
 CALC_REDRAW_COMPASS:
     LD          B,COLOR(RED,BLK)                    ; RED on BLK
     LD          HL,CHRRAM_POINTER_IDX
     JP          GFX_DRAW
 
-; GET_WEST_WALL - Get data of west wall and put into bottom 3 bits
+;==============================================================================
+; GET_WEST_WALL
+;==============================================================================
+; Get data of west wall and put into bottom 3 bits
 ;   - Data IS saved into (HL)
+;
 ; Registers:
 ; --- Start ---
 ;   DE = Current wall map space in RAM ($3800 - $8FF)
@@ -7342,6 +7436,9 @@ CALC_REDRAW_COMPASS:
 ;   DE = Current wall map space in RAM (unchanged)
 ;   HL = Next WALL_xx_STATE variable location
 ;
+; Memory Modified: (HL) - wall state variable updated
+; Calls: None
+;==============================================================================
 GET_WEST_WALL:
     LD          A,(DE)                              ; Get current map space walls data
     AND         0x7                                 ; Mask to only lower nybble (West wall)
@@ -7349,8 +7446,13 @@ GET_WEST_WALL:
     LD          (HL),A                              ; Store west wall data
     RET
 
-; GET_NORTH_WALL - Get data of north wall and put into bottom 3 bits
+;==============================================================================
+; GET_NORTH_WALL
+;==============================================================================
+; Get data of north wall and put into bottom 3 bits
 ;   - Data is NOT saved into (HL)
+;
+; Registers:
 ; --- Start ---
 ;   DE = Current wall map space in RAM ($3800 - $8FF)
 ;   HL = Current WALL_xx_STATE variable location
@@ -7359,6 +7461,9 @@ GET_WEST_WALL:
 ;   DE = Current wall map space in RAM (unchanged)
 ;   HL = SAME WALL_xx_STATE variable location
 ;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
 GET_NORTH_WALL:
     LD          A,(DE)                              ; Get current wall map space byte
     AND         $e0                                 ; Mask to upper nybble (north wall)
@@ -7367,9 +7472,14 @@ GET_NORTH_WALL:
     RLCA                                            ; ...nybble bits
     RET
 
-; CALC_HALF_WALLS - Get wall data and put into bottom 3 bits
+;==============================================================================
+; CALC_HALF_WALLS
+;==============================================================================
+; Get wall data and put into bottom 3 bits
 ;   - Data is saved into (HL+1)
 ;   - Data is saved into (HL+C)
+;
+; Registers:
 ; --- Start ---
 ;   A  = Masked wall data (west/lower)
 ;   C  = Current half-wall WALL_xx_STATE offset
@@ -7381,6 +7491,9 @@ GET_NORTH_WALL:
 ;   DE = Current wall map space in RAM (unchanged)
 ;   HL = Two wall states ahead from original WALL_xx_STATE variable location
 ;
+; Memory Modified: (HL+1), (HL+C) - wall state variables updated
+; Calls: None
+;==============================================================================
 CALC_HALF_WALLS:
     INC         L                                   ; Move to next WALL_xx_STATE variable location   
     LD          (HL),A                              ; Save wall state data
@@ -7396,11 +7509,15 @@ CALC_HALF_WALLS:
     INC         C                                   ; Increment C
     RET
 
-; FACING_NORTH - Calculate all wall states when player is facing north
+;==============================================================================
+; FACING_NORTH
+;==============================================================================
+; Calculate all wall states when player is facing north
 ;   - Calculates wall states for all 18 wall positions (including 4 half-walls) plus B0 behind player
 ;   - Uses map cursor navigation to sample wall data from MAPSPACE_WALLS
 ;   - Calls CALC_HALF_WALLS for FL2, FR2, FL1, FR1 perspective rendering
 ;   - Sets compass direction bytes and stages north-pointing compass text
+;
 ; Registers:
 ; --- Start ---
 ;   DE = Player map position in WALL MAP SPACE ($3800+)
@@ -7415,6 +7532,9 @@ CALC_HALF_WALLS:
 ;   DE = NORTH_TXT pointer for compass rendering
 ;   HL = Final wall state address (WALL_B0_STATE + 1)
 ;
+; Memory Modified: WALL_F0_STATE through WALL_B0_STATE ($33e8-$33fd)
+; Calls: GET_NORTH_WALL, CALC_HALF_WALLS, CALC_REDRAW_COMPASS
+;==============================================================================
 FACING_NORTH:
     CALL        GET_NORTH_WALL                      ; Get F0 wall data
     LD          (HL),A                              ; Save WALL_F0_STATE ($33e8)
@@ -7498,11 +7618,15 @@ FACING_NORTH:
     LD          DE,NORTH_TXT                        ; Stage north pointing compass text
     JP          CALC_REDRAW_COMPASS
 
-; FACING_SOUTH - Calculate all wall states when player is facing south
+;==============================================================================
+; FACING_SOUTH
+;==============================================================================
+; Calculate all wall states when player is facing south
 ;   - Calculates wall states for all 18 wall positions (including 4 half-walls) plus B0 behind player
 ;   - Uses map cursor navigation to sample wall data from MAPSPACE_WALLS
 ;   - Calls CALC_HALF_WALLS for FL2, FR2, FL1, FR1 perspective rendering
 ;   - Sets compass direction bytes and stages south-pointing compass text
+;
 ; Registers:
 ; --- Start ---
 ;   DE = Player map position in WALL MAP SPACE ($3800+)
@@ -7517,6 +7641,9 @@ FACING_NORTH:
 ;   DE = SOUTH_TXT pointer for compass rendering
 ;   HL = Final wall state address (WALL_B0_STATE + 1)
 ;
+; Memory Modified: WALL_F0_STATE through WALL_B0_STATE ($33e8-$33fd)
+; Calls: GET_NORTH_WALL, CALC_HALF_WALLS, CALC_REDRAW_COMPASS
+;==============================================================================
 FACING_SOUTH:
     LD          A,E                                 ; Put E in A for math
     ADD         A,$10                               ; Increase A by 16
@@ -7623,11 +7750,15 @@ FACING_SOUTH:
     LD          DE,SOUTH_TXT                        ; Stage south pointing compass text
     JP          CALC_REDRAW_COMPASS
 
-; FACING_EAST - Calculate all wall states when player is facing east
+;==============================================================================
+; FACING_EAST
+;==============================================================================
+; Calculate all wall states when player is facing east
 ;   - Calculates wall states for all 18 wall positions (including 4 half-walls) plus B0 behind player
 ;   - Uses map cursor navigation to sample wall data from MAPSPACE_WALLS
 ;   - Calls CALC_HALF_WALLS for FL2, FR2, FL1, FR1 perspective rendering
 ;   - Sets compass direction bytes and stages east-pointing compass text
+;
 ; Registers:
 ; --- Start ---
 ;   DE = Player map position in WALL MAP SPACE ($3800+)
@@ -7642,6 +7773,9 @@ FACING_SOUTH:
 ;   DE = EAST_TXT pointer for compass rendering
 ;   HL = Final wall state address (WALL_B0_STATE + 1)
 ;
+; Memory Modified: WALL_F0_STATE through WALL_B0_STATE ($33e8-$33fd)
+; Calls: GET_WEST_WALL, GET_NORTH_WALL, CALC_HALF_WALLS, CALC_REDRAW_COMPASS
+;==============================================================================
 FACING_EAST:
     INC         E                                   ; Move to S1
     LD          A,(DE)                              ; Get S1 data
