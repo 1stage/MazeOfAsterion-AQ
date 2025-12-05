@@ -1,9 +1,7 @@
-; Low RAM Labels
+; CHRRAM - Character RAM
 LAB_ram_1208 EQU $1208
 BYTE_ram_2400 EQU $2400
 BYTE_ram_2613 EQU $2613
-
-; CHRRAM - Character RAM
 CHRRAM_LEVEL_IND_L EQU $3001 
 CHRRAM_LEVEL_IND_R EQU $3004 
 CHRRAM_SHIFT_MODE_IDX EQU $3005 
@@ -79,10 +77,11 @@ CHRRAM_AUTHORS_IDX EQU $3348
 CHRRAM_F0_ITEM_IDX EQU $3352
 DAT_ram_335c EQU $335c
 CHRRAM_RH_POOF_IDX EQU $336c
+
+; CHRRAM Spare 24
 DAT_ram_33c0 EQU $33c0
 CHHRAM_LVL_IDX EQU $33df
 
-; CHRRAM Spare 24
 ; Wall States - Calculated after every move
 WALL_F0_STATE EQU $33e8 
 WALL_F1_STATE EQU $33e9 
@@ -109,7 +108,7 @@ WALL_B0_STATE EQU $33fd
 DAT_ram_33fe EQU $33fe 
 DAT_ram_33ff EQU $33ff 
 
-; COLRAM - Color RAM
+; COLRAM: Color RAM
 COLRAM_LEVEL_IDX_L EQU $3401 
 COLRAM_FLOOR_IDX_10 EQU $3402 
 COLRAM_FLOOR_IDX_1 EQU $3403 
@@ -126,8 +125,13 @@ COLRAM_SPRT_STATS_10 EQU $3446
 COLRAM_SPRT_STATS_1 EQU $3447
 COLRAM_FL0_WALL_IDX EQU $34a3
 COLRAM_L0_WALL_IDX EQU $34a3
-COLRAM_MINI_MAP_IDX EQU $34a4
 DAT_ram_34b4 EQU $34b4
+COLRAM_FL22_WALL_IDX EQU $35b8
+COLRAM_FL2_WALL_IDX EQU $35bc
+COLRAM_FL2_PLUS_WALL_IDX EQU $35be
+COLRAM_F2_WALL_IDX EQU $35c2
+COLRAM_F1_DOOR_IDX EQU $35c2
+COLRAM_MINI_MAP_IDX EQU $34a4
 DAT_ram_34c8 EQU $34c8
 COLRAM_F0_WALL_IDX EQU $34cc
 DAT_ram_34dc EQU $34dc
@@ -136,10 +140,10 @@ COLRAM_FL0_DOOR_IDX EQU $351a
 DAT_ram_352d EQU $352d
 COLRAM_L1_UR_WALL_IDX EQU $3547
 COLRAM_R1_WALL_IDX EQU $3550
-COLRAM_WALL_FL1_A_IDX EQU $3568 
 
 ; COLRAM_L1_WALL_IDX EQU $3568 
 
+COLRAM_WALL_FL1_A_IDX EQU $3568 
 COLRAM_WALL_FL1_B_IDX EQU $356c
 COLRAM_L1_DOOR_IDX EQU $356d
 COLRAM_F0_DOOR_IDX EQU $3570 
@@ -152,13 +156,8 @@ DAT_ram_3590 EQU $3590
 DAT_ram_3591 EQU $3591 
 DAT_ram_35a6 EQU $35a6 
 DAT_ram_35a7 EQU $35a7 
-COLRAM_FL22_WALL_IDX EQU $35b8
 COLRAM_L1_DOOR_PATTERN_IDX EQU $35ba
-COLRAM_FL2_WALL_IDX EQU $35bc
-COLRAM_FL2_PLUS_WALL_IDX EQU $35be
 COLRAM_L2_LEFT EQU $35c0
-COLRAM_F2_WALL_IDX EQU $35c2
-COLRAM_F1_DOOR_IDX EQU $35c2
 COLRAM_L2_RIGHT EQU $35c2
 COLRAM_FR2_LEFT EQU $35c6
 COLRAM_FR2_RIGHT EQU $35c8
@@ -196,7 +195,6 @@ HC_INPUT_HOLDER EQU $37fe
 HC_LAST_INPUT EQU $37ff
 
 ; Aquarius Built-In 2k RAM Space
-; Mapspace Walls
 MAPSPACE_WALLS EQU $3800 
 ITEM_TABLE EQU $3900
 MAP_LADDER_OFFSET EQU $3900 
@@ -206,8 +204,6 @@ BYTE_ram_3903 EQU $3903
 BYTE_ram_3904 EQU $3904 
 BYTE_ram_3905 EQU $3905 
 BYTE_ram_3906 EQU $3906 
-
-; Game variables
 ITEM_MOVE_CHR_BUFFER EQU $3a00 
 ITEM_MOVE_COL_BUFFER EQU $3a10
 BYTE_ram_3a20 EQU $3a20 
@@ -231,34 +227,25 @@ ARMOR_INV_SLOT EQU $3a74
 HELMET_INV_SLOT EQU $3a75 
 RING_INV_SLOT EQU $3a76 
 PLAYER_PREV_MAP_LOC EQU $3a77 
-COMBAT_BUSY_FLAG EQU $3a78
-; Set to $01 when a monster combat round is in progress / resolving.
-; Acts as a busy semaphore to gate player actions (turn, glance,
-; ladder usage, rest, some item uses). Cleared when combat ends or
-; on death. Not an inventory slot.
+COMBAT_BUSY_FLAG EQU $3a78 ; Set to $01 when a monster combat round is in progress / resolving.
+							   ; Acts as a busy semaphore to gate player actions (turn, glance,
+							   ; ladder usage, rest, some item uses). Cleared when combat ends or
+							   ; on death. Not an inventory slot.
 PLAYER_MAP_POS EQU $3a79 
 RIGHT_HAND_ITEM EQU $3a7a 
 LEFT_HAND_ITEM EQU $3a7b 
 INV_ITEM_SLOT_1 EQU $3a7c 
 INV_ITEM_SLOT_2 EQU $3a7d 
 INV_ITEM_SLOT_3 EQU $3a7e 
-ITEM_SPRITE_INDEX EQU $3a82
-; Encoded item/weapon sprite: (item_type << 2) | level
-
-ITEM_ANIM_CHRRAM_PTR EQU $3a83
-; 16-bit pointer to character RAM for item animation draw
-ITEM_ANIM_LOOP_COUNT EQU $3a85
-; 16-bit animation loop counter (decrements each frame)
-ITEM_ANIM_STATE EQU $3a87
-; Item animation state/phase counter
+ITEM_SPRITE_INDEX EQU $3a82 ; Encoded item/weapon sprite: (item_type << 2) | level
+ITEM_ANIM_CHRRAM_PTR EQU $3a83 ; 16-bit pointer to character RAM for item animation draw
+ITEM_ANIM_LOOP_COUNT EQU $3a85 ; 16-bit animation loop counter (decrements each frame)
+ITEM_ANIM_STATE EQU $3a87 ; Item animation state/phase counter
 TIMER_D EQU $3a88 
-ITEM_ANIM_TIMER_COPY EQU $3a89
-; Cached timer value for item animation sync
-MONSTER_SPRITE_FRAME EQU $3a8a
-; Monster sprite frame index (base + level offset)
+ITEM_ANIM_TIMER_COPY EQU $3a89 ; Cached timer value for item animation sync
+MONSTER_SPRITE_FRAME EQU $3a8a ; Monster sprite frame index (base + level offset)
 MELEE_ANIM_STATE EQU $3a8b 
-MONSTER_ANIM_TIMER_COPY EQU $3a8c
-; Cached timer value for monster animation sync 
+MONSTER_ANIM_TIMER_COPY EQU $3a8c ; Cached timer value for monster animation sync 
 MONSTER_ATT_POS_COUNT EQU $3a8d 
 MONSTER_ATT_POS_OFFSET EQU $3a8f 
 RNDHOLD_AA EQU $3a91
@@ -269,10 +256,8 @@ PLAYER_SPRT_HEALTH_MAX EQU $3a98
 WEAPON_PHYS EQU $3a99 
 WEAPON_SPRT EQU $3a9b 
 TIMER_E EQU $3a9c 
-PREV_DIR_VECTOR EQU $3a9e
-; 16-bit saved direction vector (BC) for jump-back logic
-PREV_DIR_FACING EQU $3aa0
-; Saved direction facing (1-4) for jump-back logic 
+PREV_DIR_VECTOR EQU $3a9e ; 16-bit saved direction vector (BC) for jump-back logic
+PREV_DIR_FACING EQU $3aa0 ; Saved direction facing (1-4) for jump-back logic 
 ITEM_HOLDER EQU $3aa1 
 CURR_MONSTER_SPRT EQU $3aa2 
 CURR_MONSTER_PHYS EQU $3aa3
