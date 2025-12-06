@@ -3632,7 +3632,7 @@ LEFT_OK_CHK:
     JP          TURN_AND_REDRAW                     ; Jump to redraw and combat check
 CHK_RIGHT_DIRECTION:
     DEC         B                                   ; Decrement B (test if B was 3: right)
-    JP          NZ,LAB_ram_ebcc                     ; If not 3, check case 4 (forward)
+    JP          NZ,CHK_FORWARD_COMBAT               ; If not 3, check case 4 (forward)
     LD          A,(WALL_R0_STATE)                   ; Load right wall state
     BIT         0x2,A                               ; Test bit 2 (passable/door flag)
     JP          NZ,RIGHT_OK_CHK                     ; If bit 2 set, right is passable
@@ -3643,15 +3643,54 @@ RIGHT_OK_CHK:
 TURN_AND_REDRAW:
     CALL        REDRAW_START                        ; Refresh non-viewport UI elements
     CALL        REDRAW_VIEWPORT                     ; Render 3D maze view with new facing
-LAB_ram_ebc6:
+
+;==============================================================================
+; PLAY_GROWL_INIT_COMBAT
+;==============================================================================
+; Play monster growl sound effect and jump to combat initialization
+;   - Triggers audio cue for monster encounter
+;   - Transfers control to INIT_MONSTER_COMBAT (no return)
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   Used by PLAY_MONSTER_GROWL and INIT_MONSTER_COMBAT
+; ---  End  ---
+;   Does not return (jumps to INIT_MONSTER_COMBAT)
+;
+; Memory Modified: Via PLAY_MONSTER_GROWL and INIT_MONSTER_COMBAT
+; Calls: PLAY_MONSTER_GROWL, INIT_MONSTER_COMBAT (jump)
+;==============================================================================
+PLAY_GROWL_INIT_COMBAT:
     CALL        PLAY_MONSTER_GROWL                  ; Play monster growl sound
     JP          INIT_MONSTER_COMBAT                 ; Initialize combat sequence
-LAB_ram_ebcc:
+
+;==============================================================================
+; CHK_FORWARD_COMBAT
+;==============================================================================
+; Check forward wall state for combat engagement (direction case 4)
+;   - Tests WALL_F0_STATE bit 2 (passable/door flag)
+;   - Tests if wall state is zero (clear/passable)
+;   - Engages combat if forward position is passable or clear
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = WALL_F0_STATE value, then bit tests
+; ---  End  ---
+;   Control transfers to PLAY_GROWL_INIT_COMBAT or POLL_INPUT
+;
+; Memory Modified: None
+; Calls: PLAY_GROWL_INIT_COMBAT (via JP)
+;==============================================================================
+CHK_FORWARD_COMBAT:
     LD          A,(WALL_F0_STATE)                   ; Load forward wall state (B was 4)
     BIT         0x2,A                               ; Test bit 2 (passable/door flag)
-    JP          NZ,LAB_ram_ebc6                     ; If bit 2 set, forward passable - engage
+    JP          NZ,PLAY_GROWL_INIT_COMBAT           ; If bit 2 set, forward passable - engage
     AND         A                                   ; Test if A is zero (clear/passable)
-    JP          Z,LAB_ram_ebc6                      ; If zero (clear), engage combat
+    JP          Z,PLAY_GROWL_INIT_COMBAT            ; If zero (clear), engage combat
 
 ;==============================================================================
 ; LAB_ram_ebd6 - Input polling and title screen difficulty selection
