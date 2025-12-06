@@ -767,7 +767,7 @@ CALC_MINIMAP_WALL:
     OR          A                                   ; Test if any walls present
     JP          Z,SET_MINIMAP_NO_WALLS              ; If no walls, draw empty cell
     AND         0xf                                 ; Mask lower nybble (north wall flag)
-    JP          NZ,LAB_ram_e2d6                     ; If north wall set, check west wall
+    JP          NZ,CHECK_MINIMAP_WEST_WALL          ; If north wall set, check west wall
 SET_MINIMAP_N_WALL:
     LD          A,$a3                               ; Load character $a3 (north wall only)
     JP          DRAW_MINIMAP_WALL                   ; Draw wall character
@@ -778,7 +778,7 @@ SET_MINIMAP_NW_WALLS:
     LD          A,$b7                               ; Load character $b7 (north and west walls)
     JP          DRAW_MINIMAP_WALL                   ; Draw corner wall character
 ;==============================================================================
-; LAB_ram_e2d6 - Reload wall state and check for west wall
+; CHECK_MINIMAP_WEST_WALL - Reload wall state and check for west wall
 ;==============================================================================
 ; Continuation point after north+west wall check. Reloads wall flags from (DE)
 ; and masks upper nybble to check west wall bit. If set, draws north+west
@@ -795,7 +795,7 @@ SET_MINIMAP_NW_WALLS:
 ; Memory Modified: None
 ; Calls: SET_MINIMAP_NW_WALLS (via JP)
 ;==============================================================================
-LAB_ram_e2d6:
+CHECK_MINIMAP_WEST_WALL:
     LD          A,(DE)                              ; Reload wall flags
     AND         $f0                                 ; Mask upper nybble (west wall flag)
     JP          NZ,SET_MINIMAP_NW_WALLS             ; If west wall set, draw north+west
@@ -2071,13 +2071,13 @@ BOOST_MIN_DAMAGE:
 ;
 ; Memory Modified: RIGHT_HAND_ITEM, LEFT_HAND_ITEM, CHRRAM graphics areas,
 ;                  SHIELD_SPRT, SHIELD_PHYS
-; Calls: SUB_ram_ea62, COPY_GFX_2_BUFFER, COPY_GFX_SCRN_2_SCRN,
+; Calls: SWAP_BYTES_AT_HL_BC, COPY_GFX_2_BUFFER, COPY_GFX_SCRN_2_SCRN,
 ;        COPY_GFX_FROM_BUFFER, NEW_RIGHT_HAND_ITEM, GET_ITEM_SHIELD_BONUS, UPDATE_SHIELD_STATS
 ;==============================================================================
 DO_SWAP_HANDS:
     LD          HL,RIGHT_HAND_ITEM                  ; HL points to right-hand item code
     LD          BC,LEFT_HAND_ITEM                   ; BC points to left-hand item code
-    CALL        SUB_ram_ea62                        ; Swap the two item codes
+    CALL        SWAP_BYTES_AT_HL_BC                 ; Swap the two item codes
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; HL = right-hand graphics source
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; DE = temporary buffer destination
     CALL        COPY_GFX_2_BUFFER                   ; Save right-hand graphics to buffer
@@ -2635,7 +2635,7 @@ UPDATE_SHIELD_STATS:
     JP          RHA_REDRAW                          ; Jump to redraw ring/helmet/armor
                                                     ; (was JP AWAITING_INPUT at c3 9c ea)
 CHECK_CHEST_PICKUP:
-    CALL        Z,SUB_ram_e9e1                      ; If Z flag set, call special handler
+    CALL        Z,VALIDATE_RH_ITEM_PRESENT          ; If Z flag set, call special handler
 CHECK_FOOD_ARROWS:
     CP          $48                                 ; Compare to CHEST (item code $48)
     JP          C,CHECK_MAP_NECKLACE_CHARMS         ; If < $48, check map/necklace/charms
@@ -2780,13 +2780,13 @@ PROCESS_MAP:
 ;   Graphics and item inventories updated
 ;
 ; Memory Modified: RIGHT_HAND_ITEM, ITEM_F0, CHRRAM_*, COLRAM_*, ITEM_MOVE_CHR_BUFFER
-; Calls: SUB_ram_ea62, UPDATE_MELEE_OBJECTS, COPY_GFX_SCRN_2_SCRN, COPY_GFX_FROM_BUFFER, RECOLOR_ITEM, NEW_RIGHT_HAND_ITEM
+; Calls: SWAP_BYTES_AT_HL_BC, UPDATE_MELEE_OBJECTS, COPY_GFX_SCRN_2_SCRN, COPY_GFX_FROM_BUFFER, RECOLOR_ITEM, NEW_RIGHT_HAND_ITEM
 ;==============================================================================
 PICK_UP_NON_TREASURE:
     LD          HL,RIGHT_HAND_ITEM                  ; Point to current right-hand item
     LD          A,(HL)                              ; Load current right-hand item code
     LD          (ITEM_F0),A                         ; Store it as new floor item
-    CALL        SUB_ram_ea62                        ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
+    CALL        SWAP_BYTES_AT_HL_BC                 ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics in CHRRAM
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary graphics buffer
     CALL        COPY_GFX_2_BUFFER                   ; Copy right-hand graphics to temp buffer (4x4 chars)
@@ -3170,7 +3170,7 @@ ITEM_ATTR_DEFAULT_ZERO:
     RET                                             ; Return with zero values
 
 ;==============================================================================
-; SUB_ram_e9e1  
+; VALIDATE_RH_ITEM_PRESENT  
 ;==============================================================================
 ; Right-hand item validation and memory update function. Checks if the right
 ; hand contains an item ($FE = empty), and either aborts the calling operation
@@ -3200,14 +3200,14 @@ ITEM_ATTR_DEFAULT_ZERO:
 ; Memory Modified: 3 consecutive locations starting at BC pointer
 ; Calls: NO_ACTION_TAKEN (conditional jump, not return)
 ;==============================================================================
-SUB_ram_e9e1:
+VALIDATE_RH_ITEM_PRESENT:
     LD          A,(RIGHT_HAND_ITEM)                 ; Load current right-hand item
     CP          $fe                                 ; Compare with $FE (empty item marker)
-    JP          NZ,LAB_ram_e9ec                     ; If item present, jump to memory update
+    JP          NZ,UPDATE_RH_ITEM_BUFFER            ; If item present, jump to memory update
     POP         HL                                  ; Discard return address from stack
     JP          NO_ACTION_TAKEN                     ; Jump to no-action handler (abort operation)
 ; --- Memory update section (item present in right hand) ---
-LAB_ram_e9ec:
+UPDATE_RH_ITEM_BUFFER:
     LD          A,$ff                               ; Load $FF marker value
     LD          (BC),A                              ; Store $FF at BC memory location
     DEC         C                                   ; Move to previous memory location (BC-1)
@@ -3238,27 +3238,27 @@ LAB_ram_e9ec:
 ;   Returns via WAIT_A_TICK to WAIT_FOR_INPUT
 ;
 ; Memory Modified: INV_ITEM_SLOT_1..6, ITEM_MOVE_COL_BUFFER, screen graphics
-; Calls: SUB_ram_ea62, COPY_GFX_SCRN_2_SCRN, COPY_GFX_FROM_BUFFER, WAIT_A_TICK
+; Calls: SWAP_BYTES_AT_HL_BC, COPY_GFX_SCRN_2_SCRN, COPY_GFX_FROM_BUFFER, WAIT_A_TICK
 ;==============================================================================
 DO_ROTATE_PACK:
     LD          HL,INV_ITEM_SLOT_1                  ; Point to inventory slot 1
     LD          BC,ITEM_MOVE_COL_BUFFER             ; Point to temporary buffer
     XOR         A                                   ; Clear A (A = 0)
     LD          (BC),A                              ; Store 0 to temporary buffer
-    CALL        SUB_ram_ea62                        ; Swap slot 1 with buffer (save slot 1)
+    CALL        SWAP_BYTES_AT_HL_BC                 ; Swap slot 1 with buffer (save slot 1)
     INC         HL                                  ; Point to inventory slot 2
     LD          BC,INV_ITEM_SLOT_1                  ; Point to inventory slot 1
-    CALL        SUB_ram_ea62                        ; Swap slot 2 with slot 1
+    CALL        SWAP_BYTES_AT_HL_BC                 ; Swap slot 2 with slot 1
     LD          E,0x4                               ; Set counter to 4 (slots 3-6)
-LAB_ram_ea0c:
+ROTATE_PACK_SWAP_LOOP:
     INC         HL                                  ; Point to next inventory slot
     INC         BC                                  ; Point to previous slot
-    CALL        SUB_ram_ea62                        ; Swap current with previous
+    CALL        SWAP_BYTES_AT_HL_BC                 ; Swap current with previous
     DEC         E                                   ; Decrement counter
-    JP          NZ,LAB_ram_ea0c                     ; Loop until all 4 swaps done
+    JP          NZ,ROTATE_PACK_SWAP_LOOP            ; Loop until all 4 swaps done
     LD          HL,ITEM_MOVE_COL_BUFFER             ; Point to temporary buffer (saved slot 1)
     INC         BC                                  ; Point to inventory slot 6
-    CALL        SUB_ram_ea62                        ; Swap buffer (old slot 1) to slot 6
+    CALL        SWAP_BYTES_AT_HL_BC                 ; Swap buffer (old slot 1) to slot 6
     LD          HL,DAT_ram_31b4                     ; Point to inv slot 1 graphics
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer
     CALL        COPY_GFX_2_BUFFER                   ; Copy slot 1 graphics to buffer
@@ -3285,7 +3285,7 @@ LAB_ram_ea0c:
     JP          WAIT_A_TICK                         ; Jump to delay routine (will RET to WAIT_FOR_INPUT)
 
 ;==============================================================================
-; SUB_ram_ea62 - Swap byte values between two memory locations
+; SWAP_BYTES_AT_HL_BC - Swap byte values between two memory locations
 ;==============================================================================
 ; Swaps the byte value at (HL) with the byte value at (BC). Uses D register
 ; as temporary storage. This is a utility routine called during inventory
@@ -3307,7 +3307,7 @@ LAB_ram_ea0c:
 ; Memory Modified: (HL) and (BC) - values swapped
 ; Calls: None
 ;==============================================================================
-SUB_ram_ea62:
+SWAP_BYTES_AT_HL_BC:
     LD          D,(HL)                              ; Load value from (HL) into D
     LD          A,(BC)                              ; Load value from (BC) into A
     LD          (HL),A                              ; Store A to (HL)
@@ -3333,12 +3333,12 @@ SUB_ram_ea62:
 ;   Returns via WAIT_A_TICK to WAIT_FOR_INPUT
 ;
 ; Memory Modified: INV_ITEM_SLOT_1, RIGHT_HAND_ITEM, ITEM_MOVE_CHR_BUFFER, screen graphics
-; Calls: SUB_ram_ea62, COPY_GFX_2_BUFFER, COPY_GFX_SCRN_2_SCRN, COPY_GFX_FROM_BUFFER, NEW_RIGHT_HAND_ITEM, WAIT_A_TICK
+; Calls: SWAP_BYTES_AT_HL_BC, COPY_GFX_2_BUFFER, COPY_GFX_SCRN_2_SCRN, COPY_GFX_FROM_BUFFER, NEW_RIGHT_HAND_ITEM, WAIT_A_TICK
 ;==============================================================================
 DO_SWAP_PACK:
     LD          HL,INV_ITEM_SLOT_1                  ; Point to inventory slot 1
     LD          BC,RIGHT_HAND_ITEM                  ; Point to right-hand item slot
-    CALL        SUB_ram_ea62                        ; Swap inv slot 1 with right-hand item
+    CALL        SWAP_BYTES_AT_HL_BC                 ; Swap inv slot 1 with right-hand item
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer
     CALL        COPY_GFX_2_BUFFER                   ; Copy right-hand graphics to buffer
