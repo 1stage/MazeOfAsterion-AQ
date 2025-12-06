@@ -3511,10 +3511,10 @@ REVERSE_ROTATE_LOOP:
 TIMER_UPDATED_CHECK_INPUT:
     LD          A,(RAM_AD)                          ; Load animation state byte AD
     CP          $32                                 ; Is state equal to $32? (branch set)
-    JP          Z,LAB_ram_eb53                      ; Yes → handle screensaver/idle branch
+    JP          Z,IDLE_SCREENSAVER_CHK              ; Yes → handle screensaver/idle branch
     LD          A,(RAM_AE)                          ; Load animation state byte AE
     CP          $31                                 ; Compare with $31
-    JP          NZ,LAB_ram_eb27                     ; If not $31 → check monster/melee tick
+    JP          NZ,MONSTER_ANIM_TICK                ; If not $31 → check monster/melee tick
     LD          HL,TIMER_A                          ; HL points to master tick counter
     LD          A,(ITEM_ANIM_TIMER_COPY)            ; A = last processed item-anim tick
     CP          (HL)                                ; Has TIMER_A advanced since last item tick?
@@ -3526,7 +3526,7 @@ TIMER_UPDATED_CHECK_INPUT:
 ;-------------------------------------------------------------------------------
 ; Monster/melee animation tick gate (when AE != $31)
 ;-------------------------------------------------------------------------------
-LAB_ram_eb27:
+MONSTER_ANIM_TICK:
     LD          HL,TIMER_A                          ; HL points to master tick counter
     LD          A,(MONSTER_ANIM_TIMER_COPY)         ; A = last processed monster-anim tick
     CP          (HL)                                ; Has TIMER_A advanced for monster anim?
@@ -3540,7 +3540,7 @@ LAB_ram_eb27:
 ;-------------------------------------------------------------------------------
 ; Monster/melee animation (UI already up-to-date or not needed)
 ;-------------------------------------------------------------------------------
-LAB_ram_eb40:
+MELEE_ANIM_ONLY:
     LD          HL,TIMER_A                          ; HL points to master tick counter
     LD          A,(MONSTER_ANIM_TIMER_COPY)         ; A = last processed monster-anim tick
     CP          (HL)                                ; Has TIMER_A advanced for monster anim?
@@ -3552,10 +3552,10 @@ LAB_ram_eb40:
 ;-------------------------------------------------------------------------------
 ; Idle branch when RAM_AD == $32 (screensaver timer + conditional AI)
 ;-------------------------------------------------------------------------------
-LAB_ram_eb53:
+IDLE_SCREENSAVER_CHK:
     LD          A,(RAM_AE)                          ; Read secondary state AE
     CP          $31                                 ; If not $31, use simpler melee branch
-    JP          NZ,LAB_ram_eb40                     ; → Skip UI updates, just animate melee
+    JP          NZ,MELEE_ANIM_ONLY                  ; → Skip UI updates, just animate melee
     CALL        UPDATE_SCR_SAVER_TIMER              ; Bump inactivity/screensaver counters
     LD          A,(COMBAT_BUSY_FLAG)                ; Is combat currently running?
     AND         A                                   ; Set flags from A
@@ -3566,14 +3566,14 @@ LAB_ram_eb53:
     INC         A                                   ; Normalize/flag for threshold compare
     INC         A                                   ; (two INCs used consistently in this code)
     LD          HL,ITEM_FR1                         ; HL = pointer to FR1 (probing sequence)
-LAB_ram_eb6f:
+PROBE_MONSTER_LOOP:
     CP          $7a                                 ; >= $7A ⇒ monster/eligible target present
     JP          NC,RANDOM_ACTION_HANDLER            ; If present, run AI/random action
     INC         HL                                  ; Else move to next probe cell
     LD          A,(HL)                              ; A = next item/monster id
     INC         A                                   ; Normalize/flag as above
     INC         A
-    DJNZ        LAB_ram_eb6f                        ; Probe up to 4 positions
+    DJNZ        PROBE_MONSTER_LOOP                  ; Probe up to 4 positions
     JP          POLL_INPUT                          ; Nothing eligible → continue main loop
 
 ;==============================================================================
