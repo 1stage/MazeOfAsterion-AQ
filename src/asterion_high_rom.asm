@@ -7021,9 +7021,9 @@ GEN_ITEM_TYPE_LOOP:
     CALL        MAKE_RANDOM_BYTE                    ; Get another random byte
     AND         E                                   ; AND with mask (randomize further)
     AND         0x3                                 ; Mask to 0-3 (color bits)
-LAB_ram_f482:
+NORM_COLOR_LOOP:
     SUB         D                                   ; Subtract max color value
-    JP          NC,LAB_ram_f482                     ; Loop while >= D (normalize to 0..D-1)
+    JP          NC,NORM_COLOR_LOOP                  ; Loop while >= D (normalize to 0..D-1)
     ADD         A,D                                 ; Add back to get final color
     RRA                                             ; Rotate right (shift color bit 0 to carry)
     RRA                                             ; Rotate right again
@@ -7040,7 +7040,7 @@ LAB_ram_f482:
     LD          B,0x0                               ; B = 0 (item counter)
 
 ;==============================================================================
-; LAB_ram_f49d - Filter duplicate items from generated table
+; FILTER_ITEMS_LOOP - Filter duplicate items from generated table
 ;==============================================================================
 ; Iterates through raw generated item table, checks each position for duplicates
 ; using SUB_ram_f4d4, and copies non-duplicate entries to TEMP_MAP buffer.
@@ -7065,28 +7065,28 @@ LAB_ram_f482:
 ; Memory Modified: TEMP_MAP (filled with filtered items)
 ; Calls: SUB_ram_f4d4 (duplicate checker)
 ;==============================================================================
-LAB_ram_f49d:
+FILTER_ITEMS_LOOP:
     LD          A,(HL)                              ; Load item code from map
     CP          $ff                                 ; Compare to $FF (terminator)
     JP          Z,SETUP_MAP_COPY                    ; If terminator, copy filtered map back
     INC         B                                   ; Increment item counter
     CALL        SUB_ram_f4d4                        ; Check for duplicate position
     EXX                                             ; Switch to alternate registers
-    JP          Z,LAB_ram_f4b7                      ; If duplicate, skip this entry
+    JP          Z,SKIP_DUPLICATE                    ; If duplicate, skip this entry
     LD          (DE),A                              ; Store position to temp map
     INC         DE                                  ; Move to next temp position
     INC         HL                                  ; Move to item code
     LD          A,(HL)                              ; Load item code
     CP          $fe                                 ; Compare to $FE (empty marker)
-    JP          Z,LAB_ram_f4bc                      ; If empty, handle specially
+    JP          Z,SKIP_EMPTY_MARKER                 ; If empty, handle specially
     INC         B                                   ; Increment item counter
     LD          (DE),A                              ; Store item code to temp map
     INC         DE                                  ; Move to next temp position
     INC         HL                                  ; Move to next source entry
-    JP          LAB_ram_f49d                        ; Continue loop
+    JP          FILTER_ITEMS_LOOP                   ; Continue loop
 
 ;==============================================================================
-; LAB_ram_f4b7 - Skip duplicate item entry
+; SKIP_DUPLICATE - Skip duplicate item entry
 ;==============================================================================
 ; Advances source pointer past a duplicate item entry (position + code = 2 bytes)
 ; and decrements item counter to account for removed duplicate.
@@ -7105,16 +7105,16 @@ LAB_ram_f49d:
 ; Memory Modified: None
 ; Calls: None
 ;==============================================================================
-LAB_ram_f4b7:
+SKIP_DUPLICATE:
     INC         HL                                  ; Skip position byte
     INC         HL                                  ; Skip item code byte
     DEC         B                                   ; Decrement counter (duplicate removed)
-    JP          LAB_ram_f49d                        ; Continue loop
-LAB_ram_f4bc:
+    JP          FILTER_ITEMS_LOOP                   ; Continue loop
+SKIP_EMPTY_MARKER:
     INC         HL                                  ; Skip $FE marker
     DEC         DE                                  ; Back up (don't store $FE)
     DEC         B                                   ; Decrement counter
-    JP          LAB_ram_f49d                        ; Continue loop
+    JP          FILTER_ITEMS_LOOP                   ; Continue loop
 
 ;==============================================================================
 ; SETUP_MAP_COPY - Initialize pointers for filtered item copy
