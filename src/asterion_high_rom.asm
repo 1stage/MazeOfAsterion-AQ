@@ -6911,12 +6911,12 @@ START_ITEM_TABLE:
     LD          A,(INPUT_HOLDER)                    ; Get input value for calculation
     LD          B,A                                 ; Use as loop counter
     LD          A,0x2                               ; Start with base value 2
-    JP          LAB_ram_f3db                        ; Jump into BCD multiplication loop
-LAB_ram_f3d9:
+    JP          BCD_DOUBLE_ENTRY                    ; Jump into BCD multiplication loop
+BCD_DOUBLE_LOOP:
     ADD         A,A                                 ; Double the value (A = A * 2)
     DAA                                             ; Decimal adjust for BCD arithmetic
-LAB_ram_f3db:
-    DJNZ        LAB_ram_f3d9                        ; Loop B times (2^B in BCD)
+BCD_DOUBLE_ENTRY:
+    DJNZ        BCD_DOUBLE_LOOP                     ; Loop B times (2^B in BCD)
     LD          C,A                                 ; Save calculated threshold in C
     LD          A,(DUNGEON_LEVEL)                   ; Get current dungeon level
     CP          C                                   ; Compare level to threshold
@@ -6949,14 +6949,14 @@ GENERATE_RANDOM_ITEM:
     EX          AF,AF'                              ; Save position to alternate AF
     LD          A,(DUNGEON_LEVEL)                   ; Load dungeon level
     AND         A                                   ; Test if level 0
-    JP          NZ,LAB_ram_f417                     ; If not level 0, skip restrictions
+    JP          NZ,CHECK_ITEM_POSITION              ; If not level 0, skip restrictions
     EX          AF,AF'                              ; Restore position from alternate
     CP          0x1                                 ; Compare to position 1
     JP          Z,GENERATE_RANDOM_ITEM              ; If position 1, retry (reserved)
     CP          $10                                 ; Compare to position $10
     JP          Z,GENERATE_RANDOM_ITEM              ; If position $10, retry (reserved)
     EX          AF,AF'                              ; Save position to alternate
-LAB_ram_f417:
+CHECK_ITEM_POSITION:
     EX          AF,AF'                              ; Restore position from alternate
     LD          E,A                                 ; E = random position
     LD          A,(PLAYER_MAP_POS)                  ; Load player position
@@ -6972,42 +6972,42 @@ LAB_ram_f417:
     RLCA                                            ; Rotate left twice
     RLCA                                            ; to get 0, 1, 2, 3
     DEC         A                                   ; A = -1, 0, 1, 2
-    JP          NZ,LAB_ram_f437                     ; If not 0, check next category                     ; If not 0, check next category
+    JP          NZ,ITEM_WEAPONS                     ; If not 0, check next category                     ; If not 0, check next category
     LD          C,0x5                               ; Category 0: C = 5 (range 0-4)
     LD          D,0x0                               ; D = 0 (base offset)
-    JP          LAB_ram_f465                        ; Jump to generate item code
-LAB_ram_f437:
+    JP          GEN_ITEM_TYPE                       ; Jump to generate item code
+ITEM_WEAPONS:
     DEC         A                                   ; Test for category 1
-    JP          NZ,LAB_ram_f449                     ; If not 1, check next category
+    JP          NZ,ITEM_SPECIALS                    ; If not 1, check next category
     LD          C,0x5                               ; Category 1: C = 5 (range 0-4)
     LD          D,0x6                               ; D = 6 (base offset for bows/scrolls)
     LD          A,(DUNGEON_LEVEL)                   ; Load dungeon level
     CP          0x6                                 ; Compare to level 6
-    JP          C,LAB_ram_f465                      ; If < 6, use range 0-4
+    JP          C,GEN_ITEM_TYPE                     ; If < 6, use range 0-4
     LD          C,0x7                               ; If >= 6, C = 7 (range 0-6)
-    JP          LAB_ram_f465                        ; Jump to generate item code
-LAB_ram_f449:
+    JP          GEN_ITEM_TYPE                       ; Jump to generate item code
+ITEM_SPECIALS:
     DEC         A                                   ; Test for category 2
-    JP          NZ,LAB_ram_f452                     ; If not 2, must be category 3 (monsters)
+    JP          NZ,ITEM_MONSTERS                    ; If not 2, must be category 3 (monsters)
     LD          C,0x4                               ; Category 2: C = 4 (range 0-3)
     LD          D,$11                               ; D = $11 (base offset for chests/items)
-    JP          LAB_ram_f465                        ; Jump to generate item code
-LAB_ram_f452:
+    JP          GEN_ITEM_TYPE                       ; Jump to generate item code
+ITEM_MONSTERS:
     LD          D,$1e                               ; Category 3 (monsters): D = $1E (base offset)
     LD          C,0x5                               ; C = 5 (range 0-4, monsters $1E-$22)
     LD          A,(DUNGEON_LEVEL)                   ; Load dungeon level
     CP          0x6                                 ; Compare to level 6
-    JP          C,LAB_ram_f465                      ; If < 6, use range 0-4
+    JP          C,GEN_ITEM_TYPE                     ; If < 6, use range 0-4
     LD          C,0x7                               ; If >= 6, C = 7 (range 0-6, adds $23-$24)
     CP          $16                                 ; Compare to level 22 (BCD)
-    JP          C,LAB_ram_f465                      ; If < 22, use range 0-6
+    JP          C,GEN_ITEM_TYPE                     ; If < 22, use range 0-6
     LD          C,0x9                               ; If >= 22, C = 9 (range 0-8, adds $25-$26)
-LAB_ram_f465:
+GEN_ITEM_TYPE:
     CALL        MAKE_RANDOM_BYTE                    ; Get random byte
     AND         0xf                                 ; Mask to 0-15
-LAB_ram_f46a:
+GEN_ITEM_TYPE_LOOP:
     SUB         C                                   ; Subtract range limit
-    JP          NC,LAB_ram_f46a                     ; Loop while >= C (normalize to 0..C-1)
+    JP          NC,GEN_ITEM_TYPE_LOOP               ; Loop while >= C (normalize to 0..C-1)
     ADD         A,C                                 ; Add back to get final offset
     ADD         A,D                                 ; Add base offset (item type)
     LD          C,A                                 ; C = item type code
