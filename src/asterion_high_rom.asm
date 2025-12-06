@@ -2205,9 +2205,9 @@ CALC_SHIELD_ATTRS:
 NEW_RIGHT_HAND_ITEM:
     LD          A,(RIGHT_HAND_ITEM)                 ; Load current right-hand item code into A
     CP          $18                                 ; Compare to $18 (RED Bow start)
-    JP          C,LAB_ram_e7c0                      ; If below range, clear weapon values
+    JP          C,CLEAR_WEAPON_VALUES               ; If below range, clear weapon values
     CP          $34                                 ; Compare to $34 (one past WHITE Crossbow)
-    JP          NC,LAB_ram_e7c0                     ; If at/above, clear weapon values
+    JP          NC,CLEAR_WEAPON_VALUES              ; If at/above, clear weapon values
     LD          BC,0x0                              ; Clear BC (B/C used during bit rotations)
     LD          E,0x0                               ; E = 0 (used by spiritual path later)
     SRL         A                                   ; Logical shift right: begin subtype decode
@@ -2216,12 +2216,12 @@ NEW_RIGHT_HAND_ITEM:
     RL          B                                   ; Rotate B left: accumulate subtype bits
     RL          B                                   ; Rotate B left again: finalize subtype accumulation
     SUB         0x6                                 ; Normalize subtype to tier base
-    JP          NZ,LAB_ram_e763                     ; If not zero, branch to tier handlers
+    JP          NZ,WEAPON_TIER_SPRT_1               ; If not zero, branch to tier handlers
     LD          D,0x6                               ; D = base tier value for physical path
-    JP          LAB_ram_e78b                        ; Compute physical weapon value
+    JP          CALC_PHYS_WEAPON                    ; Compute physical weapon value
  
 ;==============================================================================
-; LAB_ram_e763 — Tier Branch (Spiritual Path Selector)
+; WEAPON_TIER_SPRT_1 — Tier Branch (Spiritual Path Selector)
 ;==============================================================================
 ; Branch for decoded subtype tier. Selects base tier value in D and
 ; jumps to spiritual weapon computation path when A decrements to zero.
@@ -2237,14 +2237,14 @@ NEW_RIGHT_HAND_ITEM:
 ; Memory Modified: None
 ; Calls: None
 ;==============================================================================
-LAB_ram_e763:
+WEAPON_TIER_SPRT_1:
     DEC         A                                   ; Decrement tier counter
-    JP          NZ,LAB_ram_e76a                     ; If not zero, continue to next branch
+    JP          NZ,WEAPON_TIER_PHYS_1               ; If not zero, continue to next branch
     LD          D,0x6                               ; D = spiritual tier value
-    JP          LAB_ram_e79e                        ; Compute spiritual weapon value
+    JP          CALC_SPRT_WEAPON                    ; Compute spiritual weapon value
  
 ;==============================================================================
-; LAB_ram_e76a — Tier Branch (Physical Path Selector)
+; WEAPON_TIER_PHYS_1 — Tier Branch (Physical Path Selector)
 ;==============================================================================
 ; Selects higher physical tier for weapon calculation and branches to
 ; physical computation path when A reaches zero.
@@ -2254,7 +2254,7 @@ LAB_ram_e763:
 ;
 ; Outputs:
 ;   D = physical tier value
-;   Flow to LAB_ram_e78b
+;   Flow to CALC_PHYS_WEAPON
 ;
 ; Registers:
 ; --- Start ---
@@ -2267,14 +2267,14 @@ LAB_ram_e763:
 ; Memory Modified: None
 ; Calls: None
 ;==============================================================================
-LAB_ram_e76a:
+WEAPON_TIER_PHYS_1:
     DEC         A                                   ; Decrement tier counter
-    JP          NZ,LAB_ram_e771                     ; If not zero, check next branch
+    JP          NZ,WEAPON_TIER_SPRT_2               ; If not zero, check next branch
     LD          D,$16                               ; D = higher physical tier value
-    JP          LAB_ram_e78b                        ; Compute physical weapon value
+    JP          CALC_PHYS_WEAPON                    ; Compute physical weapon value
  
 ;==============================================================================
-; LAB_ram_e771 — Tier Branch (Spiritual Path Selector)
+; WEAPON_TIER_SPRT_2 — Tier Branch (Spiritual Path Selector)
 ;==============================================================================
 ; Selects higher spiritual tier for weapon calculation and branches to
 ; spiritual computation path when A reaches zero.
@@ -2284,7 +2284,7 @@ LAB_ram_e76a:
 ;
 ; Outputs:
 ;   D = spiritual tier value
-;   Flow to LAB_ram_e79e
+;   Flow to CALC_SPRT_WEAPON
 ;
 ; Registers:
 ; --- Start ---
@@ -2297,14 +2297,14 @@ LAB_ram_e76a:
 ; Memory Modified: None
 ; Calls: None
 ;==============================================================================
-LAB_ram_e771:
+WEAPON_TIER_SPRT_2:
     DEC         A                                   ; Decrement tier counter
-    JP          NZ,LAB_ram_e778                     ; If not zero, check next branch
+    JP          NZ,WEAPON_TIER_PHYS_2               ; If not zero, check next branch
     LD          D,$20                               ; D = higher spiritual tier value
-    JP          LAB_ram_e79e                        ; Compute spiritual weapon value
+    JP          CALC_SPRT_WEAPON                    ; Compute spiritual weapon value
  
 ;==============================================================================
-; LAB_ram_e778 — Tier Branch (Physical Path Selector)
+; WEAPON_TIER_PHYS_2 — Tier Branch (Physical Path Selector)
 ;==============================================================================
 ; Selects higher physical tier for weapon calculation and branches to
 ; physical computation path when A reaches zero.
@@ -2314,7 +2314,7 @@ LAB_ram_e771:
 ;
 ; Outputs:
 ;   D = physical tier value
-;   Flow to LAB_ram_e78b
+;   Flow to CALC_PHYS_WEAPON
 ;
 ; Registers:
 ; --- Start ---
@@ -2327,14 +2327,14 @@ LAB_ram_e771:
 ; Memory Modified: None
 ; Calls: None
 ;==============================================================================
-LAB_ram_e778:
+WEAPON_TIER_PHYS_2:
     DEC         A                                   ; Decrement tier counter
-    JP          NZ,LAB_ram_e77f                     ; If not zero, check next branch
+    JP          NZ,WEAPON_TIER_SPRT_3               ; If not zero, check next branch
     LD          D,$24                               ; D = higher physical tier value
-    JP          LAB_ram_e78b                        ; Compute physical weapon value
+    JP          CALC_PHYS_WEAPON                    ; Compute physical weapon value
  
 ;==============================================================================
-; LAB_ram_e77f — Tier Branch (Spiritual Path Selector)
+; WEAPON_TIER_SPRT_3 — Tier Branch (Spiritual Path Selector)
 ;==============================================================================
 ; Selects spiritual tier for weapon calculation and branches to
 ; spiritual computation path when A reaches zero.
@@ -2344,7 +2344,7 @@ LAB_ram_e778:
 ;
 ; Outputs:
 ;   D = spiritual tier value
-;   Flow to LAB_ram_e79e
+;   Flow to CALC_SPRT_WEAPON
 ;
 ; Registers:
 ; --- Start ---
@@ -2357,14 +2357,14 @@ LAB_ram_e778:
 ; Memory Modified: None
 ; Calls: None
 ;==============================================================================
-LAB_ram_e77f:
+WEAPON_TIER_SPRT_3:
     DEC         A                                   ; Decrement tier counter
-    JP          NZ,LAB_ram_e786                     ; If not zero, go to final physical tier
+    JP          NZ,WEAPON_TIER_PHYS_FINAL           ; If not zero, go to final physical tier
     LD          D,$15                               ; D = spiritual tier value
-    JP          LAB_ram_e79e                        ; Compute spiritual weapon value
+    JP          CALC_SPRT_WEAPON                    ; Compute spiritual weapon value
  
 ;==============================================================================
-; LAB_ram_e786 — Final Tier (Physical Path)
+; WEAPON_TIER_PHYS_FINAL — Final Tier (Physical Path)
 ;==============================================================================
 ; Final tier selection for physical weapon path. Sets D to last tier
 ; value and falls through to physical weapon value computation.
@@ -2374,7 +2374,7 @@ LAB_ram_e77f:
 ;
 ; Outputs:
 ;   D = physical tier value
-;   Flow to LAB_ram_e78b
+;   Flow to CALC_PHYS_WEAPON
 ;
 ; Registers:
 ; --- Start ---
@@ -2387,12 +2387,12 @@ LAB_ram_e77f:
 ; Memory Modified: None
 ; Calls: None
 ;==============================================================================
-LAB_ram_e786:
+WEAPON_TIER_PHYS_FINAL:
     DEC         A                                   ; Final decrement on tier counter
     LD          D,$18                               ; D = final physical tier value
  
 ;==============================================================================
-; LAB_ram_e78b — Compute Physical Weapon Value
+; CALC_PHYS_WEAPON — Compute Physical Weapon Value
 ;==============================================================================
 ; Computes 16-bit BCD physical weapon value from tier D via CALC_WEAPON_VALUE,
 ; doubles it, normalizes with DAA, stores into WEAPON_PHYS, and clears WEAPON_SPRT.
@@ -2402,7 +2402,7 @@ LAB_ram_e786:
 ;
 ; Outputs:
 ;   WEAPON_PHYS updated; WEAPON_SPRT cleared
-;   Flow to LAB_ram_e7aa (HUD redraw)
+;   Flow to REDRAW_WEAPON_HUD (HUD redraw)
 ;
 ; Registers:
 ; --- Start ---
@@ -2415,7 +2415,7 @@ LAB_ram_e786:
 ; Memory Modified: WEAPON_PHYS, WEAPON_SPRT
 ; Calls: CALC_WEAPON_VALUE
 ;==============================================================================
-LAB_ram_e78b:
+CALC_PHYS_WEAPON:
     CALL        CALC_WEAPON_VALUE                   ; A = base weapon value from tier D
     ADD         A,A                                 ; Double A for physical weighting
     DAA                                             ; Decimal adjust to maintain BCD
@@ -2426,10 +2426,10 @@ LAB_ram_e78b:
     LD          (WEAPON_PHYS),HL                    ; Store 16-bit PHYS value
     XOR         A                                   ; A = 0
     LD          (WEAPON_SPRT),A                     ; Clear SPRT value
-    JP          LAB_ram_e7aa                        ; Redraw HUD weapon counters
+    JP          REDRAW_WEAPON_HUD                   ; Redraw HUD weapon counters
  
 ;==============================================================================
-; LAB_ram_e79e — Compute Spiritual Weapon Value
+; CALC_SPRT_WEAPON — Compute Spiritual Weapon Value
 ;==============================================================================
 ; Computes 8-bit BCD spiritual weapon value from tier D via CALC_WEAPON_VALUE,
 ; stores into WEAPON_SPRT, and clears WEAPON_PHYS.
@@ -2439,7 +2439,7 @@ LAB_ram_e78b:
 ;
 ; Outputs:
 ;   WEAPON_SPRT updated; WEAPON_PHYS cleared
-;   Flow to LAB_ram_e7aa (HUD redraw)
+;   Flow to REDRAW_WEAPON_HUD (HUD redraw)
 ;
 ; Registers:
 ; --- Start ---
@@ -2452,14 +2452,14 @@ LAB_ram_e78b:
 ; Memory Modified: WEAPON_SPRT, WEAPON_PHYS
 ; Calls: CALC_WEAPON_VALUE
 ;==============================================================================
-LAB_ram_e79e:
+CALC_SPRT_WEAPON:
     CALL        CALC_WEAPON_VALUE                   ; A = spiritual weapon value from tier D
     LD          (WEAPON_SPRT),A                     ; Store SPRT value (8-bit BCD)
     LD          HL,0x0                              ; HL = 0
     LD          (WEAPON_PHYS),HL                    ; Clear PHYS value
  
 ;==============================================================================
-; LAB_ram_e7aa — Redraw Weapon Values on HUD
+; REDRAW_WEAPON_HUD — Redraw Weapon Values on HUD
 ;==============================================================================
 ; Recalculates and redraws HUD counters for PHYS and SPRT weapon values.
 ; Writes PHYS (2 digits) and SPRT (1 digit) to their CHRRAM positions.
@@ -2481,7 +2481,7 @@ LAB_ram_e79e:
 ; Memory Modified: CHRRAM_PHYS_WEAPON_IDX, CHRRAM_SPRT_WEAPON_IDX
 ; Calls: RECALC_AND_REDRAW_BCD
 ;==============================================================================
-LAB_ram_e7aa:
+REDRAW_WEAPON_HUD:
     LD          DE,CHRRAM_PHYS_WEAPON_IDX           ; DE = PHYS HUD counter CHRRAM address
     LD          HL,WEAPON_PHYS                      ; HL = pointer to PHYS value
     LD          B,0x2                               ; B = number of digits (2)
@@ -2492,7 +2492,7 @@ LAB_ram_e7aa:
     JP          RECALC_AND_REDRAW_BCD               ; Recalculate and draw SPRT digit
  
 ;==============================================================================
-; LAB_ram_e7c0 — Clear Weapon Values Outside Range
+; CLEAR_WEAPON_VALUES — Clear Weapon Values Outside Range
 ;==============================================================================
 ; Handles items outside bow/crossbow range. Clears PHYS and SPRT weapon
 ; values and triggers HUD redraw.
@@ -2502,7 +2502,7 @@ LAB_ram_e7aa:
 ;
 ; Outputs:
 ;   WEAPON_PHYS = 0; WEAPON_SPRT = 0
-;   Flow to LAB_ram_e7aa
+;   Flow to REDRAW_WEAPON_HUD
 ;
 ; Registers:
 ; --- Start ---
@@ -2513,14 +2513,14 @@ LAB_ram_e7aa:
 ;   Values cleared
 ;
 ; Memory Modified: WEAPON_PHYS, WEAPON_SPRT
-; Calls: RECALC_AND_REDRAW_BCD (via LAB_ram_e7aa)
+; Calls: RECALC_AND_REDRAW_BCD (via REDRAW_WEAPON_HUD)
 ;==============================================================================
-LAB_ram_e7c0:
+CLEAR_WEAPON_VALUES:
     LD          HL,0x0                              ; Load HL with 0
     XOR         A                                   ; Clear A (A = 0)
     LD          (WEAPON_PHYS),HL                    ; Store 0 to WEAPON_PHYS (2 bytes)
     LD          (WEAPON_SPRT),A                     ; Store 0 to WEAPON_SPRT
-    JP          LAB_ram_e7aa                        ; Jump to recalc/redraw weapon stats
+    JP          REDRAW_WEAPON_HUD                   ; Jump to recalc/redraw weapon stats
 
 ;==============================================================================
 ; DO_PICK_UP - Handle item pickup from dungeon floor
