@@ -314,7 +314,7 @@ ADJUST_SHIELD_LEVEL:
 ;   Control transfers to DO_SWAP_HANDS (does not return)
 ;
 ; Memory Modified: LEFT_HAND_ITEM, CHRRAM (right hand slot), MAPSPACE_WALLS, ITEM_TABLE
-; Calls: GFX_DRAW, BUILD_MAP, PLAY_PITCH_DOWN_MED, SUB_ram_f2c4, UPDATE_VIEWPORT, DO_SWAP_HANDS
+; Calls: GFX_DRAW, BUILD_MAP, PLAY_PITCH_DOWN_MED, INC_DUNGEON_LEVEL, UPDATE_VIEWPORT, DO_SWAP_HANDS
 ;==============================================================================
 FINALIZE_STARTUP_STATE:
     LD          A,$18                               ; A = $18 (BOW item code)
@@ -324,7 +324,7 @@ FINALIZE_STARTUP_STATE:
     CALL        GFX_DRAW                            ; Draw BUCKLER in right hand slot
     CALL        BUILD_MAP                           ; Generate dungeon walls/items
     CALL        PLAY_PITCH_DOWN_MED                 ; Init sound / system routine
-    CALL        SUB_ram_f2c4                        ; Additional startup (timer/UI) routine
+    CALL        INC_DUNGEON_LEVEL                   ; Additional startup (timer/UI) routine
     CALL        REDRAW_START                        ; Draw initial non-viewport UI elements
     CALL        REDRAW_VIEWPORT                     ; Render initial 3D maze view
     JP          DO_SWAP_HANDS                       ; Enter main input loop (no return)
@@ -6408,7 +6408,7 @@ WRITE_HP_TRIPLET:
 ;   Control transfers to RESET_SHIFT_MODE
 ;
 ; Memory Modified: PLAYER_PREV_MAP_LOC, DUNGEON_LEVEL, entire map space
-; Calls: BUILD_MAP, PLAY_PITCH_DOWN_MED, SUB_ram_f2c4, RESET_SHIFT_MODE
+; Calls: BUILD_MAP, PLAY_PITCH_DOWN_MED, INC_DUNGEON_LEVEL, RESET_SHIFT_MODE
 ;==============================================================================
 DO_USE_LADDER:
     LD          A,(COMBAT_BUSY_FLAG)                ; Check if in combat
@@ -6421,10 +6421,10 @@ DO_USE_LADDER:
     LD          (PLAYER_PREV_MAP_LOC),A             ; Store as previous location
     CALL        BUILD_MAP                           ; Generate new dungeon level
     CALL        PLAY_PITCH_DOWN_MED                 ; Call pitch-down routine
-    CALL        SUB_ram_f2c4                        ; Update dungeon level display
+    CALL        INC_DUNGEON_LEVEL                   ; Update dungeon level display
     JP          RESET_SHIFT_MODE                    ; Reset shift mode and return
 ;==============================================================================
-; SUB_ram_f2c4 - Increment and display dungeon level
+; INC_DUNGEON_LEVEL - Increment and display dungeon level
 ;==============================================================================
 ; Increments the dungeon level by 1 (BCD arithmetic), updates the display,
 ; and redraws start screen elements. If level exceeds 99, displays "loop"
@@ -6444,7 +6444,7 @@ DO_USE_LADDER:
 ; Memory Modified: DUNGEON_LEVEL, CHRRAM level display area
 ; Calls: RECALC_AND_REDRAW_BCD, REDRAW_START, REDRAW_VIEWPORT, DRAW_BKGD, GFX_DRAW, SLEEP_ZERO
 ;==============================================================================
-SUB_ram_f2c4:
+INC_DUNGEON_LEVEL:
     LD          DE,$3002                            ; DE = display address for level
     LD          HL,DUNGEON_LEVEL                    ; Point to current dungeon level (BCD)
     LD          A,0x1                               ; A = 1 (increment value)
@@ -6453,7 +6453,7 @@ SUB_ram_f2c4:
     JP          C,DRAW_99_LOOP_NOTICE               ; If overflow (>99), show loop notice
 
 ;==============================================================================
-; LAB_ram_f2d0 - Store new level and update display
+; STORE_LEVEL_AND_REDRAW - Store new level and update display
 ;==============================================================================
 ; Stores the incremented dungeon level value, updates the display with BCD
 ; formatting, redraws start screen elements, and refreshes viewport. Normal
@@ -6473,7 +6473,7 @@ SUB_ram_f2c4:
 ; Memory Modified: DUNGEON_LEVEL, CHRRAM display area
 ; Calls: RECALC_AND_REDRAW_BCD, REDRAW_START, REDRAW_VIEWPORT
 ;==============================================================================
-LAB_ram_f2d0:
+STORE_LEVEL_AND_REDRAW:
     LD          (HL),A                              ; Store new dungeon level
     LD          B,0x1                               ; 1 byte (BCD format)
     CALL        RECALC_AND_REDRAW_BCD               ; Recalculate and redraw level
@@ -6497,7 +6497,7 @@ LAB_ram_f2d0:
 ;   A  = CHAR_BOTTOM_LINE
 ;   EXX switches register sets for delay
 ; ---  End  ---
-;   Control transfers to LAB_ram_f2d0 via JP
+;   Control transfers to STORE_LEVEL_AND_REDRAW via JP
 ;
 ; Memory Modified: CHRRAM (full screen), DUNGEON_LEVEL
 ; Calls: DRAW_BKGD, GFX_DRAW, SLEEP_ZERO (via EXX alternate set)
@@ -6511,7 +6511,7 @@ DRAW_99_LOOP_NOTICE:
     LD          B,$1e                               ; B = 30 (delay loop count)
 
 ;==============================================================================
-; LAB_ram_f2ec - Delay loop for level 99 notice display
+; LEVEL_99_NOTICE_DELAY - Delay loop for level 99 notice display
 ;==============================================================================
 ; Executes 30 VSYNC-synchronized delays to display the level loop notice for
 ; approximately 0.5 seconds (30 frames at 60Hz). Uses alternate register set
@@ -6531,15 +6531,15 @@ DRAW_99_LOOP_NOTICE:
 ; Memory Modified: None directly (SLEEP_ZERO may modify alternate set memory)
 ; Calls: SLEEP_ZERO (in alternate register set)
 ;==============================================================================
-LAB_ram_f2ec:
+LEVEL_99_NOTICE_DELAY:
     EXX                                             ; Switch to alternate registers
     CALL        SLEEP_ZERO                          ; Delay/wait function
     EXX                                             ; Switch back to main registers
-    DJNZ        LAB_ram_f2ec                        ; Loop 30 times for delay
+    DJNZ        LEVEL_99_NOTICE_DELAY               ; Loop 30 times for delay
     LD          A,CHAR_BOTTOM_LINE                  ; A = bottom line character
     LD          HL,DUNGEON_LEVEL                    ; Point to dungeon level
     LD          DE,CHHRAM_LVL_IDX                   ; Point to level display address
-    JP          LAB_ram_f2d0                        ; Jump to update level display
+    JP          STORE_LEVEL_AND_REDRAW              ; Jump to update level display
 ;==============================================================================
 ; RECALC_AND_REDRAW_BCD - Convert BCD value to ASCII and render on screen
 ;==============================================================================
