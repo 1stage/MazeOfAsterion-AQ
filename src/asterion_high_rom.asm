@@ -4735,13 +4735,13 @@ DO_USE_ATTACK:
 ;   Varies by called routine
 ;
 ; Memory Modified: Health values, stats display, right-hand item
-; Calls: PLAY_USE_PHYS_POTION_SOUND, TOTAL_HEAL, CHECK_YELLOW_L_POTION (fall-through)
+; Calls: PLAY_USE_PHYS_POTION_SOUND, TOTAL_HEAL, YEL_CHAOS_CHK (fall-through)
 ;==============================================================================
 DO_USE_CHAOS_POTION:
     CALL        PLAY_USE_PHYS_POTION_SOUND          ; Play potion use sound effect
     INC         B                                   ; Increment B
     DEC         B                                   ; Decrement B (test if zero)
-    JP          NZ,CHECK_YELLOW_L_POTION            ; If not zero, handle other potion colors
+    JP          NZ,YEL_CHAOS_CHK                    ; If not zero, handle other potion colors
                                                     ; If zero, large potion is red (full heal)
     CALL        TOTAL_HEAL                          ; Restore all health (phys + sprt)
 
@@ -4869,7 +4869,7 @@ TOTAL_HEAL:
 ;    JP          RECALC_AND_REDRAW_BCD               ; Recalculate and redraw spiritual health
 
 ;==============================================================================
-; CHECK_YELLOW_L_POTION - Process yellow large potion (+10 phys health)
+; YEL_CHAOS_CHK - Process yellow large potion (+10 phys health)
 ;==============================================================================
 ; Handles yellow chaos potion (level 1) which grants +10 physical health.
 ; Falls through to PROCESS_LARGE_POTION with BC=$10 (10 BCD), E=0.
@@ -4881,11 +4881,11 @@ TOTAL_HEAL:
 ;   BC = $10, E = 0
 ;
 ; Memory Modified: None directly (PROCESS_LARGE_POTION handles updates)
-; Calls: CHECK_PURPLE_L_POTION (if not yellow), PROCESS_LARGE_POTION (fall-through)
+; Calls: MAG_CHAOS_CHK (if not yellow), PROCESS_LARGE_POTION (fall-through)
 ;==============================================================================
-CHECK_YELLOW_L_POTION:
+YEL_CHAOS_CHK:
     DEC         B                                   ; Decrement level (B=0 for yellow large)
-    JP          NZ,CHECK_PURPLE_L_POTION            ; If not zero, check purple
+    JP          NZ,MAG_CHAOS_CHK                    ; If not zero, check purple
     LD          BC,$10                              ; BC = 10 physical health increase
     LD          E,0x0                               ; E = 0 spiritual health increase
 
@@ -4911,7 +4911,7 @@ PROCESS_LARGE_POTION:
     JP          PROCESS_POTION_UPDATES              ; Continue with updates
 
 ;==============================================================================
-; CHECK_PURPLE_L_POTION - Process purple large potion (+6 sprt health)
+; MAG_CHAOS_CHK - Process purple large potion (+6 sprt health)
 ;==============================================================================
 ; Handles purple chaos potion (level 2) which grants +6 spiritual health.
 ; Jumps to PROCESS_LARGE_POTION with BC=0, E=$06.
@@ -4923,17 +4923,17 @@ PROCESS_LARGE_POTION:
 ;   BC = 0, E = $06
 ;
 ; Memory Modified: None directly (PROCESS_LARGE_POTION handles updates)
-; Calls: CHECK_WHITE_L_POTION (if not purple), PROCESS_LARGE_POTION (jump)
+; Calls: WHT_CHAOS_CHK (if not purple), PROCESS_LARGE_POTION (jump)
 ;==============================================================================
-CHECK_PURPLE_L_POTION:
+MAG_CHAOS_CHK:
     DEC         B                                   ; Decrement level (B=0 for purple large)
-    JP          NZ,CHECK_WHITE_L_POTION             ; If not zero, check white
+    JP          NZ,WHT_CHAOS_CHK                    ; If not zero, check white
     LD          BC,0x0                              ; BC = 0 physical health increase
     LD          E,0x6                               ; E = 6 spiritual health increase
     JP          PROCESS_LARGE_POTION                ; Process the large potion
 
 ;==============================================================================
-; CHECK_WHITE_L_POTION - Process white large potion (random effect)
+; WHT_CHAOS_CHK - Process white large potion (random effect)
 ;==============================================================================
 ; Handles white chaos potion (level 3) which has one of four random effects:
 ; Case 0: +20 physical health
@@ -4952,17 +4952,22 @@ CHECK_PURPLE_L_POTION:
 ; Memory Modified: Health values (varies by case)
 ; Calls: MAKE_RANDOM_BYTE, PROCESS_LARGE_POTION (cases 0-2), TOTAL_HEAL (case 2), health reduction routines (case 3)
 ;==============================================================================
-CHECK_WHITE_L_POTION:
+WHT_CHAOS_CHK:
     CALL        MAKE_RANDOM_BYTE                    ; Get semi-random number in A
     AND         0x3                                 ; Mask to 0-3 for 4 cases
     DEC         A                                   ; Test for case 0
-    JP          NZ,LAB_ram_ef08                     ; If not case 0, check case 1
+    JP          NZ,WHT_CHAOS_SPRT_HEAL              ; If not case 0, check case 1
+
+;------------------------------------------------------------------------------
+; WHT_CHAOS_PHYS_HEAL - White potion case 0: +20 physical health (fall-through)
+;------------------------------------------------------------------------------
+WHT_CHAOS_PHYS_HEAL:
     LD          E,0x0                               ; Case 0: E = 0 spiritual increase
     LD          BC,$20                              ; BC = 20 physical increase (BCD)
     JP          PROCESS_LARGE_POTION                ; Process with these values
 
 ;==============================================================================
-; LAB_ram_ef08 - White potion case 1: +12 spiritual health
+; WHT_CHAOS_SPRT_HEAL - White potion case 1: +12 spiritual health
 ;==============================================================================
 ; Handles white chaos potion random case 1 which grants +12 spiritual health
 ; with no physical health increase.
@@ -4974,17 +4979,17 @@ CHECK_WHITE_L_POTION:
 ;   BC = 0, E = $12
 ;
 ; Memory Modified: None directly (PROCESS_LARGE_POTION handles updates)
-; Calls: LAB_ram_ef12 (if not case 1), PROCESS_LARGE_POTION (jump)
+; Calls: WHT_CHAOS_FULL_HEAL (if not case 1), PROCESS_LARGE_POTION (jump)
 ;==============================================================================
-LAB_ram_ef08:
+WHT_CHAOS_SPRT_HEAL:
     DEC         A                                   ; Test for case 1
-    JP          NZ,LAB_ram_ef12                     ; If not case 1, check case 2
+    JP          NZ,WHT_CHAOS_FULL_HEAL              ; If not case 1, check case 2
     LD          BC,0x0                              ; Case 1: BC = 0 physical increase
     LD          E,$12                               ; E = 12 spiritual increase (BCD)
     JP          PROCESS_LARGE_POTION                ; Process with these values
 
 ;==============================================================================
-; LAB_ram_ef12 - White potion case 2: Full heal + bonus
+; WHT_CHAOS_FULL_HEAL - White potion case 2: Full heal + bonus
 ;==============================================================================
 ; Handles white chaos potion random case 2 which performs a full heal then
 ; grants additional +10 physical and +6 spiritual health bonus.
@@ -4996,18 +5001,18 @@ LAB_ram_ef08:
 ;   BC = $10, E = $06
 ;
 ; Memory Modified: PLAYER_PHYS_HEALTH, PLAYER_SPRT_HEALTH (via TOTAL_HEAL)
-; Calls: CHECK_CASE_3_WL_POTION (if not case 2), TOTAL_HEAL, PROCESS_LARGE_POTION (jump)
+; Calls: WHT_CHAOS_CURSED (if not case 2), TOTAL_HEAL, PROCESS_LARGE_POTION (jump)
 ;==============================================================================
-LAB_ram_ef12:
+WHT_CHAOS_FULL_HEAL:
     DEC         A                                   ; Test for case 2
-    JP          NZ,CHECK_CASE_3_WL_POTION           ; If not case 2, must be case 3
+    JP          NZ,WHT_CHAOS_CURSED                 ; If not case 2, must be case 3
     CALL        TOTAL_HEAL                          ; Case 2: Full heal first
     LD          BC,$10                              ; BC = 10 additional physical (BCD)
     LD          E,0x6                               ; E = 6 additional spiritual (BCD)
     JP          PROCESS_LARGE_POTION                ; Process bonus increases
 
 ;==============================================================================
-; CHECK_CASE_3_WL_POTION - White potion case 3: Cursed (health reduction)
+; WHT_CHAOS_CURSED - White potion case 3: Cursed (health reduction)
 ;==============================================================================
 ; Handles white chaos potion random case 3 which is cursed. Reduces both
 ; current health (-30 phys, -15 sprt) and maximum health (-15 phys, -7 sprt).
@@ -5028,7 +5033,7 @@ LAB_ram_ef12:
 ; Memory Modified: All health values (current and max)
 ; Calls: REDUCE_HEALTH_BIG, REDUCE_HEALTH_SMALL, PROCESS_POTION_UPDATES (jump), possibly PLAYER_DIES
 ;==============================================================================
-CHECK_CASE_3_WL_POTION:
+WHT_CHAOS_CURSED:
     LD          BC,$30                              ; Case 3: BC = 30 physical decrease (BCD)
     LD          E,$15                               ; E = 15 spiritual decrease (BCD)
     CALL        REDUCE_HEALTH_BIG                   ; Reduce current health
@@ -5754,10 +5759,10 @@ CHECK_IF_BOW_XBOW:
 ;   BC = Saved/restored around CHK_ITEM_BREAK
 ; ---  End  ---
 ;   D  = 5
-;   Jumps to LAB_ram_f0e9
+;   Jumps to SETUP_ITEM_ANIM
 ;
 ; Memory Modified: ARROW_INV, possibly RIGHT_HAND_ITEM
-; Calls: NO_ACTION_TAKEN (if no arrows), CHK_ITEM_BREAK, LAB_ram_f0e9 (jump)
+; Calls: NO_ACTION_TAKEN (if no arrows), CHK_ITEM_BREAK, SETUP_ITEM_ANIM (jump)
 ;==============================================================================
 USE_BOW_XBOW:
     PUSH        BC                                  ; Save BC (item level)
@@ -5781,11 +5786,11 @@ USE_BOW_XBOW:
 ;   D  = 5
 ;
 ; Memory Modified: None
-; Calls: LAB_ram_f0e9 (jump)
+; Calls: SETUP_ITEM_ANIM (jump)
 ;==============================================================================
 BOW_XBOW_NO_BREAK:
     LD          D,0x5                               ; D = 5 (bow/arrow animation type)
-    JP          LAB_ram_f0e9                        ; Jump to setup animation
+    JP          SETUP_ITEM_ANIM                     ; Jump to setup animation
 
 ;==============================================================================
 ; CHECK_IF_SCROLL_STAFF - Route to scroll/staff handler if type matches
@@ -5824,10 +5829,10 @@ CHECK_IF_SCROLL_STAFF:
 ;   BC = Saved/restored around CHK_ITEM_BREAK
 ; ---  End  ---
 ;   D  = 9
-;   Jumps to LAB_ram_f0e9
+;   Jumps to SETUP_ITEM_ANIM
 ;
 ; Memory Modified: Possibly RIGHT_HAND_ITEM
-; Calls: CHK_ITEM_BREAK, LAB_ram_f0e9 (jump)
+; Calls: CHK_ITEM_BREAK, SETUP_ITEM_ANIM (jump)
 ;==============================================================================
 USE_SCROLL_STAFF:
     PUSH        BC                                  ; Save BC (item level)
@@ -5847,11 +5852,11 @@ USE_SCROLL_STAFF:
 ;   D  = 9
 ;
 ; Memory Modified: None
-; Calls: LAB_ram_f0e9 (jump)
+; Calls: SETUP_ITEM_ANIM (jump)
 ;==============================================================================
 SCROLL_STAFF_NO_BREAK:
     LD          D,0x9                               ; D = 9 (fireball animation type)
-    JP          LAB_ram_f0e9                        ; Jump to setup animation
+    JP          SETUP_ITEM_ANIM                     ; Jump to setup animation
 
 ;==============================================================================
 ; CHECK_OTHERS - Route staff/crossbow/melee/special items
@@ -5863,7 +5868,7 @@ SCROLL_STAFF_NO_BREAK:
 ; - $0B (staff) → USE_SCROLL_STAFF
 ; - $0C (crossbow) → USE_BOW_XBOW
 ; - 6-$F (melee) → Animation setup with item type as D
-; - $10-$14 (special) → LAB_ram_f113 handler
+; - $10-$14 (special) → CHK_SPECIAL_ITEM handler
 ;
 ; Registers:
 ; --- In Process ---
@@ -5873,7 +5878,7 @@ SCROLL_STAFF_NO_BREAK:
 ;   Jumps to various handlers
 ;
 ; Memory Modified: None directly
-; Calls: USE_SCROLL_STAFF, USE_BOW_XBOW, LAB_ram_f0e9, LAB_ram_f113, NO_ACTION_TAKEN (jumps)
+; Calls: USE_SCROLL_STAFF, USE_BOW_XBOW, SETUP_ITEM_ANIM, CHK_SPECIAL_ITEM, NO_ACTION_TAKEN (jumps)
 ;==============================================================================
 CHECK_OTHERS:
     CP          0xb                                 ; Compare to $0B (staff item type)
@@ -5883,12 +5888,12 @@ CHECK_OTHERS:
     CP          0x6                                 ; Compare to 6 (bow)
     JP          C,NO_ACTION_TAKEN                   ; If < 6, no action
     CP          $10                                 ; Compare to $10 (ladder)
-    JP          NC,LAB_ram_f113                     ; If >= $10, jump to special handler
+    JP          NC,CHK_SPECIAL_ITEM                 ; If >= $10, jump to special handler
     LD          D,A                                 ; D = item type (for animation)
     CALL        SWAP_TO_ALT_REGS                    ; Swap to alternate registers
 
 ;==============================================================================
-; LAB_ram_f0e9 - Setup item animation and initialize combat
+; SETUP_ITEM_ANIM - Setup item animation and initialize combat
 ;==============================================================================
 ; Common entry point for weapon usage. Sets up item animation parameters
 ; and initializes monster combat sequence.
@@ -5903,7 +5908,7 @@ CHECK_OTHERS:
 ; Memory Modified: Animation state variables
 ; Calls: SETUP_ITEM_ANIMATION, INIT_MONSTER_COMBAT (jump)
 ;==============================================================================
-LAB_ram_f0e9:
+SETUP_ITEM_ANIM:
     CALL        SETUP_ITEM_ANIMATION                ; Setup item animation parameters
     JP          INIT_MONSTER_COMBAT                 ; Initialize monster combat
 
@@ -5967,7 +5972,7 @@ SETUP_ITEM_ANIMATION:
     JP          COPY_RH_ITEM_FRAME_GFX              ; Copy frame graphics and return
 
 ;==============================================================================
-; LAB_ram_f113 - Check for ladder or door special items
+; CHK_SPECIAL_ITEM - Check for ladder or door special items
 ;==============================================================================
 ; Validates special item types (ladder $10-$11, door $14) for combat-only
 ; usage. Routes to appropriate handler.
@@ -5979,15 +5984,15 @@ SETUP_ITEM_ANIMATION:
 ;   Jumps to handler
 ;
 ; Memory Modified: None
-; Calls: LAB_ram_f119 or LAB_ram_f11e (jumps)
+; Calls: CHK_DOOR_ITEM or USE_LADDER_DOOR_ESCAPE (jumps)
 ;==============================================================================
-LAB_ram_f113:
+CHK_SPECIAL_ITEM:
     CP          $11                                 ; Compare to $11 (ladder up/down)
-    JP          NZ,LAB_ram_f119                     ; If not ladder, check next
-    JP          LAB_ram_f11e                        ; If ladder, jump to handler
+    JP          NZ,CHK_DOOR_ITEM                    ; If not ladder, check next
+    JP          USE_LADDER_DOOR_ESCAPE              ; If ladder, jump to handler
 
 ;==============================================================================
-; LAB_ram_f119 - Check for door item
+; CHK_DOOR_ITEM - Check for door item
 ;==============================================================================
 ; Validates door item type ($14) for combat-only usage.
 ;
@@ -5998,14 +6003,14 @@ LAB_ram_f113:
 ;   Jumps to handler
 ;
 ; Memory Modified: None
-; Calls: NO_ACTION_TAKEN or LAB_ram_f11e (jumps)
+; Calls: NO_ACTION_TAKEN or USE_LADDER_DOOR_ESCAPE (jumps)
 ;==============================================================================
-LAB_ram_f119:
+CHK_DOOR_ITEM:
     CP          $14                                 ; Compare to $14 (door)
     JP          NZ,NO_ACTION_TAKEN                  ; If not door, no action
 
 ;==============================================================================
-; LAB_ram_f11e - Use ladder/door to escape combat
+; USE_LADDER_DOOR_ESCAPE - Use ladder/door to escape combat
 ;==============================================================================
 ; Handles ladder and door usage during combat. These items allow escape from
 ; combat by clearing combat flag and setting up escape animation.
@@ -6026,7 +6031,7 @@ LAB_ram_f119:
 ; Memory Modified: COMBAT_BUSY_FLAG, animation state
 ; Calls: NO_ACTION_TAKEN (if not in combat), CLEAR_RIGHT_ITEM_AND_SETUP_ANIM, WAIT_FOR_INPUT (jump)
 ;==============================================================================
-LAB_ram_f11e:
+USE_LADDER_DOOR_ESCAPE:
     LD          D,A                                 ; D = item type (ladder or door)
     LD          A,(COMBAT_BUSY_FLAG)                ; Load combat state flag
     AND         A                                   ; Test if in combat
