@@ -467,6 +467,12 @@ Character graphics are stored separately:
 
 This section analyzes the rendering process for individual walls, focusing on the simple rectangular walls that don't consider doors.
 
+**For complete spatial layout of all 22 wall positions**, see `wall_diagram.txt` in the docs folder, which provides comprehensive ASCII diagrams showing:
+- All wall positions (F0-F2, L0-L22, R0-R22, FL0-FL22, FR0-FR22, B0)
+- Map cell labels (S0, S1, S2, SL0-SL22, SR0-SR22, SB)
+- Wall notation (* = can have doors, / = rendered in two parts, + = synthetic walls)
+- Complete bit encoding reference for wall states
+
 ### Wall Categories
 
 **Simple Rectangle Walls (Distance 2):**
@@ -479,23 +485,7 @@ This section analyzes the rendering process for individual walls, focusing on th
 
 ## F2 WALL - Front Wall at Distance 2
 
-**Location:** Center front wall, 2 spaces ahead of player  
-**Visual:** Small 4x4 rectangle in center of screen
-
-### Viewport Position:
-```
-VIEWPORT (24x24 chars)
-┌────────────────────────────────────────────────┐
-│                                                │
-│                                                │
-...
-│                    ████████                    │ ← F2 wall
-│                    ████████                    │
-│                    ████████                    │
-│____________________████████____________________│
-...
-└────────────────────────────────────────────────┘
-```
+**Location:** Center front wall, 2 spaces ahead of player (see wall_diagram.txt for spatial layout)
 
 ### Rendering: DRAW_WALL_F2
 
@@ -519,22 +509,7 @@ VIEWPORT (24x24 chars)
 
 ## FL22 WALL - Far Left Corner Wall
 
-**Location:** Far left corner, 2 spaces ahead and 2 spaces left  
-**Visual:** Small 4x4 rectangle on left side
-
-### Viewport Position:
-```
-VIEWPORT (24x24 chars)
-┌────────────────────────────────────────────────┐
-│                                                │
-...
-│████████                                        │ ← FL22 wall
-│████████                                        │
-│████████                                        │
-│████████________________________________________│
-...
-└────────────────────────────────────────────────┘
-```
+**Location:** Far left corner, 2 spaces ahead and 2 spaces left (see wall_diagram.txt for spatial layout)
 
 ### Rendering: DRAW_WALL_FL22_EMPTY
 
@@ -559,22 +534,7 @@ VIEWPORT (24x24 chars)
 
 ## FR22 WALL - Far Right Corner Wall
 
-**Location:** Far right corner, 2 spaces ahead and 2 spaces right  
-**Visual:** Small 4x4 rectangle on right side
-
-### Viewport Position:
-```
-VIEWPORT (24x24 chars)
-┌────────────────────────────────────────────────┐
-│                                                │
-...
-│                                        ████████│ ← FR22 wall
-│                                        ████████│
-│                                        ████████│
-│________________________________________████████│
-...
-└────────────────────────────────────────────────┘
-```
+**Location:** Far right corner, 2 spaces ahead and 2 spaces right (see wall_diagram.txt for spatial layout)
 
 ### Rendering: DRAW_WALL_FR22_EMPTY
 
