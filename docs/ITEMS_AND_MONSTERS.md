@@ -1,8 +1,8 @@
 # Items & Monsters Reference
 
-Last updated: 2025-11-10
+Last updated: 2025-12-06
 
-This document catalogs item and monster codes, their color/level encoding, behaviors, placement, and rendering as implemented in the assembly source. It complements `MapMemory.md`.
+This document catalogs item and monster codes, their color/level encoding, behaviors, placement, and rendering as implemented in the assembly source.
 
 ## Encoding Basics
 
@@ -49,113 +49,126 @@ Notes:
 
 ## Monster Codes (4-wide groups; `>= $78` blocks movement)
 
-Inferred from pointer ordering and code checks (e.g., `CP $7A` threshold, Minotaur `$9F`). Compare is the >>2 value. Base stats from combat init (lines 2360–2540, `asterion_high_rom.asm`). HP format is SPRT:PHYS in BCD. Damage is multiplied by (color+1): RED=×1, YEL=×2, MAG=×3, WHT=×4. HP has randomness: base value minus 0–7 (determined by screen saver timer AND 7).
+Verified from pointer ordering (`asterion_gfx_pointers.asm`) and combat initialization code (`INIT_MONSTER_COMBAT` at lines 6000–6400, `asterion_high_rom.asm`). 
+
+**Movement Blocking:** The code checks `ITEM_F1 + 2 >= $7A`, which means original codes `>= $78` block forward movement (line 377: `FW_WALLS_CLEAR_CHK_MONSTER`).
+
+**Monster Type Codes (after right-shift 2):** Skeleton=$1E, Snake=$1F, Spider=$20, Mimic=$21, Malocchio=$22, Dragon=$23, Mummy=$24, Necromancer=$25, Gryphon=$26, Minotaur=$27.
+
+**HP Format:** H=SPRT, L=PHYS in BCD (e.g., $304 = 3 SPRT, 4 PHYS).
+
+**Damage Calculation:** Base damage × (level+1) where level extracted from bits 0-1 (RED=0, YEL=1, MAG=2, WHT=3). Formula in `CALC_WEAPON_VALUE` (line 6300): `((base × (level+1)) - random_0_to_7 + dungeon_bonus)` with BCD arithmetic.
+
+**HP Randomization:** Each HP component (SPRT and PHYS) independently reduced by random 0-7 from `GET_RANDOM_0_TO_7` using screen saver timer masked with $07.
 
 ### Skeletons
 
 | Code | Compare | Monster  | Color | Attack Dmg | SPRT HP | PHYS HP |
 |------|---------|----------|-------|------------|---------|---------|
-| `78` | `1E`    | Skeleton | RED   | 7          | 3 (0–3) | 04 (0–04) |
-| `79` | `1E`    | Skeleton | YEL   | 14         | 3 (0–3) | 04 (0–04) |
-| `7A` | `1E`    | Skeleton | MAG   | 21         | 3 (0–3) | 04 (0–04) |
-| `7B` | `1E`    | Skeleton | WHT   | 28         | 3 (0–3) | 04 (0–04) |
+| `78` | `1E`    | Skeleton | RED   | 7          | 3       | 04      |
+| `79` | `1E`    | Skeleton | YEL   | 14         | 3       | 04      |
+| `7A` | `1E`    | Skeleton | MAG   | 21         | 3       | 04      |
+| `7B` | `1E`    | Skeleton | WHT   | 28         | 3       | 04      |
 
 ### Snakes
 
 | Code | Compare | Monster | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|---------|-------|------------|---------|---------|
-| `7C` | `1F`    | Snake   | RED   | 3          | 1 (0–1) | 01 (0–01) |
-| `7D` | `1F`    | Snake   | YEL   | 6          | 1 (0–1) | 01 (0–01) |
-| `7E` | `1F`    | Snake   | MAG   | 9          | 1 (0–1) | 01 (0–01) |
-| `7F` | `1F`    | Snake   | WHT   | 12         | 1 (0–1) | 01 (0–01) |
+|------|---------|---------|-------|------------|---------|---------|----------|
+| `7C` | `1F`    | Snake   | RED   | 3          | 1       | 01      |
+| `7D` | `1F`    | Snake   | YEL   | 6          | 1       | 01      |
+| `7E` | `1F`    | Snake   | MAG   | 9          | 1       | 01      |
+| `7F` | `1F`    | Snake   | WHT   | 12         | 1       | 01      |
 
 ### Spiders
 
 | Code | Compare | Monster | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|---------|-------|------------|---------|---------|
-| `80` | `20`    | Spider  | RED   | 4          | 0 (0)   | 02 (0–02) |
-| `81` | `20`    | Spider  | YEL   | 8          | 0 (0)   | 02 (0–02) |
-| `82` | `20`    | Spider  | MAG   | 12         | 0 (0)   | 02 (0–02) |
-| `83` | `20`    | Spider  | WHT   | 16         | 0 (0)   | 02 (0–02) |
+|------|---------|---------|-------|------------|---------|---------|----------|
+| `80` | `20`    | Spider  | RED   | 4          | 0       | 02      |
+| `81` | `20`    | Spider  | YEL   | 8          | 0       | 02      |
+| `82` | `20`    | Spider  | MAG   | 12         | 0       | 02      |
+| `83` | `20`    | Spider  | WHT   | 16         | 0       | 02      |
 
 ### Mimics
 
 | Code | Compare | Monster | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|---------|-------|------------|---------|---------|
-| `84` | `21`    | Mimic   | RED   | 5          | 2 (0–2) | 03 (0–03) |
-| `85` | `21`    | Mimic   | YEL   | 10         | 2 (0–2) | 03 (0–03) |
-| `86` | `21`    | Mimic   | MAG   | 15         | 2 (0–2) | 03 (0–03) |
-| `87` | `21`    | Mimic   | WHT   | 20         | 2 (0–2) | 03 (0–03) |
+|------|---------|---------|-------|------------|---------|---------|----------|
+| `84` | `21`    | Mimic   | RED   | 5          | 2       | 03      |
+| `85` | `21`    | Mimic   | YEL   | 10         | 2       | 03      |
+| `86` | `21`    | Mimic   | MAG   | 15         | 2       | 03      |
+| `87` | `21`    | Mimic   | WHT   | 20         | 2       | 03      |
 
 ### Malocchi
 
 | Code | Compare | Monster   | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|-----------|-------|------------|---------|---------|
-| `88` | `22`    | Malocchio | RED   | 3          | 3 (0–3) | 02 (0–02) |
-| `89` | `22`    | Malocchio | YEL   | 6          | 3 (0–3) | 02 (0–02) |
-| `8A` | `22`    | Malocchio | MAG   | 9          | 3 (0–3) | 02 (0–02) |
-| `8B` | `22`    | Malocchio | WHT   | 12         | 3 (0–3) | 02 (0–02) |
+|------|---------|-----------|-------|------------|---------|---------|----------|
+| `88` | `22`    | Malocchio | RED   | 3          | 3       | 02      |
+| `89` | `22`    | Malocchio | YEL   | 6          | 3       | 02      |
+| `8A` | `22`    | Malocchio | MAG   | 9          | 3       | 02      |
+| `8B` | `22`    | Malocchio | WHT   | 12         | 3       | 02      |
 
 ### Dragons
 
 | Code | Compare | Monster | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|---------|-------|------------|---------|---------|
-| `8C` | `23`    | Dragon  | RED   | 8          | 4 (0–4) | 05 (0–05) |
-| `8D` | `23`    | Dragon  | YEL   | 16         | 4 (0–4) | 05 (0–05) |
-| `8E` | `23`    | Dragon  | MAG   | 24         | 4 (0–4) | 05 (0–05) |
-| `8F` | `23`    | Dragon  | WHT   | 32         | 4 (0–4) | 05 (0–05) |
+|------|---------|---------|-------|------------|---------|---------|----------|
+| `8C` | `23`    | Dragon  | RED   | 8          | 4       | 05      |
+| `8D` | `23`    | Dragon  | YEL   | 16         | 4       | 05      |
+| `8E` | `23`    | Dragon  | MAG   | 24         | 4       | 05      |
+| `8F` | `23`    | Dragon  | WHT   | 32         | 4       | 05      |
 
 ### Mummies
 
 | Code | Compare | Monster | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|---------|-------|------------|---------|---------|
-| `90` | `24`    | Mummy   | RED   | 6          | 2 (0–2) | 04 (0–04) |
-| `91` | `24`    | Mummy   | YEL   | 12         | 2 (0–2) | 04 (0–04) |
-| `92` | `24`    | Mummy   | MAG   | 18         | 2 (0–2) | 04 (0–04) |
-| `93` | `24`    | Mummy   | WHT   | 24         | 2 (0–2) | 04 (0–04) |
+|------|---------|---------|-------|------------|---------|---------|----------|
+| `90` | `24`    | Mummy   | RED   | 6          | 2       | 04      |
+| `91` | `24`    | Mummy   | YEL   | 12         | 2       | 04      |
+| `92` | `24`    | Mummy   | MAG   | 18         | 2       | 04      |
+| `93` | `24`    | Mummy   | WHT   | 24         | 2       | 04      |
 
 ### Necromancers
 
 | Code | Compare | Monster     | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|-------------|-------|------------|---------|---------|
-| `94` | `25`    | Necromancer | RED   | 19         | 5 (0–5) | 05 (0–05) |
-| `95` | `25`    | Necromancer | YEL   | 38         | 5 (0–5) | 05 (0–05) |
-| `96` | `25`    | Necromancer | MAG   | 57         | 5 (0–5) | 05 (0–05) |
-| `97` | `25`    | Necromancer | WHT   | 76         | 5 (0–5) | 05 (0–05) |
+|------|---------|-------------|-------|------------|---------|---------|----------|
+| `94` | `25`    | Necromancer | RED   | 19         | 5       | 05      |
+| `95` | `25`    | Necromancer | YEL   | 38         | 5       | 05      |
+| `96` | `25`    | Necromancer | MAG   | 57         | 5       | 05      |
+| `97` | `25`    | Necromancer | WHT   | 76         | 5       | 05      |
 
 ### Gryphons
 
 | Code | Compare | Monster | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|---------|-------|------------|---------|---------|
-| `98` | `26`    | Gryphon | RED   | 4          | 4 (0–4) | 05 (0–05) |
-| `99` | `26`    | Gryphon | YEL   | 8          | 4 (0–4) | 05 (0–05) |
-| `9A` | `26`    | Gryphon | MAG   | 12         | 4 (0–4) | 05 (0–05) |
-| `9B` | `26`    | Gryphon | WHT   | 16         | 4 (0–4) | 05 (0–05) |
+|------|---------|---------|-------|------------|---------|---------|----------|
+| `98` | `26`    | Gryphon | RED   | 4          | 4       | 05      |
+| `99` | `26`    | Gryphon | YEL   | 8          | 4       | 05      |
+| `9A` | `26`    | Gryphon | MAG   | 12         | 4       | 05      |
+| `9B` | `26`    | Gryphon | WHT   | 16         | 4       | 05      |
 
 ### Minotaur (Boss)
 
 | Code | Compare | Monster  | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|----------|-------|------------|---------|---------|
-| `9F` | `27`    | Minotaur | WHT   | 68         | 4 (0–4) | 05 (0–05) |
+|------|---------|----------|-------|------------|---------|---------|----------|
+| `9F` | `27`    | Minotaur | WHT   | 17 (special) | 4     | 05      |
 
-- ITEM_DRAW renders monsters via the same path; forward movement is blocked when `ITEM_STATE_S1 >= $78`.
-- Implementation detail: the code checks `A = ITEM_STATE_S1; INC A; INC A; CP $7A; JP NC,NO_ACTION_TAKEN`, which is equivalent to blocking on original code `>= $78` (Skeleton RED and all higher).
-- Minotaur always spawns as WHITE (`$9F`) only; defeating it wins the game. HP calculation for Minotaur incorporates player stats (special case in combat init).
-
-Notes on Attack Dmg and HP shown:
-- Attack Dmg values above are color-multiplied bases (pre-randomness, pre-level additive). During combat, a small random `E ∈ [0..7]` is subtracted (with BCD correction) and a DUNGEON_LEVEL-derived value `C` is then added, so actual hits vary slightly and increase with deeper levels.
-- HP values are BCD and randomized down by `0..7` at initialization for both SPRT and PHYS (shown as ranges in parentheses).
+- ITEM_DRAW renders monsters via the same path; forward movement is blocked when `ITEM_F1 + 2 >= $7A`, which is equivalent to original code `>= $78` (Skeleton RED and all higher).
+- Minotaur always spawns as WHITE (`$9F`) only; defeating it wins the game. 
+- **Minotaur Special Calculation (CHK_FOR_MINOTAUR, line 6220):**
+  - Base damage: $11 (17 BCD), base HP: $405 (4 SPRT, 5 PHYS)
+  - Special player-stat-based HP boost calculation using alternate registers
+  - Sprite selection based on player survivability: $24 (physical/red) if player would survive, $3C (spiritual/purple) if mercy needed
+  - Attack damage shown (17) is base before level multiplication - actual damage calculated via CALC_WEAPON_VALUE
+- HP values shown are **base values before randomization**. Actual HP at spawn = base - random(0-7) for each component independently.
+- Attack damage values shown are **after level multiplication** (RED=×1, YEL=×2, MAG=×3, WHT=×4) but before randomization and dungeon bonus.
 
 **Monster Color/Strength Mechanics:**
 
-The color bits (0–1) directly affect monster capabilities. During combat initialization (lines 2420–2550 in `asterion_high_rom.asm`):
+The color bits (0–1) directly affect monster capabilities. During combat initialization (`INIT_MONSTER_COMBAT`, lines 6000–6400, `asterion_high_rom.asm`):
 
-1. Each monster type has a base damage value (D register) and health values (HL pair)
-2. Color bits extracted to B register (0=RED, 1=YEL, 2=MAG, 3=WHT)
-3. `CALC_WEAPON_VALUE` multiplies base damage by (B+1), applying BCD math
-4. Health is calculated via `SUB_ram_f298`: initial value × 2 for derived stats
+1. Each monster type has base damage (D register) and HP values (HL pair: H=SPRT, L=PHYS, BCD format)
+2. Color bits extracted to B register via bit shifts (0=RED, 1=YEL, 2=MAG, 3=WHT)
+3. `CALC_WEAPON_VALUE` (line 6300) multiplies base damage by (B+1) using BCD math loop
+4. Formula: `damage = base_damage × (level+1) - random_0_to_7 + dungeon_level_bonus` (all BCD)
+5. HP randomization uses `GET_RANDOM_0_TO_7`: reads screen saver timer, masks with $07, subtracts from each HP component independently via `WRITE_HP_TRIPLET`
 
-**Result:** Higher color = stronger monster. WHITE (bits=3) is 4× base damage compared to RED (bits=0) at 1× base damage. YEL and MAG provide intermediate scaling at 2× and 3× respectively. Deeper levels further increase damage via `+C`.
+**Result:** Higher color tier = stronger monster. WHITE (bits=11) multiplies base damage ×4 compared to RED (bits=00) at ×1. YEL and MAG provide ×2 and ×3 respectively. Deeper dungeon levels further increase damage via `+C` bonus calculated from `DUNGEON_LEVEL` BCD digits.
 
 ### Difficulty & Boss Spawn Threshold
 
@@ -191,7 +204,7 @@ Recommended doc cross-link: See the Minotaur row (code `$9F`) and Map Generation
 
 ## Sparse Item Table Structure
 
-See `MapMemory.md` for table shape; recap:
+The sparse item table at `$3900` (ITEM_TABLE) stores items/monsters as position-code pairs:
 ```
 $3900: [pos,code] [pos,code] ... $FF
 ```
@@ -205,11 +218,12 @@ $3900: [pos,code] [pos,code] ... $FF
 ```
 S0, SL0, SR0, S1, SL1, SR1, S2, SB
 ```
+Mapped to memory addresses: ITEM_F0 ($37EA), ITEM_F1 ($37E9), ITEM_F2 ($37E8), etc.
+
 Mapping offsets derived from `DIR_FACING` deltas (D/E). These feed into:
-- Movement gating (e.g., blocking by monsters `>= $7A` at S1).
- - Movement gating (e.g., blocking by monsters `>= $78` at S1).
-- Interaction decisions (pickup, open/close, attack targeting).
-- Mask remapping (`CALC_MASKS` + optional item presence remasking) controlling draw calls.
+- Movement gating: `FW_WALLS_CLEAR_CHK_MONSTER` (line 370) checks `ITEM_F1 + 2 >= $7A` to block forward movement on monsters `>= $78`
+- Interaction decisions (pickup, open/close, attack targeting)
+- Mask remapping (`CALC_MASKS` + optional item presence remasking) controlling draw calls
 
 ## Rendering Pipeline
 
@@ -228,10 +242,10 @@ Mapping offsets derived from `DIR_FACING` deltas (D/E). These feed into:
 
 ## Pickup & Interaction Logic Highlights
 
-- Pickup attempt (`DO_PICK_UP`):
+- Pickup attempt (`DO_PICK_UP`, line 2530 in `asterion_high_rom.asm`):
   - Fetch item at player map pos via `NEW_CHK_ITEM_MAP`.
-  - Branch on code:<
-   - `< $04`: Below RING threshold.
+  - Branch on code:
+    - `< $04`: Below RING threshold (Buckler range).
     - `>= $04 && < $10`: Armor tier (RING to PAVISE) uses inventory slot upgrades (armor, helmet, ring). Level comparisons govern replacement.
     - `>= $10 && < $18`: Higher armor/shield composites / transitional items.
     - `$18–$1B` / `$30–$33`: Weapon sets (bow/crossbow) processed by `NEW_RIGHT_HAND_ITEM` for stat recalculation.
@@ -239,7 +253,7 @@ Mapping offsets derived from `DIR_FACING` deltas (D/E). These feed into:
     - `$48` boundary shifts to food/arrow handling: duplication loops guard caps (arrows max `$33`, food increments with BCD correction).
     - Map codes `$6C,$6D,$DE,$DF`: Set HAVE MAP bit and store map slot for color display.
     - Key and potion ranges trigger specialized use logic (restoration or unlocking).
-    - Ladder `$42`: Not pickable (processed elsewhere via ladder use interaction, not standard pickup path).
+    - Ladder `$42`: Not pickable (processed elsewhere via ladder use interaction `DO_USE_LADDER`, not standard pickup path).
 - Box (Chest) open logic `DO_OPEN_CLOSE` uses SRL transformations to derive item-level and probabilities for spawned content.
 - Weapon recalculations (`NEW_RIGHT_HAND_ITEM`) compute PHYS/SPRT damage values into BCD health/effect stats; color/level affects value scaling.
 
@@ -264,7 +278,6 @@ Mapping offsets derived from `DIR_FACING` deltas (D/E). These feed into:
 
 ## Generation (High-Level Summary)
 
-(Complementary details in `MapMemory.md`):
 - `BUILD_MAP` / generation routines place ladder first.
 - Items distributed avoiding player/ladder positions; duplicates filtered using `TEMP_MAP` staging.
 - Monster codes inserted from a defined difficulty-dependent pool; high codes ensure separation from item logic.
@@ -290,13 +303,55 @@ Mapping offsets derived from `DIR_FACING` deltas (D/E). These feed into:
 
 ## References
 
-Key functions and labels:
-- `ITEM_DRAW` – color decode + pointer fetch + tail call to `GFX_DRAW`.
-- `NEW_ITEMS_CALC` – populates proximity item state slots.
+### Key Functions and Labels
+
+**asterion_high_rom.asm:**
+- `CHK_ITEM` (line 3923) – decodes item code into graphics pointer and color base, tail calls `GFX_DRAW`.
+- `GFX_DRAW` (line 6698) – core graphics rendering engine for all AQUASCII character-based graphics.
+- `NEW_ITEMS_CALC` – populates proximity item state slots (F0, F1, F2, etc.).
 - `NEW_CHK_ITEM_MAP` – sparse table linear search.
-- `DO_PICK_UP`, `DO_OPEN_CLOSE`, `DO_USE_ATTACK` – interaction entry points.
+- `DO_PICK_UP` (line 2530) – main pickup entry point with item type branching.
+- `DO_OPEN_CLOSE` – chest opening and loot generation.
+- `DO_USE_ATTACK` – attack interaction entry point.
+- `DO_USE_LADDER` (line 6350) – ladder descent to next level.
+- `INIT_MONSTER_COMBAT` (line 6000) – combat initialization with monster type checks.
+- `CHK_FOR_SKELETON` through `CHK_FOR_MINOTAUR` (lines 6180–6290) – individual monster stat setup.
+- `CALC_WEAPON_VALUE` (line 6300) – damage calculation with BCD multiplication.
+- `GET_RANDOM_0_TO_7` (line 6280) – HP randomization using screen saver timer.
+- `WRITE_HP_TRIPLET` (line 6320) – HP storage format (value, doubled, carry).
 - `MONSTER_KILLED` – monster removal and boss check.
+- `FW_WALLS_CLEAR_CHK_MONSTER` (line 370) – movement blocking check.
 - `CALC_MASKS` / remask sections – visibility + perspective control.
 - `NEW_RIGHT_HAND_ITEM` – weapon stat recalculations.
+- `MAP_ITEM_MONSTER` (line 882) – initializes item/monster list search.
+- `UPDATE_ITEM_CELLS`, `UPDATE_MONSTER_CELLS_LOOP` – map display rendering.
+- `ANIMATE_RH_ITEM_STEP`, `COPY_ITEM_GFX_TO_CHRRAM` – item animation system.
 
-For memory layout details see `MapMemory.md`.
+**asterion_func_low.asm:**
+- `UPDATE_F0_ITEM` (line 688) – F0 distance item/wall updates.
+- `PLAY_MONSTER_GROWL` (line 2294) – monster growl sound effect.
+- `POOF_SOUND` (line 2309) – item/monster disappearance sound.
+- `TOGGLE_ITEM_POOF_AND_WAIT` (line 3211) – poof animation timing helper.
+- `REDRAW_MONSTER_HEALTH` – updates monster health bar display in combat.
+- `FILL_CHRCOL_RECT` (line 98) – low-level rectangle fill for all rendering.
+
+**asterion_gfx_pointers.asm:**
+- `GFX_POINTERS` table (lines 1–224) – graphics pointer lookup table.
+- Organized by item/monster type with variants: regular, _S (small), _T (tiny).
+- Pointer order determines item/monster type codes.
+
+**asterion_gfx.asm:**
+- Graphics data definitions for all items and monsters.
+- `BUCKLER`, `RING`, `HELMET`, `ARMOR`, `PAVISE` – defensive items.
+- `BOW`, `SCROLL`, `AXE`, `FIREBALL`, `MACE`, `STAFF`, `CROSSBOW` – weapons.
+- `LADDER`, `CHEST`, `FOOD`, `QUIVER`, `LOCKED_CHEST`, `KEY`, `AMULET`, `CHALICE` – dungeon items.
+- `WARRIOR_POTION`, `MAGE_POTION`, `MAP`, `CHAOS_POTION` – consumables.
+- `SKELETON`, `SNAKE`, `SPIDER`, `MIMIC`, `MALOCCHIO`, `DRAGON`, `MUMMY`, `NECROMANCER`, `GRYPHON`, `MINOTAUR` – monsters.
+- Each with size variants (_S for small/1-space, _T for tiny/2-space distance).
+- Comments include object type codes, indices, and gameplay behavior descriptions.
+
+**asterion.inc:**
+- Memory address constants: `CHRRAM_ITEM_IDX`, `CHRRAM_MONSTER_IDX`, `COLRAM_*_ITEM_IDX`.
+- Item state slots: `ITEM_F0`, `ITEM_F1`, `ITEM_F2`, `ITEM_FL1`, `ITEM_FR1`, etc.
+- `ITEM_TABLE` ($3900) – sparse item/monster table base address.
+- `MAP_ITEM_SPACE` ($3902) – item table working space.
