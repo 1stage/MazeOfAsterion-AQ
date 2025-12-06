@@ -6581,7 +6581,7 @@ RECALC_AND_REDRAW_BCD:
     EX          AF,AF'                              ; Save to alternate AF
 
 ;==============================================================================
-; LAB_ram_f306 - Convert BCD bytes to ASCII digits
+; BCD_TO_ASCII_LOOP - Convert BCD bytes to ASCII digits
 ;==============================================================================
 ; Converts each BCD byte into two ASCII characters (tens and ones) and stores
 ; them in the temp buffer at $3a50. Processes from low to high byte, storing
@@ -6605,7 +6605,7 @@ RECALC_AND_REDRAW_BCD:
 ; Memory Modified: Temp buffer at $3a50
 ; Calls: None
 ;==============================================================================
-LAB_ram_f306:
+BCD_TO_ASCII_LOOP:
     LD          A,(HL)                              ; Load BCD byte
     AND         0xf                                 ; Mask lower nibble (ones digit)
     ADD         A,$30                               ; Add ASCII '0' offset
@@ -6621,14 +6621,14 @@ LAB_ram_f306:
     LD          (DE),A                              ; Store ASCII character
     INC         DE                                  ; Move to next buffer position
     INC         HL                                  ; Move to next BCD byte
-    DJNZ        LAB_ram_f306                        ; Loop for all bytes
+    DJNZ        BCD_TO_ASCII_LOOP                   ; Loop for all bytes
     DEC         DE                                  ; Move back one position
     POP         HL                                  ; Restore HL (display address)
     EX          AF,AF'                              ; Restore count from alternate AF
     LD          B,A                                 ; B = character count (2*bytes - 1)
 
 ;==============================================================================
-; LAB_ram_f31f - Suppress leading zeros with spaces
+; SUPPRESS_LEAD_ZEROS - Suppress leading zeros with spaces
 ;==============================================================================
 ; Copies digits from temp buffer to display, replacing leading zeros with
 ; spaces for clean numeric display. Processes right-to-left from temp buffer,
@@ -6645,28 +6645,28 @@ LAB_ram_f306:
 ;   DE = Decremented (right-to-left in buffer)
 ;   B  = Decremented
 ; ---  End  ---
-;   Falls through to LAB_ram_f32d or jumps to LAB_ram_f333 if all zeros
+;   Falls through to COPY_DIGITS or jumps to STORE_FINAL_CHAR if all zeros
 ;
 ; Memory Modified: CHRRAM display area (spaces written)
 ; Calls: None
 ;==============================================================================
-LAB_ram_f31f:
+SUPPRESS_LEAD_ZEROS:
     LD          A,(DE)                              ; Load character from buffer
     CP          $30                                 ; Compare to '0' ASCII
-    JP          NZ,LAB_ram_f32d                     ; If not '0', start copying digits
+    JP          NZ,COPY_DIGITS                      ; If not '0', start copying digits
     LD          (HL),$20                            ; Store space (suppress leading zero)
     INC         HL                                  ; Move forward in display
     DEC         DE                                  ; Move backward in buffer (big-endian)
-    DJNZ        LAB_ram_f31f                        ; Loop while B > 0
+    DJNZ        SUPPRESS_LEAD_ZEROS                 ; Loop while B > 0
     LD          A,(DE)                              ; Load final character
-    JP          LAB_ram_f333                        ; Jump to store and return
+    JP          STORE_FINAL_CHAR                    ; Jump to store and return
 
 ;==============================================================================
-; LAB_ram_f32d - Copy non-zero digits to display
+; COPY_DIGITS - Copy non-zero digits to display
 ;==============================================================================
 ; Copies remaining significant digits from temp buffer to display after
 ; leading zero suppression completes. Continues copying until all characters
-; processed, then stores final character via LAB_ram_f333.
+; processed, then stores final character via STORE_FINAL_CHAR.
 ;
 ; Registers:
 ; --- Start ---
@@ -6681,20 +6681,20 @@ LAB_ram_f31f:
 ;   B  = Decremented
 ; ---  End  ---
 ;   B  = 0
-;   Falls through to LAB_ram_f333
+;   Falls through to STORE_FINAL_CHAR
 ;
 ; Memory Modified: CHRRAM display area
 ; Calls: None
 ;==============================================================================
-LAB_ram_f32d:
+COPY_DIGITS:
     LD          (HL),A                              ; Store character to display
     INC         HL                                  ; Move forward in display
     DEC         DE                                  ; Move backward in buffer (big-endian)
     LD          A,(DE)                              ; Load next character
-    DJNZ        LAB_ram_f32d                        ; Loop while B > 0
+    DJNZ        COPY_DIGITS                         ; Loop while B > 0
 
 ;==============================================================================
-; LAB_ram_f333 - Store final character and return
+; STORE_FINAL_CHAR - Store final character and return
 ;==============================================================================
 ; Stores the last digit character to display and completes the BCD to ASCII
 ; conversion and rendering process. Reached when loop counter exhausted or
@@ -6713,7 +6713,7 @@ LAB_ram_f32d:
 ; Memory Modified: (HL) = final character
 ; Calls: None
 ;==============================================================================
-LAB_ram_f333:
+STORE_FINAL_CHAR:
     LD          (HL),A                              ; Store final character
     RET                                             ; Return to caller
 
