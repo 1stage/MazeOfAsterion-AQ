@@ -4872,7 +4872,7 @@ TOTAL_HEAL:
 ; YEL_CHAOS_CHK - Process yellow large potion (+10 phys health)
 ;==============================================================================
 ; Handles yellow chaos potion (level 1) which grants +10 physical health.
-; Falls through to PROCESS_LARGE_POTION with BC=$10 (10 BCD), E=0.
+; Falls through to PROCESS_CHAOS_POTION with BC=$10 (10 BCD), E=0.
 ;
 ; Registers:
 ; --- Start ---
@@ -4880,8 +4880,8 @@ TOTAL_HEAL:
 ; ---  End  ---
 ;   BC = $10, E = 0
 ;
-; Memory Modified: None directly (PROCESS_LARGE_POTION handles updates)
-; Calls: MAG_CHAOS_CHK (if not yellow), PROCESS_LARGE_POTION (fall-through)
+; Memory Modified: None directly (PROCESS_CHAOS_POTION handles updates)
+; Calls: MAG_CHAOS_CHK (if not yellow), PROCESS_CHAOS_POTION (fall-through)
 ;==============================================================================
 YEL_CHAOS_CHK:
     DEC         B                                   ; Decrement level (B=0 for yellow large)
@@ -4890,9 +4890,9 @@ YEL_CHAOS_CHK:
     LD          E,0x0                               ; E = 0 spiritual health increase
 
 ;==============================================================================
-; PROCESS_LARGE_POTION - Apply large potion health increases
+; PROCESS_CHAOS_POTION - Apply chaos potion effects
 ;==============================================================================
-; Common handler for large chaos potion health modifications. Adds BC to
+; Common handler for chaos potion modifications. Adds BC to
 ; physical health and E to spiritual health, updating maximums if new highs.
 ;
 ; Registers:
@@ -4905,7 +4905,7 @@ YEL_CHAOS_CHK:
 ; Memory Modified: PLAYER_PHYS_HEALTH, PLAYER_SPRT_HEALTH, possibly max values
 ; Calls: CALC_CURR_PHYS_HEALTH, CALC_MAX_PHYS_HEALTH, PROCESS_POTION_UPDATES (jump)
 ;==============================================================================
-PROCESS_LARGE_POTION:
+PROCESS_CHAOS_POTION:
     CALL        CALC_CURR_PHYS_HEALTH               ; Add BC to current physical health
     CALL        CALC_MAX_PHYS_HEALTH                ; Update max health if increased
     JP          PROCESS_POTION_UPDATES              ; Continue with updates
@@ -4914,7 +4914,7 @@ PROCESS_LARGE_POTION:
 ; MAG_CHAOS_CHK - Process purple large potion (+6 sprt health)
 ;==============================================================================
 ; Handles purple chaos potion (level 2) which grants +6 spiritual health.
-; Jumps to PROCESS_LARGE_POTION with BC=0, E=$06.
+; Jumps to PROCESS_CHAOS_POTION with BC=0, E=$06.
 ;
 ; Registers:
 ; --- Start ---
@@ -4922,15 +4922,15 @@ PROCESS_LARGE_POTION:
 ; ---  End  ---
 ;   BC = 0, E = $06
 ;
-; Memory Modified: None directly (PROCESS_LARGE_POTION handles updates)
-; Calls: WHT_CHAOS_CHK (if not purple), PROCESS_LARGE_POTION (jump)
+; Memory Modified: None directly (PROCESS_CHAOS_POTION handles updates)
+; Calls: WHT_CHAOS_CHK (if not purple), PROCESS_CHAOS_POTION (jump)
 ;==============================================================================
 MAG_CHAOS_CHK:
     DEC         B                                   ; Decrement level (B=0 for purple large)
     JP          NZ,WHT_CHAOS_CHK                    ; If not zero, check white
     LD          BC,0x0                              ; BC = 0 physical health increase
     LD          E,0x6                               ; E = 6 spiritual health increase
-    JP          PROCESS_LARGE_POTION                ; Process the large potion
+    JP          PROCESS_CHAOS_POTION                ; Process the chaos potion
 
 ;==============================================================================
 ; WHT_CHAOS_CHK - Process white large potion (random effect)
@@ -4947,10 +4947,10 @@ MAG_CHAOS_CHK:
 ; --- In Process ---
 ;   A  = Random value (0-3 after mask)
 ; ---  End  ---
-;   Jumps to PROCESS_LARGE_POTION or continues to case 3
+;   Jumps to PROCESS_CHAOS_POTION or continues to case 3
 ;
 ; Memory Modified: Health values (varies by case)
-; Calls: MAKE_RANDOM_BYTE, PROCESS_LARGE_POTION (cases 0-2), TOTAL_HEAL (case 2), health reduction routines (case 3)
+; Calls: MAKE_RANDOM_BYTE, PROCESS_CHAOS_POTION (cases 0-2), TOTAL_HEAL (case 2), health reduction routines (case 3)
 ;==============================================================================
 WHT_CHAOS_CHK:
     CALL        MAKE_RANDOM_BYTE                    ; Get semi-random number in A
@@ -4964,7 +4964,7 @@ WHT_CHAOS_CHK:
 WHT_CHAOS_PHYS_HEAL:
     LD          E,0x0                               ; Case 0: E = 0 spiritual increase
     LD          BC,$20                              ; BC = 20 physical increase (BCD)
-    JP          PROCESS_LARGE_POTION                ; Process with these values
+    JP          PROCESS_CHAOS_POTION                ; Process with these values
 
 ;==============================================================================
 ; WHT_CHAOS_SPRT_HEAL - White potion case 1: +12 spiritual health
@@ -4978,15 +4978,15 @@ WHT_CHAOS_PHYS_HEAL:
 ; ---  End  ---
 ;   BC = 0, E = $12
 ;
-; Memory Modified: None directly (PROCESS_LARGE_POTION handles updates)
-; Calls: WHT_CHAOS_FULL_HEAL (if not case 1), PROCESS_LARGE_POTION (jump)
+; Memory Modified: None directly (PROCESS_CHAOS_POTION handles updates)
+; Calls: WHT_CHAOS_FULL_HEAL (if not case 1), PROCESS_CHAOS_POTION (jump)
 ;==============================================================================
 WHT_CHAOS_SPRT_HEAL:
     DEC         A                                   ; Test for case 1
     JP          NZ,WHT_CHAOS_FULL_HEAL              ; If not case 1, check case 2
     LD          BC,0x0                              ; Case 1: BC = 0 physical increase
     LD          E,$12                               ; E = 12 spiritual increase (BCD)
-    JP          PROCESS_LARGE_POTION                ; Process with these values
+    JP          PROCESS_CHAOS_POTION                ; Process with these values
 
 ;==============================================================================
 ; WHT_CHAOS_FULL_HEAL - White potion case 2: Full heal + bonus
@@ -5001,7 +5001,7 @@ WHT_CHAOS_SPRT_HEAL:
 ;   BC = $10, E = $06
 ;
 ; Memory Modified: PLAYER_PHYS_HEALTH, PLAYER_SPRT_HEALTH (via TOTAL_HEAL)
-; Calls: WHT_CHAOS_CURSED (if not case 2), TOTAL_HEAL, PROCESS_LARGE_POTION (jump)
+; Calls: WHT_CHAOS_CURSED (if not case 2), TOTAL_HEAL, PROCESS_CHAOS_POTION (jump)
 ;==============================================================================
 WHT_CHAOS_FULL_HEAL:
     DEC         A                                   ; Test for case 2
@@ -5009,7 +5009,7 @@ WHT_CHAOS_FULL_HEAL:
     CALL        TOTAL_HEAL                          ; Case 2: Full heal first
     LD          BC,$10                              ; BC = 10 additional physical (BCD)
     LD          E,0x6                               ; E = 6 additional spiritual (BCD)
-    JP          PROCESS_LARGE_POTION                ; Process bonus increases
+    JP          PROCESS_CHAOS_POTION                ; Process bonus increases
 
 ;==============================================================================
 ; WHT_CHAOS_CURSED - White potion case 3: Cursed (health reduction)
@@ -5444,7 +5444,7 @@ DO_USE_KEY:
     INC         C                                   ; C = door level + 1
 
 ;==============================================================================
-; LAB_ram_f043 - Level adjustment normalization loop
+; NORM_LEVEL_LOOP - Level adjustment normalization loop
 ;==============================================================================
 ; Repeatedly subtracts (door_level + 1) from door level until underflow,
 ; then adds back to get normalized remainder. Part of treasure item level
@@ -5463,9 +5463,9 @@ DO_USE_KEY:
 ; Memory Modified: None
 ; Calls: Falls through to GEN_RANDOM_ITEM
 ;==============================================================================
-LAB_ram_f043:
+NORM_LEVEL_LOOP:
     SUB         C                                   ; Subtract (door level + 1)
-    JP          NC,LAB_ram_f043                     ; Loop while no borrow
+    JP          NC,NORM_LEVEL_LOOP                  ; Loop while no borrow
     ADD         A,C                                 ; Add back to get remainder
     LD          B,A                                 ; B = adjusted level
 
@@ -6067,10 +6067,10 @@ USE_LADDER_DOOR_ESCAPE:
 ;   HL = DUNGEON_LEVEL pointer
 ;   AF' = Monster type (saved)
 ; ---  End  ---
-;   Falls through to LAB_ram_f157 or jumps to INIT_MELEE_ANIM
+;   Falls through to CALC_MONSTER_HP or jumps to INIT_MELEE_ANIM
 ;
 ; Memory Modified: COMBAT_BUSY_FLAG
-; Calls: INIT_MELEE_ANIM (if already in combat), falls through to LAB_ram_f157
+; Calls: INIT_MELEE_ANIM (if already in combat), falls through to CALC_MONSTER_HP
 ;==============================================================================
 INIT_MONSTER_COMBAT:
     LD          A,(COMBAT_BUSY_FLAG)                ; Check if already in combat
@@ -6091,11 +6091,11 @@ INIT_MONSTER_COMBAT:
     RLD                                             ; Rotate left digit (get low nibble)
     LD          D,A                                 ; D = low nibble of level
     SRL         A                                   ; Shift right
-    JP          NC,LAB_ram_f157                     ; If no carry, skip adjustment
+    JP          NC,CALC_MONSTER_HP                  ; If no carry, skip adjustment
     ADD         A,$50                               ; Add $50 BCD adjustment
 
 ;==============================================================================
-; LAB_ram_f157 - Continue monster health calculation
+; CALC_MONSTER_HP - Continue monster health calculation
 ;==============================================================================
 ; Continues complex BCD-based health calculation for monster, processing
 ; additional dungeon level digits and performing more adjustments.
@@ -6111,7 +6111,7 @@ INIT_MONSTER_COMBAT:
 ; Memory Modified: None directly
 ; Calls: Continues to next calculation stage
 ;==============================================================================
-LAB_ram_f157:
+CALC_MONSTER_HP:
     RLCA                                            ; Rotate left 4 times
     RLCA                                            ; to move low nibble
     RLCA                                            ; to high nibble
@@ -6345,18 +6345,18 @@ CALC_WEAPON_VALUE:
     PUSH        BC                                  ; Save BC (weapon level)
     INC         B                                   ; B = weapon level + 1 (1-4)
     LD          A,D                                 ; A = base damage value
-    JP          LAB_ram_f28c                        ; Jump into multiplication loop
-LAB_ram_f28a:
+    JP          WEAPON_DAMAGE_MULT_ENTRY            ; Jump into multiplication loop
+WEAPON_DAMAGE_MULT_LOOP:
     ADD         A,D                                 ; A = A + base damage
     DAA                                             ; Decimal adjust (BCD correction)
-LAB_ram_f28c:
-    DJNZ        LAB_ram_f28a                        ; Loop B times (multiply by level+1)
+WEAPON_DAMAGE_MULT_ENTRY:
+    DJNZ        WEAPON_DAMAGE_MULT_LOOP             ; Loop B times (multiply by level+1)
     SUB         E                                   ; Subtract random reduction (0-7)
     DAA                                             ; Decimal adjust (BCD correction)
-    JP          NC,LAB_ram_f294                     ; If no borrow, continue
+    JP          NC,WEAPON_DAMAGE_ADD_BONUS          ; If no borrow, continue
     ADC         A,E                                 ; Add back E with carry (prevent negative)
     DAA                                             ; Decimal adjust (BCD correction)
-LAB_ram_f294:
+WEAPON_DAMAGE_ADD_BONUS:
     ADD         A,C                                 ; Add dungeon level bonus
     DAA                                             ; Decimal adjust (BCD correction)
     POP         BC                                  ; Restore BC (weapon level)
