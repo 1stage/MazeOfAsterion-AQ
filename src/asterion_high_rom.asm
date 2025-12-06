@@ -6872,7 +6872,7 @@ GFX_SWAP_FG_BG:
 ;   B  = 0 (exhausted from copy loop)
 ;   
 ; Memory Modified: MAPSPACE_WALLS, ITEM_TABLE, TEMP_MAP, ITEM_HOLDER
-; Calls: MAKE_RANDOM_BYTE, UPDATE_SCR_SAVER_TIMER, SUB_ram_f4d4
+; Calls: MAKE_RANDOM_BYTE, UPDATE_SCR_SAVER_TIMER, CHK_DUP_POS
 ;==============================================================================
 BUILD_MAP:
     LD          HL,MAPSPACE_WALLS                   ; Point to start of wall map ($3800)
@@ -7043,7 +7043,7 @@ NORM_COLOR_LOOP:
 ; FILTER_ITEMS_LOOP - Filter duplicate items from generated table
 ;==============================================================================
 ; Iterates through raw generated item table, checks each position for duplicates
-; using SUB_ram_f4d4, and copies non-duplicate entries to TEMP_MAP buffer.
+; using CHK_DUP_POS, and copies non-duplicate entries to TEMP_MAP buffer.
 ; Handles special $FE markers (empty slots) by removing them from final table.
 ;
 ; Registers:
@@ -7063,14 +7063,14 @@ NORM_COLOR_LOOP:
 ;   B  = Final filtered item count
 ;
 ; Memory Modified: TEMP_MAP (filled with filtered items)
-; Calls: SUB_ram_f4d4 (duplicate checker)
+; Calls: CHK_DUP_POS (duplicate checker)
 ;==============================================================================
 FILTER_ITEMS_LOOP:
     LD          A,(HL)                              ; Load item code from map
     CP          $ff                                 ; Compare to $FF (terminator)
     JP          Z,SETUP_MAP_COPY                    ; If terminator, copy filtered map back
     INC         B                                   ; Increment item counter
-    CALL        SUB_ram_f4d4                        ; Check for duplicate position
+    CALL        CHK_DUP_POS                         ; Check for duplicate position
     EXX                                             ; Switch to alternate registers
     JP          Z,SKIP_DUPLICATE                    ; If duplicate, skip this entry
     LD          (DE),A                              ; Store position to temp map
@@ -7199,7 +7199,7 @@ MAP_DONE:
     RET                                             ; Return to caller
 
 ;==============================================================================
-; SUB_ram_f4d4 - Check for duplicate position in filtered items
+; CHK_DUP_POS - Check for duplicate position in filtered items
 ;==============================================================================
 ; Searches TEMP_MAP for an item at the same position as the current item being
 ; processed. Uses alternate register set to preserve main registers. Returns
@@ -7226,16 +7226,16 @@ MAP_DONE:
 ; Memory Modified: None
 ; Calls: None
 ;==============================================================================
-SUB_ram_f4d4:
+CHK_DUP_POS:
     PUSH        BC                                  ; Save BC to stack
     EXX                                             ; Switch to alternate registers
     POP         BC                                  ; Restore BC from stack (to alt set)
     DEC         B                                   ; Decrement counter
-    JP          Z,LAB_ram_f4e4                      ; If zero, no items to check
+    JP          Z,RETURN_NO_DUP                     ; If zero, no items to check
     LD          HL,TEMP_MAP                         ; Point to temp map
 
 ;==============================================================================
-; LAB_ram_f4dd - Search loop for duplicate positions
+; SEARCH_DUP_LOOP - Search loop for duplicate positions
 ;==============================================================================
 ; Iterates through TEMP_MAP entries (position, code pairs) comparing each
 ; position byte to the target position in A. Returns immediately with Z set
@@ -7258,16 +7258,16 @@ SUB_ram_f4d4:
 ; Memory Modified: None
 ; Calls: None
 ;==============================================================================
-LAB_ram_f4dd:
+SEARCH_DUP_LOOP:
     CP          (HL)                                ; Compare position to temp map entry
     RET         Z                                   ; If match (duplicate), return with Z set
     DEC         B                                   ; Decrement counter
     INC         HL                                  ; Skip position byte
     INC         HL                                  ; Skip item code byte
-    DJNZ        LAB_ram_f4dd                        ; Loop for all items
+    DJNZ        SEARCH_DUP_LOOP                     ; Loop for all items
 
 ;==============================================================================
-; LAB_ram_f4e4 - Return with Z clear (no duplicate)
+; RETURN_NO_DUP - Return with Z clear (no duplicate)
 ;==============================================================================
 ; Called when no items exist to check or search loop exhausted without finding
 ; a match. Executes DEC B to clear the Z flag, signaling unique position.
@@ -7284,7 +7284,7 @@ LAB_ram_f4dd:
 ; Memory Modified: None
 ; Calls: None
 ;==============================================================================
-LAB_ram_f4e4:
+RETURN_NO_DUP:
     DEC         B                                   ; Clear Z flag (no duplicate found)
     RET                                             ; Return with Z clear
 
