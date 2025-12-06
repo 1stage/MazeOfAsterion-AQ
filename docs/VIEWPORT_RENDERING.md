@@ -1,7 +1,11 @@
 # Maze of Asterion - Viewport Rendering System
 
+**Last Updated**: 2025-12-06
+
 ## Overview
 This document describes the complete viewport rendering system in Maze of Asterion for the Mattel Aquarius, combining the rendering flow with detailed wall-by-wall analysis. Understanding this system is essential for modifying wall graphics and maze rendering.
+
+**Important Note on Labels**: Some function and constant labels in this document may not perfectly reflect their actual usage, as they predate full understanding of the codebase. For example, some CHRRAM/COLRAM index constants may alias the same memory location but be labeled for different wall positions. Always verify against the actual source code (asterion_high_rom.asm, asterion_func_low.asm, asterion.inc) when making changes.
 
 ---
 
@@ -12,21 +16,21 @@ This document describes the complete viewport rendering system in Maze of Asteri
 ```
 Game Event (movement, turn, door open, etc.)
     ↓
-UPDATE_VIEWPORT (asterion_high_rom.asm:1391)
+UPDATE_VIEWPORT (asterion_high_rom.asm:3371)
     ↓
-REDRAW_START (asterion_high_rom.asm:3011)
+REDRAW_START (asterion_high_rom.asm:7270)
     ↓
-REDRAW_VIEWPORT (asterion_high_rom.asm:3479)
+REDRAW_VIEWPORT (asterion_high_rom.asm:8085)
     ↓
 Individual Wall/Door Drawing Functions
     ↓
-FILL_CHRCOL_RECT (asterion_func_low.asm:98)
+FILL_CHRCOL_RECT (asterion_func_low.asm:420)
     ↓
 Updated Screen Display
 ```
 
 ### 1. Entry Point: UPDATE_VIEWPORT
-**Location**: `asterion_high_rom.asm:1391`
+**Location**: `asterion_high_rom.asm:3371`
 
 **Function**: Central entry point for all viewport updates
 ```asm
@@ -43,9 +47,9 @@ UPDATE_VIEWPORT:
 - Combat state changes
 
 ### 2. Stage 1: REDRAW_START - Calculate Wall States
-**Location**: `asterion_high_rom.asm:3011`
+**Location**: `asterion_high_rom.asm:7270`
 
-**Purpose**: Calculate which walls are visible from current player position and facing direction
+**Purpose**: Calculate which walls are visible from current player position and facing direction, then redraw non-viewport UI elements (stats, compass, etc.)
 
 **Key Operations**:
 - Reads player position from `PLAYER_MAP_POS`
@@ -54,12 +58,34 @@ UPDATE_VIEWPORT:
 - Uses complex geometric calculations based on player facing direction
 - Stores results in a sequential block of wall state variables from $33e8 to $33fd
 
-**Wall State Variables Calculated**:
-- `WALL_F0_STATE` ($33e8) - Wall directly ahead
-- `WALL_F1_STATE` ($33e9) - Wall one step ahead
-- `WALL_F2_STATE` ($33ea) - Wall two steps ahead  
-- `WALL_L2_STATE` ($33eb) - FL2 wall (left of F2)
-- Plus ~18 additional state bytes for all visible wall segments
+**Wall State Variables Calculated** (in order of setting during direction handling):
+
+| Order | Variable | Address | Description |
+|-------|----------|---------|-------------|
+| 1 | `WALL_F0_STATE` | $33e8 | Wall directly ahead (front wall at S0) |
+| 2 | `WALL_F1_STATE` | $33e9 | Wall one step ahead (front wall at S1) |
+| 3 | `WALL_F2_STATE` | $33ea | Wall two steps ahead (front wall at S2) |
+| 4 | `WALL_L2_STATE` | $33eb | Left wall at distance 2 (north wall of SL2) |
+| 5 | `WALL_FL2_A_STATE` | $33ec | Front-left wall 2, part A (west wall of SL2) |
+| 6 | `WALL_R2_STATE` | $33ed | Right wall at distance 2 (north wall of S2) |
+| 7 | `WALL_FR2_A_STATE` | $33ee | Front-right wall 2, part A (west wall of SR2) |
+| 8 | `WALL_L1_STATE` | $33ef | Left wall at distance 1 (north wall of SL1) |
+| 9 | `WALL_FL1_A_STATE` | $33f0 | Front-left wall 1, part A (west wall of SL1) |
+| 10 | `WALL_FL2_B_STATE` | $33f1 | Front-left wall 2, part B (duplicate of FL2_A) |
+| 11 | `WALL_R1_STATE` | $33f2 | Right wall at distance 1 (north wall of S1) |
+| 12 | `WALL_FR1_A_STATE` | $33f3 | Front-right wall 1, part A (west wall of SR1) |
+| 13 | `WALL_FR2_B_STATE` | $33f4 | Front-right wall 2, part B (duplicate of FR2_A) |
+| 14 | `WALL_L0_STATE` | $33f5 | Left wall at distance 0 (north wall of SL0) |
+| 15 | `WALL_FL0_STATE` | $33f6 | Front-left wall 0 (west wall of SL0) |
+| 16 | `WALL_FL1_B_STATE` | $33f7 | Front-left wall 1, part B (duplicate of FL1_A) |
+| 17 | `WALL_L22_STATE` | $33f8 | Far left corner wall (north wall of SL22) |
+| 18 | `WALL_R0_STATE` | $33f9 | Right wall at distance 0 (north wall of S0) |
+| 19 | `WALL_FR0_STATE` | $33fa | Front-right wall 0 (west wall of SR0) |
+| 20 | `WALL_FR1_B_STATE` | $33fb | Front-right wall 1, part B (duplicate of FR1_A) |
+| 21 | `WALL_R22_STATE` | $33fc | Far right corner wall (north wall of SR2) |
+| 22 | `WALL_B0_STATE` | $33fd | Back wall (wall behind player at SB) |
+
+**Note**: The "A" and "B" variants for FL2, FR2, FL1, and FR1 contain duplicate values, created by the `CALC_HALF_WALLS` function for perspective rendering of walls that are drawn in two parts. The order listed above matches the sequence they are set during the `FACING_WEST` routine (and similarly for other directions).
 
 **Direction Handling**:
 - `FACING_NORTH`: Player facing north (DIR_FACING_SHORT = 1)
@@ -68,7 +94,7 @@ UPDATE_VIEWPORT:
 - `FACING_WEST`: Player facing west (DIR_FACING_SHORT = 4)
 
 ### 3. Stage 2: REDRAW_VIEWPORT - Render the Scene
-**Location**: `asterion_high_rom.asm:3479`
+**Location**: `asterion_high_rom.asm:8085`
 
 **Purpose**: Clear the viewport and draw all visible walls/doors based on calculated states
 
@@ -78,12 +104,13 @@ REDRAW_VIEWPORT:
     CALL        DRAW_BKGD
 ```
 
-`DRAW_BKGD` (asterion_func_low.asm:1137):
+`DRAW_BKGD` (asterion_func_low.asm:3034):
 - Clears viewport with SPACE characters (`$20`)
-- Sets up three-layer background:
-  - **Ceiling**: 8 rows of DKGRY on BLK (`$f0`)
-  - **Horizon**: 6 rows of BLK on BLK (`$00`) 
-  - **Floor**: 10 rows of DKGRN on DKGRY (`$df`)
+- Sets up multi-layer background:
+  - **Upper Ceiling**: 8 rows of DKGRY on BLK (`COLOR(DKGRY,BLK)`)
+  - **Lower Ceiling**: 6 rows of BLK on BLK (`COLOR(BLK,BLK)`)
+  - **Upper Floor**: 5 rows of DKGRN on DKGRY (`COLOR(DKGRN,DKGRY)`)
+  - **Lower Floor**: 5 rows (12x5) of BLK on DKGRY (`COLOR(BLK,DKGRY)`)
 
 #### 3.2 Wall State Bit Pattern Logic
 
@@ -118,29 +145,279 @@ RRCA                    ; Rotate bit 2 → Carry (door state)
 JP C,DOOR_OPEN
 ```
 
-#### 3.3 Draw Walls by Distance (Painter's Algorithm)
+#### 3.3 Wall Rendering Order and Algorithm
 
-Rendering follows **back-to-front** order:
+The rendering system uses a **conditional front-to-back ordering**, NOT traditional painter's algorithm. Below is the complete rendering sequence showing every wall, door, and item draw operation.
 
-**1. F0 Walls (Immediate foreground - 16x16 characters)**
-- Functions: `DRAW_F0_WALL`, `DRAW_F0_WALL_AND_CLOSED_DOOR`, `DRAW_WALL_F0_AND_OPEN_DOOR`
+**Complete Rendering Sequence** (asterion_high_rom.asm:8085+):
 
-**2. F1 Walls (Middle distance - 8x8 characters)**
-- Functions: `DRAW_WALL_F1`, `DRAW_WALL_F1_AND_CLOSED_DOOR`, `DRAW_WALL_F1_AND_OPEN_DOOR`
+**0. Background Initialization (line 8086)**
+   - `DRAW_BKGD` - Clear viewport with SPACE chars, draw ceiling/horizon/floor layers
 
-**3. F2 Walls (Far distance - 4x4 characters)**
-- Functions: `DRAW_WALL_F2`, `DRAW_DOOR_F2_OPEN`
+**1. F0 (Front Wall at Distance 0) Processing (lines 8088-8149)**
+   - Load WALL_F0_STATE and test bits
+   - **If hidden door (bit 0 set):**
+     - `DRAW_F0_WALL` - Draw 16×15 blue wall background
+     - **If wall exists AND door open (bits 1,2 set):**
+       - `DRAW_WALL_F0_AND_OPEN_DOOR` - Draw open door overlay
+       - → Jump to **step 10** (skip F1, F2, all distance-2 walls, all distance-1 L/R walls)
+     - **Else:** Continue to **step 6** (skip to L1/R1 side walls)
+   - **If no hidden door (bit 0 clear):**
+     - **If wall exists (bit 1 set):**
+       - **If door open (bit 2 set):**
+         - `DRAW_WALL_F0_AND_OPEN_DOOR` - Draw wall with open door
+         - → Jump to **step 10** (skip F1, F2, all distance-2 walls, all distance-1 L/R walls)
+       - **If door closed (bit 2 clear):**
+         - `DRAW_F0_WALL_AND_CLOSED_DOOR` - Draw wall with closed door overlay
+         - → Continue to **step 6** (skip to L1/R1 side walls)
+     - **If no wall (bit 1 clear):** Continue to **step 2**
 
-**4-13. Side Walls (FL/FR/L/R series)**
-Complex geometric wall segments that create the 3D perspective effect:
-- **FL0/FR0**: Closest side walls
-- **FL1/FR1**: Medium distance side walls  
-- **FL2/FR2**: Far side walls
-- **FL22/FR22**: Far corner walls
-- **L1/L2, R1/R2**: Near left/right walls
+**2. F1 (Front Wall at Distance 1) Processing (lines 8150-8196)**
+   - Load WALL_F1_STATE and test bits
+   - **If hidden door (bit 0 set):**
+     - `DRAW_WALL_F1` - Draw 8×8 wall background
+     - **If wall exists AND door open (bits 1,2 set):**
+       - `DRAW_WALL_F1_AND_OPEN_DOOR` - Draw open door overlay
+       - → Jump to **step 5** (skip F2, distance-2 walls, go to F2 item check)
+     - **Else:** Continue to **step 6** (skip to L1/R1 side walls)
+   - **If no hidden door (bit 0 clear):**
+     - **If wall exists (bit 1 set):**
+       - **If door open (bit 2 set):**
+         - `DRAW_WALL_F1_AND_OPEN_DOOR` - Draw wall with open door
+         - → Jump to **step 5** (skip F2, distance-2 walls)
+       - **If door closed (bit 2 clear):**
+         - `DRAW_WALL_F1_AND_CLOSED_DOOR` - Draw wall with closed door overlay
+         - → Continue to **step 6** (skip to L1/R1 side walls)
+     - **If no wall (bit 1 clear):** Continue to **step 3**
+
+**3. F2 (Front Wall at Distance 2) Processing (lines 8197-8211)**
+   - Load WALL_F2_STATE and test bits
+   - **If hidden door OR wall exists (bit 0 OR bit 1 set):**
+     - `DRAW_WALL_F2` - Draw 4×4 wall with base line
+   - **If no wall (bits 0,1 clear):**
+     - `DRAW_WALL_F2_EMPTY` - Draw 4×4 black rectangle
+   - Continue to **step 4**
+
+**4. Distance 2 Left Side Walls (lines 8212-8247)**
+   - **L2 Processing (WALL_L2_STATE):**
+     - **If hidden door OR wall exists:**
+       - `DRAW_WALL_L2` - Draw left wall at distance 2
+       - → Jump to **step 4b** (skip FL2_A check)
+     - **If no wall:** Continue to FL2_A check
+   - **FL2_A Processing (WALL_FL2_A_STATE):**
+     - **If hidden door OR wall exists:**
+       - `DRAW_WALL_L2_LEFT` - Draw front-left wall part A
+     - **If no wall:**
+       - `DRAW_WALL_L2_LEFT_EMPTY` - Clear FL2_A area
+   - Continue to **step 4b**
+
+**4b. Distance 2 Right Side Walls (lines 8248-8261)**
+   - **R2 Processing (WALL_R2_STATE):**
+     - **If hidden door OR wall exists:**
+       - `DRAW_WALL_R2` - Draw right wall at distance 2
+       - → Jump to **step 5** (skip FR2_A check)
+     - **If no wall:** Continue to FR2_A check
+   - **FR2_A Processing (WALL_FR2_A_STATE):**
+     - **If hidden door OR wall exists:**
+       - `DRAW_WALL_FR2_A` - Draw front-right wall part A
+     - **If no wall:**
+       - `DRAW_WALL_FR2_A_EMPTY` - Clear FR2_A area
+   - Continue to **step 5**
+
+**5. F2 Item Rendering (line 8262)**
+   - `CHK_ITEM(ITEM_F2, $48a)` - Check and draw item/monster at F2 position
+   - Continue to **step 6**
+
+**6. Distance 1 Left Side Walls (lines 8263-8369)**
+   - **L1 Main Wall (WALL_L1_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_L1` - Draw L1 wall background
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_FL1_DOOR` - Draw FL1 door overlay
+         - → Jump to **step 7** (skip FL1_A/FL2_B processing)
+       - **Else:** → Jump to **step 7**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_FL1_DOOR` - Draw FL1 door
+         - **If door closed:**
+           - `DRAW_L1` - Draw L1 wall/door
+         - → Jump to **step 7**
+       - **If no wall:** Continue to FL1_A check
+   - **FL1_A Back Wall (WALL_FL1_A_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_FL1_B` - Draw FL1 back wall
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_DOOR_FL1_B_HIDDEN` - Draw hidden door
+       - → Jump to **step 7**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_DOOR_FL1_B_HIDDEN` - Draw hidden door
+         - **If door closed:**
+           - `DRAW_DOOR_FL1_B_NORMAL` - Draw normal door
+         - → Jump to **step 7**
+       - **If no wall:** Continue to FL2_B check
+   - **FL2_B Check (WALL_FL2_B_STATE):**
+     - **If hidden door OR wall exists (bit 0 OR 1 set):**
+       - `DRAW_WALL_FL2` - Draw FL2 wall
+     - **If no wall:**
+       - `DRAW_WALL_FL2_EMPTY` - Clear FL2 area
+   - Continue to **step 7**
+
+**7. Distance 1 Right Side Walls (lines 8370-8415)**
+   - **R1 Main Wall (WALL_R1_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_R1` - Draw R1 wall background
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_DOOR_R1_HIDDEN` - Draw hidden door
+         - → Jump to **step 8** (skip FR1_A/FR2 processing)
+       - **Else:** → Jump to **step 8**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_DOOR_R1_HIDDEN` - Draw hidden door
+         - **If door closed:**
+           - `DRAW_DOOR_R1_NORMAL` - Draw normal door
+         - → Jump to **step 8**
+       - **If no wall:** Continue to FR1_A check
+   - **FR1_A Wall (WALL_FR1_A_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_FR1_A` - Draw FR1 wall part A
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_DOOR_FR1_A_HIDDEN` - Draw hidden door
+       - → Jump to **step 8**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_DOOR_FR1_A_HIDDEN` - Draw hidden door
+         - **If door closed:**
+           - `DRAW_DOOR_FR1_A_NORMAL` - Draw normal door
+         - → Jump to **step 8**
+       - **If no wall:** Continue to FR2 check
+   - **FR2 Check (WALL_FR2_B_STATE):**
+     - **If hidden door OR wall exists (bit 0 OR 1 set):**
+       - `DRAW_WALL_FR2` - Draw FR2 wall
+     - **If no wall:**
+       - `DRAW_WALL_FR2_EMPTY` - Clear FR2 area
+   - Continue to **step 8**
+
+**8. F1 Item Rendering (line 8416)**
+   - `CHK_ITEM(ITEM_F1, $28a)` - Check and draw item/monster at F1 position
+   - Continue to **step 9**
+
+**9. Distance 0 Left Side Walls (lines 8417-8471)**
+   - **L0 Main Wall (WALL_L0_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_L0` - Draw L0 wall background
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_DOOR_L0_HIDDEN` - Draw hidden door
+       - → Jump to **step 9b**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_DOOR_L0_HIDDEN` - Draw hidden door
+         - **If door closed:**
+           - `DRAW_DOOR_L0_NORMAL` - Draw normal door
+         - → Jump to **step 9b**
+       - **If no wall:** Continue to FL0 check
+   - **FL0 Wall (WALL_FL0_STATE):**
+     - **If hidden door OR wall exists (bit 0 OR 1 set):**
+       - `DRAW_WALL_FL0` - Draw FL0 wall
+       - → Jump to **step 9b**
+     - **If no wall:** Continue to FL1_B check
+   - **FL1_B Wall (WALL_FL1_B_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_FL1_A` - Draw FL1 wall part A
+       - `CHK_ITEM(ITEM_FL1, $4d0)` - Draw FL1 item
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_DOOR_L1_HIDDEN` - Draw hidden door on L1
+         - `CHK_ITEM(ITEM_FL1, $4d0)` - Draw FL1 item again
+       - → Jump to **step 9b**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_DOOR_L1_HIDDEN` - Draw hidden door
+           - `CHK_ITEM(ITEM_FL1, $4d0)` - Draw FL1 item
+         - **If door closed:**
+           - `DRAW_DOOR_L1_NORMAL` - Draw normal door
+           - `CHK_ITEM(ITEM_FL1, $4d0)` - Draw FL1 item
+         - → Jump to **step 9b**
+       - **If no wall:** Continue to L22 check
+   - **L22 Wall (WALL_L22_STATE - accessed via bit rotation):**
+     - **If bit indicates wall exists:**
+       - `DRAW_WALL_L1_SIMPLE` - Draw wall
+       - `CHK_ITEM(ITEM_FL1, $4d0)` - Draw FL1 item
+     - **If no wall:**
+       - `DRAW_WALL_FL22_EMPTY` - Clear FL22 area
+       - `CHK_ITEM(ITEM_FL1, $4d0)` - Draw FL1 item
+   - Continue to **step 9b**
+
+**9b. Distance 0 Right Side Walls (lines 8472-8504)**
+   - **R0 Main Wall (WALL_R0_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_R0` - Draw R0 wall background
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_R0_DOOR_HIDDEN` - Draw hidden door
+       - → Jump to **step 10**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_R0_DOOR_HIDDEN` - Draw hidden door
+         - **If door closed:**
+           - `DRAW_R0_DOOR_NORMAL` - Draw normal door
+         - → Jump to **step 10**
+       - **If no wall:** Continue to FR0 check
+   - **FR0 Wall (WALL_FR0_STATE):**
+     - **If hidden door OR wall exists (bit 0 OR 1 set):**
+       - `DRAW_WALL_FR0` - Draw FR0 wall
+       - → Jump to **step 10**
+     - **If no wall:** Continue to FR1_B check
+   - **FR1_B Wall (WALL_FR1_B_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_FR1_B` - Draw FR1 back wall
+       - `CHK_ITEM(ITEM_FR1, $4e4)` - Draw FR1 item
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_DOOR_FR1_B_HIDDEN` - Draw hidden door
+         - `CHK_ITEM(ITEM_FR1, $4e4)` - Draw FR1 item again
+       - → Jump to **step 10**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_DOOR_FR1_B_HIDDEN` - Draw hidden door
+           - `CHK_ITEM(ITEM_FR1, $4e4)` - Draw FR1 item
+         - **If door closed:**
+           - `DRAW_DOOR_FR1_B_NORMAL` - Draw normal door
+           - `CHK_ITEM(ITEM_FR1, $4e4)` - Draw FR1 item
+         - → Jump to **step 10**
+       - **If no wall:** Continue to R22 check
+   - **R22 Wall (WALL_R22_STATE - accessed via bit rotation):**
+     - **If bit indicates wall exists:**
+       - `DRAW_WALL_R1_SIMPLE` - Draw wall
+       - `CHK_ITEM(ITEM_FR1, $4e4)` - Draw FR1 item
+     - **If no wall:**
+       - `DRAW_WALL_FR22_EMPTY` - Clear FR22 area
+       - `CHK_ITEM(ITEM_FR1, $4e4)` - Draw FR1 item
+   - Continue to **step 10**
+
+**10. F0 Item Rendering (line 8505)**
+   - `CHK_ITEM(ITEM_F0, $8a)` - Check and draw item/monster at F0 position
+   - **Viewport rendering complete**
+
+---
+
+**Key Algorithm Characteristics:**
+
+- **Conditional depth testing**: F0 → F1 → F2 sequence ONLY progresses if previous position is empty
+- **Jump-based occlusion**: When F0/F1 has a wall with door, rendering jumps forward, skipping intermediate depths
+- **Half-wall interleaving**: FL/FR half-walls split across multiple distance sections (A/B parts)
+- **Items rendered strategically**: FL1/FR1 items can render multiple times depending on wall configuration
+- **EMPTY functions**: Clear occluded areas that would otherwise show ghost walls
+
+**This is NOT painter's algorithm** because traditional painter's algorithm renders back-to-front with overdraw. This system uses front-to-back conditional rendering with strategic jumps for occlusion.
 
 ### 4. Core Rendering Function: FILL_CHRCOL_RECT
-**Location**: `asterion_func_low.asm:98`
+**Location**: `asterion_func_low.asm:420`
 
 **Purpose**: Low-level function that actually draws rectangles to screen memory
 
@@ -152,17 +429,17 @@ Complex geometric wall segments that create the 3D perspective effect:
 **Operation**:
 ```asm
 FILL_CHRCOL_RECT:
-    LD          DE,$28        ; DE = 40 (screen width for next row)
+    LD          DE,$28                          ; Set row stride to 40 characters (screen width)
 DRAW_CHRCOLS:
-    PUSH        HL
-    PUSH        BC
-    CALL        DRAW_ROW      ; Draw one row of width B
-    POP         BC
-    POP         HL
-    DEC         C             ; Decrement height counter
-    RET         Z             ; Return if done
-    ADD         HL,DE         ; Move to next screen row
-    JP          DRAW_CHRCOLS  ; Repeat for next row
+    PUSH        HL                              ; Save current row start position
+    PUSH        BC                              ; Save rectangle dimensions (B=width, C=height)
+    CALL        DRAW_ROW                        ; Fill current row with character/color in A
+    POP         BC                              ; Restore rectangle dimensions
+    POP         HL                              ; Restore row start position
+    DEC         C                               ; Decrement remaining height
+    RET         Z                               ; Return if all rows completed
+    ADD         HL,DE                           ; Move to start of next row (+40 characters)
+    JP          DRAW_CHRCOLS                    ; Continue with next row
 ```
 
 ## Screen Memory Layout
@@ -170,18 +447,19 @@ DRAW_CHRCOLS:
 ### COLRAM (Color RAM) Areas
 The viewport uses specific COLRAM addresses for different wall segments:
 
-- `COLRAM_VIEWPORT_IDX` ($3428): Main viewport area
-- `COLRAM_F0_WALL_MAP_IDX` ($34cc): F0 wall area (16x16)
-- `COLRAM_F0_DOOR_IDX`: F0 door area (8x12)  
-- `COLRAM_F1_DOOR_IDX` ($35c2): F1 wall/door area (8x8, 4x6)
-- `COLRAM_FL00_WALL_IDX` ($34a3): Far left wall areas
-- `COLRAM_FL22_WALL_IDX` ($35b8): Far left corner walls
+- `COLRAM_VIEWPORT_IDX` ($3428): Main viewport area (24x24)
+- `COLRAM_F0_WALL_IDX` ($34cc): F0 wall area (16x15 + bottom row)
+- `COLRAM_F1_DOOR_IDX` ($35c2): F1 wall/door area (8x8 wall, 4x6 door)
+- `COLRAM_FL22_WALL_IDX` ($35b8): Far left corner walls (4x4)
+- `COLRAM_FR22_WALL_IDX` ($35cc): Far right corner walls (4x4)
+
+**Note**: Some COLRAM/CHRRAM index constants may be aliased or labeled differently than their actual usage. Verify against asterion.inc (lines 122-166) for current definitions.
 
 ### CHRRAM (Character RAM) Areas
 Character graphics are stored separately:
 
-- `IDX_VIEWPORT_CHRRAM`: Main viewport character area
-- `CHRRAM_F1_WALL_IDX`: F1 wall character area
+- `CHRRAM_VIEWPORT_IDX`: Main viewport character area
+- `CHRRAM_F1_WALL_IDX`: F1 wall character area (used for clearing with SPACE chars)
 
 ---
 
@@ -221,17 +499,21 @@ VIEWPORT (24x24 chars)
 
 ### Rendering: DRAW_WALL_F2
 
+**Location**: `asterion_func_low.asm:639`
+
 **Steps**:
 1. Setup Rectangle Dimensions: BC = RECT(4,4)
-2. Position Setup: HL = COLRAM_F1_DOOR_IDX
-3. Color Setup: A = COLOR(DKGRY,DKGRY)
+2. Position Setup: HL = COLRAM_F2_WALL_IDX
+3. Color Setup: A = COLOR(BLK,DKGRY)
 4. Draw Rectangle: FILL_CHRCOL_RECT
+5. Draw Base Line: 4×1 at $323a with character $90 (thin base line)
 
 **Characteristics**:
-- Simple rectangle fill - single function call
+- Two-part rendering: main 4×4 wall + 4×1 base line
 - Fixed dimensions - always 4×4 characters
-- Solid color - dark gray
-- No door consideration
+- Color: black foreground on dark gray background
+- No door consideration (F2 uses simplified rendering)
+- Has DRAW_WALL_F2_EMPTY variant for clearing
 
 ---
 
@@ -256,21 +538,22 @@ VIEWPORT (24x24 chars)
 
 ### Rendering: DRAW_WALL_FL22_EMPTY
 
-**Two-Step Clearing Process**:
-1. Clear FL22 color area (4x4) with BLK
-2. Clear CHRRAM area (4x1 with SPACE chars) at DAT_ram_3230
+**Location**: `asterion_func_low.asm:3695`
+
+**Single-Step Clearing Process**:
+1. Clear FL22 color area (4x4) with BLK on BLK
 
 **Steps**:
 1. Setup Rectangle Dimensions: BC = RECT(4,4)
 2. Position Setup: HL = COLRAM_FL22_WALL_IDX ($35b8)
-3. Color Setup: A = COLOR(BLK,BLK) for empty
-4. Draw Rectangle: FILL_CHRCOL_RECT
-5. Additional Cleanup: Fill 4x1 CHRRAM with SPACE
+3. Color Setup: A = COLOR(BLK,BLK)
+4. Draw Rectangle: JP FILL_CHRCOL_RECT (tail call)
 
 **Characteristics**:
-- Two variants: normal wall (DKGRY) and empty (BLK for occlusion)
+- Only EMPTY variant found in source (DRAW_WALL_FL22_EMPTY at line 3695)
+- No separate "normal wall" drawing function for FL22 discovered
+- Uses JP instead of CALL (tail call optimization)
 - Perfect spacing - positioned 10 characters left of F2
-- Additional CHRRAM cleanup for complete clearing
 
 ---
 
@@ -293,16 +576,19 @@ VIEWPORT (24x24 chars)
 └────────────────────────────────────────────────┘
 ```
 
-### Rendering: DRAW_WALL_FR222_EMPTY
+### Rendering: DRAW_WALL_FR22_EMPTY
+
+**Location**: `asterion_func_low.asm:1743`
 
 **Steps**:
 1. Setup Rectangle Dimensions: BC = RECT(4,4)
 2. Position Setup: HL = COLRAM_FR22_WALL_IDX ($35cc)
 3. Color Setup: A = COLOR(BLK,BLK)
-4. Draw Rectangle: FILL_CHRCOL_RECT
+4. Draw Rectangle: JP FILL_CHRCOL_RECT (tail call)
 
 **Characteristics**:
 - Empty-only variant found (suggests frequent occlusion)
+- Uses JP instead of CALL (tail call optimization)
 - Perfect spacing - positioned 10 characters right of F2
 - Mirrors FL22 positioning
 
@@ -312,10 +598,14 @@ VIEWPORT (24x24 chars)
 
 The 3D perspective is achieved through:
 
-1. **Size scaling**: F0 (16x16) → F1 (8x8) → F2 (4x4)
+1. **Size scaling**: F0 (16×15+row) → F1 (8×8) → F2 (4×4+line)
 2. **Position mapping**: Each distance has specific COLRAM coordinates
-3. **Layered rendering**: Back-to-front drawing order
-4. **Color gradation**: Darker colors for distant walls
+3. **Layered rendering**: Front-to-back drawing order (F0 → F1 → F2 → sides)
+4. **Color gradation**: Different color schemes for different distances
+   - F0: BLU on BLU (solid blue)
+   - F1: BLU on DKBLU (lighter)
+   - F2: BLK on DKGRY (darkest/farthest)
+5. **Occlusion handling**: Empty variants (DRAW_*_EMPTY) for clearing occluded areas
 
 ---
 
@@ -343,10 +633,14 @@ RECT(width,height) = (width * 256) + height
 1. **Create new drawing functions** in `asterion_func_low.asm`:
    ```asm
    DRAW_NEW_WALL_F0:
-       LD          HL,COLRAM_F0_WALL_MAP_IDX
-       LD          BC,RECT(16,16)
+       LD          HL,COLRAM_F0_WALL_IDX
+       LD          BC,RECT(16,15)
        LD          A,COLOR(NEW_FG,NEW_BG)
-       JP          FILL_CHRCOL_RECT
+       CALL        FILL_CHRCOL_RECT
+       ; Add bottom row if needed
+       LD          HL,COLRAM_F0_WALL_IDX + 2 + (40 * 15)
+       LD          B,12
+       JP          DRAW_ROW
    ```
 
 2. **Modify decision logic** in `REDRAW_VIEWPORT` to call your new functions
