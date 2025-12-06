@@ -2072,7 +2072,7 @@ BOOST_MIN_DAMAGE:
 ; Memory Modified: RIGHT_HAND_ITEM, LEFT_HAND_ITEM, CHRRAM graphics areas,
 ;                  SHIELD_SPRT, SHIELD_PHYS
 ; Calls: SUB_ram_ea62, COPY_GFX_2_BUFFER, COPY_GFX_SCRN_2_SCRN,
-;        COPY_GFX_FROM_BUFFER, NEW_RIGHT_HAND_ITEM, GET_ITEM_SHIELD_BONUS, LAB_ram_e812
+;        COPY_GFX_FROM_BUFFER, NEW_RIGHT_HAND_ITEM, GET_ITEM_SHIELD_BONUS, UPDATE_SHIELD_STATS
 ;==============================================================================
 DO_SWAP_HANDS:
     LD          HL,RIGHT_HAND_ITEM                  ; HL points to right-hand item code
@@ -2105,7 +2105,7 @@ DO_SWAP_HANDS:
     LD          BC,0x0                              ; Clear BC for next item's bonuses
     LD          HL,LEFT_HAND_ITEM                   ; HL points to new left-hand item
     CALL        GET_ITEM_SHIELD_BONUS               ; Get old left-hand item's shield bonuses into BC
-    JP          LAB_ram_e812                        ; Jump to add new shield bonuses
+    JP          UPDATE_SHIELD_STATS                 ; Jump to add new shield bonuses
 
 ;==============================================================================
 ; GET_ITEM_SHIELD_BONUS — Get Item Shield Bonuses
@@ -2553,7 +2553,7 @@ DO_PICK_UP:
     JP          Z,NO_ACTION_TAKEN                   ; If result is 0 (was $FF), no pickup
     DEC         A                                   ; Restore original player position
     CALL        ITEM_MAP_CHECK                      ; Check item type and validity
-    JP          Z,LAB_ram_e844                      ; If Z flag set, handle special case
+    JP          Z,CHECK_CHEST_PICKUP                ; If Z flag set, handle special case
     CP          0x4                                 ; Compare item to RING (item code 4)
     JP          C,CHECK_FOOD_ARROWS                 ; If < RING (items 0-3), check food/arrows
     CP          $10                                 ; Compare to PAVISE (item code $10)
@@ -2611,7 +2611,7 @@ NOT_HELMET:
     SUB         B                                   ; Subtract old item PHYS
     DAA                                             ; BCD correction for subtraction
     LD          B,A                                 ; Store PHYS delta in B
-LAB_ram_e812:
+UPDATE_SHIELD_STATS:
     LD          A,(SHIELD_SPRT)                     ; Load current shield SPRT stat
     ADD         A,C                                 ; Add SPRT delta from item swap
     DAA                                             ; BCD correction for addition
@@ -2634,7 +2634,7 @@ LAB_ram_e812:
     CALL        RECALC_AND_REDRAW_BCD               ; Recalculate and redraw SPRT stat
     JP          RHA_REDRAW                          ; Jump to redraw ring/helmet/armor
                                                     ; (was JP AWAITING_INPUT at c3 9c ea)
-LAB_ram_e844:
+CHECK_CHEST_PICKUP:
     CALL        Z,SUB_ram_e9e1                      ; If Z flag set, call special handler
 CHECK_FOOD_ARROWS:
     CP          $48                                 ; Compare to CHEST (item code $48)
@@ -2678,14 +2678,14 @@ CHECK_FOOD_ARROWS:
 PICK_UP_FOOD:
     LD          A,(FOOD_INV)                        ; Load current food inventory count
     ADD         A,D                                 ; Add food quantity from D
-    JP          NC,LAB_ram_e872                     ; If no carry (no overflow), store result
+    JP          NC,STORE_FOOD_NO_OVERFLOW           ; If no carry (no overflow), store result
     INC         A                                   ; Increment A (handle overflow)
     LD          C,A                                 ; Store overflow amount in C
     LD          A,D                                 ; Load original food quantity
     SUB         C                                   ; Subtract overflow from quantity
     LD          D,A                                 ; Store reduced quantity back to D
     JP          PICK_UP_FOOD                        ; Try again with reduced quantity
-LAB_ram_e872:
+STORE_FOOD_NO_OVERFLOW:
     LD          (FOOD_INV),A                        ; Store updated food inventory count
     LD          HL,(BYTE_ram_3aa9)                  ; Load food statistics counter (BCD)
     LD          A,D                                 ; Load food quantity added
