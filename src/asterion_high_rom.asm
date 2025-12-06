@@ -5434,7 +5434,7 @@ DO_USE_KEY:
     LD          A,C                                 ; A = door level
     LD          B,A                                 ; B = door level
     AND         A                                   ; Test if zero (lowest level)
-    JP          Z,LAB_ram_f048                      ; If level 0, skip loop
+    JP          Z,GEN_RANDOM_ITEM                   ; If level 0, skip loop
     CALL        UPDATE_SCR_SAVER_TIMER              ; Reset screen saver timer
     INC         C                                   ; C = door level + 1
 
@@ -5456,7 +5456,7 @@ DO_USE_KEY:
 ;   F  = Carry set from final subtraction
 ;
 ; Memory Modified: None
-; Calls: Falls through to LAB_ram_f048
+; Calls: Falls through to GEN_RANDOM_ITEM
 ;==============================================================================
 LAB_ram_f043:
     SUB         C                                   ; Subtract (door level + 1)
@@ -5465,7 +5465,7 @@ LAB_ram_f043:
     LD          B,A                                 ; B = adjusted level
 
 ;==============================================================================
-; LAB_ram_f048 - Generate random treasure item type
+; GEN_RANDOM_ITEM - Generate random treasure item type
 ;==============================================================================
 ; Uses R register (memory refresh) for semi-random number generation to
 ; determine which treasure item to place. Normalizes random value to 0-6
@@ -5487,14 +5487,14 @@ LAB_ram_f043:
 ;   A  = Item type base + random offset
 ;
 ; Memory Modified: None
-; Calls: LAB_ram_f04c, LAB_ram_f071 (special cases), LAB_ram_f054 (fall-through)
+; Calls: CHK_RANDOM_ZERO, GEN_KEY_OR_POTION (special cases), ENCODE_PLACE_ITEM (fall-through)
 ;==============================================================================
-LAB_ram_f048:
+GEN_RANDOM_ITEM:
     LD          A,R                                 ; Get semi-random value from refresh register
     AND         0x7                                 ; Mask to 0-7
 
 ;==============================================================================
-; LAB_ram_f04c - Random value zero check and normalization
+; CHK_RANDOM_ZERO - Random value zero check and normalization
 ;==============================================================================
 ; Checks if random value is zero (special case), otherwise normalizes to
 ; 0-6 range by subtracting 7 until underflow.
@@ -5506,14 +5506,14 @@ LAB_ram_f048:
 ;   A  = Normalized (0-6) + $1D offset, or jumps to special handler
 ;
 ; Memory Modified: None
-; Calls: LAB_ram_f071 (if zero), LAB_ram_f050 (normalization loop), LAB_ram_f054 (fall-through)
+; Calls: GEN_KEY_OR_POTION (if zero), NORMALIZE_RANDOM (normalization loop), ENCODE_PLACE_ITEM (fall-through)
 ;==============================================================================
-LAB_ram_f04c:
-    JP          Z,LAB_ram_f071                      ; If 0, handle special case
+CHK_RANDOM_ZERO:
+    JP          Z,GEN_KEY_OR_POTION                 ; If 0, handle special case
     SUB         0x7                                 ; Subtract 7
 
 ;==============================================================================
-; LAB_ram_f050 - Normalize random value to 0-6 range
+; NORMALIZE_RANDOM - Normalize random value to 0-6 range
 ;==============================================================================
 ; Repeatedly subtracts 7 until underflow, ensuring value is in 0-6 range.
 ; Then adds $1D base offset for item type codes.
@@ -5525,14 +5525,14 @@ LAB_ram_f04c:
 ;   A  = Item type ($1D-$23)
 ;
 ; Memory Modified: None
-; Calls: LAB_ram_f054 (fall-through)
+; Calls: ENCODE_PLACE_ITEM (fall-through)
 ;==============================================================================
-LAB_ram_f050:
-    JP          NC,LAB_ram_f04c                     ; Loop while >= 7 (normalize to 0-6)
+NORMALIZE_RANDOM:
+    JP          NC,CHK_RANDOM_ZERO                  ; Loop while >= 7 (normalize to 0-6)
     ADD         A,$1d                               ; Add $1D base offset
 
 ;==============================================================================
-; LAB_ram_f054 - Encode item code with level and place on map
+; ENCODE_PLACE_ITEM - Encode item code with level and place on map
 ;==============================================================================
 ; Encodes the final item code by combining item type (in A) with level bits
 ; (in B) using bit rotation operations, then places the encoded item on the
@@ -5562,7 +5562,7 @@ LAB_ram_f050:
 ; Memory Modified: Map item at player position
 ; Calls: ITEM_MAP_CHECK, INIT_MELEE_ANIM or UPDATE_VIEWPORT (jumps)
 ;==============================================================================
-LAB_ram_f054:
+ENCODE_PLACE_ITEM:
     RR          B                                   ; Rotate B right (level bits)
     RR          C                                   ; Rotate C right
     RR          B                                   ; Rotate B right again
@@ -5580,7 +5580,7 @@ LAB_ram_f054:
     JP          UPDATE_VIEWPORT                     ; Otherwise update viewport
 
 ;==============================================================================
-; LAB_ram_f071 - Special case: Random 0 gives key or chaos potion
+; GEN_KEY_OR_POTION - Special case: Random 0 gives key or chaos potion
 ;==============================================================================
 ; Handles special treasure case when random value is 0. Generates either a
 ; key (for doors level 0-3) or chaos potion (for level 4 doors).
@@ -5596,21 +5596,21 @@ LAB_ram_f054:
 ;   A  = Door level comparison, then item type
 ;   B  = Item level
 ; ---  End  ---
-;   Jumps to LAB_ram_f054 (does not return)
+;   Jumps to ENCODE_PLACE_ITEM (does not return)
 ;
-; Memory Modified: None directly (LAB_ram_f054 handles map update)
-; Calls: LAB_ram_f07c (if level 4), LAB_ram_f054 (jump)
+; Memory Modified: None directly (ENCODE_PLACE_ITEM handles map update)
+; Calls: GEN_CHAOS_POTION (if level 4), ENCODE_PLACE_ITEM (jump)
 ;==============================================================================
-LAB_ram_f071:
+GEN_KEY_OR_POTION:
     LD          A,C                                 ; A = door level from C
     CP          0x4                                 ; Compare to 4
-    JP          Z,LAB_ram_f07c                      ; If level 4, special case
+    JP          Z,GEN_CHAOS_POTION                  ; If level 4, special case
     LD          B,A                                 ; B = door level
     LD          A,$16                               ; A = $16 (key item base)
-    JP          LAB_ram_f054                        ; Jump to encode and place item
+    JP          ENCODE_PLACE_ITEM                   ; Jump to encode and place item
 
 ;==============================================================================
-; LAB_ram_f07c - Level 4 door gives chaos potion
+; GEN_CHAOS_POTION - Level 4 door gives chaos potion
 ;==============================================================================
 ; Special handler for level 4 doors when random treasure is key slot.
 ; Gives level 3 chaos potion instead of a level 4 key.
@@ -5621,15 +5621,15 @@ LAB_ram_f071:
 ; ---  End  ---
 ;   A  = $1C
 ;   B  = 3
-;   Jumps to LAB_ram_f054
+;   Jumps to ENCODE_PLACE_ITEM
 ;
-; Memory Modified: None directly (LAB_ram_f054 handles map update)
-; Calls: LAB_ram_f054 (jump)
+; Memory Modified: None directly (ENCODE_PLACE_ITEM handles map update)
+; Calls: ENCODE_PLACE_ITEM (jump)
 ;==============================================================================
-LAB_ram_f07c:
+GEN_CHAOS_POTION:
     LD          B,0x3                               ; B = 3 (level 3)
     LD          A,$1c                               ; A = $1C (chaos potion base)
-    JP          LAB_ram_f054                        ; Jump to encode and place item
+    JP          ENCODE_PLACE_ITEM                   ; Jump to encode and place item
 
 ;==============================================================================
 ; USE_SOMETHING_ELSE - Handle non-potion/non-key item usage
