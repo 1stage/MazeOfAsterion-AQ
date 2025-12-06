@@ -4211,7 +4211,7 @@ WEST_DOOR_OPEN_CHK:
 ;   Jumps to WAIT_FOR_INPUT (does not return)
 ;
 ; Memory Modified: WALL_F0_STATE, COLRAM_F0_DOOR_IDX area, screen graphics
-; Calls: DRAW_DOOR_F0, CHK_ITEM, SUB_ram_edaf, SETUP_OPEN_DOOR_SOUND, LO_HI_PITCH_SOUND, WAIT_FOR_INPUT (jump)
+; Calls: DRAW_DOOR_F0, CHK_ITEM, COPY_DOOR_GFX, SETUP_OPEN_DOOR_SOUND, LO_HI_PITCH_SOUND, WAIT_FOR_INPUT (jump)
 ;==============================================================================
 SET_F0_DOOR_OPEN:
     LD          HL,WALL_F0_STATE                    ; Point to F0 wall state
@@ -4249,7 +4249,7 @@ WAIT_TO_REDRAW_F0_DOOR:
     CALL        CHK_ITEM                            ; Check and draw item
     LD          HL,COLRAM_F0_DOOR_IDX               ; Point to F0 door color RAM
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer
-    CALL        SUB_ram_edaf                        ; Copy door graphics to buffer
+    CALL        COPY_DOOR_GFX                       ; Copy door graphics to buffer
     CALL        SETUP_OPEN_DOOR_SOUND               ; Initialize door opening sound parameters
     EXX                                             ; Switch to alternate register set
     LD          HL,BYTE_ram_3a58                    ; Point to source graphics data
@@ -4257,7 +4257,7 @@ WAIT_TO_REDRAW_F0_DOOR:
     LD          A,0xc                               ; Set loop counter to 12 (animation steps)
 
 ;==============================================================================
-; LAB_ram_ed91 - Door opening animation loop
+; DOOR_ANIM_LOOP - Door opening animation loop
 ;==============================================================================
 ; Performs a 12-step progressive door opening animation by copying 8-byte chunks
 ; of graphics data to the screen while playing synchronized rising pitch sound.
@@ -4288,7 +4288,7 @@ WAIT_TO_REDRAW_F0_DOOR:
 ; Memory Modified: Screen graphics at destination
 ; Calls: LO_HI_PITCH_SOUND, WAIT_FOR_INPUT (jump when complete)
 ;==============================================================================
-LAB_ram_ed91:
+DOOR_ANIM_LOOP:
     EX          AF,AF'                              ; Save loop counter to alternate A
     EXX                                             ; Switch to main register set
     CALL        LO_HI_PITCH_SOUND                   ; Play rising pitch sound effect
@@ -4304,10 +4304,10 @@ LAB_ram_ed91:
     EX          AF,AF'                              ; Restore loop counter from alternate A
     DEC         A                                   ; Decrement loop counter
     JP          Z,WAIT_FOR_INPUT                    ; If counter = 0, done
-    JP          LAB_ram_ed91                        ; Loop for next animation step
+    JP          DOOR_ANIM_LOOP                      ; Loop for next animation step
 
 ;==============================================================================
-; SUB_ram_edaf - Copy 12 rows of 8 bytes with row stride
+; COPY_DOOR_GFX - Copy 12 rows of 8 bytes with row stride
 ;==============================================================================
 ; Copies a 12-row by 8-column block of graphics data from source to destination.
 ; Advances source pointer by full screen row width (40 bytes) between each
@@ -4335,15 +4335,15 @@ LAB_ram_ed91:
 ; Memory Modified: 96 bytes at destination buffer
 ; Calls: DRAW_DOOR_F0 (jump)
 ;==============================================================================
-SUB_ram_edaf:
+COPY_DOOR_GFX:
     LD          A,0xc                               ; Set loop counter to 12 rows
-LAB_ram_edb1:
+COPY_DOOR_ROW_LOOP:
     LD          BC,0x8                              ; Set byte count to 8
     LDIR                                             ; Copy 8 bytes from (HL) to (DE)
     LD          BC,$20                              ; Load row offset ($20 = 32)
     ADD         HL,BC                               ; Move HL to next row
     DEC         A                                   ; Decrement row counter
-    JP          NZ,LAB_ram_edb1                     ; Loop until all 12 rows copied
+    JP          NZ,COPY_DOOR_ROW_LOOP               ; Loop until all 12 rows copied
     EX          AF,AF'                              ; Restore mask from alternate A
     JP          DRAW_DOOR_F0                        ; Draw door and return
 
