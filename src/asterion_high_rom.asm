@@ -3559,7 +3559,7 @@ LAB_ram_eb53:
     CALL        UPDATE_SCR_SAVER_TIMER              ; Bump inactivity/screensaver counters
     LD          A,(COMBAT_BUSY_FLAG)                ; Is combat currently running?
     AND         A                                   ; Set flags from A
-    JP          NZ,LAB_ram_ebd6                     ; If busy, bypass AI/random actions
+    JP          NZ,POLL_INPUT                       ; If busy, bypass AI/random actions
     LD          B,0x4                               ; B = direction selector (4 probes)
     LD          HL,ITEM_F1                          ; HL = pointer to F1 cell (front row 1)
     LD          A,(HL)                              ; A = item/monster id at F1
@@ -3574,7 +3574,7 @@ LAB_ram_eb6f:
     INC         A                                   ; Normalize/flag as above
     INC         A
     DJNZ        LAB_ram_eb6f                        ; Probe up to 4 positions
-    JP          LAB_ram_ebd6                        ; Nothing eligible → continue main loop
+    JP          POLL_INPUT                          ; Nothing eligible → continue main loop
 
 ;==============================================================================
 ; RANDOM_ACTION_HANDLER
@@ -3604,18 +3604,18 @@ LAB_ram_eb6f:
 RANDOM_ACTION_HANDLER:
     LD          A,(TIMER_D)                         ; Load sub-tick timer (short interval)
     CP          0x5                                 ; Compare to threshold (5)
-    JP          NC,LAB_ram_ebd6                     ; If >= 5, too soon - skip monster action
+    JP          NC,POLL_INPUT                       ; If >= 5, too soon - skip monster action
     CALL        MAKE_RANDOM_BYTE                    ; Generate random byte (0-255)
     ADD         A,0x8                               ; Add 8 (sets carry ~3% of time: 8/256)
-    JP          NC,LAB_ram_ebd6                     ; If no carry, abort monster action
+    JP          NC,POLL_INPUT                       ; If no carry, abort monster action
     DEC         B                                   ; Decrement B (test if B was 1: back)
     JP          NZ,CHK_LEFT_DIRECTION               ; If not 1, check next case
     LD          A,(WALL_B0_STATE)                   ; Load back wall state
     BIT         0x2,A                               ; Test bit 2 (passable/door flag)
-    JP          NZ,JUMP_BACK_OK_CHK                 ; If bit 2 set, back is passable
+    JP          NZ,JUMP_BACK_OK                     ; If bit 2 set, back is passable
     AND         A                                   ; Test if A is zero (clear/passable)
-    JP          NZ,LAB_ram_ebd6                     ; If not zero (blocked), abort action
-JUMP_BACK_OK_CHK:
+    JP          NZ,POLL_INPUT                       ; If not zero (blocked), abort action
+JUMP_BACK_OK:
     CALL        ROTATE_FACING_RIGHT                 ; Turn right (90°)
     CALL        ROTATE_FACING_RIGHT                 ; Turn right again (180° total - face back)
     JP          TURN_AND_REDRAW                     ; Jump to redraw and combat check
@@ -3624,10 +3624,10 @@ CHK_LEFT_DIRECTION:
     JP          NZ,CHK_RIGHT_DIRECTION              ; If not 2, check next case
     LD          A,(WALL_L0_STATE)                   ; Load left wall state
     BIT         0x2,A                               ; Test bit 2 (passable/door flag)
-    JP          NZ,LEFT_OK_CHK                      ; If bit 2 set, left is passable
+    JP          NZ,LEFT_OK                          ; If bit 2 set, left is passable
     AND         A                                   ; Test if A is zero (clear/passable)
-    JP          NZ,LAB_ram_ebd6                     ; If not zero (blocked), abort action
-LEFT_OK_CHK:
+    JP          NZ,POLL_INPUT                       ; If not zero (blocked), abort action
+LEFT_OK:
     CALL        ROTATE_FACING_LEFT                  ; Turn left (90°)
     JP          TURN_AND_REDRAW                     ; Jump to redraw and combat check
 CHK_RIGHT_DIRECTION:
@@ -3635,10 +3635,10 @@ CHK_RIGHT_DIRECTION:
     JP          NZ,CHK_FORWARD_COMBAT               ; If not 3, check case 4 (forward)
     LD          A,(WALL_R0_STATE)                   ; Load right wall state
     BIT         0x2,A                               ; Test bit 2 (passable/door flag)
-    JP          NZ,RIGHT_OK_CHK                     ; If bit 2 set, right is passable
+    JP          NZ,RIGHT_OK                         ; If bit 2 set, right is passable
     AND         A                                   ; Test if A is zero (clear/passable)
-    JP          NZ,LAB_ram_ebd6                     ; If not zero (blocked), abort action
-RIGHT_OK_CHK:
+    JP          NZ,POLL_INPUT                       ; If not zero (blocked), abort action
+RIGHT_OK:
     CALL        ROTATE_FACING_RIGHT                 ; Turn right (90°)
 TURN_AND_REDRAW:
     CALL        REDRAW_START                        ; Refresh non-viewport UI elements
@@ -3693,7 +3693,7 @@ CHK_FORWARD_COMBAT:
     JP          Z,PLAY_GROWL_INIT_COMBAT            ; If zero (clear), engage combat
 
 ;==============================================================================
-; LAB_ram_ebd6 - Input polling and title screen difficulty selection
+; POLL_INPUT - Input polling and title screen difficulty selection
 ;==============================================================================
 ;   - Polls keyboard; if any key active, branch to keyboard handling
 ;   - Polls handcontroller; if active, capture state and branch to HC handling
@@ -3707,21 +3707,21 @@ CHK_FORWARD_COMBAT:
 ;   A  = Port reads, comparisons
 ;   C  = Port selector ($FF, $F7, $F6)
 ; ---  End  ---
-;   Jumps to keyboard (`LAB_ram_ec52`) or HC handling (`LAB_ram_ebf7`),
+;   Jumps to keyboard (`HANDLE_KEYBOARD_INPUT`) or HC handling (`HANDLE_HC_INPUT`),
 ;   else falls back to `WAIT_FOR_INPUT`
 ;
-LAB_ram_ebd6:
+POLL_INPUT:
     LD          BC,$ff                              ; BC = keyboard port
     IN          A,(C)                               ; Read keyboard row
     INC         A                                   ; Test for $FF (no key pressed)
-    JP          NZ,LAB_ram_ec52                     ; Key pressed → handle keyboard input
+    JP          NZ,HANDLE_KEYBOARD_INPUT            ; Key pressed → handle keyboard input
     LD          C,$f7                               ; C = HC control port
     LD          A,0xf                               ; A = enable mask
     OUT         (C),A                               ; Enable HC read
     DEC         C                                   ; C = $F6 (HC data)
     IN          A,(C)                               ; Read HC state
     INC         A                                   ; Test for $FF (no input)
-    JP          NZ,LAB_ram_ebf7                     ; If input present, go HC handling
+    JP          NZ,HANDLE_HC_INPUT                  ; If input present, go HC handling
     INC         C                                   ; C = $F7
     LD          A,0xe                               ; A = disable mask
     OUT         (C),A                               ; Disable HC port
@@ -3729,7 +3729,7 @@ LAB_ram_ebd6:
     IN          A,(C)                               ; Read again (stabilize)
     INC         A                                   ; $FF means no input
     JP          Z,WAIT_FOR_INPUT                    ; No input anywhere → continue loop
-LAB_ram_ebf7:
+HANDLE_HC_INPUT:
     CALL        PLAY_DESCENDING_SOUND               ; Acknowledge HC input with tone
     LD          HL,HC_INPUT_HOLDER                  ; Point to HC input storage buffer
 DISABLE_JOY_04:
@@ -3843,7 +3843,7 @@ PLAY_DESCENDING_SOUND:
     RET                                             ; Return to caller
 
 ;==============================================================================
-; LAB_ram_ec52 - Keyboard title-screen scanning and difficulty selection
+; HANDLE_KEYBOARD_INPUT - Keyboard title-screen scanning and difficulty selection
 ;==============================================================================
 ;   - Scans keyboard columns into `KEY_INPUT_COL0..` buffer
 ;   - If `INPUT_HOLDER` already has a key, branch to `KEY_COMPARE`
@@ -3855,7 +3855,7 @@ PLAY_DESCENDING_SOUND:
 ;   D  = Loop counter (8 columns)
 ;   A  = Input value and comparisons
 ;
-LAB_ram_ec52:
+HANDLE_KEYBOARD_INPUT:
     CALL        PLAY_DESCENDING_SOUND               ; Acknowledge key press with sound
     LD          HL,KEY_INPUT_COL0                   ; Point to key input buffer start
     LD          BC,0xfeff                           ; C=$FF (port), B=$FE (column 0 mask)
