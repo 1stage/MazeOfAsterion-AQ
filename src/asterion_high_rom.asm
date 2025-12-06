@@ -4024,15 +4024,15 @@ DO_OPEN_CLOSE:
     RL          C                                   ; Rotate left again (C now has level)
     CP          $11                                 ; Compare to BOX code ($11)
                                                     ; (codes $44-$47 become $11 after 2 SRL)
-    JP          NZ,LAB_ram_ed1b                     ; If not box, handle as door
+    JP          NZ,DOOR_HANDLER                     ; If not box, handle as door
     LD          A,C                                 ; Load item level into A
     AND         A                                   ; Test if zero (unlocked box)
     JP          Z,DO_OPEN_BOX                       ; If level 0, open box immediately
     CALL        UPDATE_SCR_SAVER_TIMER              ; Reset screensaver timer
     INC         C                                   ; Increment C (level + 1)
-LAB_ram_ecf6:
+CHEST_LEVEL_LOOP:
     SUB         C                                   ; Subtract C from A
-    JP          NC,LAB_ram_ecf6                     ; Loop while no carry (A >= C)
+    JP          NC,CHEST_LEVEL_LOOP                 ; Loop while no carry (A >= C)
     ADD         A,C                                 ; Add C back (A now = A mod C)
     LD          C,A                                 ; Store remainder in C
 
@@ -4107,7 +4107,7 @@ PICK_RANDOM_ITEM:
     EX          AF,AF'                              ; Restore A from alternate register
     LD          (BC),A                              ; Store new item at BC address
     JP          UPDATE_VIEWPORT                     ; Update viewport and return
-LAB_ram_ed1b:
+DOOR_HANDLER:
     LD          A,(PLAYER_MAP_POS)                  ; Load player's current map position
     LD          H,$38                               ; Set H to $38 (wall map high byte)
     LD          L,A                                 ; Set L to player position (HL = wall map addr)
@@ -4117,7 +4117,7 @@ LAB_ram_ed1b:
     DEC         A                                   ; Decrement (test if 2: east)
     JP          Z,SHIFT_EAST_OPEN_CLOSE_DOOR        ; If facing east, shift and process as west
     DEC         A                                   ; Decrement (test if 3: south)
-    JP          NZ,LAB_ram_ed4b                     ; If facing west (4), jump to west handler
+    JP          NZ,WEST_DOOR_HANDLER                ; If facing west (4), jump to west handler
     LD          A,L                                 ; Facing south: load position into A
     ADD         A,$10                               ; Add $10 (shift to south neighbor)
     LD          L,A                                 ; Update L (now pointing to south cell)
@@ -4177,16 +4177,16 @@ OPEN_N_CHECK:
 ;==============================================================================
 SHIFT_EAST_OPEN_CLOSE_DOOR:
     INC         L                                   ; Increment L (shift east, process as west)
-LAB_ram_ed4b:
+WEST_DOOR_HANDLER:
     BIT         0x1,(HL)                            ; Test bit 1 (west wall present)
     JP          Z,NO_ACTION_TAKEN                   ; If no wall, no action
     BIT         0x0,(HL)                            ; Test bit 0 (west hidden door)
     JP          Z,SET_W_DOOR_MASK                   ; If no hidden door, use door mask
     LD          A,$44                               ; Load wall mask ($44)
-    JP          LAB_ram_ed5c                        ; Jump to check if door open
+    JP          WEST_DOOR_OPEN_CHK                  ; Jump to check if door open
 SET_W_DOOR_MASK:
     LD          A,$22                               ; Load door mask ($22)
-LAB_ram_ed5c:
+WEST_DOOR_OPEN_CHK:
     BIT         0x2,(HL)                            ; Test bit 2 (west door open)
     JP          NZ,CLOSE_W_DOOR                     ; If door open, close it
     SET         0x2,(HL)                            ; Set bit 2 (mark door as closed on map)
