@@ -3506,7 +3506,7 @@ REVERSE_ROTATE_LOOP:
 ;   B  = Loop/selector for direction cases (4 -> back/left/right/forward)
 ;   HL = Points to TIMER_A or item lists (ITEM_F1/ITEM_FR1)
 ; ---  End  ---
-;   Jumps to WAIT_FOR_INPUT or into AI branch (LAB_ram_eb7b)
+;   Jumps to WAIT_FOR_INPUT or into AI branch (RANDOM_ACTION_HANDLER)
 ;
 TIMER_UPDATED_CHECK_INPUT:
     LD          A,(RAM_AD)                          ; Load animation state byte AD
@@ -3568,7 +3568,7 @@ LAB_ram_eb53:
     LD          HL,ITEM_FR1                         ; HL = pointer to FR1 (probing sequence)
 LAB_ram_eb6f:
     CP          $7a                                 ; >= $7A ⇒ monster/eligible target present
-    JP          NC,LAB_ram_eb7b                     ; If present, run AI/random action
+    JP          NC,RANDOM_ACTION_HANDLER            ; If present, run AI/random action
     INC         HL                                  ; Else move to next probe cell
     LD          A,(HL)                              ; A = next item/monster id
     INC         A                                   ; Normalize/flag as above
@@ -3577,7 +3577,7 @@ LAB_ram_eb6f:
     JP          LAB_ram_ebd6                        ; Nothing eligible → continue main loop
 
 ;==============================================================================
-; LAB_ram_eb7b
+; RANDOM_ACTION_HANDLER
 ;==============================================================================
 ; Random AI nudge: occasional turn/advance + redraw/engage
 ;   - Low-probability trigger based on TIMER_D and a random carry test
@@ -3601,7 +3601,7 @@ LAB_ram_eb6f:
 ; Memory Modified: PLAYER_FACING, viewport graphics if action taken
 ; Calls: MAKE_RANDOM_BYTE, DO_TURN_AROUND, DO_TURN_LEFT, DO_TURN_RIGHT, UPDATE_VIEWPORT, ENGAGE_FROM_FORWARD
 ;==============================================================================
-LAB_ram_eb7b:
+RANDOM_ACTION_HANDLER:
     LD          A,(TIMER_D)                         ; Load sub-tick timer (short interval)
     CP          0x5                                 ; Compare to threshold (5)
     JP          NC,LAB_ram_ebd6                     ; If >= 5, too soon - skip monster action
@@ -3609,38 +3609,38 @@ LAB_ram_eb7b:
     ADD         A,0x8                               ; Add 8 (sets carry ~3% of time: 8/256)
     JP          NC,LAB_ram_ebd6                     ; If no carry, abort monster action
     DEC         B                                   ; Decrement B (test if B was 1: back)
-    JP          NZ,LAB_ram_eb9e                     ; If not 1, check next case
+    JP          NZ,CHK_LEFT_DIRECTION               ; If not 1, check next case
     LD          A,(WALL_B0_STATE)                   ; Load back wall state
     BIT         0x2,A                               ; Test bit 2 (passable/door flag)
-    JP          NZ,LAB_ram_eb96                     ; If bit 2 set, back is passable
+    JP          NZ,JUMP_BACK_OK_CHK                 ; If bit 2 set, back is passable
     AND         A                                   ; Test if A is zero (clear/passable)
     JP          NZ,LAB_ram_ebd6                     ; If not zero (blocked), abort action
-LAB_ram_eb96:
+JUMP_BACK_OK_CHK:
     CALL        ROTATE_FACING_RIGHT                 ; Turn right (90°)
     CALL        ROTATE_FACING_RIGHT                 ; Turn right again (180° total - face back)
-    JP          LAB_ram_ebc0                        ; Jump to redraw and combat check
-LAB_ram_eb9e:
+    JP          TURN_AND_REDRAW                     ; Jump to redraw and combat check
+CHK_LEFT_DIRECTION:
     DEC         B                                   ; Decrement B (test if B was 2: left)
-    JP          NZ,LAB_ram_ebb0                     ; If not 2, check next case
+    JP          NZ,CHK_RIGHT_DIRECTION              ; If not 2, check next case
     LD          A,(WALL_L0_STATE)                   ; Load left wall state
     BIT         0x2,A                               ; Test bit 2 (passable/door flag)
-    JP          NZ,LAB_ram_ebab                     ; If bit 2 set, left is passable
+    JP          NZ,LEFT_OK_CHK                      ; If bit 2 set, left is passable
     AND         A                                   ; Test if A is zero (clear/passable)
     JP          NZ,LAB_ram_ebd6                     ; If not zero (blocked), abort action
-LAB_ram_ebab:
+LEFT_OK_CHK:
     CALL        ROTATE_FACING_LEFT                  ; Turn left (90°)
-    JP          LAB_ram_ebc0                        ; Jump to redraw and combat check
-LAB_ram_ebb0:
+    JP          TURN_AND_REDRAW                     ; Jump to redraw and combat check
+CHK_RIGHT_DIRECTION:
     DEC         B                                   ; Decrement B (test if B was 3: right)
     JP          NZ,LAB_ram_ebcc                     ; If not 3, check case 4 (forward)
     LD          A,(WALL_R0_STATE)                   ; Load right wall state
     BIT         0x2,A                               ; Test bit 2 (passable/door flag)
-    JP          NZ,LAB_ram_ebbd                     ; If bit 2 set, right is passable
+    JP          NZ,RIGHT_OK_CHK                     ; If bit 2 set, right is passable
     AND         A                                   ; Test if A is zero (clear/passable)
     JP          NZ,LAB_ram_ebd6                     ; If not zero (blocked), abort action
-LAB_ram_ebbd:
+RIGHT_OK_CHK:
     CALL        ROTATE_FACING_RIGHT                 ; Turn right (90°)
-LAB_ram_ebc0:
+TURN_AND_REDRAW:
     CALL        REDRAW_START                        ; Refresh non-viewport UI elements
     CALL        REDRAW_VIEWPORT                     ; Render 3D maze view with new facing
 LAB_ram_ebc6:
