@@ -464,7 +464,7 @@ CANNOT_JUMP_BACK:
 ;     DEC         D
 ;     JP          Z,INPUT_DEBOUNCE
 ;     EX          AF,AF'
-;     LD          BC,BYTE_ram_2400
+;     LD          BC,ROM_CONST_FF_ALT
 ;     CALL        SLEEP								;  byte SLEEP
 ;     EX          AF,AF'
 ;     OUT         (SPEAKER),A
@@ -3129,7 +3129,7 @@ COPY_GFX_SCRN_2_SCRN_MEMCHK:
 ;   A  = Item/level index (0..3; 4+ → default)
 ;
 ; Outputs:
-;   BC = Selected attribute/pointer ($0501, $0804, LAB_ram_1208, BYTE_ram_2613; else $0000)
+;   BC = Selected attribute/pointer ($0501, $0804, ROM_CONST_19, ROM_CONST_FF; else $0000)
 ;   F  = Flags reflect last comparison/JP NZ tests
 ;
 ; Registers:
@@ -3158,12 +3158,12 @@ ITEM_ATTR_0:
 ITEM_ATTR_1:
     DEC         A                                   ; Decrement A again (now A-2 → A-3)
     JP          NZ,ITEM_ATTR_2_PTR                  ; If A≠0, try next case
-    LD          BC,LAB_ram_1208                     ; Case A=2: Load memory address reference
+    LD          BC,ROM_CONST_19                     ; Case A=2: Load ROM constant address ($1208=$19)
     RET                                             ; Return with address
 ITEM_ATTR_2_PTR:
     DEC         A                                   ; Decrement A again (now A-3 → A-4)
     JP          NZ,ITEM_ATTR_DEFAULT_ZERO           ; If A≠0, use default case
-    LD          BC,BYTE_ram_2613                    ; Case A=3: Load memory address reference
+    LD          BC,ROM_CONST_FF                     ; Case A=3: Load ROM constant address ($2613=$FF)
     RET                                             ; Return with address
 ITEM_ATTR_DEFAULT_ZERO:
     LD          BC,0x0                              ; Default case A=4+: Load null values
