@@ -8265,7 +8265,7 @@ CHK_WALL_L2_HD:
     JP          NC,CHK_WALL_L2_EXISTS               ; If no hidden door, check bit 1
 DRAW_L2_WALL:
     CALL        DRAW_WALL_L2                        ; Draw L2 wall
-    JP          LAB_ram_f892                        ; Continue to R2 walls
+    JP          CHK_WALL_R2_HD                      ; Continue to R2 walls
 CHK_WALL_L2_EXISTS:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          C,DRAW_L2_WALL                      ; If wall exists, draw it
@@ -8275,32 +8275,32 @@ CHK_WALL_L2_EXISTS:
     JP          NC,CHK_WALL_FL2_A_EXISTS            ; If no hidden door, check bit 1
 DRAW_FL2_A_WALL:
     CALL        DRAW_WALL_L2_LEFT                   ; Draw L2 left wall
-    JP          LAB_ram_f892                        ; Continue to R2 walls
+    JP          CHK_WALL_R2_HD                      ; Continue to R2 walls
 CHK_WALL_FL2_A_EXISTS:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          C,DRAW_FL2_A_WALL                   ; If wall exists, draw it
     CALL        DRAW_WALL_L2_LEFT_EMPTY             ; Draw empty L2 left space
-LAB_ram_f892:
+CHK_WALL_R2_HD:
     LD          DE,WALL_R2_STATE                    ; DE = right wall 2 state
     LD          A,(DE)                              ; Load R2 wall state
     RRCA                                            ; Test bit 0 (hidden door flag)
-    JP          NC,LAB_ram_f8a0                     ; If no hidden door, check bit 1
-LAB_ram_f89a:
+    JP          NC,CHK_WALL_R2_EXISTS               ; If no hidden door, check bit 1
+DRAW_R2_WALL:
     CALL        DRAW_WALL_R2                        ; Draw R2 wall
     JP          LAB_ram_f8b7                        ; Continue to F2 item check
-LAB_ram_f8a0:
+CHK_WALL_R2_EXISTS:
     RRCA                                            ; Test bit 1 (wall exists flag)
-    JP          C,LAB_ram_f89a                      ; If wall exists, draw it
+    JP          C,DRAW_R2_WALL                      ; If wall exists, draw it
     INC         DE                                  ; Move to R2 right wall state
     LD          A,(DE)                              ; Load R2 right state
     RRCA                                            ; Test bit 0 (hidden door flag)
-    JP          NC,LAB_ram_f8b0                     ; If no hidden door, check bit 1
-LAB_ram_f8aa:
+    JP          NC,CHK_WALL_FR2_A_EXISTS            ; If no hidden door, check bit 1
+DRAW_FR2_A_WALL:
     CALL        DRAW_WALL_FR2_A                     ; Draw R2 right wall
     JP          LAB_ram_f8b7                        ; Continue to F2 item check
-LAB_ram_f8b0:
+CHK_WALL_FR2_A_EXISTS:
     RRCA                                            ; Test bit 1 (wall exists flag)
-    JP          C,LAB_ram_f8aa                      ; If wall exists, draw it
+    JP          C,DRAW_FR2_A_WALL                   ; If wall exists, draw it
     CALL        DRAW_WALL_FR2_A_EMPTY               ; Draw empty R2 right space
 LAB_ram_f8b7:
     LD          A,(ITEM_F2)                         ; Load item at F2 position
