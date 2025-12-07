@@ -8448,17 +8448,17 @@ CHK_WALL_FL0:
     INC         E                                   ; Move to FL0 wall state
     LD          A,(DE)                              ; Load FL0 wall state
     RRCA                                            ; Test bit 0 (hidden door flag)
-    JP          NC,LAB_ram_f9c4                     ; If no hidden door, check bit 1
-LAB_ram_f9be:
+    JP          NC,CHK_WALL_FL0_EXISTS              ; If no hidden door, check bit 1
+DRAW_FL0_WALL:
     CALL        DRAW_WALL_FL0                       ; Draw FL0 wall
     JP          LAB_ram_fa19                        ; Continue to R0 walls
-LAB_ram_f9c4:
+CHK_WALL_FL0_EXISTS:
     RRCA                                            ; Test bit 1 (wall exists flag)
-    JP          C,LAB_ram_f9be                      ; If wall exists, draw it
+    JP          C,DRAW_FL0_WALL                     ; If wall exists, draw it
     INC         E                                   ; Move to next wall state byte
     LD          A,(DE)                              ; Load wall state byte into A
     RRCA                                            ; Test bit 0 (hidden door flag)
-    JP          NC,LAB_ram_f9f0                     ; If no hidden door, check bit 1
+    JP          NC,CHK_FL1_A_NO_HD                  ; If no hidden door, check bit 1
     EX          AF,AF'                              ; Save wall state to alternate
     CALL        DRAW_WALL_FL1_A                     ; Draw L1 wall
     CALL        SUB_ram_f9e7                        ; Check and draw FL1 item
@@ -8467,7 +8467,7 @@ LAB_ram_f9c4:
     JP          NC,LAB_ram_fa19                     ; If no wall, continue to R0
     RRCA                                            ; Test bit 2 (door open flag)
     JP          NC,LAB_ram_fa19                     ; If door closed, continue to R0
-LAB_ram_f9de:
+DRAW_FL1_A_HD:
     CALL        DRAW_DOOR_L1_HIDDEN                 ; Draw hidden door on L1
     CALL        SUB_ram_f9e7                        ; Check and draw FL1 item
     JP          LAB_ram_fa19                        ; Continue to R0 walls
@@ -8494,25 +8494,25 @@ SUB_ram_f9e7:
     LD          A,(ITEM_FL1)                        ; Load item at FL1 position
     LD          BC,$4d0                             ; BC = distance/size parameters
     JP          CHK_ITEM                            ; Check and draw FL1 item
-LAB_ram_f9f0:
+CHK_FL1_A_NO_HD:
     RRCA                                            ; Test bit 1 (wall exists flag)
-    JP          NC,LAB_ram_fa01                     ; If no wall, check next position
+    JP          NC,CHK_WALL_FL1_B_EXISTS            ; If no wall, check next position
     RRCA                                            ; Test bit 2 (door open flag)
-    JP          C,LAB_ram_f9de                      ; If door open, draw hidden door
+    JP          C,DRAW_FL1_A_HD                     ; If door open, draw hidden door
     CALL        DRAW_DOOR_L1_NORMAL                 ; Draw normal door on L1
     CALL        SUB_ram_f9e7                        ; Check and draw FL1 item
     JP          LAB_ram_fa19                        ; Continue to R0 walls
-LAB_ram_fa01:
+CHK_WALL_FL1_B_EXISTS:
     INC         E                                   ; Move to next wall state byte
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          NC,LAB_ram_fa0f                     ; If no wall, draw empty
-LAB_ram_fa06:
+DRAW_FL1_B_WALL:
     CALL        DRAW_WALL_L1_SIMPLE                 ; Draw wall
     CALL        SUB_ram_f9e7                        ; Check and draw FL1 item
     JP          LAB_ram_fa19                        ; Continue to R0 walls
 LAB_ram_fa0f:
     RRCA                                            ; Test bit 2 (next flag)
-    JP          C,LAB_ram_fa06                      ; If bit set, draw wall
+    JP          C,DRAW_FL1_B_WALL                   ; If bit set, draw wall
     CALL        DRAW_WALL_FL22_EMPTY                ; Draw empty FL22 space
     CALL        SUB_ram_f9e7                        ; Check and draw FL1 item
 LAB_ram_fa19:
