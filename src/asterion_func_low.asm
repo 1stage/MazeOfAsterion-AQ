@@ -1510,7 +1510,7 @@ DRAW_R0_DOOR_NORMAL:
 ;   AF' = door body color
 ;   DE  = $29
 ; --- In Process ---
-;   HL = DAT_ram_352d (colors), then DAT_ram_30df (chars)
+;   HL = DAT_ram_352d (colors), then CHRRAM_L0_DOOR_ANGLE_IDX (chars)
 ;   DE = stride adjustments ($27, $28, $29)
 ;   BC = RECT(3,11)
 ;   A  = swapped via EX AF,AF', then CHAR_RT_ANGLE
@@ -1534,7 +1534,7 @@ DRAW_R0_DOOR:
     LD          BC,RECT(3,11)                       ; 3 x 11 rectangle (was 12)
     CALL        DRAW_CHRCOLS                        ; Fill door body
 
-    LD          HL,DAT_ram_30df                     ; Point to door angle area
+    LD          HL,CHRRAM_L0_DOOR_ANGLE_IDX         ; Point to door angle area
     LD          A,CHAR_RT_ANGLE                     ; Right angle character
     DEC         DE                                  ; Decrement pitch to 39
     JP          CONTINUE_VERTICAL_LINE_DOWN         ; Draw top of door angles
@@ -1574,7 +1574,7 @@ DRAW_WALL_FR0:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = DAT_ram_317c (chars), then DAT_ram_357c (colors)
+;   HL = CHRRAM_FR1_B_WALL_IDX (chars), then DAT_ram_357c (colors)
 ;   BC = RECT(4,8)
 ;   A  = $20 (SPACE), then COLOR(BLU,DKBLU)
 ;   C  = 8 (height reset)
@@ -1585,7 +1585,7 @@ DRAW_WALL_FR0:
 ; Calls: FILL_CHRCOL_RECT, jumps to DRAW_CHRCOLS
 ;==============================================================================
 DRAW_WALL_FR1_B:
-    LD          HL,DAT_ram_317c                     ; Point to FR1_B character area
+    LD          HL,CHRRAM_FR1_B_WALL_IDX            ; Point to FR1_B character area
     LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
     LD          A,$20                               ; SPACE character (32 / $20)
     CALL        FILL_CHRCOL_RECT                    ; Fill character area
@@ -1938,7 +1938,7 @@ DRAW_DOOR_R1_NORMAL:
 ;   A = first color
 ;   Stack = [2nd color][3rd color]
 ; --- In Process ---
-;   HL = DAT_ram_357a (colors), then DAT_ram_317a (chars)
+;   HL = DAT_ram_357a (colors), then CHRRAM_R1_DOOR_ANGLE_IDX (chars)
 ;   BC = RECT(2,7)
 ;   DE = $27 (stride 39)
 ;   A  = CHAR_RT_ANGLE
@@ -1952,7 +1952,7 @@ DRAW_DOOR_R1:
     LD          HL,DAT_ram_357a                     ; Point to R1 door area
     LD          BC,RECT(2,7)                        ; 2 x 7 rectangle
     CALL        DRAW_RIGHT_DOOR                     ; Draw righthand door
-    LD          HL,DAT_ram_317a                     ; Point to R1 door character area
+    LD          HL,CHRRAM_R1_DOOR_ANGLE_IDX         ; Point to R1 door character area
     LD          A,CHAR_RT_ANGLE                     ; Right angle character
     LD          (HL),A                              ; Draw right angle at top
     LD          DE,$27                              ; Stride is 39 / $27
@@ -2146,7 +2146,7 @@ DRAW_WALL_R2:
     LD          (HL),A                              ; Draw left slash at position
     ADD         HL,DE                               ; Move to next row
     LD          (HL),A                              ; Draw left slash again
-    LD          HL,DAT_ram_3177                     ; Point to next character area
+    LD          HL,CHRRAM_FR0_DOOR_ANGLE_IDX        ; Point to next character area
     LD          A,CHAR_RT_ANGLE                     ; Right angle character
     LD          (HL),A                              ; Draw right angle at position
     DEC         DE                                  ; Decrease stride

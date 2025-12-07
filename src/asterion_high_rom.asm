@@ -3262,14 +3262,14 @@ ROTATE_PACK_SWAP_LOOP:
     LD          HL,DAT_ram_31b4                     ; Point to inv slot 1 graphics
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer
     CALL        COPY_GFX_2_BUFFER                   ; Copy slot 1 graphics to buffer
-    LD          HL,DAT_ram_3111                     ; Point to inv slot 2 graphics
+    LD          HL,CHRRAM_INV_2_IDX                 ; Point to inv slot 2 graphics
     LD          DE,DAT_ram_31b4                     ; Point to inv slot 1 graphics
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 2 graphics to slot 1
-    LD          HL,DAT_ram_310c                     ; Point to inv slot 3 graphics
-    LD          DE,DAT_ram_3111                     ; Point to inv slot 2 graphics
+    LD          HL,CHRRAM_INV_3_IDX                 ; Point to inv slot 3 graphics
+    LD          DE,CHRRAM_INV_2_IDX                 ; Point to inv slot 2 graphics
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 3 graphics to slot 2
     LD          HL,CHHRAM_INV_4_IDX                 ; Point to inv slot 4 graphics
-    LD          DE,DAT_ram_310c                     ; Point to inv slot 3 graphics
+    LD          DE,CHRRAM_INV_3_IDX                 ; Point to inv slot 3 graphics
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 4 graphics to slot 3
     LD          HL,DAT_ram_324c                     ; Point to inv slot 5 graphics
     LD          DE,CHHRAM_INV_4_IDX                 ; Point to inv slot 4 graphics
@@ -8749,7 +8749,7 @@ MINOTAUR_DEAD:
     LD          DE,THE_END_PART_A                   ; DE = screen position for "THE END" part A
     LD          B,$10                               ; B = color (RED on BLACK)
     CALL        GFX_DRAW                            ; Draw first part of text
-    LD          HL,DAT_ram_30a0                     ; HL = second text data address
+    LD          HL,CHRRAM_END_TEXT_P2_IDX           ; HL = second text data address
     CALL        GFX_DRAW                            ; Draw second part of text
     CALL        MAKE_RANDOM_BYTE                    ; Get random byte in A
     AND         0x3                                 ; Mask to 0-3
