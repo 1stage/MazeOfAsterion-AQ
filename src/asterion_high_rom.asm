@@ -202,7 +202,7 @@ BLANK_SCRN:
     LD          HL,CHRRAM_STATS_TOP                 ; HL = position to draw stats label
     LD          B,COLOR(DKGRN,BLK)                  ; B = panel text color
     CALL        GFX_DRAW                            ; Draw stats text
-    LD          HL,CHRRRAM_HEALTH_SPACER_IDX        ; HL = spacer graphics location
+    LD          HL,CHRRAM_HEALTH_SPACER_IDX        ; HL = spacer graphics location
     CALL        GFX_DRAW                            ; Draw spacer
     LD          HL,$30                              ; HL = 0030 (initial PHYS health BCD)
     LD          E,$15                               ; E = 15 (initial SPRT health BCD)
@@ -6509,7 +6509,7 @@ STORE_LEVEL_AND_REDRAW:
 ;==============================================================================
 DRAW_99_LOOP_NOTICE:
     CALL        DRAW_BKGD                           ; Draw background
-    LD          HL,DAT_ram_3051                     ; Point to screen position
+    LD          HL,CHRRAM_LVL99_TEXT_IDX            ; Point to screen position
     LD          DE,LEVEL_99_LOOP                    ; Point to "Looks like this dungeon..." text
     LD          B,$f0                               ; B = color (white on black)
     CALL        GFX_DRAW                            ; Draw notice text
@@ -8745,7 +8745,7 @@ UPDATE_SCR_SAVER_TIMER:
 ;==============================================================================
 MINOTAUR_DEAD:
     CALL        DRAW_BKGD                           ; Draw background
-    LD          HL,DAT_ram_3050                     ; HL = first text data address
+    LD          HL,CHRRAM_END_TEXT_IDX              ; HL = first text data address
     LD          DE,THE_END_PART_A                   ; DE = screen position for "THE END" part A
     LD          B,$10                               ; B = color (RED on BLACK)
     CALL        GFX_DRAW                            ; Draw first part of text

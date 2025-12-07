@@ -1420,7 +1420,7 @@ DRAW_WALL_L2_LEFT_EMPTY:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = DAT_ram_34b4 (colors), then DAT_ram_303f (chars)
+;   HL = DAT_ram_34b4 (colors), then CHRRAM_R0_CORNER_TOP_IDX (chars)
 ;   BC = RECT(4,15)
 ;   A  = various colors, then CHAR_RT_ANGLE, finally CHAR_LT_ANGLE
 ;   DE = stride $27 (39), then $28, $29
@@ -1442,7 +1442,7 @@ DRAW_WALL_R0:
     LD          A,COLOR(BLU,BLK)                    ; BLU on BLK (background color)
     LD          HL,DAT_ram_34b4                     ; Point to R0 wall area
     CALL        DRAW_R0_CORNERS                     ; Do corner fills
-    LD          HL,DAT_ram_303f                     ; Top right corner of R0
+    LD          HL,CHRRAM_R0_CORNER_TOP_IDX         ; Top right corner of R0
     LD          A,CHAR_RT_ANGLE                     ; Right angle character
     LD          DE,$27                              ; Pitch to 39 / $27
     CALL        DRAW_VERTICAL_LINE_4_DOWN           ; Draw top of R0 wall
