@@ -1,83 +1,83 @@
 GFX_POINTERS:
     db          0h
 GFX_PTR_BUCKLER:
-    dw        BUCKLER                                 ;= $01,$01,$01,$01,$01
+    dw        BUCKLER
 GFX_PTR_BUCKLER_S:
-    dw        BUCKLER_S                               ;= $01,$01
+    dw        BUCKLER_S
 GFX_PTR_BUCKLER_T:
-    dw        BUCKLER_T                               ;= $00,$87,$FF
+    dw        BUCKLER_T
 GFX_PTR_RING:
-    dw        RING                                    ;= $01,$01,$01,$01,$01,$01,$01
+    dw        RING
 GFX_PTR_RING_S:
-    dw        RING_S                                  ;= $01,$01,$01
+    dw        RING_S
 GFX_PTR_RING_T:
-    dw        RING_T                                  ;= $00,".",$FF
+    dw        RING_T
 GFX_PTR_HELMET:
-    dw        HELMET                                  ;= $01,$01,$01,$01,$01,$01
+    dw        HELMET
 GFX_PTR_HELMET_S:
-    dw        HELMET_S                                ;= $01,$01,$01
+    dw        HELMET_S
 GFX_PTR_HELMET_T:
-    dw        HELMET_T                                ;= $00,"^",$FF
+    dw        HELMET_T
 GFX_PTR_ARMOR:
-    dw        ARMOR                                   ;= $01,$01,$01,$01,$01
+    dw        ARMOR
 GFX_PTR_ARMOR_S:
-    dw        ARMOR_S                                 ;= $01,$01
+    dw        ARMOR_S
 GFX_PTR_ARMOR_T:
-    dw        ARMOR_T                                 ;= $00,$A0,$C7,$D9,$01
+    dw        ARMOR_T
 GFX_PTR_PAVISE:
-    dw        PAVISE                                  ;= $01,$01,$01,$01,$01
+    dw        PAVISE
 GFX_PTR_PAVISE_S:
-    dw        PAVISE_S                                ;= $01,$01
+    dw        PAVISE_S
 GFX_PTR_PAVISE_T:
-    dw        PAVISE_T                                ;= $00,$7F,$01
+    dw        PAVISE_T
 GFX_PTR_ARROW_L:
-    dw        ARROW_FLYING_LEFT                       ;= $01,$01,$01,$01,$01,$01
+    dw        ARROW_FLYING_LEFT
 GFX_PTR_ARROW_R:
-    dw        ARROW_FLYING_RIGHT                      ;= $01,$01,$01,$01,$01,$01
+    dw        ARROW_FLYING_RIGHT
 GFX_PTR_ARROW_L_2:
-    dw        ARROW_FLYING_LEFT                       ;= $01,$01,$01,$01,$01,$01
+    dw        ARROW_FLYING_LEFT
 GFX_PTR_BOW:
-    dw        BOW                                     ;= $01,$01,$01,$01,$01
+    dw        BOW
 GFX_PTR_BOW_S:
-    dw        BOW_S                                   ;= $01,$01
+    dw        BOW_S
 GFX_PTR_BOW_T:
-    dw        BOW_T                                   ;= $00,"{",$FF
+    dw        BOW_T
 GFX_PTR_SCROLL:
-    dw        SCROLL                                  ;= $01,$01,$01,$01,$01
+    dw        SCROLL
 GFX_PTR_SCROLL_S:
-    dw        SCROLL_S                                ;= $01,$01
+    dw        SCROLL_S
 GFX_PTR_SCROLL_NEW_T:
-    dw        SCROLL_T                                ;= $00,"H",$FF
+    dw        SCROLL_T
 GFX_PTR_AXE:
-    dw        AXE                                     ;= $01,$01,$01,$01,$01
+    dw        AXE
 GFX_PTR_AXE_S:
-    dw        AXE_S                                   ;= $01,$01
+    dw        AXE_S
 GFX_PTR_AXE_T:
-    dw        AXE_T                                   ;= $00,$11,$FF
+    dw        AXE_T
 GFX_PTR_FIREBALL:
-    dw        FIREBALL                                ;= $01,$01,$01,$01,$01
+    dw        FIREBALL
 GFX_PTR_FIREBALL_S:
-    dw        FIREBALL_S                              ;= $01,$01
+    dw        FIREBALL_S
 GFX_PTR_FIREBALL_T:
-    dw        FIREBALL_T                              ;= $00,$D3,$FF
+    dw        FIREBALL_T
 GFX_PTR_MACE:
-    dw        MACE                                    ;= $01,$01,$01,$01,$01
+    dw        MACE
 GFX_PTR_MACE_S:
-    dw        MACE_S                                  ;= $01,$01
+    dw        MACE_S
 GFX_PTR_MACE_T:
-    dw        MACE_T                                  ;= $00,"T",$FF
+    dw        MACE_T
 GFX_PTR_STAFF:
-    dw        STAFF                                   ;= $01,$01,$01,$01,$01
+    dw        STAFF
 GFX_PTR_STAFF_S:
-    dw        STAFF_S                                 ;= $01,$01
+    dw        STAFF_S
 GFX_PTR_STAFF_T:
-    dw        STAFF_T                                 ;= $00,"\\",$FF
+    dw        STAFF_T
 GFX_PTR_CROSSBOW:
-    dw        CROSSBOW                                ;= $01,$01,$01,$01,$01
+    dw        CROSSBOW
 GFX_PTR_CROSSBOW_S:
-    dw        CROSSBOW_S                              ;= $01,$01
+    dw        CROSSBOW_S
 GFX_PTR_CROSSBOW_T:
-    dw        CROSSBOW_T                              ;= $A0,$91,$A0,$D8,$02,$04,$90,$FF
+    dw        CROSSBOW_T
     dw        EXCL_MARK_GFX
     dw        EXCL_MARK_GFX
     dw        EXCL_MARK_GFX
@@ -85,139 +85,139 @@ GFX_PTR_CROSSBOW_T:
     dw        EXCL_MARK_GFX
     dw        EXCL_MARK_GFX
 GFX_PTR_ARROW_R_2:
-    dw        ARROW_FLYING_RIGHT                      ;= $01,$01,$01,$01,$01,$01
+    dw        ARROW_FLYING_RIGHT
     dw        EXCL_MARK_GFX
     dw        EXCL_MARK_GFX
 GFX_PTR_LADDER:
-    dw        LADDER                                  ;= $01,$01,$01,$01,$01
+    dw        LADDER
 GFX_PTR_LADDER_S:
-    dw        LADDER_S                                ;= $01,$01
+    dw        LADDER_S
 GFX_PTR_LADDER_T:
-    dw        LADDER_T                                ;= $00,$CD,$97,$FF
+    dw        LADDER_T
 GFX_PTR_CHEST:
-    dw        CHEST                                   ;= $01,$01,$01,$01,$01
+    dw        CHEST
 GFX_PTR_CHEST_S:
-    dw        CHEST_S                                 ;= $01,$E0,$1F,$1F,$B0,$01
+    dw        CHEST_S
 GFX_PTR_CHEST_T:
-    dw        CHEST_T                                 ;= $00,$FC,$FF
+    dw        CHEST_T
 GFX_PTR_FOOD:
-    dw        FOOD                                    ;= $01,$01,$01,$01,$01
+    dw        FOOD
 GFX_PTR_FOOD_S:
-    dw        FOOD_S                                  ;= $01,$01
+    dw        FOOD_S
 GFX_PTR_FOOD_T:
-    dw        FOOD_T                                  ;= $00,"#",$FF
+    dw        FOOD_T
 GFX_PTR_QUIVER:
-    dw        QUIVER                                  ;= $01,$01,$01,$01,$01,$01
+    dw        QUIVER
 GFX_PTR_QUIVER_S:
-    dw        QUIVER_S                                ;= $01,$01
+    dw        QUIVER_S
 GFX_PTR_QUIVER_T:
-    dw        QUIVER_T                                ;= $00,$F0,$FF
+    dw        QUIVER_T
 GFX_PTR_LOCK_CHEST:
-    dw        LOCKED_CHEST                            ;= $01,$01,$01,$01,$01
+    dw        LOCKED_CHEST
 GFX_PTR_LOCK_CHEST_S:
-    dw        CHEST_S                                 ;= $01,$E0,$1F,$1F,$B0,$01
+    dw        CHEST_S
 GFX_PTR_LOCK_CHEST_T:
-    dw        CHEST_T                                 ;= $00,$FC,$FF
+    dw        CHEST_T
     dw        EXCL_MARK_GFX
     dw        EXCL_MARK_GFX
     dw        EXCL_MARK_GFX
 GFX_PTR_KEY:
-    dw        KEY                                     ;= $01,$01,$01,$01,$01,$01
+    dw        KEY
 GFX_PTR_KEY_S:
-    dw        KEY_S                                   ;= $01,$01,$01
+    dw        KEY_S
 GFX_PTR_KEY_T:
-    dw        KEY_T                                   ;= $FF,"-",$FF
+    dw        KEY_T
 GFX_PTR_AMULET:
-    dw        AMULET                                  ;= $01,$01,$01,$01,$01
+    dw        AMULET
 GFX_PTR_AMULET_S:
-    dw        AMULET_S                                ;= $01,$01
+    dw        AMULET_S
 GFX_PTR_AMULET_T:
-    dw        AMULET_T                                ;= $00,"&",$FF
+    dw        AMULET_T
 GFX_PTR_CHALICE:
-    dw        CHALICE                                 ;= $01,$01,$01,$01,$01,$01
+    dw        CHALICE
 GFX_PTR_CHALICE_S:
-    dw        CHALICE_S                               ;= $01,$01
+    dw        CHALICE_S
 GFX_PTR_CHALICE_T:
-    dw        CHALICE_T                               ;= $00,"Y",$FF
+    dw        CHALICE_T
 GFX_PTR_WARRIOR_POTION:
-    dw        WARRIOR_POTION                          ;= $01,$01,$01,$01,$01
+    dw        WARRIOR_POTION
 GFX_PTR_WARRIOR_POTION_S:
-    dw        WARRIOR_POTION_S                        ;= $01,$01
+    dw        WARRIOR_POTION_S
 GFX_PTR_WARRIOR_POTION_T:
-    dw        POTION_T                                ;= $00,"U",$02,$04,"_",$FF
+    dw        POTION_T
 GFX_PTR_MAGE_POTION:
-    dw        MAGE_POTION                             ;= $01,$01,$01,$01,$01
+    dw        MAGE_POTION
 GFX_PTR_MAGE_POTION_S:
-    dw        MAGE_POTION_S                           ;= $01,$01
+    dw        MAGE_POTION_S
 GFX_PTR_MAGE_POTION_T:
-    dw        POTION_T                                ;= $00,"U",$02,$04,"_",$FF
+    dw        POTION_T
 GFX_PTR_MAP:
-    dw        MAP                                     ;= $01,$01,$01,$01,$01
+    dw        MAP
 GFX_PTR_MAP_S:
-    dw        MAP_S                                   ;= $01,$01
+    dw        MAP_S
 GFX_PTR_MAP_T:
-    dw        MAP_T                                   ;= $00,$D5,$FF
+    dw        MAP_T
 GFX_PTR_CHAOS_POTION:
-    dw        CHAOS_POTION                            ;= $01,$01,$01,$01,$01
+    dw        CHAOS_POTION
 GFX_PTR_CHAOS_POTION_S:
-    dw        CHAOS_POTION_S                          ;= $01,$01
+    dw        CHAOS_POTION_S
 GFX_PTR_CHAOS_POTION_T:
-    dw        POTION_T                                ;= $00,"U",$02,$04,"_",$FF
+    dw        POTION_T
     dw        EXCL_MARK_GFX
     dw        EXCL_MARK_GFX
     dw        EXCL_MARK_GFX
 GFX_END_PT1:
-    dw        NO_GFX                                  ;= $FF
+    dw        NO_GFX
 GFX_PTR_SKELETON:
-    dw        SKELETON                                ;= $04,$04,$04,$04
+    dw        SKELETON
 GFX_PTR_SKELETON_S:
-    dw        SKELETON_S                              ;= $04,$04,$04
-    dw        NO_GFX                                  ;= $FF
+    dw        SKELETON_S
+    dw        NO_GFX
 GFX_PTR_SNAKE:
-    dw        SNAKE                                   ;= $04,$04,$04
+    dw        SNAKE
 GFX_PTR_SNAKE_S:
-    dw        SNAKE_S                                 ;= $04,$04,$04
-    dw        NO_GFX                                  ;= $FF
+    dw        SNAKE_S
+    dw        NO_GFX
 GFX_PTR_SPIDER:
-    dw        SPIDER                                  ;= $04,$04
+    dw        SPIDER
 GFX_PTR_SPIDER_S:
-    dw        SPIDER_S                                ;= $04,$04,$04,$04
-    dw        NO_GFX                                  ;= $FF
+    dw        SPIDER_S
+    dw        NO_GFX
 GFX_PTR_MIMIC:
-    dw        MIMIC                                   ;= $04,$02,$D7,$96,$00,$00,$96,$C9,$01
+    dw        MIMIC
 GFX_PTR_MIMIC_S:
-    dw        MIMIC_S                                 ;= $01,$E0,$1F,$1F,$B0,$01
-    dw        NO_GFX                                  ;= $FF
+    dw        MIMIC_S
+    dw        NO_GFX
 GFX_PTR_MALOCCHIO:
-    dw        MALOCCHIO                               ;= $04,$04,$04,$04
+    dw        MALOCCHIO
 GFX_PTR_MALOCCHIO_S:
-    dw        MALOCCHIO_S                             ;= $04,$04,$04,$04
-    dw        NO_GFX                                  ;= $FF
+    dw        MALOCCHIO_S
+    dw        NO_GFX
 GFX_PTR_DRAGON:
-    dw        DRAGON                                  ;= $04,$04,$04,$04
+    dw        DRAGON
 GFX_PTR_DRAGON_S:
-    dw        DRAGON_S                                ;= $04,$04,$04,$C9,$C9,$C0,$C0,$01
+    dw        DRAGON_S
 GFX_PTR_END_A:
-    dw        NO_GFX                                  ;= $FF
+    dw        NO_GFX
 GFX_PTR_MUMMY:
-    dw        MUMMY                                   ;= $04,$04,$04,$04
+    dw        MUMMY
 GFX_PTR_MUMMY_S:
-    dw        MUMMY_S                                 ;= $04,$04,$04
+    dw        MUMMY_S
 GFX_PTR_END_B:
-    dw        NO_GFX                                  ;= $FF
+    dw        NO_GFX
 GFX_PTR_NECRO:
-    dw        NECROMANCER                             ;= $04,$04,$04,$04
+    dw        NECROMANCER
 GFX_PTR_NECRO_S:
-    dw        NECROMANCER_S                           ;= $04,$04,$04
+    dw        NECROMANCER_S
 GFX_PTR_END_C:
-    dw        NO_GFX                                  ;= $FF
+    dw        NO_GFX
 GFX_PTR_GRYPHON:
-    dw        GRYPHON                                 ;= $04,$04,$04,$04
+    dw        GRYPHON
 GFX_PTR_GRYPHON_S:
-    dw        GRYPHON_S                               ;= $04,$04,$04,$B8,$B8,$B0,$01
+    dw        GRYPHON_S
 GFX_PTR_END_D:
-    dw        NO_GFX                                  ;= $FF
+    dw        NO_GFX
 GFX_PTR_MINOTAUR:
-    dw        MINOTAUR                                ;= $04,$04,$04,$04
+    dw        MINOTAUR
 GFX_PTR_MINOTAUR_S:
-    dw        MINOTAUR_S                              ;= $04,$04,$04,$04
+    dw        MINOTAUR_S
