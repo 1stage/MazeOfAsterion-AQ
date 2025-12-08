@@ -362,7 +362,7 @@ DO_MOVE_FW_CHK_WALLS:
 ; --- Start ---
 ;   None
 ; --- In Process ---
-;   A  = ITEM_F1 + 2, then comparisons, then position calculations
+;   A  = ITEM_S1 + 2, then comparisons, then position calculations
 ;   BC = DIR_FACING_HI (direction vector)
 ; ---  End  ---
 ;   Control transfers (no return)
@@ -371,7 +371,7 @@ DO_MOVE_FW_CHK_WALLS:
 ; Calls: UPDATE_VIEWPORT, NO_ACTION_TAKEN (via JP)
 ;==============================================================================
 FW_WALLS_CLEAR_CHK_MONSTER:
-    LD          A,(ITEM_F1)                         ; Load F1 item/monster code
+    LD          A,(ITEM_S1)                         ; Load S1 sprite/monster code
     INC         A                                   ; Adjust for offset
     INC         A                                   ; (FE -> 00, monster codes shift)
     CP          $7a                                 ; Compare against monster threshold
@@ -2779,13 +2779,13 @@ PROCESS_MAP:
 ;   All registers modified by called functions
 ;   Graphics and item inventories updated
 ;
-; Memory Modified: RIGHT_HAND_ITEM, ITEM_F0, CHRRAM_*, COLRAM_*, ITEM_MOVE_CHR_BUFFER
+; Memory Modified: RIGHT_HAND_ITEM, ITEM_S0, CHRRAM_*, COLRAM_*, ITEM_MOVE_CHR_BUFFER
 ; Calls: SWAP_BYTES_AT_HL_BC, UPDATE_MELEE_OBJECTS, COPY_GFX_SCRN_2_SCRN, COPY_GFX_FROM_BUFFER, RECOLOR_ITEM, NEW_RIGHT_HAND_ITEM
 ;==============================================================================
 PICK_UP_NON_TREASURE:
     LD          HL,RIGHT_HAND_ITEM                  ; Point to current right-hand item
     LD          A,(HL)                              ; Load current right-hand item code
-    LD          (ITEM_F0),A                         ; Store it as new floor item
+    LD          (ITEM_S0),A                         ; Store it as new floor item at S0 position
     CALL        SWAP_BYTES_AT_HL_BC                 ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics in CHRRAM
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary graphics buffer
@@ -3504,7 +3504,7 @@ REVERSE_ROTATE_LOOP:
 ; --- In Process ---
 ;   A  = State/flag bytes, comparisons, randomness
 ;   B  = Loop/selector for direction cases (4 -> back/left/right/forward)
-;   HL = Points to MASTER_TICK_TIMER or item lists (ITEM_F1/ITEM_FR1)
+;   HL = Points to MASTER_TICK_TIMER or item lists (ITEM_S1/ITEM_FR1)
 ; ---  End  ---
 ;   Jumps to WAIT_FOR_INPUT or into AI branch (RANDOM_ACTION_HANDLER)
 ;
@@ -3561,8 +3561,8 @@ IDLE_SCREENSAVER_CHK:
     AND         A                                   ; Set flags from A
     JP          NZ,POLL_INPUT                       ; If busy, bypass AI/random actions
     LD          B,0x4                               ; B = direction selector (4 probes)
-    LD          HL,ITEM_F1                          ; HL = pointer to F1 cell (front row 1)
-    LD          A,(HL)                              ; A = item/monster id at F1
+    LD          HL,ITEM_S1                          ; HL = pointer to S1 cell (sprite row 1)
+    LD          A,(HL)                              ; A = item/monster id at S1
     INC         A                                   ; Normalize/flag for threshold compare
     INC         A                                   ; (two INCs used consistently in this code)
     LD          HL,ITEM_FR1                         ; HL = pointer to FR1 (probing sequence)
@@ -4010,11 +4010,11 @@ ITEM_NOT_RD_YL:
 ; ---  End  ---
 ;   Varies by door vs chest handler
 ;
-; Memory Modified: ITEM_F0 (chest items), wall states (doors)
+; Memory Modified: ITEM_S0 (chest items), wall states (doors)
 ; Calls: UPDATE_SCR_SAVER_TIMER, PICK_UP_F0_ITEM, door handlers
 ;==============================================================================
 DO_OPEN_CLOSE:
-    LD          A,(ITEM_F0)                         ; Load item at F0 position
+    LD          A,(ITEM_S0)                         ; Load sprite at S0 position
     LD          C,0x0                               ; Clear C (will hold item level)
     SRL         A                                   ; Shift item code right (extract level bits)
                                                     ; Move item level into C
@@ -4244,7 +4244,7 @@ WAIT_TO_REDRAW_F0_DOOR:
     LD          A,0x0                               ; Load color (black on black)
                                                     ; (was blue on blue, $BB)
     CALL        DRAW_DOOR_F0                        ; Draw door at F0 position
-    LD          A,(ITEM_F1)                         ; Load item at F1 position
+    LD          A,(ITEM_S1)                         ; Load sprite at S1 position
     LD          BC,$28a                             ; Load BC with offset/color
     CALL        CHK_ITEM                            ; Check and draw item
     LD          HL,COLRAM_F0_DOOR_IDX               ; Point to F0 door color RAM
@@ -5399,7 +5399,7 @@ DO_USE_SPRT_POTION:
 ; then generates random treasure item to replace the door on the map.
 ;
 ; Door Code Validation:
-; - Extract door type and level from ITEM_F0
+; - Extract door type and level from ITEM_S0
 ; - Must be door type ($14 base code)
 ; - Key level must be >= door level
 ;
@@ -5424,7 +5424,7 @@ DO_USE_SPRT_POTION:
 ; Calls: NO_ACTION_TAKEN (if invalid), UPDATE_SCR_SAVER_TIMER, ITEM_MAP_CHECK, INIT_MELEE_ANIM or UPDATE_VIEWPORT (jumps)
 ;==============================================================================
 DO_USE_KEY:
-    LD          A,(ITEM_F0)                         ; Load item at current position
+    LD          A,(ITEM_S0)                         ; Load sprite at current position (S0)
     LD          C,0x0                               ; Initialize C = 0
     SRL         A                                   ; Shift right 1 bit
     RR          C                                   ; Rotate right through C
@@ -5678,7 +5678,7 @@ USE_SOMETHING_ELSE:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   A  = ITEM_F1 value
+;   A  = ITEM_S1 value
 ; ---  End  ---
 ;   Jumps to next handler
 ;
@@ -5686,7 +5686,7 @@ USE_SOMETHING_ELSE:
 ; Calls: CHECK_FOR_END_ITEM or CHECK_IF_BOW_XBOW (jumps)
 ;==============================================================================
 CHECK_FOR_NON_ITEMS:
-    LD          A,(ITEM_F1)                         ; Load item at position F1
+    LD          A,(ITEM_S1)                         ; Load sprite at position S1
     CP          $fe                                 ; Compare to $FE (empty)
     JP          Z,CHECK_FOR_END_ITEM                ; If empty, check end item
     CP          $78                                 ; Compare to $78 (monster base)
@@ -6042,9 +6042,9 @@ USE_LADDER_DOOR_ESCAPE:
     JP          WAIT_FOR_INPUT                      ; Return to input wait
 
 ;==============================================================================
-; INIT_MONSTER_COMBAT - Initialize combat with monster at F1
+; INIT_MONSTER_COMBAT - Initialize combat with monster at S1
 ;==============================================================================
-; Sets up combat state by extracting monster type and level from ITEM_F1,
+; Sets up combat state by extracting monster type and level from ITEM_S1,
 ; then calculates monster health based on dungeon level and monster stats.
 ;
 ; Monster Code Extraction:
@@ -6078,7 +6078,7 @@ INIT_MONSTER_COMBAT:
     JP          NZ,INIT_MELEE_ANIM                  ; If in combat, init animation
     INC         A                                   ; A = 1
     LD          (COMBAT_BUSY_FLAG),A                ; Set combat flag (block movement)
-    LD          A,(ITEM_F1)                         ; Load monster code at position F1
+    LD          A,(ITEM_S1)                         ; Load monster code at position S1
     LD          B,0x0                               ; Initialize B = 0
     SRL         A                                   ; Shift right (extract level bit 0 to carry)
     RR          B                                   ; Rotate carry into B
@@ -6419,7 +6419,7 @@ DO_USE_LADDER:
     LD          A,(COMBAT_BUSY_FLAG)                ; Check if in combat
     AND         A                                   ; Test combat flag
     JP          NZ,NO_ACTION_TAKEN                  ; If in combat, no action
-    LD          A,(ITEM_F0)                         ; Load item at current position
+    LD          A,(ITEM_S0)                         ; Load sprite at current position (S0)
     CP          $42                                 ; Compare to $42 (ladder code)
     JP          NZ,NO_ACTION_TAKEN                  ; If not ladder, no action
     LD          A,(PLAYER_MAP_POS)                  ; Load current map position
@@ -7943,7 +7943,7 @@ FACING_EAST:
 ;   DE = Direction facing deltas loaded from (DIR_FACING_HI)
 ;   A  = Current player map position loaded from (PLAYER_MAP_POS)
 ; --- In Process ---
-;   IX = Item position array pointer (starting at ITEM_F2)
+;   IX = Item position array pointer (starting at ITEM_S2)
 ;   DE = Direction facing deltas (D = vertical, E = horizontal)
 ;   A  = Map position calculations using DIR_FACING_HI offsets
 ;   H  = Working position register for ITEM_MAP_CHECK calls
@@ -7956,12 +7956,12 @@ FACING_EAST:
 ;   Sparse item table at $3900 - [position,item_code] pairs, $FF terminated
 ;
 ; Memory Output:
-;   Item position array starting at ITEM_F2 ($37e8+) - item/monster state bytes
+;   Item position array starting at ITEM_S2 ($37e8+) - item/monster state bytes
 ;   NOTE: Exact variable names and memory layout require verification
 ;
 ;==============================================================================
 CALC_ITEMS:
-    LD          IX,ITEM_F2                          ; Point IX to start of item position array
+    LD          IX,ITEM_S2                          ; Point IX to start of item position array
     LD          DE,(DIR_FACING_HI)                  ; Load direction facing deltas (D=vertical, E=horizontal)
     LD          A,(PLAYER_MAP_POS)                  ; Get current player map position
     ADD         A,D                                 ; Move forward by D (direction dependent)
@@ -8118,7 +8118,7 @@ ITEM_SEARCH_LOOP:
 ;   None (uses wall state memory block $33e8-$33fd)
 ; --- In Process ---
 ;   A  = Wall state data and bit testing via RRCA sequences
-;   BC = Item position pointers (ITEM_F2, ITEM_F1, etc.)
+;   BC = Item position pointers (ITEM_S2, ITEM_S1, etc.)
 ;   DE = Wall state memory pointer ($33e8 = WALL_F0_STATE onwards)
 ;   HL = Graphics memory addresses for rendering
 ;   AF'= Saved wall state during drawing operations
@@ -8128,7 +8128,7 @@ ITEM_SEARCH_LOOP:
 ; Memory Input:
 ;   WALL_F0_STATE to WALL_B0_STATE ($33e8-$33fd) - 22 wall position states
 ;   Half-wall states: WALL_FL2_A_STATE, WALL_FL2_B_STATE, etc. (calculated by CALC_HALF_WALLS)
-;   Item data: ITEM_F2, ITEM_F1, ITEM_F0, etc.
+;   Item data: ITEM_S2, ITEM_S1, ITEM_S0, etc.
 ;
 ; Memory Output:
 ;   CHRRAM $3000-$33e7 - Character data for viewport area
@@ -8137,7 +8137,7 @@ ITEM_SEARCH_LOOP:
 ;==============================================================================
 REDRAW_VIEWPORT:
     CALL        DRAW_BKGD                           ; Draw background
-    LD          BC,ITEM_F2                          ; BC = item at position F2
+    LD          BC,ITEM_S2                          ; BC = sprite at position S2
     LD          DE,WALL_F0_STATE                    ; DE = wall state at position F0
     LD          A,(DE)                              ; Load F0 wall state
     RRCA                                            ; Test bit 0 (hidden door flag)
@@ -8151,7 +8151,7 @@ REDRAW_VIEWPORT:
     JP          NC,F0_HD_NO_WALL                    ; If door closed, continue
 F0_NO_HD_WALL_OPEN:
     CALL        DRAW_WALL_F0_AND_OPEN_DOOR          ; Draw wall with open door
-    JP          CHK_ITEM_F1                         ; Jump to F1 item check
+    JP          CHK_ITEM_S1                         ; Jump to S1 sprite check
 ;==============================================================================
 ; F0_NO_HD - Process F0 wall when no hidden door present
 ;==============================================================================
@@ -8210,7 +8210,7 @@ F0_NO_HD_NO_WALL:
     JP          NC,F1_HD_NO_WALL                    ; If door closed, continue
 F1_NO_HD_WALL_OPEN:
     CALL        DRAW_WALL_F1_AND_OPEN_DOOR          ; Draw wall with open door
-    JP          CHK_ITEM_F2                         ; Jump to F2 item check
+    JP          CHK_ITEM_S2                         ; Jump to S2 sprite check
 ;==============================================================================
 ; F1_NO_HD - Process F1 wall when no hidden door present
 ;==============================================================================
@@ -8296,7 +8296,7 @@ CHK_WALL_R2_HD:
     JP          NC,CHK_WALL_R2_EXISTS               ; If no hidden door, check bit 1
 DRAW_R2_WALL:
     CALL        DRAW_WALL_R2                        ; Draw R2 wall
-    JP          CHK_ITEM_F2                         ; Continue to F2 item check
+    JP          CHK_ITEM_S2                         ; Continue to S2 sprite check
 CHK_WALL_R2_EXISTS:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          C,DRAW_R2_WALL                      ; If wall exists, draw it
@@ -8306,13 +8306,13 @@ CHK_WALL_R2_EXISTS:
     JP          NC,CHK_WALL_FR2_A_EXISTS            ; If no hidden door, check bit 1
 DRAW_FR2_A_WALL:
     CALL        DRAW_WALL_FR2_A                     ; Draw R2 right wall
-    JP          CHK_ITEM_F2                         ; Continue to F2 item check
+    JP          CHK_ITEM_S2                         ; Continue to S2 sprite check
 CHK_WALL_FR2_A_EXISTS:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          C,DRAW_FR2_A_WALL                   ; If wall exists, draw it
     CALL        DRAW_WALL_FR2_A_EMPTY               ; Draw empty R2 right space
-CHK_ITEM_F2:
-    LD          A,(ITEM_F2)                         ; Load item at F2 position
+CHK_ITEM_S2:
+    LD          A,(ITEM_S2)                         ; Load sprite at S2 position
     LD          BC,$48a                             ; BC = distance/size parameters
     CALL        CHK_ITEM                            ; Check and draw F2 item
 F1_HD_NO_WALL:
@@ -8380,19 +8380,19 @@ CHK_WALL_R1_HD:
     CALL        DRAW_WALL_R1                        ; Draw R1 wall
     EX          AF,AF'                              ; Restore wall state
     RRCA                                            ; Test bit 1 (wall exists flag)
-    JP          NC,CHK_ITEM_F1                      ; If no wall, continue
+    JP          NC,CHK_ITEM_S1                      ; If no wall, continue
     RRCA                                            ; Test bit 2 (door open flag)
-    JP          NC,CHK_ITEM_F1                      ; If door closed, continue
+    JP          NC,CHK_ITEM_S1                      ; If door closed, continue
 DRAW_R1_DOOR_OPEN:
     CALL        DRAW_DOOR_R1_HIDDEN                 ; Draw hidden door on R1
-    JP          CHK_ITEM_F1                         ; Continue to F1 item check
+    JP          CHK_ITEM_S1                         ; Continue to S1 sprite check
 CHK_R1_NO_HD:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          NC,CHK_WALL_FR1_A                   ; If no wall, check sub-wall
     RRCA                                            ; Test bit 2 (door open flag)
     JP          C,DRAW_R1_DOOR_OPEN                 ; If door open, draw door
     CALL        DRAW_DOOR_R1_NORMAL                 ; Draw normal door on R1
-    JP          CHK_ITEM_F1                         ; Continue to F1 item check
+    JP          CHK_ITEM_S1                         ; Continue to S1 sprite check
 CHK_WALL_FR1_A:
     INC         E                                   ; Move to FR1 wall state
     LD          A,(DE)                              ; Load FR1 wall state
@@ -8402,19 +8402,19 @@ CHK_WALL_FR1_A:
     CALL        DRAW_WALL_FR1_A                     ; Draw FR1 wall
     EX          AF,AF'                              ; Restore wall state
     RRCA                                            ; Test bit 1 (wall exists flag)
-    JP          NC,CHK_ITEM_F1                      ; If no wall, continue
+    JP          NC,CHK_ITEM_S1                      ; If no wall, continue
     RRCA                                            ; Test bit 2 (door open flag)
-    JP          NC,CHK_ITEM_F1                      ; If door closed, continue
+    JP          NC,CHK_ITEM_S1                      ; If door closed, continue
 DRAW_FR1_A_DOOR_OPEN:
     CALL        DRAW_DOOR_FR1_A_HIDDEN              ; Draw hidden door on FR1
-    JP          CHK_ITEM_F1                         ; Continue to F1 item check
+    JP          CHK_ITEM_S1                         ; Continue to S1 sprite check
 CHK_FR1_A_NO_HD:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          NC,CHK_WALL_FR2                     ; If no wall, check FR2
     RRCA                                            ; Test bit 2 (door open flag)
     JP          C,DRAW_FR1_A_DOOR_OPEN              ; If door open, draw door
     CALL        DRAW_DOOR_FR1_A_NORMAL              ; Draw normal door on FR1
-    JP          CHK_ITEM_F1                         ; Continue to F1 item check
+    JP          CHK_ITEM_S1                         ; Continue to S1 sprite check
 CHK_WALL_FR2:
     INC         E                                   ; Move to FR2 wall state
     LD          A,(DE)                              ; Load FR2 wall state
@@ -8422,15 +8422,15 @@ CHK_WALL_FR2:
     JP          NC,CHK_WALL_FR2_EXISTS              ; If no hidden door, check bit 1
 DRAW_FR2_WALL:
     CALL        DRAW_WALL_FR2                       ; Draw FR2 wall
-    JP          CHK_ITEM_F1                         ; Continue to F1 item check
+    JP          CHK_ITEM_S1                         ; Continue to S1 sprite check
 CHK_WALL_FR2_EXISTS:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          C,DRAW_FR2_WALL                     ; If wall exists, draw it
     CALL        DRAW_WALL_FR2_EMPTY                 ; Draw empty FR2 space
-CHK_ITEM_F1:
-    LD          A,(ITEM_F1)                         ; Load item at F1 position
+CHK_ITEM_S1:
+    LD          A,(ITEM_S1)                         ; Load sprite at S1 position
     LD          BC,$28a                             ; BC = distance/size parameters
-    CALL        CHK_ITEM                            ; Check and draw F1 item
+    CALL        CHK_ITEM                            ; Check and draw S1 sprite
 F0_HD_NO_WALL:
     LD          DE,WALL_L0_STATE                    ; DE = left wall 0 state
     LD          A,(DE)                              ; Load L0 wall state
@@ -8533,19 +8533,19 @@ CHK_WALL_R0:
     CALL        DRAW_WALL_R0                        ; Draw R0 wall
     EX          AF,AF'                              ; Restore A register state
     RRCA                                            ; Test next bit (door presence?)
-    JP          NC,CHK_ITEM_F0                      ; If door bit clear, jump to end
+    JP          NC,CHK_ITEM_S0                      ; If door bit clear, jump to end
     RRCA                                            ; Test third bit (door type?)
-    JP          NC,CHK_ITEM_F0                      ; If door type bit clear, jump to end
+    JP          NC,CHK_ITEM_S0                      ; If door type bit clear, jump to end
 DRAW_R0_HD:
     CALL        DRAW_R0_DOOR_HIDDEN                 ; Draw hidden door on R0
-    JP          CHK_ITEM_F0                         ; Jump to F0 item check
+    JP          CHK_ITEM_S0                         ; Jump to S0 sprite check
 CHK_R0_NO_HD:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          NC,CHK_WALL_FR0                     ; If no wall, check FR0
     RRCA                                            ; Test bit 2 (door open flag)
     JP          C,DRAW_R0_HD                        ; If door open, draw hidden door
     CALL        DRAW_R0_DOOR_NORMAL                 ; Draw normal door on R0
-    JP          CHK_ITEM_F0                         ; Jump to F0 item check
+    JP          CHK_ITEM_S0                         ; Jump to S0 sprite check
 CHK_WALL_FR0:
     INC         E                                   ; Move to FR0 wall state
     LD          A,(DE)                              ; Load FR0 wall state
@@ -8553,7 +8553,7 @@ CHK_WALL_FR0:
     JP          NC,CHK_WALL_FR0_EXISTS              ; If no hidden door, check bit 1
 DRAW_FR0_WALL:
     CALL        DRAW_WALL_FR0                       ; Draw FR0 wall
-    JP          CHK_ITEM_F0                         ; Jump to F0 item check
+    JP          CHK_ITEM_S0                         ; Jump to S0 sprite check
 ;==============================================================================
 ; CHK_ITEM_FR1 - Check and draw item at FR1 position
 ;==============================================================================
@@ -8589,13 +8589,13 @@ CHK_WALL_FR0_EXISTS:
     CALL        CHK_ITEM_FR1                        ; Check and draw FR1 item
     EX          AF,AF'                              ; Restore wall state
     RRCA                                            ; Test bit 1 (wall exists flag)
-    JP          NC,CHK_ITEM_F0                      ; If no wall, continue to F0
+    JP          NC,CHK_ITEM_S0                      ; If no wall, continue to S0
     RRCA                                            ; Test bit 2 (door open flag)
-    JP          NC,CHK_ITEM_F0                      ; If door closed, continue to F0
+    JP          NC,CHK_ITEM_S0                      ; If door closed, continue to S0
 DRAW_FR1_B_HD:
     CALL        DRAW_DOOR_FR1_B_HIDDEN              ; Draw hidden door on FR1 back
     CALL        CHK_ITEM_FR1                        ; Check and draw FR1 item
-    JP          CHK_ITEM_F0                         ; Jump to F0 item check
+    JP          CHK_ITEM_S0                         ; Jump to S0 sprite check
 CHK_FR1_B_NO_HD:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          NC,CHK_WALL_FR1_B_EXISTS            ; If no wall, check FR2
@@ -8603,7 +8603,7 @@ CHK_FR1_B_NO_HD:
     JP          C,DRAW_FR1_B_HD                     ; If door open, draw hidden door
     CALL        DRAW_DOOR_FR1_B_NORMAL              ; Draw normal door on FR1 back
     CALL        CHK_ITEM_FR1                        ; Check and draw FR1 item
-    JP          CHK_ITEM_F0                         ; Jump to F0 item check
+    JP          CHK_ITEM_S0                         ; Jump to S0 sprite check
 CHK_WALL_FR1_B_EXISTS:
     INC         E                                   ; Move to FR2 wall state
     RRCA                                            ; Test bit 1 (wall exists flag)
@@ -8611,16 +8611,16 @@ CHK_WALL_FR1_B_EXISTS:
 DRAW_FR1_B_WALL:
     CALL        DRAW_WALL_R1_SIMPLE                 ; Draw FR2 wall
     CALL        CHK_ITEM_FR1                        ; Check and draw FR1 item
-    JP          CHK_ITEM_F0                         ; Jump to F0 item check
+    JP          CHK_ITEM_S0                         ; Jump to S0 sprite check
 CHK_FR22_EXISTS:
     RRCA                                            ; Test bit 2 (next flag)
     JP          C,DRAW_FR1_B_WALL                   ; If bit set, draw wall
     CALL        DRAW_WALL_FR22_EMPTY                ; Draw empty FR2 space
     CALL        CHK_ITEM_FR1                        ; Check and draw FR1 item
-CHK_ITEM_F0:
-    LD          A,(ITEM_F0)                         ; Load item at F0 position
+CHK_ITEM_S0:
+    LD          A,(ITEM_S0)                         ; Load sprite at S0 position
     LD          BC,$8a                              ; BC = distance/size parameters
-    JP          CHK_ITEM                            ; Check and draw F0 item
+    JP          CHK_ITEM                            ; Check and draw S0 sprite
 ;==============================================================================
 ; MAKE_RANDOM_BYTE - Generate pseudo-random byte using 16-bit LFSR
 ;==============================================================================
