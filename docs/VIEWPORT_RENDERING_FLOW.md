@@ -171,14 +171,14 @@ REDRAW_VIEWPORT uses **conditional front-to-back rendering** with strategic jump
 8234:     JP      NC,CHK_WALL_FL2_A_EXISTS  ; IF bit 0 = 0 → Line 8238
                                             ; ELSE bit 0 = 1:
 8235: DRAW_FL2_A_WALL:
-8236:     CALL    DRAW_WALL_L2_LEFT         ; Draw FL2_A wall
+8236:     CALL    DRAW_WALL_FL2_A           ; Draw FL2_A wall
 8237:     JP      CHK_WALL_R2_HD            ; → Line 8241
 
 8238: CHK_WALL_FL2_A_EXISTS:
 8239:     RRCA                              ; bit 1 → Carry
 8240:     JP      C,DRAW_FL2_A_WALL         ; IF bit 1 = 1 → Line 8235
                                             ; ELSE bit 1 = 0:
-           CALL    DRAW_WALL_L2_LEFT_EMPTY ; Clear FL2_A area
+           CALL    DRAW_WALL_FL2_A_EMPTY   ; Clear FL2_A area
            ; Fall through to CHK_WALL_R2_HD
 ```
 

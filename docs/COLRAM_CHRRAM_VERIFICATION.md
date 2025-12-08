@@ -148,12 +148,12 @@ For each constant:
 
 | Constant | Address | Verified Usage | Dimensions |
 |----------|---------|----------------|------------|
-| `COLRAM_L2_LEFT` | $35c0 | ✓ Indirectly used | 2×4 section |
+| `COLRAM_FL2_A` | $35c0 | ✓ Indirectly used | 2×4 section |
 | `COLRAM_L2_RIGHT` | $35c2 | ✓ Indirectly used | 2×4 section |
 
 **Drawing Functions**:
 - `DRAW_WALL_L2` (line 1277): Uses `CHRRAM_F1_WALL_IDX` and `COLRAM_F0_DOOR_IDX` (not L2 constants directly!)
-- `DRAW_WALL_L2_LEFT` (line 1379): Uses `COLRAM_FL2_WALL_IDX`
+- `DRAW_WALL_FL2_A` (line 1379): Uses `COLRAM_FL2_WALL_IDX`
 
 **Screen Position**: Far left, distance 2
 
@@ -292,7 +292,7 @@ For each constant:
 
 | Constant | Address | Verified Usage | Dimensions |
 |----------|---------|----------------|------------|
-| `COLRAM_FL2_WALL_IDX` | $35bc | ✓ DRAW_WALL_L2_LEFT line 1380 | 2×4 section |
+| `COLRAM_FL2_WALL_IDX` | $35bc | ✓ DRAW_WALL_FL2_A line 1380 | 2×4 section |
 | `COLRAM_FL2_PLUS_WALL_IDX` | $35be | ✓ Referenced | Additional section |
 
 **Drawing Functions**:

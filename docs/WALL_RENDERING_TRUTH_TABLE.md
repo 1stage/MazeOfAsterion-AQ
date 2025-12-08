@@ -92,7 +92,7 @@ This document provides a comprehensive reference for every wall rendering decisi
 |-----------|---------|------------|-------|-------|-------|--------|-------------|---------------|
 | `WALL_L2_STATE` | $33eb | 8221-8222 | 1 | X | X | Hidden door | → 8223 (DRAW_L2_WALL) | DRAW_WALL_L2 |
 | `WALL_L2_STATE` | $33eb | 8225-8227 | 0 | 1 | X | No HD, wall exists | → 8223 (DRAW_L2_WALL) | DRAW_WALL_L2 |
-| `WALL_L2_STATE` | $33eb | 8225-8228 | 0 | 0 | X | No HD, no wall | → 8228 (fall through) | DRAW_WALL_L2_LEFT_EMPTY |
+| `WALL_L2_STATE` | $33eb | 8225-8228 | 0 | 0 | X | No HD, no wall | → 8228 (fall through) | DRAW_WALL_FL2_A_EMPTY |
 
 **Note**: L2 only tests bit 0 and bit 1. Door state (bit 2) not checked - doors at distance 2 don't render differently.
 
@@ -100,7 +100,7 @@ This document provides a comprehensive reference for every wall rendering decisi
 
 **Rendering Functions**:
 - `DRAW_WALL_L2` (line 1277): Complex diagonal wall using F1/F0 constants
-- `DRAW_WALL_L2_LEFT_EMPTY` (line 1379): Clears FL2_A area
+- `DRAW_WALL_FL2_A_EMPTY` (line 1379): Clears FL2_A area
 
 ---
 
@@ -110,7 +110,7 @@ This document provides a comprehensive reference for every wall rendering decisi
 |-----------|---------|------------|-------|-------|-------|--------|-------------|---------------|
 | `WALL_FL2_A_STATE` | $33ec | 8230-8231 | 1 | X | X | Hidden door | → 8232 (DRAW_FL2_A_WALL) | DRAW_WALL_FL2_A |
 | `WALL_FL2_A_STATE` | $33ec | 8235-8237 | 0 | 1 | X | No HD, wall exists | → 8232 (DRAW_FL2_A_WALL) | DRAW_WALL_FL2_A |
-| `WALL_FL2_A_STATE` | $33ec | 8235-8238 | 0 | 0 | X | No HD, no wall | → 8238 (fall through) | DRAW_WALL_L2_LEFT_EMPTY |
+| `WALL_FL2_A_STATE` | $33ec | 8235-8238 | 0 | 0 | X | No HD, no wall | → 8238 (fall through) | DRAW_WALL_FL2_A_EMPTY |
 
 **Jump Target**: After drawing FL2_A, jumps to CHK_WALL_R2_HD (line 8241)
 
