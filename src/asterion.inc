@@ -277,10 +277,16 @@ PREV_DIR_FACING EQU $3aa0
 ITEM_HOLDER EQU $3aa1 
 CURR_MONSTER_SPRT EQU $3aa2 
 CURR_MONSTER_PHYS EQU $3aa3
-BYTE_ram_3aa5 EQU $3aa5 
+MONSTER_PHYS_HP_BASE EQU $3aa5
+; First byte of monster physical HP BCD triplet (base value)
 NEW_DAMAGE EQU $3aa6
+MONSTER_PHYS_HP_X2 EQU $3aa6
+; Second byte of triplet: HP * 2 (also used as NEW_DAMAGE)
+MONSTER_PHYS_HP_CARRY EQU $3aa7
+; Third byte of triplet: carry from HP * 2
 WEAPON_VALUE_HOLDER EQU $3aa8 
-BYTE_ram_3aa9 EQU $3aa9
+REST_FOOD_COUNTER EQU $3aa9
+; 16-bit BCD counter for food consumed during rest/healing
 FOOD_INV EQU $3aab 
 ARROW_INV EQU $3aac 
 MAP_INV_SLOT EQU $3aad 
@@ -290,5 +296,5 @@ SOUND_REPEAT_COUNT EQU $3ab8
 GAME_BOOLEANS EQU $3ab9 
 NEXT_BLINK_CHECK EQU $3aba 
 TEMP_MAP EQU $3b00 
-BYTE_ram_3ffd EQU $3ffd
-LAB_ram_efef EQU $efef
+;BYTE_ram_3ffd EQU $3ffd
+;LAB_ram_efef EQU $efef

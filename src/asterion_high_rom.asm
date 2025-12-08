@@ -213,7 +213,7 @@ BLANK_SCRN:
     LD          (PLAYER_SPRT_HEALTH_MAX),A          ; Set max spirit health
     CALL        REDRAW_STATS                        ; Render initial stats values
     LD          HL,$20                              ; HL = 0020 (misc counter / timer init)
-    LD          (BYTE_ram_3aa9),HL                  ; Store counter value
+    LD          (REST_FOOD_COUNTER),HL              ; Store counter value
 
     LD          A,$14                               ; A = 14 (starting food/arrows BCD)
     LD          (FOOD_INV),A                        ; Initialize food inventory
@@ -1501,7 +1501,7 @@ SPRT_SEED_MIX:
     ADD         A,E                                 ; Add mixed value
     DAA                                             ; Normalize to BCD
     LD          L,A                                 ; L = final seed
-    LD          A,(BYTE_ram_3aa5)                   ; Load environment/bonus modifier
+    LD          A,(MONSTER_PHYS_HP_BASE)            ; Load environment/bonus modifier
     LD          E,A                                 ; E = modifier
     LD          A,L                                 ; A = seed
     SUB         E                                   ; Subtract modifier to adjust
@@ -2666,13 +2666,13 @@ CHECK_FOOD_ARROWS:
 ; --- In Process ---
 ;   A  = FOOD_INV value, arithmetic operations
 ;   C  = Overflow amount (if needed)
-;   HL = BYTE_ram_3aa9 statistics counter
+;   HL = REST_FOOD_COUNTER statistics counter
 ;   D  = May be reduced during overflow handling
 ; ---  End  ---
 ;   A  = H after final DAA (high byte of counter)
-;   HL = Updated BYTE_ram_3aa9 value
+;   HL = Updated REST_FOOD_COUNTER value
 ;
-; Memory Modified: FOOD_INV, BYTE_ram_3aa9
+; Memory Modified: FOOD_INV, REST_FOOD_COUNTER
 ; Calls: Self (recursive on overflow)
 ;==============================================================================
 PICK_UP_FOOD:
@@ -2687,7 +2687,7 @@ PICK_UP_FOOD:
     JP          PICK_UP_FOOD                        ; Try again with reduced quantity
 STORE_FOOD_NO_OVERFLOW:
     LD          (FOOD_INV),A                        ; Store updated food inventory count
-    LD          HL,(BYTE_ram_3aa9)                  ; Load food statistics counter (BCD)
+    LD          HL,(REST_FOOD_COUNTER)              ; Load food statistics counter (BCD)
     LD          A,D                                 ; Load food quantity added
     ADD         A,L                                 ; Add to low byte of counter
     DAA                                             ; BCD correction for addition
@@ -2696,7 +2696,7 @@ STORE_FOOD_NO_OVERFLOW:
     ADC         A,0x0                               ; Add carry from previous addition
     DAA                                             ; BCD correction for addition
     LD          H,A                                 ; Store updated high byte
-    LD          (BYTE_ram_3aa9),HL                  ; Save updated food statistics counter
+    LD          (REST_FOOD_COUNTER),HL              ; Save updated food statistics counter
     RET                                             ; Return to caller
 
 ;==============================================================================
@@ -6265,7 +6265,7 @@ SEED_MONSTER_HP_AND_ATTACK:
     LD          D,H                                 ; D = spiritual HP base value
     CALL        GET_RANDOM_0_TO_7                   ; Get random 0-7 in E for HP reduction
     PUSH        HL                                  ; Save HL (HP pair)
-    LD          HL,BYTE_ram_3aa5                    ; Point to physical HP storage (3 bytes)
+    LD          HL,MONSTER_PHYS_HP_BASE             ; Point to physical HP storage (3 bytes)
     CALL        WRITE_HP_TRIPLET                    ; Write physical HP triplet (value, *2, carry)
     POP         HL                                  ; Restore HL (HP pair)
     LD          D,L                                 ; D = physical HP base value
@@ -8799,7 +8799,7 @@ MINOTAUR_DEAD_SOUND_LOOP:
 ; ---  End  ---
 ;   Control transfers to INPUT_DEBOUNCE or CHK_NEEDS_HEALING loop
 ;
-; Memory Modified: PLAYER_PHYS_HEALTH, PLAYER_SPRT_HEALTH, FOOD_INV, BYTE_ram_3aa9
+; Memory Modified: PLAYER_PHYS_HEALTH, PLAYER_SPRT_HEALTH, FOOD_INV, REST_FOOD_COUNTER
 ; Calls: RECALC_PHYS_HEALTH, ADD_BCD_HL_DE, REDRAW_STATS, INPUT_DEBOUNCE
 ;==============================================================================
 DO_REST:
@@ -8819,11 +8819,11 @@ CHK_NEEDS_HEALING:
     JP          Z,INPUT_DEBOUNCE                    ; If at max health, done resting
     JP          HEAL_PLAYER_SPRT_HEALTH             ; Otherwise heal spiritual
 HEAL_PLAYER_PHYS_HEALTH:
-    LD          HL,(BYTE_ram_3aa9)                  ; Load rest counter/timer
+    LD          HL,(REST_FOOD_COUNTER)              ; Load rest counter/timer
     LD          DE,0x1                              ; DE = 1 (amount to check)
     CALL        RECALC_PHYS_HEALTH                  ; Check if can consume food
     JP          C,INPUT_DEBOUNCE                    ; If can't afford, exit
-    LD          (BYTE_ram_3aa9),HL                  ; Update rest counter
+    LD          (REST_FOOD_COUNTER),HL              ; Update rest counter
     LD          HL,FOOD_INV                         ; HL = food inventory address
     DEC         (HL)                                ; Decrease food by 1
     LD          HL,(PLAYER_PHYS_HEALTH)             ; Load current physical health
@@ -8836,11 +8836,11 @@ HEAL_PLAYER_PHYS_HEALTH:
     CP          C                                   ; Compare current to max
     JP          Z,CHK_NEEDS_HEALING                 ; If at max sprt, check phys again
 HEAL_PLAYER_SPRT_HEALTH:
-    LD          HL,(BYTE_ram_3aa9)                  ; Load rest counter/timer
+    LD          HL,(REST_FOOD_COUNTER)              ; Load rest counter/timer
     LD          DE,0x1                              ; DE = 1 (amount to check)
     CALL        RECALC_PHYS_HEALTH                  ; Check if can consume food
     JP          C,INPUT_DEBOUNCE                    ; If can't afford, exit
-    LD          (BYTE_ram_3aa9),HL                  ; Update rest counter
+    LD          (REST_FOOD_COUNTER),HL              ; Update rest counter
     LD          HL,FOOD_INV                         ; HL = food inventory address
     DEC         (HL)                                ; Decrease food by 1
     LD          A,(PLAYER_SPRT_HEALTH)              ; Load current spiritual health
