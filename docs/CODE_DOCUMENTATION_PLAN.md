@@ -20,11 +20,14 @@ Following the existing pattern of header comments that document:
 
 **Documentation Needed**:
 ```asm
+;==============================================================================
 ; === WALL STATE ENCODING PATTERN ===
+;==============================================================================
 ; Based on wall_diagram.txt: Low bits=West wall, High bits=North wall  
 ; West: $x0=no wall, $x1=solid wall, $x2=visible closed door, $x4=hidden closed door
 ; North: $0x=no wall, $2x=solid wall, $4x=visible closed door, $6x=hidden closed door
 ; Standard RRCA pattern used throughout REDRAW_VIEWPORT:
+;==============================================================================
 LD          A,(DE)          ; Load wall state nibble from map position
 RRCA                        ; Rotate bits for wall state testing
 JP          NC,wall_check   ; Branch based on rotated bit state
