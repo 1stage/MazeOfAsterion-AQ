@@ -1359,25 +1359,25 @@ DRAW_LEFT_DOOR:
     JP          (IX)                                ; Return to caller
 
 ;==============================================================================
-; DRAW_WALL_L2_LEFT
+; DRAW_WALL_FL2_A
 ;==============================================================================
-; Draws left side section of L2 wall - 2x4 colored area with bottom edge line.
+; Draws FL2_A wall section - 2x4 colored area with bottom edge line.
 ;
 ; Registers:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = COLRAM_L2_LEFT, then $3238 (bottom edge)
+;   HL = COLRAM_FL2_A, then $3238 (bottom edge)
 ;   BC = RECT(2,4), then RECT(2,1)
 ;   A  = COLOR(BLK,DKGRY), then CHAR_BOTTOM_LINE
 ; ---  End  ---
 ;   Jumps to FILL_CHRCOL_RECT
 ;
-; Memory Modified: COLRAM at L2 left + CHRRAM bottom edge
+; Memory Modified: COLRAM at FL2_A + CHRRAM bottom edge
 ; Calls: FILL_CHRCOL_RECT, jumps to FILL_CHRCOL_RECT
 ;==============================================================================
-DRAW_WALL_L2_LEFT:
-    LD          HL,COLRAM_L2_LEFT                   ; Point to L2 left wall color area
+DRAW_WALL_FL2_A:
+    LD          HL,COLRAM_FL2_A                     ; Point to FL2_A wall color area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
     CALL        FILL_CHRCOL_RECT                    ; Fill color area
@@ -1387,25 +1387,25 @@ DRAW_WALL_L2_LEFT:
     JP          FILL_CHRCOL_RECT                    ; Fill bottom edge
 
 ;==============================================================================
-; DRAW_WALL_L2_LEFT_EMPTY
+; DRAW_WALL_FL2_A_EMPTY
 ;==============================================================================
-; Draws empty L2 left section - black 2x4 rectangle for empty corridor.
+; Draws empty FL2_A section - black 2x4 rectangle for empty corridor.
 ;
 ; Registers:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = COLRAM_L2_LEFT
+;   HL = COLRAM_FL2_A
 ;   BC = RECT(2,4)
 ;   A  = COLOR(BLK,BLK)
 ; ---  End  ---
 ;   Jumps to FILL_CHRCOL_RECT
 ;
-; Memory Modified: COLRAM at L2 left position (2x4)
+; Memory Modified: COLRAM at FL2_A position (2x4)
 ; Calls: Jumps to FILL_CHRCOL_RECT
 ;==============================================================================
-DRAW_WALL_L2_LEFT_EMPTY:
-    LD          HL,COLRAM_L2_LEFT                   ; Point to L2 left wall color area
+DRAW_WALL_FL2_A_EMPTY:
+    LD          HL,COLRAM_FL2_A                     ; Point to FL2_A wall color area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
     JP          FILL_CHRCOL_RECT                    ; Fill area with black

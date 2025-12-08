@@ -8283,12 +8283,12 @@ CHK_WALL_L2_EXISTS:
     RRCA                                            ; Test bit 0 (hidden door flag)
     JP          NC,CHK_WALL_FL2_A_EXISTS            ; If no hidden door, check bit 1
 DRAW_FL2_A_WALL:
-    CALL        DRAW_WALL_L2_LEFT                   ; Draw L2 left wall
+    CALL        DRAW_WALL_FL2_A                     ; Draw FL2_A wall
     JP          CHK_WALL_R2_HD                      ; Continue to R2 walls
 CHK_WALL_FL2_A_EXISTS:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          C,DRAW_FL2_A_WALL                   ; If wall exists, draw it
-    CALL        DRAW_WALL_L2_LEFT_EMPTY             ; Draw empty L2 left space
+    CALL        DRAW_WALL_FL2_A_EMPTY               ; Draw empty FL2_A space
 CHK_WALL_R2_HD:
     LD          DE,WALL_R2_STATE                    ; DE = right wall 2 state
     LD          A,(DE)                              ; Load R2 wall state
