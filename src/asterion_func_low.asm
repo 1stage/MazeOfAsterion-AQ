@@ -825,7 +825,7 @@ DRAW_DOOR_L0:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = DAT_ram_34c8
+;   HL = COLRAM_FL0_WALL_RIGHT_IDX
 ;   BC = RECT(4,15)
 ;   A  = COLOR(BLK,BLU)
 ; ---  End  ---
@@ -835,7 +835,7 @@ DRAW_DOOR_L0:
 ; Calls: Jumps to FILL_CHRCOL_RECT
 ;==============================================================================
 DRAW_WALL_FL0:
-    LD          HL,DAT_ram_34c8                     ; Point to FL0 wall color area
+    LD          HL,COLRAM_FL0_WALL_RIGHT_IDX        ; Point to FL0 wall color area
     LD          A,COLOR(BLK,BLU)                    ; BLK on BLU (wall color)
     LD          BC,RECT(4,15)                       ; 4 x 15 rectangle (was 16)
     JP          FILL_CHRCOL_RECT                    ; Fill wall area
@@ -1420,7 +1420,7 @@ DRAW_WALL_L2_LEFT_EMPTY:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = DAT_ram_34b4 (colors), then CHRRAM_R0_CORNER_TOP_IDX (chars)
+;   HL = COLRAM_R0_WALL_IDX (colors), then CHRRAM_R0_CORNER_TOP_IDX (chars)
 ;   BC = RECT(4,15)
 ;   A  = various colors, then CHAR_RT_ANGLE, finally CHAR_LT_ANGLE
 ;   DE = stride $27 (39), then $28, $29
@@ -1440,7 +1440,7 @@ DRAW_WALL_R0:
     LD          A,COLOR(BLK,BLU)                    ; BLK on BLU (wall color)
     PUSH        AF                                  ; Save to stack for later
     LD          A,COLOR(BLU,BLK)                    ; BLU on BLK (background color)
-    LD          HL,DAT_ram_34b4                     ; Point to R0 wall area
+    LD          HL,COLRAM_R0_WALL_IDX               ; Point to R0 wall area
     CALL        DRAW_R0_CORNERS                     ; Do corner fills
     LD          HL,CHRRAM_R0_CORNER_TOP_IDX         ; Top right corner of R0
     LD          A,CHAR_RT_ANGLE                     ; Right angle character
@@ -1510,7 +1510,7 @@ DRAW_R0_DOOR_NORMAL:
 ;   AF' = door body color
 ;   DE  = $29
 ; --- In Process ---
-;   HL = DAT_ram_352d (colors), then CHRRAM_L0_DOOR_ANGLE_IDX (chars)
+;   HL = COLRAM_R0_DOOR_TOP_LEFT_IDX (colors), then CHRRAM_L0_DOOR_ANGLE_IDX (chars)
 ;   DE = stride adjustments ($27, $28, $29)
 ;   BC = RECT(3,11)
 ;   A  = swapped via EX AF,AF', then CHAR_RT_ANGLE
@@ -1522,7 +1522,7 @@ DRAW_R0_DOOR_NORMAL:
 ;        jumps to CONTINUE_VERTICAL_LINE_DOWN
 ;==============================================================================
 DRAW_R0_DOOR:
-    LD          HL,DAT_ram_352d                     ; R0 door top left COLRAM IDX
+    LD          HL,COLRAM_R0_DOOR_TOP_LEFT_IDX      ; R0 door top left COLRAM IDX
     DEC         DE                                  ; Decrement pitch to 40
     DEC         DE                                  ; Decrement pitch to 39
     CALL        DRAW_VERTICAL_LINE_3_UP             ; Draw door edge
@@ -1549,7 +1549,7 @@ DRAW_R0_DOOR:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = DAT_ram_34dc
+;   HL = COLRAM_FR0_WALL_IDX
 ;   BC = RECT(4,15)
 ;   A  = COLOR(BLK,BLU)
 ; ---  End  ---
@@ -1559,7 +1559,7 @@ DRAW_R0_DOOR:
 ; Calls: Jumps to FILL_CHRCOL_RECT
 ;==============================================================================
 DRAW_WALL_FR0:
-    LD          HL,DAT_ram_34dc                     ; Point to FR0 wall area
+    LD          HL,COLRAM_FR0_WALL_IDX              ; Point to FR0 wall area
     LD          A,COLOR(BLK,BLU)                    ; BLK on BLU (wall color)
     LD          BC,RECT(4,15)                       ; 4 x 15 rectangle (was 16)
     JP          FILL_CHRCOL_RECT                    ; Fill wall area
@@ -1574,7 +1574,7 @@ DRAW_WALL_FR0:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = CHRRAM_FR1_B_WALL_IDX (chars), then DAT_ram_357c (colors)
+;   HL = CHRRAM_FR1_B_WALL_IDX (chars), then COLRAM_FR1_B_WALL_IDX (colors)
 ;   BC = RECT(4,8)
 ;   A  = $20 (SPACE), then COLOR(BLU,DKBLU)
 ;   C  = 8 (height reset)
@@ -1589,7 +1589,7 @@ DRAW_WALL_FR1_B:
     LD          BC,RECT(4,8)                        ; 4 x 8 rectangle
     LD          A,$20                               ; SPACE character (32 / $20)
     CALL        FILL_CHRCOL_RECT                    ; Fill character area
-    LD          HL,DAT_ram_357c                     ; Point to FR1_B color area
+    LD          HL,COLRAM_FR1_B_WALL_IDX            ; Point to FR1_B color area
     LD          C,0x8                               ; Set height to 8
     LD          A,COLOR(BLU,DKBLU)                  ; BLU on DKBLU (wall color)
     JP          DRAW_CHRCOLS                        ; Fill color area
@@ -1695,7 +1695,7 @@ DRAW_WALL_R1_SIMPLE:
     ADD         HL,DE                               ; Move down one row
     INC         HL                                  ; Move right one cell (stride 41)
     LD          (HL),A                              ; Draw left angle again
-    LD          HL,DAT_ram_357f                     ; Point to top-right color position
+    LD          HL,COLRAM_FL1_A_CORNER_IDX          ; Point to top-right color position
     LD          A,COLOR(DKBLU,DKGRY)			    ; DKBLU on DKGRY
     LD          (HL),A                              ; Set color at top-right
     ADD         HL,DE                               ; Move down one row
@@ -1938,7 +1938,7 @@ DRAW_DOOR_R1_NORMAL:
 ;   A = first color
 ;   Stack = [2nd color][3rd color]
 ; --- In Process ---
-;   HL = DAT_ram_357a (colors), then CHRRAM_R1_DOOR_ANGLE_IDX (chars)
+;   HL = COLRAM_R1_DOOR_IDX (colors), then CHRRAM_R1_DOOR_ANGLE_IDX (chars)
 ;   BC = RECT(2,7)
 ;   DE = $27 (stride 39)
 ;   A  = CHAR_RT_ANGLE
@@ -1949,7 +1949,7 @@ DRAW_DOOR_R1_NORMAL:
 ; Calls: DRAW_RIGHT_DOOR
 ;==============================================================================
 DRAW_DOOR_R1:
-    LD          HL,DAT_ram_357a                     ; Point to R1 door area
+    LD          HL,COLRAM_R1_DOOR_IDX               ; Point to R1 door area
     LD          BC,RECT(2,7)                        ; 2 x 7 rectangle
     CALL        DRAW_RIGHT_DOOR                     ; Draw righthand door
     LD          HL,CHRRAM_R1_DOOR_ANGLE_IDX         ; Point to R1 door character area
@@ -2040,7 +2040,7 @@ DRAW_DOOR_FR1_A_NORMAL:
 ; --- Start ---
 ;   A  = door color
 ; --- In Process ---
-;   HL = DAT_ram_35ca
+;   HL = COLRAM_FR2_LEFT_IDX
 ;   BC = RECT(2,6)
 ; ---  End  ---
 ;   Jumps to DRAW_CHRCOLS
@@ -2049,7 +2049,7 @@ DRAW_DOOR_FR1_A_NORMAL:
 ; Calls: Jumps to DRAW_CHRCOLS
 ;==============================================================================
 DRAW_DOOR_FR1_A:
-    LD          HL,DAT_ram_35ca                     ; Point to door area
+    LD          HL,COLRAM_FR2_LEFT_IDX              ; Point to door area
     LD          BC,RECT(2,6)                        ; 2 x 6 rectangle
     JP          DRAW_CHRCOLS                        ; Fill door area
 
@@ -2063,7 +2063,7 @@ DRAW_DOOR_FR1_A:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = DAT_ram_35ca (left), then COLRAM_FR2_RIGHT, then bottom chars
+;   HL = COLRAM_FR2_LEFT_IDX (left), then COLRAM_FR2_RIGHT, then bottom chars
 ;   BC = RECT(2,4), then RECT(4,1)
 ;   A  = COLOR(BLK,DKGRY), then CHAR_BOTTOM_LINE
 ;   C  = 4 (height reset)
@@ -2074,7 +2074,7 @@ DRAW_DOOR_FR1_A:
 ; Calls: FILL_CHRCOL_RECT, DRAW_CHRCOLS, jumps to DRAW_CHRCOLS
 ;==============================================================================
 DRAW_WALL_FR2:
-    LD          HL,DAT_ram_35ca                     ; Point to FR2 left wall area
+    LD          HL,COLRAM_FR2_LEFT_IDX              ; Point to FR2 left wall area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
     CALL        FILL_CHRCOL_RECT                    ; Fill left wall
@@ -2121,7 +2121,7 @@ DRAW_WALL_FR2_EMPTY:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = DAT_ram_3577 (colors), then character positions
+;   HL = COLRAM_R2_WALL_IDX (colors), then character positions
 ;   BC = RECT(2,4)
 ;   A  = various colors, then $da (left slash), then CHAR_RT_ANGLE
 ;   DE = stride from DRAW_RIGHT_DOOR, then decremented
@@ -2138,7 +2138,7 @@ DRAW_WALL_R2:
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
     PUSH        AF                                  ; Save to stack for later
     LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (edge color)
-    LD          HL,DAT_ram_3577                     ; Point to R2 wall area
+    LD          HL,COLRAM_R2_WALL_IDX               ; Point to R2 wall area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     CALL        DRAW_RIGHT_DOOR                     ; Draw righthand door
     LD          HL,CHRRAM_R2_DOOR_ANGLE_IDX         ; Point to character area
@@ -3611,12 +3611,12 @@ DRAW_ICON_BAR:
 ;   AF, BC, HL, DE = pushed to stack
 ; --- In Process ---
 ;   B  = $B0 (DKBLU on BLK color)
-;   HL = CHRRAM_COMPASS_IDX, then DAT_ram_35d8
+;   HL = CHRRAM_COMPASS_IDX, then COLRAM_COMPASS_IDX
 ;   DE = COMPASS graphics data
 ; ---  End  ---
 ;   All registers restored
 ;
-; Memory Modified: CHRRAM at CHRRAM_COMPASS_IDX, COLRAM at DAT_ram_35d8 = $10
+; Memory Modified: CHRRAM at CHRRAM_COMPASS_IDX, COLRAM at COLRAM_COMPASS_IDX = $10
 ; Calls: GFX_DRAW
 ;==============================================================================
 DRAW_COMPASS:
@@ -3628,7 +3628,7 @@ DRAW_COMPASS:
     LD          HL,CHRRAM_COMPASS_IDX               ; Point to compass position
     LD          DE,COMPASS                          ; = $D7,"n",$C9,$01
     CALL        GFX_DRAW                            ; Draw compass graphic
-    LD          HL,DAT_ram_35d8                     ; Point to compass color area
+    LD          HL,COLRAM_COMPASS_IDX               ; Point to compass color area
     LD          (HL),$10                            ; Set compass color
     POP         DE                                  ; Restore DE register
     POP         HL                                  ; Restore HL register
