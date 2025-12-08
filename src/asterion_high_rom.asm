@@ -4253,7 +4253,7 @@ WAIT_TO_REDRAW_F0_DOOR:
     CALL        SETUP_OPEN_DOOR_SOUND               ; Initialize door opening sound parameters
     EXX                                             ; Switch to alternate register set
     LD          HL,BYTE_ram_3a58                    ; Point to source graphics data
-    LD          DE,DAT_ram_3728                     ; Point to destination screen location
+    LD          DE,COLRAM_F0_DOOR_ANIM_IDX          ; Point to destination screen location
     LD          A,0xc                               ; Set loop counter to 12 (animation steps)
 
 ;==============================================================================
