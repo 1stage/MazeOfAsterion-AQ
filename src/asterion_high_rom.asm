@@ -8092,17 +8092,26 @@ ITEM_SEARCH_LOOP:
 ;     RRCA     ; Continue testing
 ;     RRCA     ; Final state check
 ;
-; Rendering Order (Painter's Algorithm - Far to Near):
+; Rendering Algorithm (Conditional Front-to-Back with Occlusion Culling):
+;   Uses strategic JP jumps to skip rendering when walls block visibility.
+;   NOT Painter's Algorithm - renders closest walls first, then conditionally
+;   renders distant walls only when visible through gaps or open doors.
+;
+; Rendering Order:
 ;   1. Background (ceiling/floor)
-;   2. F0 walls (farthest from player)
-;   3. F1 walls 
-;   4. F2 walls
-;   5. Side walls FL2, FR2, L2, R2 (far sides)
-;   6. Half-walls FL1, FR1 (perspective depth)
-;   7. Side walls L1, R1 (near sides)
-;   8. Half-walls FL0, FR0 (closest perspective)
-;   9. Side walls L0, R0 (immediate sides)
-;   10. Items/monsters at various depths
+;   2. F0 wall (closest) - IF CLOSED: skip to step 7 (268 lines jumped)
+;   3. F1 wall (middle)  - IF CLOSED: skip to step 5 (114 lines jumped)
+;   4. F2 wall (farthest visible)
+;   5. Distance-2 side walls (L2, FL2_A, R2, FR2_A)
+;   6. Distance-1 side walls (L1, FL1_A/B, FL2_B, R1, FR1_A/B, FR2_B)
+;   7. Distance-0 side walls (L0, FL0, FL1_B, FL22, R0, FR0, FR1_B, FR22)
+;   8. Items at F2, FL1 (×5), F1, FR1 (×5), F0 positions
+;
+; Occlusion Optimization:
+;   F0 closed → JP line 8427 (skips F1, F2, distance-2, distance-1 walls)
+;   F0 open   → JP line 8422 (skips distant walls, renders F1 item)
+;   F1 closed → JP line 8306 (skips F2, distance-2 walls)
+;   F1 open   → JP line 8303 (skips distance-2 walls, renders F2 item)
 ;
 ; Registers:
 ; --- Start ---
