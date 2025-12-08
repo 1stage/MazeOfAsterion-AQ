@@ -275,7 +275,7 @@ SET_ALT_SHIELD_BASE:
 ; ---  End  ---
 ;   A = Modified ($40 + base if carry, otherwise rotated value)
 ;   B = Final shield level for equipment setup
-;   Falls through to LAB_ram_e10c
+;   Falls through to FINALIZE_STARTUP_STATE
 ;
 ; Memory Modified: None (register calculations only)
 ; Calls: None (falls through to FINALIZE_STARTUP_STATE)
@@ -521,7 +521,7 @@ NO_ACTION_TAKEN:
 ;   HL, A modified
 ;
 ; Memory Modified: None
-; Calls: LAB_ram_e244 (fall-through delay loop)
+; Calls: SOUND_DELAY_LOOP (fall-through delay loop)
 ;==============================================================================
 PLAY_SOUND_LOOP:
     DEC         DE                                  ; Decrement pitch counter
@@ -533,7 +533,7 @@ PLAY_SOUND_LOOP:
     LD          L,C                                 ; HL = BC (delay duration)
 
 ;==============================================================================
-; LAB_ram_e244
+; SOUND_DELAY_LOOP
 ;==============================================================================
 ; Delay loop that counts down HL to zero, creating a timed pause to control
 ; the pitch of the sound wave. Falls through from PLAY_SOUND_LOOP.
