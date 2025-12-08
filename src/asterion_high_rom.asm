@@ -58,10 +58,10 @@ RESET_ITEM_ANIM_VARS_LOOP:
     LD          HL,CHRRAM                           ; HL = start of character RAM ($3000)
     CALL        FILL_FULL_1024                      ; Clear CHRRAM with SPACE
     LD          HL,$5e                              ; HL = initial timer seed value ($005E)
-    LD          (TIMER_E),HL                        ; Store timer seed
+    LD          (RND_SEED_POLY),HL                  ; Store timer seed
     LD          A,R                                 ; Read R register (pseudo-random)
     LD          H,A                                 ; Copy random byte to H
-    LD          (RNDHOLD_AA),HL                     ; Seed random hold variable
+    LD          (RND_SEED_LFSR),HL                  ; Seed random hold variable
     
 ;==============================================================================
 ; PSG_MIXER_RESET
@@ -1027,12 +1027,12 @@ FIX_RH_COLORS:
 ; --- In Process ---
 ;   HL = CHRRAM pointer arithmetic; BC used as delta ($29/$c8)
 ;   DE = ITEM_MOVE_CHR_BUFFER
-;   A = RAM_AC, ITEM_SPRITE_INDEX, TIMER_A
+;   A = SPRITE_FRAME_STATE, ITEM_SPRITE_INDEX, MASTER_TICK_TIMER
 ; ---  End  ---
 ;   State/loop/pointers updated; flags used by SBC/ADD operations
 ;
 ; Memory Modified: ITEM_ANIM_STATE, ITEM_ANIM_LOOP_COUNT, ITEM_ANIM_CHRRAM_PTR,
-;                  ITEM_MOVE_CHR_BUFFER, MON_FS, ITEM_ANIM_TIMER_COPY
+;                  ITEM_MOVE_CHR_BUFFER, SPRITE_FRAME_SELECTOR, ITEM_ANIM_TIMER_COPY
 ; Calls: SOUND_05, COPY_GFX_2_BUFFER, CHK_ITEM, ADVANCE_RH_ANIM_FRAME, COPY_RH_ITEM_FRAME_GFX
 ;==============================================================================
 ANIMATE_RH_ITEM_STEP:
@@ -1046,7 +1046,7 @@ ANIMATE_RH_ITEM_STEP:
     DEC         H                                   ; Decrement outer loop count
     JP          Z,ITEM_COMBAT_DISPATCH              ; If zero, animation complete
     LD          A,$31                               ; Prepare monster frame state value
-    LD          (RAM_AC),A                          ; Store into RAM_AC
+    LD          (SPRITE_FRAME_STATE),A              ; Store into SPRITE_FRAME_STATE
     LD          L,0x4                               ; Reset inner loop count to 4
 RESET_RH_ANIM_STATE:
     LD          A,0x4                               ; Reset animation state to 4
@@ -1079,11 +1079,11 @@ ADVANCE_RH_ANIM_FRAME:
 ; COPY_RH_ITEM_FRAME_GFX — Copy Frame Graphics and Update State
 ;==============================================================================
 ; Copies character graphics for the current item frame into the movement
-; buffer, updates monster frame state (MON_FS), runs item check logic, and
+; buffer, updates monster frame state (SPRITE_FRAME_SELECTOR), runs item check logic, and
 ; caches the item animation timer value.
 ;
 ; Registers: HL/BC/DE used for copy; A for state updates
-; Memory Modified: ITEM_MOVE_CHR_BUFFER, MON_FS, ITEM_ANIM_TIMER_COPY
+; Memory Modified: ITEM_MOVE_CHR_BUFFER, SPRITE_FRAME_SELECTOR, ITEM_ANIM_TIMER_COPY
 ; Calls: COPY_GFX_2_BUFFER, CHK_ITEM
 ;==============================================================================
 COPY_RH_ITEM_FRAME_GFX:
@@ -1096,13 +1096,13 @@ COPY_RH_ITEM_FRAME_GFX:
     CALL        COPY_GFX_2_BUFFER                   ; Copy frame graphics to buffer
     POP         HL                                  ; Restore source pointer
     LD          C,L                                 ; Save low byte of pointer into C
-    LD          A,(RAM_AC)                          ; Load accumulator for monster frame
-    LD          (MON_FS),A                          ; Update MON_FS from RAM_AC
+    LD          A,(SPRITE_FRAME_STATE)              ; Load accumulator for monster frame
+    LD          (SPRITE_FRAME_SELECTOR),A           ; Update SPRITE_FRAME_SELECTOR from SPRITE_FRAME_STATE
     LD          A,(ITEM_SPRITE_INDEX)               ; Load item sprite index
     CALL        CHK_ITEM                            ; Run item check/update routine
     LD          A,$32                               ; Set monster frame state constant
-    LD          (MON_FS),A                          ; Update MON_FS to $32
-    LD          A,(TIMER_A)                         ; Load timer A
+    LD          (SPRITE_FRAME_SELECTOR),A           ; Update SPRITE_FRAME_SELECTOR to $32
+    LD          A,(MASTER_TICK_TIMER)               ; Load timer A
     ADD         A,$ff                               ; Decrement by 1
     LD          (ITEM_ANIM_TIMER_COPY),A            ; Cache copy for animation timing
     RET                                             ; Done
@@ -1315,14 +1315,14 @@ COPY_ITEM_GFX_TO_CHRRAM:
 ; ---  End  ---
 ;   Branch to physical pipeline or spiritual path
 ;
-; Memory Modified: CHRRAM via COPY_ITEM_GFX_TO_CHRRAM; RAM_AC/RAM_AD
+; Memory Modified: CHRRAM via COPY_ITEM_GFX_TO_CHRRAM; SPRITE_FRAME_STATE/SCREENSAVER_STATE
 ; Calls: COPY_ITEM_GFX_TO_CHRRAM, NEW_RIGHT_HAND_ITEM
 ;==============================================================================
 ITEM_COMBAT_DISPATCH:
     CALL        COPY_ITEM_GFX_TO_CHRRAM             ; Copy RH item gfx into CHRRAM
     LD          A,$32                               ; Prepare status value $32
-    LD          (RAM_AC),A                          ; Store status into RAM_AC
-    LD          (RAM_AD),A                          ; Store status into RAM_AD
+    LD          (SPRITE_FRAME_STATE),A              ; Store status into SPRITE_FRAME_STATE
+    LD          (SCREENSAVER_STATE),A               ; Store status into SCREENSAVER_STATE
     LD          A,(WEAPON_SPRT)                     ; Load spiritual/physical weapon flag
     LD          E,A                                 ; Move flag into E for math
     LD          D,0x0                               ; Clear D to form DE
@@ -1677,13 +1677,13 @@ EXPAND_STAT_THRESHOLDS:
 ;   A  = Animation state values, flags, and temporary calculations
 ;   HL = Position frame counters and screen position offsets
 ;   BC = Position delta for weapon movement ($29 = 41 bytes)
-;   DE = Buffer address (BYTE_ram_3a20) for background save
+;   DE = Buffer address (MONSTER_BG_SAVE_BUFFER) for background save
 ; ---  End  ---
 ;   All registers modified by called functions
 ;   Animation state, position, and timer updated in memory
 ;
 ; Memory Modified: MELEE_ANIM_STATE, MONSTER_ATT_POS_COUNT, MONSTER_ATT_POS_OFFSET,
-;                  MON_FS, MONSTER_ANIM_TIMER_COPY, BYTE_ram_3a20 (buffer)
+;                  SPRITE_FRAME_SELECTOR, MONSTER_ANIM_TIMER_COPY, MONSTER_BG_SAVE_BUFFER (buffer)
 ; Calls: SOUND_05, MELEE_DRAW_WEAPON_FRAME, COPY_GFX_2_BUFFER, CHK_ITEM
 ;==============================================================================
 MELEE_ANIM_LOOP:
@@ -1697,7 +1697,7 @@ MELEE_ANIM_LOOP:
     DEC         H                                   ; L reached 0: decrement high byte
     JP          Z,FINISH_AND_APPLY_DAMAGE           ; If both bytes=0, animation done, apply damage
     LD          A,$32                               ; Reset some animation flag
-    LD          (RAM_AF),A                          ; Store flag value
+    LD          (DAMAGE_CALC_FLAG),A                ; Store flag value
     LD          L,0x2                               ; Reset low counter to 2
 MELEE_MOVE_PLAYER_TO_MONSTER:
     LD          A,0x3                               ; Set animation state to 3 (player attacking)
@@ -1727,11 +1727,11 @@ MELEE_MOVE_MONSTER_TO_PLAYER:
 ; --- In Process ---
 ;   BC = $C8 (offset adjustment) then 0
 ;   A  = Various temp values and flags
-;   DE = Buffer address (BYTE_ram_3a20)
+;   DE = Buffer address (MONSTER_BG_SAVE_BUFFER)
 ; ---  End  ---
 ;   All registers modified
 ;
-; Memory Modified: BYTE_ram_3a20, MON_FS, MONSTER_ANIM_TIMER_COPY
+; Memory Modified: MONSTER_BG_SAVE_BUFFER, SPRITE_FRAME_SELECTOR, MONSTER_ANIM_TIMER_COPY
 ; Calls: COPY_GFX_2_BUFFER, CHK_ITEM
 ;==============================================================================
 MELEE_DRAW_WEAPON_FRAME:
@@ -1740,17 +1740,17 @@ MELEE_DRAW_WEAPON_FRAME:
     SBC         HL,BC                               ; HL = screen position - 200 (calculate actual CHRRAM address)
     PUSH        HL                                  ; Save adjusted screen address
     ADD         HL,BC                               ; Restore original position offset
-    LD          DE,BYTE_ram_3a20                    ; DE = background buffer address
+    LD          DE,MONSTER_BG_SAVE_BUFFER           ; DE = background buffer address
     CALL        COPY_GFX_2_BUFFER                   ; Save 4x4 screen area to buffer
     POP         BC                                  ; BC = adjusted screen address (from stack)
     LD          B,0x0                               ; B = 0 (clear high byte for CHK_ITEM parameter)
-    LD          A,(RAM_AF)                          ; Load animation frame/flag
-    LD          (MON_FS),A                          ; Store as monster/weapon sprite frame selector
+    LD          A,(DAMAGE_CALC_FLAG)                ; Load animation frame/flag
+    LD          (SPRITE_FRAME_SELECTOR),A           ; Store as monster/weapon sprite frame selector
     LD          A,(MONSTER_SPRITE_FRAME)            ; Load weapon sprite ID
     CALL        CHK_ITEM                            ; Draw weapon sprite at position BC
     LD          A,$32                               ; Reset sprite frame flag
-    LD          (MON_FS),A                          ; Store reset value
-    LD          A,(TIMER_A)                         ; Load system timer
+    LD          (SPRITE_FRAME_SELECTOR),A           ; Store reset value
+    LD          A,(MASTER_TICK_TIMER)               ; Load system timer
     ADD         A,$ff                               ; Decrement timer (add -1)
     LD          (MONSTER_ANIM_TIMER_COPY),A         ; Store updated animation timer
     RET                                             ; Return to animation loop
@@ -1766,7 +1766,7 @@ MELEE_DRAW_WEAPON_FRAME:
 ; --- Start ---
 ;   (None)
 ; --- In Process ---
-;   HL = Buffer address (BYTE_ram_3a20)
+;   HL = Buffer address (MONSTER_BG_SAVE_BUFFER)
 ;   DE = Screen position from MONSTER_ATT_POS_OFFSET
 ; ---  End  ---
 ;   Modified by COPY_GFX_FROM_BUFFER
@@ -1775,7 +1775,7 @@ MELEE_DRAW_WEAPON_FRAME:
 ;==============================================================================
 MELEE_RESTORE_BG_FROM_BUFFER:
     LD          DE,(MONSTER_ATT_POS_OFFSET)         ; DE = screen position where weapon is drawn
-    LD          HL,BYTE_ram_3a20                    ; HL = buffer with saved background
+    LD          HL,MONSTER_BG_SAVE_BUFFER           ; HL = buffer with saved background
     JP          COPY_GFX_FROM_BUFFER                ; Restore background, erasing weapon sprite
 
 ;==============================================================================
@@ -1787,7 +1787,7 @@ MELEE_RESTORE_BG_FROM_BUFFER:
 ;
 ; Registers:
 ; --- Start ---
-;   (Reads from memory: MONSTER_SPRITE_FRAME, WEAPON_VALUE_HOLDER, INPUT_HOLDER)
+;   (Reads from memory: MONSTER_SPRITE_FRAME, WEAPON_VALUE_HOLDER, MULTIPURPOSE_BYTE)
 ; --- In Process ---
 ;   A  = Flags, damage values, health calculations (BCD arithmetic)
 ;   B  = Loop counter for damage multiplication
@@ -1806,9 +1806,9 @@ FINISH_AND_APPLY_DAMAGE:
                                                     ; block into the viewport, effectively erasing the
                                                     ; weapon sprite drawn during the previous frame.
     LD          A,$31                               ; Set damage calculation flag
-    LD          (RAM_AF),A                          ; Store flag
-    LD          (RAM_AE),A                          ; Store flag copy
-    LD          A,(INPUT_HOLDER)                    ; Load number of damage iterations
+    LD          (DAMAGE_CALC_FLAG),A                ; Store flag
+    LD          (KEYBOARD_SCAN_FLAG),A              ; Store flag copy
+    LD          A,(MULTIPURPOSE_BYTE)               ; Load number of damage iterations
     LD          B,A                                 ; B = iteration counter
     LD          H,0x0                               ; H = 0 (high byte of damage accumulator)
     LD          A,(WEAPON_VALUE_HOLDER)             ; Load base weapon damage value
@@ -3389,7 +3389,7 @@ INPUT_DEBOUNCE:
 ;==============================================================================
 ; WAIT_FOR_INPUT - Main input loop with timer, animation, and screensaver
 ;==============================================================================
-;   - Updates timers (TIMER_A, TIMER_C) each iteration
+;   - Updates timers (MASTER_TICK_TIMER, INACTIVITY_TIMER) each iteration
 ;   - Handles blink/animation states for items and combat
 ;   - Triggers screensaver after inactivity timeout
 ;   - Checks for keyboard/handcontroller input
@@ -3408,10 +3408,10 @@ INPUT_DEBOUNCE:
 ;   Loops indefinitely until input or animation trigger
 ;
 WAIT_FOR_INPUT:
-    CALL        TIMER_UPDATE                        ; Increment TIMER_A, update game timers
+    CALL        TIMER_UPDATE                        ; Increment MASTER_TICK_TIMER, update game timers
     CALL        BLINK_ROUTINE                       ; Handle item/animation blink state
     JP          NC,TIMER_UPDATED_CHECK_INPUT        ; If no blink update needed, check input
-    LD          HL,TIMER_C                          ; HL = inactivity timer address
+    LD          HL,INACTIVITY_TIMER                 ; HL = inactivity timer address
     INC         (HL)                                ; Increment inactivity counter
     LD          A,(HL)                              ; A = current inactivity count
     CP          $15                                 ; Compare with screensaver threshold (21)
@@ -3495,7 +3495,7 @@ REVERSE_ROTATE_LOOP:
 ; TIMER_UPDATED_CHECK_INPUT - Timer-driven item/combat animation + AI checks
 ;==============================================================================
 ;   - Routes control to item animation or melee/monster animation based on
-;     timer snapshots and state bytes (RAM_AD/RAM_AE)
+;     timer snapshots and state bytes (SCREENSAVER_STATE/KEYBOARD_SCAN_FLAG)
 ;   - Updates screensaver timer and may trigger simple AI when idle
 ;   - Falls back to WAIT_FOR_INPUT when no animation tick is due
 ; Registers:
@@ -3504,20 +3504,20 @@ REVERSE_ROTATE_LOOP:
 ; --- In Process ---
 ;   A  = State/flag bytes, comparisons, randomness
 ;   B  = Loop/selector for direction cases (4 -> back/left/right/forward)
-;   HL = Points to TIMER_A or item lists (ITEM_F1/ITEM_FR1)
+;   HL = Points to MASTER_TICK_TIMER or item lists (ITEM_F1/ITEM_FR1)
 ; ---  End  ---
 ;   Jumps to WAIT_FOR_INPUT or into AI branch (RANDOM_ACTION_HANDLER)
 ;
 TIMER_UPDATED_CHECK_INPUT:
-    LD          A,(RAM_AD)                          ; Load animation state byte AD
+    LD          A,(SCREENSAVER_STATE)               ; Load animation state byte AD
     CP          $32                                 ; Is state equal to $32? (branch set)
     JP          Z,IDLE_SCREENSAVER_CHK              ; Yes → handle screensaver/idle branch
-    LD          A,(RAM_AE)                          ; Load animation state byte AE
+    LD          A,(KEYBOARD_SCAN_FLAG)              ; Load animation state byte AE
     CP          $31                                 ; Compare with $31
     JP          NZ,MONSTER_ANIM_TICK                ; If not $31 → check monster/melee tick
-    LD          HL,TIMER_A                          ; HL points to master tick counter
+    LD          HL,MASTER_TICK_TIMER                ; HL points to master tick counter
     LD          A,(ITEM_ANIM_TIMER_COPY)            ; A = last processed item-anim tick
-    CP          (HL)                                ; Has TIMER_A advanced since last item tick?
+    CP          (HL)                                ; Has MASTER_TICK_TIMER advanced since last item tick?
     JP          NZ,WAIT_FOR_INPUT                   ; No → nothing to animate this frame
     CALL        COPY_ITEM_GFX_TO_CHRRAM             ; Update item blink/phase bookkeeping
     CALL        ANIMATE_RH_ITEM_STEP                ; Redraw/update UI/icons for item state
@@ -3527,9 +3527,9 @@ TIMER_UPDATED_CHECK_INPUT:
 ; Monster/melee animation tick gate (when AE != $31)
 ;-------------------------------------------------------------------------------
 MONSTER_ANIM_TICK:
-    LD          HL,TIMER_A                          ; HL points to master tick counter
+    LD          HL,MASTER_TICK_TIMER                ; HL points to master tick counter
     LD          A,(MONSTER_ANIM_TIMER_COPY)         ; A = last processed monster-anim tick
-    CP          (HL)                                ; Has TIMER_A advanced for monster anim?
+    CP          (HL)                                ; Has MASTER_TICK_TIMER advanced for monster anim?
     JP          NZ,WAIT_FOR_INPUT                   ; No → skip animation this frame
     CALL        MELEE_RESTORE_BG_FROM_BUFFER        ; Restore background under melee sprites
     CALL        COPY_ITEM_GFX_TO_CHRRAM             ; Update blink/phase shared bookkeeping
@@ -3541,19 +3541,19 @@ MONSTER_ANIM_TICK:
 ; Monster/melee animation (UI already up-to-date or not needed)
 ;-------------------------------------------------------------------------------
 MELEE_ANIM_ONLY:
-    LD          HL,TIMER_A                          ; HL points to master tick counter
+    LD          HL,MASTER_TICK_TIMER                ; HL points to master tick counter
     LD          A,(MONSTER_ANIM_TIMER_COPY)         ; A = last processed monster-anim tick
-    CP          (HL)                                ; Has TIMER_A advanced for monster anim?
+    CP          (HL)                                ; Has MASTER_TICK_TIMER advanced for monster anim?
     JP          NZ,WAIT_FOR_INPUT                   ; No → skip animation this frame
     CALL        MELEE_RESTORE_BG_FROM_BUFFER        ; Restore background under melee sprites
     CALL        MELEE_ANIM_LOOP                     ; Advance melee/monster animation frame(s)
     JP          WAIT_FOR_INPUT                      ; Back to main loop
 
 ;-------------------------------------------------------------------------------
-; Idle branch when RAM_AD == $32 (screensaver timer + conditional AI)
+; Idle branch when SCREENSAVER_STATE == $32 (screensaver timer + conditional AI)
 ;-------------------------------------------------------------------------------
 IDLE_SCREENSAVER_CHK:
-    LD          A,(RAM_AE)                          ; Read secondary state AE
+    LD          A,(KEYBOARD_SCAN_FLAG)              ; Read secondary state AE
     CP          $31                                 ; If not $31, use simpler melee branch
     JP          NZ,MELEE_ANIM_ONLY                  ; → Skip UI updates, just animate melee
     CALL        UPDATE_SCR_SAVER_TIMER              ; Bump inactivity/screensaver counters
@@ -3580,7 +3580,7 @@ PROBE_MONSTER_LOOP:
 ; RANDOM_ACTION_HANDLER
 ;==============================================================================
 ; Random AI nudge: occasional turn/advance + redraw/engage
-;   - Low-probability trigger based on TIMER_D and a random carry test
+;   - Low-probability trigger based on RANDOM_OUTPUT_BYTE and a random carry test
 ;   - Chooses an action based on B (probe index):
 ;       B==1 → consider back cell; turn 180° if passable
 ;       B==2 → consider left cell; turn left if passable
@@ -3592,7 +3592,7 @@ PROBE_MONSTER_LOOP:
 ; --- Start ---
 ;   B = Probe index (1-4)
 ; --- In Process ---
-;   A  = TIMER_D value, random bytes, wall data
+;   A  = RANDOM_OUTPUT_BYTE value, random bytes, wall data
 ;   BC = Action parameters
 ;   HL = Wall data pointers
 ; ---  End  ---
@@ -3602,7 +3602,7 @@ PROBE_MONSTER_LOOP:
 ; Calls: MAKE_RANDOM_BYTE, DO_TURN_AROUND, DO_TURN_LEFT, DO_TURN_RIGHT, UPDATE_VIEWPORT, ENGAGE_FROM_FORWARD
 ;==============================================================================
 RANDOM_ACTION_HANDLER:
-    LD          A,(TIMER_D)                         ; Load sub-tick timer (short interval)
+    LD          A,(RANDOM_OUTPUT_BYTE)              ; Load random output byte
     CP          0x5                                 ; Compare to threshold (5)
     JP          NC,POLL_INPUT                       ; If >= 5, too soon - skip monster action
     CALL        MAKE_RANDOM_BYTE                    ; Generate random byte (0-255)
@@ -3747,7 +3747,7 @@ ENABLE_JOY_04:
     DEC         C                                   ; C = $F6 (HC data port)
     IN          A,(C)                               ; Read HC input data (additional buttons)
     LD          (HL),A                              ; Store second byte to buffer
-    LD          A,(INPUT_HOLDER)                    ; Load previous input state
+    LD          A,(MULTIPURPOSE_BYTE)               ; Load previous input state
     AND         A                                   ; Test if zero (no previous input)
     JP          NZ,HC_JOY_INPUT_COMPARE             ; If not zero, compare with new input
     LD          A,(DUNGEON_LEVEL)                   ; Load current dungeon level
@@ -3825,14 +3825,14 @@ TITLE_CHK_FOR_HC_INPUT:
 ;   B  = 0 (exhausted counter)
 ;   Timers reset
 ;
-; Memory Modified: TIMER_A, TIMER_B, TIMER_C
+; Memory Modified: MASTER_TICK_TIMER, SECONDARY_TIMER, INACTIVITY_TIMER
 ; Calls: SLEEP
 ;==============================================================================
 PLAY_DESCENDING_SOUND:
     XOR         A                                   ; Clear A (A = 0)
-    LD          (TIMER_A),A                         ; Reset TIMER_A
-    LD          (TIMER_B),A                         ; Reset TIMER_B
-    LD          (TIMER_C),A                         ; Reset TIMER_C
+    LD          (MASTER_TICK_TIMER),A               ; Reset MASTER_TICK_TIMER
+    LD          (SECONDARY_TIMER),A                 ; Reset SECONDARY_TIMER
+    LD          (INACTIVITY_TIMER),A                ; Reset INACTIVITY_TIMER
     OUT         (SPEAKER),A                         ; Output 0 to speaker (low tone)
     LD          BC,$f0                              ; Load delay count ($F0)
     CALL        SLEEP                               ; Delay for BC cycles
@@ -3846,7 +3846,7 @@ PLAY_DESCENDING_SOUND:
 ; HANDLE_KEYBOARD_INPUT - Keyboard title-screen scanning and difficulty selection
 ;==============================================================================
 ;   - Scans keyboard columns into `KEY_INPUT_COL0..` buffer
-;   - If `INPUT_HOLDER` already has a key, branch to `KEY_COMPARE`
+;   - If `MULTIPURPOSE_BYTE` already has a key, branch to `KEY_COMPARE`
 ;   - If `DUNGEON_LEVEL` is nonzero, start game (`GAMEINIT`)
 ;   - Otherwise, check specific keys for difficulty selection or author display
 ; Registers:
@@ -3888,7 +3888,7 @@ HANDLE_KEYBOARD_INPUT:
 ; ---  End  ---
 ;   Jumps to difficulty handler or GAMEINIT
 ;
-; Memory Modified: KEY_INPUT_COL0..7, INPUT_HOLDER, GAME_BOOLEANS
+; Memory Modified: KEY_INPUT_COL0..7, MULTIPURPOSE_BYTE, GAME_BOOLEANS
 ; Calls: BLANK_SCRN, GAMEINIT, SHOW_AUTHOR (jumps)
 ;==============================================================================
 SELECT_DIFFICULTY_LOOP:
@@ -3899,7 +3899,7 @@ SELECT_DIFFICULTY_LOOP:
     RLC         B                                   ; Rotate column mask left (next column)
     DEC         D                                   ; Decrement column counter
     JP          NZ,SELECT_DIFFICULTY_LOOP           ; Loop if more columns to scan
-    LD          A,(INPUT_HOLDER)                    ; Load previous input state
+    LD          A,(MULTIPURPOSE_BYTE)               ; Load previous input state
     AND         A                                   ; Test if zero (no previous input)
     JP          NZ,KEY_COMPARE                      ; If not zero, compare with new input
     LD          A,(DUNGEON_LEVEL)                   ; Load current dungeon level
@@ -3919,7 +3919,7 @@ SELECT_DIFFICULTY_LOOP:
 SET_DIFFICULTY_4:
     LD          A,0x0                               ; Set difficulty to 0 (easiest/default)
 GOTO_GAME_START:
-    LD          (INPUT_HOLDER),A                    ; Store difficulty level
+    LD          (MULTIPURPOSE_BYTE),A               ; Store difficulty level
     LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
     SET         0x0,A                               ; Set bit 0 (game start flag)
     LD          (GAME_BOOLEANS),A                   ; Store updated flags
@@ -3987,7 +3987,7 @@ ITEM_NOT_RD_YL:
     LD          E,(HL)                              ; Load graphics pointer low byte
     INC         HL                                  ; Point to high byte
     LD          D,(HL)                              ; Load graphics pointer high byte
-    LD          A,(MON_FS)                          ; Load monster/item frame state
+    LD          A,(SPRITE_FRAME_SELECTOR)           ; Load monster/item frame state
     LD          H,A                                 ; Store in H
     LD          L,C                                 ; Store C in L
     JP          GFX_DRAW                            ; Jump to graphics drawing routine
@@ -4252,7 +4252,7 @@ WAIT_TO_REDRAW_F0_DOOR:
     CALL        COPY_DOOR_GFX                       ; Copy door graphics to buffer
     CALL        SETUP_OPEN_DOOR_SOUND               ; Initialize door opening sound parameters
     EXX                                             ; Switch to alternate register set
-    LD          HL,BYTE_ram_3a58                    ; Point to source graphics data
+    LD          HL,DOOR_ANIM_GFX_DATA               ; Point to source graphics data
     LD          DE,COLRAM_F0_DOOR_ANIM_IDX          ; Point to destination screen location
     LD          A,0xc                               ; Set loop counter to 12 (animation steps)
 
@@ -5286,7 +5286,7 @@ REDUCE_HEALTH_SMALL:
 ; ---  End  ---
 ;   Jumps to SCREEN_SAVER_FULL_SCREEN (does not return)
 ;
-; Memory Modified: Viewport colors, CHRRAM_YOU_DIED_IDX, COMBAT_BUSY_FLAG, all health values, INPUT_HOLDER, RAM_AD
+; Memory Modified: Viewport colors, CHRRAM_YOU_DIED_IDX, COMBAT_BUSY_FLAG, all health values, MULTIPURPOSE_BYTE, SCREENSAVER_STATE
 ; Calls: FILL_CHRCOL_RECT, GFX_DRAW, REDRAW_STATS, PLAY_PITCH_DOWN_SLOW, SLEEP_ZERO, SCREEN_SAVER_FULL_SCREEN (jump)
 ;==============================================================================
 PLAYER_DIES:
@@ -5296,7 +5296,7 @@ PLAYER_DIES:
     CALL        FILL_CHRCOL_RECT                    ; Fill viewport with black
     LD          HL,CHRRAM_YOU_DIED_IDX              ; Point to "YOU DIED" screen position
     LD          DE,YOU_DIED_TXT                     ; Point to "YOU DIED" text data
-    LD          A,(INPUT_HOLDER)                    ; Load input state
+    LD          A,(MULTIPURPOSE_BYTE)               ; Load input state
     LD          (COMBAT_BUSY_FLAG),A                ; Store to combat flag
     RLCA                                            ; Rotate left 4 times
     RLCA                                            ; to move high nibble
@@ -5308,10 +5308,10 @@ PLAYER_DIES:
     LD          (PLAYER_PHYS_HEALTH),HL             ; Set physical health to 0
     XOR         A                                   ; A = 0
     LD          (PLAYER_SPRT_HEALTH),A              ; Set spiritual health to 0
-    LD          (INPUT_HOLDER),A                    ; Clear input holder
+    LD          (MULTIPURPOSE_BYTE),A               ; Clear input holder
     CALL        REDRAW_STATS                        ; Update stats display
     LD          A,$32                               ; Value $32
-    LD          (RAM_AD),A                          ; Store to RAM_AD
+    LD          (SCREENSAVER_STATE),A               ; Store to SCREENSAVER_STATE
     CALL        PLAY_PITCH_DOWN_SLOW                ; Play slow pitch-down sound
     CALL        SLEEP_ZERO                          ; Wait/delay function
     JP          SCREEN_SAVER_FULL_SCREEN            ; Jump to screen saver
@@ -5952,7 +5952,7 @@ CLEAR_RIGHT_ITEM_AND_SETUP_ANIM:
 ; ---  End  ---
 ;   Jumps to COPY_RH_ITEM_FRAME_GFX
 ;
-; Memory Modified: ITEM_ANIM_STATE, ITEM_SPRITE_INDEX, ITEM_ANIM_LOOP_COUNT, ITEM_ANIM_CHRRAM_PTR, RAM_AD
+; Memory Modified: ITEM_ANIM_STATE, ITEM_SPRITE_INDEX, ITEM_ANIM_LOOP_COUNT, ITEM_ANIM_CHRRAM_PTR, SCREENSAVER_STATE
 ; Calls: COPY_RH_ITEM_FRAME_GFX (jump)
 ;==============================================================================
 SETUP_ITEM_ANIMATION:
@@ -5968,7 +5968,7 @@ SETUP_ITEM_ANIMATION:
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics area
     LD          (ITEM_ANIM_CHRRAM_PTR),HL           ; Store graphics pointer
     LD          A,L                                 ; A = low byte of CHRRAM pointer
-    LD          (RAM_AD),A                          ; Store to RAM_AD
+    LD          (SCREENSAVER_STATE),A               ; Store to SCREENSAVER_STATE
     JP          COPY_RH_ITEM_FRAME_GFX              ; Copy frame graphics and return
 
 ;==============================================================================
@@ -6281,7 +6281,7 @@ INIT_MELEE_ANIM:
     LD          HL,$31ea                            ; HL = $31EA (position offset)
     LD          (MONSTER_ATT_POS_OFFSET),HL         ; Store position offset
     LD          A,L                                 ; A = low byte ($EA)
-    LD          (RAM_AE),A                          ; Store to RAM_AE
+    LD          (KEYBOARD_SCAN_FLAG),A              ; Store to KEYBOARD_SCAN_FLAG
     CALL        MELEE_DRAW_WEAPON_FRAME             ; Draw weapon frame for melee
     JP          WAIT_FOR_INPUT                      ; Return to input wait
 REDRAW_MONSTER_HEALTH:
@@ -6308,7 +6308,7 @@ REDRAW_MONSTER_HEALTH:
 ;   E  = Random value 0-7
 ;   A  = Random value 0-7 (same as E)
 ;
-; Memory Modified: TIMER_D, TIMER_E (by UPDATE_SCR_SAVER_TIMER)
+; Memory Modified: RANDOM_OUTPUT_BYTE, RND_SEED_POLY (by UPDATE_SCR_SAVER_TIMER)
 ; Calls: UPDATE_SCR_SAVER_TIMER
 ;==============================================================================
 GET_RANDOM_0_TO_7:
@@ -6908,7 +6908,7 @@ START_ITEM_TABLE:
 								                    ; (always 1st item after offset)
 
     INC         L                                   ; Move to first item slot (after ladder)
-    LD          A,(INPUT_HOLDER)                    ; Get input value for calculation
+    LD          A,(MULTIPURPOSE_BYTE)               ; Get input value for calculation
     LD          B,A                                 ; Use as loop counter
     LD          A,0x2                               ; Start with base value 2
     JP          BCD_DOUBLE_ENTRY                    ; Jump into BCD multiplication loop
@@ -8617,7 +8617,7 @@ CHK_ITEM_F0:
 ;==============================================================================
 ; Generates a pseudo-random byte using a 16-bit Linear Feedback Shift Register
 ; (LFSR) with XOR taps. Runs 5 iterations of shift-and-XOR to produce quality
-; randomness. Seeds from RNDHOLD_AA which must be initialized at startup.
+; randomness. Seeds from RND_SEED_LFSR which must be initialized at startup.
 ;
 ; Algorithm: For each iteration:
 ;   1. Shift HL left (L << 1, H << 1 with carry)
@@ -8630,7 +8630,7 @@ CHK_ITEM_F0:
 ;   HL = Pushed for preservation
 ; --- In Process ---
 ;   B  = Loop counter (5 iterations)
-;   HL = LFSR state from RNDHOLD_AA
+;   HL = LFSR state from RND_SEED_LFSR
 ;   A  = XOR masks ($87, $1D) during computation
 ; ---  End  ---
 ;   A  = Random byte (H from final LFSR state)
@@ -8638,14 +8638,14 @@ CHK_ITEM_F0:
 ;   HL = Restored
 ;   F  = Flags from final POP
 ;
-; Memory Modified: RNDHOLD_AA (updated seed)
+; Memory Modified: RND_SEED_LFSR (updated seed)
 ; Calls: None
 ;==============================================================================
 MAKE_RANDOM_BYTE:
     PUSH        BC                                  ; Preserve BC register
     PUSH        HL                                  ; Preserve HL register
     LD          B,0x5                               ; Run data randomizer 5 iterations
-    LD          HL,(RNDHOLD_AA)                     ; Load random seed value
+    LD          HL,(RND_SEED_LFSR)                  ; Load random seed value
 RANDOM_BYTE_LOOP:
     SLA         L                                   ; Shift L left (multiply by 2)
     RL          H                                   ; Rotate H left with carry
@@ -8658,7 +8658,7 @@ RANDOM_BYTE_LOOP:
     LD          H,A                                 ; Store result in H
 FINISH_BYTE_LOOP:
     DJNZ        RANDOM_BYTE_LOOP                    ; Decrement B, loop if non-zero
-    LD          (RNDHOLD_AA),HL                     ; Store updated random seed
+    LD          (RND_SEED_LFSR),HL                  ; Store updated random seed
     LD          A,H                                 ; Return random byte in A
     POP         HL                                  ; Restore HL register
     POP         BC                                  ; Restore BC register
@@ -8668,12 +8668,12 @@ FINISH_BYTE_LOOP:
 ;==============================================================================
 ; Updates a 16-bit timer using polynomial multiplication and XOR feedback to
 ; generate pseudo-random values. Formula: timer = (timer * 9) + $13, then
-; returns H XOR L as a pseudo-random byte in TIMER_D.
+; returns H XOR L as a pseudo-random byte in RANDOM_OUTPUT_BYTE.
 ;
 ; Algorithm:
 ;   1. BC = timer * 4 (shift left twice)
 ;   2. timer = timer + BC (timer *= 5)
-;   3. TIMER_D = H XOR L (random output)
+;   3. RANDOM_OUTPUT_BYTE = H XOR L (random output)
 ;   4. BC = timer * 4 (second shift sequence)
 ;   5. timer = timer + BC (timer *= 9 from original)
 ;   6. timer = timer + $13
@@ -8683,22 +8683,22 @@ FINISH_BYTE_LOOP:
 ;   BC = Pushed for preservation
 ;   HL = Pushed for preservation
 ; --- In Process ---
-;   HL = TIMER_E value
+;   HL = RND_SEED_POLY value
 ;   BC = Multiplication intermediates (HL * 4)
 ;   A  = H XOR L result
 ; ---  End  ---
-;   A  = Pseudo-random byte from TIMER_D
+;   A  = Pseudo-random byte from RANDOM_OUTPUT_BYTE
 ;   BC = Restored
 ;   HL = Restored
 ;   F  = Flags from final POP
 ;
-; Memory Modified: TIMER_E, TIMER_D
+; Memory Modified: RND_SEED_POLY, RANDOM_OUTPUT_BYTE
 ; Calls: None
 ;==============================================================================
 UPDATE_SCR_SAVER_TIMER:
     PUSH        BC                                  ; Preserve BC register
     PUSH        HL                                  ; Preserve HL register
-    LD          HL,(TIMER_E)                        ; Load timer value into HL
+    LD          HL,(RND_SEED_POLY)                  ; Load timer value into HL
     LD          B,H                                 ; Copy H to B
     LD          C,L                                 ; Copy L to C
     SLA         C                                   ; Shift C left (BC *= 2)
@@ -8708,7 +8708,7 @@ UPDATE_SCR_SAVER_TIMER:
     ADD         HL,BC                               ; HL = HL + BC (HL *= 5)
     LD          A,H                                 ; Load H into A
     XOR         L                                   ; XOR H with L
-    LD          (TIMER_D),A                         ; Store result in TIMER_D
+    LD          (RANDOM_OUTPUT_BYTE),A              ; Store result in RANDOM_OUTPUT_BYTE
     LD          B,H                                 ; Copy H to B
     LD          C,L                                 ; Copy L to C
     SLA         C                                   ; Shift C left (BC *= 2)
@@ -8718,10 +8718,10 @@ UPDATE_SCR_SAVER_TIMER:
     ADD         HL,BC                               ; HL = HL + BC (HL *= 9 from original)
     LD          BC,$13                              ; Load constant $13
     ADD         HL,BC                               ; HL = HL + $13
-    LD          (TIMER_E),HL                        ; Store updated timer value
+    LD          (RND_SEED_POLY),HL                  ; Store updated timer value
     POP         HL                                  ; Restore HL register
     POP         BC                                  ; Restore BC register
-    RET                                             ; Return with pseudo-random in TIMER_D
+    RET                                             ; Return with pseudo-random in RANDOM_OUTPUT_BYTE
 ;==============================================================================
 ; MINOTAUR_DEAD - Victory sequence when Minotaur is defeated
 ;==============================================================================
@@ -8733,14 +8733,14 @@ UPDATE_SCR_SAVER_TIMER:
 ; --- Start ---
 ;   None
 ; --- In Process ---
-;   A  = Random values, rotated INPUT_HOLDER
+;   A  = Random values, rotated MULTIPURPOSE_BYTE
 ;   B  = Color values, sound loop counter
 ;   DE = Text pointers, sprite data pointer
 ;   HL = Screen positions
 ; ---  End  ---
 ;   Control transfers to SCREEN_SAVER_FULL_SCREEN (no return)
 ;
-; Memory Modified: INPUT_HOLDER (cleared), CHRRAM/COLRAM (full screen), player stats
+; Memory Modified: MULTIPURPOSE_BYTE (cleared), CHRRAM/COLRAM (full screen), player stats
 ; Calls: DRAW_BKGD, GFX_DRAW, MAKE_RANDOM_BYTE, TOTAL_HEAL, REDRAW_STATS, PLAY_MONSTER_GROWL, END_OF_GAME_SOUND, SCREEN_SAVER_FULL_SCREEN
 ;==============================================================================
 MINOTAUR_DEAD:
@@ -8755,14 +8755,14 @@ MINOTAUR_DEAD:
     AND         0x3                                 ; Mask to 0-3
     ADD         A,0xa                               ; Add 10 (result: 10-13)
     LD          B,A                                 ; Store in B (unused?)
-    LD          A,(INPUT_HOLDER)                    ; Load input holder value
+    LD          A,(MULTIPURPOSE_BYTE)               ; Load input holder value
     RLCA                                            ; Rotate left 4 times
     RLCA                                            ; (shift upper nibble to lower)
     RLCA
     RLCA
     LD          B,A                                 ; Store rotated value in B
     XOR         A                                   ; Clear A (A = 0)
-    LD          (INPUT_HOLDER),A                    ; Clear input holder
+    LD          (MULTIPURPOSE_BYTE),A               ; Clear input holder
     LD          DE,MINOTAUR                         ; DE = Minotaur sprite data
     LD          HL,CHRRAM_MINOTAUR_IDX              ; HL = screen position for Minotaur
     CALL        GFX_DRAW                            ; Draw Minotaur sprite
@@ -8868,7 +8868,7 @@ HEAL_PLAYER_SPRT_HEALTH:
 ;
 ; Registers:
 ; --- Start ---
-;   A = RAM_AE scan flag
+;   A = KEYBOARD_SCAN_FLAG scan flag
 ; --- In Process ---
 ;   A  = Column states, row comparisons
 ;   HL = KEY_INPUT_COL0, incremented through columns
@@ -8880,7 +8880,7 @@ HEAL_PLAYER_SPRT_HEALTH:
 ; Calls: Various action handlers (DO_*, USE_*, etc.)
 ;==============================================================================
 KEY_COMPARE:
-    LD          A,(RAM_AE)                          ; Load keyboard scan flag
+    LD          A,(KEYBOARD_SCAN_FLAG)              ; Load keyboard scan flag
     CP          $31                                 ; Compare to "1" (key pressed?)
     JP          NZ,WAIT_FOR_INPUT                   ; If no key, wait for input
 KEY_COL_0:

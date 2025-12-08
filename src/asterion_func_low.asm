@@ -2818,7 +2818,7 @@ DECREASE_PITCH:
 ; Calls: Jumps to various action routines or continues to game logic
 ;==============================================================================
 HC_JOY_INPUT_COMPARE:
-    LD          A,(RAM_AE)                          ; Load input mode flag
+    LD          A,(KEYBOARD_SCAN_FLAG)              ; Load input mode flag
     CP          $31                                 ; Compare to "1" (handcontroller mode)
     JP          NZ,WAIT_FOR_INPUT                   ; If not HC mode, wait for input
     LD          HL,(HC_INPUT_HOLDER)                ; Load joystick input values
@@ -3360,26 +3360,26 @@ SHOW_AUTHOR:
 ;==============================================================================
 ; TIMER_UPDATE
 ;==============================================================================
-; Increments TIMER_A by 1. Simple timer maintenance routine.
+; Increments MASTER_TICK_TIMER by 1. Simple timer maintenance routine.
 ;
 ; Registers:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = TIMER_A value
+;   HL = MASTER_TICK_TIMER value
 ;   BC = 1
 ; ---  End  ---
-;   HL = TIMER_A + 1
+;   HL = MASTER_TICK_TIMER + 1
 ;   BC = 1
 ;
-; Memory Modified: TIMER_A
+; Memory Modified: MASTER_TICK_TIMER
 ; Calls: None
 ;==============================================================================
 TIMER_UPDATE:
-    LD          HL,(TIMER_A)                        ; Load TIMER_A value
+    LD          HL,(MASTER_TICK_TIMER)              ; Load MASTER_TICK_TIMER value
     LD          BC,0x1                              ; Load increment value 1
     ADD         HL,BC                               ; Increment timer
-    LD          (TIMER_A),HL                        ; Store updated timer
+    LD          (MASTER_TICK_TIMER),HL              ; Store updated timer
     RET                                             ; Return to caller
 
 ;==============================================================================
@@ -3392,7 +3392,7 @@ TIMER_UPDATE:
 ; --- Start ---
 ;   AF = pushed to stack
 ; --- In Process ---
-;   A  = GAME_BOOLEANS, TIMER_B, NEXT_BLINK_CHECK, R (random)
+;   A  = GAME_BOOLEANS, SECONDARY_TIMER, NEXT_BLINK_CHECK, R (random)
 ;   BC = pushed (if blinking), $8000 (delay)
 ;   HL = pushed (if blinking)
 ;   DE = pushed (if blinking)
@@ -3418,7 +3418,7 @@ BLINK_EXIT_AF:
     RET                                             ; Return to caller
 STILL_ON_TITLE:
     PUSH        BC                                  ; Save BC register
-    LD          A,(TIMER_B)                         ; Load TIMER_B value
+    LD          A,(SECONDARY_TIMER)                 ; Load SECONDARY_TIMER value
     LD          B,A                                 ; Store in B register
     LD          A,(NEXT_BLINK_CHECK)                ; Load next blink check time
     CP          B                                   ; Compare to current timer
@@ -3735,11 +3735,11 @@ DRAW_WALL_FL2:
 ;==============================================================================
 ; FIX_ICON_COLORS
 ;==============================================================================
-; Sets icon bar colors based on INPUT_HOLDER value. Updates level indicator
+; Sets icon bar colors based on MULTIPURPOSE_BYTE value. Updates level indicator
 ; colors (4 positions) and fills remaining icon area with WHT on BLK.
 ;
 ; Color Calculation:
-; - Level indicator color = (INPUT_HOLDER * 2) - 1
+; - Level indicator color = (MULTIPURPOSE_BYTE * 2) - 1
 ; - Remaining icons = $F0 (WHT on BLK) for 19 positions
 ;
 ; Registers:
@@ -3759,7 +3759,7 @@ DRAW_WALL_FL2:
 ;==============================================================================
 FIX_ICON_COLORS:
     LD          HL,COLRAM_LEVEL_IDX_L               ; Point to level indicator color area
-    LD          A,(INPUT_HOLDER)                    ; Load input holder value
+    LD          A,(MULTIPURPOSE_BYTE)               ; Load multipurpose byte value
     ADD         A,A                                 ; Double the value
     SUB         0x1                                 ; Subtract 1
     LD          (HL),A                              ; Set level indicator color
