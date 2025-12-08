@@ -8764,7 +8764,7 @@ MINOTAUR_DEAD:
     XOR         A                                   ; Clear A (A = 0)
     LD          (INPUT_HOLDER),A                    ; Clear input holder
     LD          DE,MINOTAUR                         ; DE = Minotaur sprite data
-    LD          HL,DAT_ram_32da                     ; HL = screen position for Minotaur
+    LD          HL,CHRRAM_MINOTAUR_IDX              ; HL = screen position for Minotaur
     CALL        GFX_DRAW                            ; Draw Minotaur sprite
     CALL        TOTAL_HEAL                          ; Fully heal player
     CALL        REDRAW_STATS                        ; Update stats display
