@@ -3259,11 +3259,11 @@ ROTATE_PACK_SWAP_LOOP:
     LD          HL,ITEM_MOVE_COL_BUFFER             ; Point to temporary buffer (saved slot 1)
     INC         BC                                  ; Point to inventory slot 6
     CALL        SWAP_BYTES_AT_HL_BC                 ; Swap buffer (old slot 1) to slot 6
-    LD          HL,DAT_ram_31b4                     ; Point to inv slot 1 graphics
+    LD          HL,CHRRAM_INV_1_IDX                 ; Point to inv slot 1 graphics
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer
     CALL        COPY_GFX_2_BUFFER                   ; Copy slot 1 graphics to buffer
     LD          HL,CHRRAM_INV_2_IDX                 ; Point to inv slot 2 graphics
-    LD          DE,DAT_ram_31b4                     ; Point to inv slot 1 graphics
+    LD          DE,CHRRAM_INV_1_IDX                 ; Point to inv slot 1 graphics
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 2 graphics to slot 1
     LD          HL,CHRRAM_INV_3_IDX                 ; Point to inv slot 3 graphics
     LD          DE,CHRRAM_INV_2_IDX                 ; Point to inv slot 2 graphics
@@ -3271,11 +3271,11 @@ ROTATE_PACK_SWAP_LOOP:
     LD          HL,CHHRAM_INV_4_IDX                 ; Point to inv slot 4 graphics
     LD          DE,CHRRAM_INV_3_IDX                 ; Point to inv slot 3 graphics
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 4 graphics to slot 3
-    LD          HL,DAT_ram_324c                     ; Point to inv slot 5 graphics
+    LD          HL,CHRRAM_INV_5_IDX                 ; Point to inv slot 5 graphics
     LD          DE,CHHRAM_INV_4_IDX                 ; Point to inv slot 4 graphics
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 5 graphics to slot 4
     LD          HL,CHHRAM_INV_6_IDX                 ; Point to inv slot 6 graphics
-    LD          DE,DAT_ram_324c                     ; Point to inv slot 5 graphics
+    LD          DE,CHRRAM_INV_5_IDX                 ; Point to inv slot 5 graphics
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 6 graphics to slot 5
     LD          HL,WAIT_FOR_INPUT                   ; Stash WAIT_FOR_INPUT as a later return value
     PUSH        HL
@@ -3342,13 +3342,13 @@ DO_SWAP_PACK:
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer
     CALL        COPY_GFX_2_BUFFER                   ; Copy right-hand graphics to buffer
-    LD          HL,DAT_ram_31b4                     ; Point to inv slot 1 graphics
+    LD          HL,CHRRAM_INV_1_IDX                 ; Point to inv slot 1 graphics
     LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy inv slot 1 graphics to right-hand
     LD          HL,WAIT_FOR_INPUT                   ; Stash WAIT_FOR_INPUT as a later return value
     PUSH        HL                                  ; Push return address to stack
     LD          HL,ITEM_MOVE_CHR_BUFFER             ; Point to buffer (saved right-hand graphics)
-    LD          DE,DAT_ram_31b4                     ; Point to inv slot 1 graphics
+    LD          DE,CHRRAM_INV_1_IDX                 ; Point to inv slot 1 graphics
     CALL        COPY_GFX_FROM_BUFFER                ; Copy buffer to inv slot 1 (complete swap)
     CALL        NEW_RIGHT_HAND_ITEM                 ; Update weapon stats for new right-hand item
     JP          WAIT_A_TICK                         ; Jump to delay routine (will RET to WAIT_FOR_INPUT)

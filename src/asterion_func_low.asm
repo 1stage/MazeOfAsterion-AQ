@@ -964,7 +964,7 @@ DRAW_WALL_L1_SIMPLE:
     ADD         HL,DE                               ; Move to next row
     INC         HL                                  ; Move to next cell
     LD          (HL),A                              ; Draw left angle again
-    LD          HL,DAT_ram_3259                     ; Point to top wall characters
+    LD          HL,CHRRAM_L1_CORNER_TOP_IDX         ; Point to top wall characters
     LD          A,CHAR_RT_ANGLE                     ; Right angle bracket character
     LD          (HL),A                              ; Draw right angle at top
     ADD         HL,DE                               ; Move to next row
@@ -1682,14 +1682,14 @@ DRAW_DOOR_FR1_B:
 ; Calls: DRAW_CHRCOLS, jumps to DRAW_CHRCOLS
 ;==============================================================================
 DRAW_WALL_R1_SIMPLE:
-    LD          HL,DAT_ram_317f                     ; Point to top-right character position
+    LD          HL,CHRRAM_R1_CORNER_TOP_IDX         ; Point to top-right character position
     LD          A,CHAR_RT_ANGLE						; Right angle bracket character
     LD          (HL),A                              ; Draw right angle at top-right
     LD          DE,$28                              ; Set stride to 40
     ADD         HL,DE                               ; Move down one row
     DEC         HL                                  ; Move left one cell (stride 39)
     LD          (HL),A                              ; Draw right angle again
-    LD          HL,DAT_ram_326e                     ; Point to top-left character position
+    LD          HL,CHRRAM_L1_CORNER_MID_IDX         ; Point to top-left character position
     LD          A,CHAR_LT_ANGLE						; Left angle bracket character
     LD          (HL),A                              ; Draw left angle at top-left
     ADD         HL,DE                               ; Move down one row
@@ -2141,7 +2141,7 @@ DRAW_WALL_R2:
     LD          HL,DAT_ram_3577                     ; Point to R2 wall area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     CALL        DRAW_RIGHT_DOOR                     ; Draw righthand door
-    LD          HL,DAT_ram_3266                     ; Point to character area
+    LD          HL,CHRRAM_R2_DOOR_ANGLE_IDX         ; Point to character area
     LD          A,$da                               ; Left slash character
     LD          (HL),A                              ; Draw left slash at position
     ADD         HL,DE                               ; Move to next row
@@ -3200,7 +3200,7 @@ PLAY_POOF_ANIM:
 ; --- Start ---
 ;   Main registers preserved via EXX
 ; --- In Process ---
-;   BC' = DAT_ram_3200 (delay cycle count)
+;   BC' = CHRRAM_DELAY_CONST (delay cycle count)
 ;   Alternate registers used by SLEEP
 ; ---  End  ---
 ;   Main registers restored via EXX
@@ -3210,7 +3210,7 @@ PLAY_POOF_ANIM:
 ;==============================================================================
 TOGGLE_ITEM_POOF_AND_WAIT:
     EXX                                             ; Swap BC DE HL with BC' DE' HL'
-    LD          BC,DAT_ram_3200                     ; Load cycle count for delay
+    LD          BC,CHRRAM_DELAY_CONST               ; Load cycle count for delay
     CALL        SLEEP                               ; byte SLEEP(short cycleCount)
     EXX                                             ; Swap BC DE HL with BC' DE' HL'
     RET                                             ; Return to caller
@@ -3611,12 +3611,12 @@ DRAW_ICON_BAR:
 ;   AF, BC, HL, DE = pushed to stack
 ; --- In Process ---
 ;   B  = $B0 (DKBLU on BLK color)
-;   HL = DAT_ram_31af, then DAT_ram_35d8
+;   HL = CHRRAM_COMPASS_IDX, then DAT_ram_35d8
 ;   DE = COMPASS graphics data
 ; ---  End  ---
 ;   All registers restored
 ;
-; Memory Modified: CHRRAM at DAT_ram_31af, COLRAM at DAT_ram_35d8 = $10
+; Memory Modified: CHRRAM at CHRRAM_COMPASS_IDX, COLRAM at DAT_ram_35d8 = $10
 ; Calls: GFX_DRAW
 ;==============================================================================
 DRAW_COMPASS:
@@ -3625,7 +3625,7 @@ DRAW_COMPASS:
     PUSH        HL                                  ; Save HL register
     PUSH        DE                                  ; Save DE register
     LD          B,$b0                               ; Set color to DKBLU on BLK
-    LD          HL,DAT_ram_31af                     ; Point to compass position
+    LD          HL,CHRRAM_COMPASS_IDX               ; Point to compass position
     LD          DE,COMPASS                          ; = $D7,"n",$C9,$01
     CALL        GFX_DRAW                            ; Draw compass graphic
     LD          HL,DAT_ram_35d8                     ; Point to compass color area
