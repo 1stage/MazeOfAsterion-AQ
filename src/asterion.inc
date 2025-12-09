@@ -298,3 +298,220 @@ NEXT_BLINK_CHECK EQU $3aba
 TEMP_MAP EQU $3b00 
 ;BYTE_ram_3ffd EQU $3ffd
 ;LAB_ram_efef EQU $efef
+
+;==============================================================================
+; Item Code Constants
+;==============================================================================
+; All item codes with color/level variants (bits 0-1: 00=RED, 01=YEL, 10=MAG, 11=WHT)
+; Note: Base names (BUCKLER, RING, etc.) are graphics labels in asterion_gfx.asm
+;       Use _ITEM suffix to distinguish item codes from graphics labels
+
+; Buckler ($00-$03) - Small left-hand shield
+RED_BUCKLER_ITEM    EQU $00
+YEL_BUCKLER_ITEM    EQU $01
+MAG_BUCKLER_ITEM    EQU $02
+WHT_BUCKLER_ITEM    EQU $03
+
+; Ring ($04-$07) - Auto-wear enchant
+RED_RING_ITEM       EQU $04
+YEL_RING_ITEM       EQU $05
+MAG_RING_ITEM       EQU $06
+WHT_RING_ITEM       EQU $07
+
+; Helmet ($08-$0B) - Auto-wear enchant
+RED_HELMET_ITEM     EQU $08
+YEL_HELMET_ITEM     EQU $09
+MAG_HELMET_ITEM     EQU $0A
+WHT_HELMET_ITEM     EQU $0B
+
+; Armor ($0C-$0F) - Auto-wear enchant
+RED_ARMOR_ITEM      EQU $0C
+YEL_ARMOR_ITEM      EQU $0D
+MAG_ARMOR_ITEM      EQU $0E
+WHT_ARMOR_ITEM      EQU $0F
+
+; Pavise ($10-$13) - Large left-hand shield
+RED_PAVISE_ITEM     EQU $10
+YEL_PAVISE_ITEM     EQU $11
+MAG_PAVISE_ITEM     EQU $12
+WHT_PAVISE_ITEM     EQU $13
+
+; Arrow Flying Right ($14) - Monster attack animation (not pickupable)
+ARROW_RIGHT_ITEM    EQU $14
+
+; Bow ($18-$1B) - Basic ranged weapon
+RED_BOW_ITEM        EQU $18
+YEL_BOW_ITEM        EQU $19
+MAG_BOW_ITEM        EQU $1A
+WHT_BOW_ITEM        EQU $1B
+
+; Scroll ($1C-$1F) - Magical attack weapon
+RED_SCROLL_ITEM     EQU $1C
+YEL_SCROLL_ITEM     EQU $1D
+MAG_SCROLL_ITEM     EQU $1E
+WHT_SCROLL_ITEM     EQU $1F
+
+; Axe ($20-$23) - Throwing melee weapon
+RED_AXE_ITEM        EQU $20
+YEL_AXE_ITEM        EQU $21
+MAG_AXE_ITEM        EQU $22
+WHT_AXE_ITEM        EQU $23
+
+; Fireball ($24-$27) - Thrown magical attack
+RED_FIREBALL_ITEM   EQU $24
+YEL_FIREBALL_ITEM   EQU $25
+MAG_FIREBALL_ITEM   EQU $26
+WHT_FIREBALL_ITEM   EQU $27
+
+; Mace ($28-$2B) - Throwing melee weapon
+RED_MACE_ITEM       EQU $28
+YEL_MACE_ITEM       EQU $29
+MAG_MACE_ITEM       EQU $2A
+WHT_MACE_ITEM       EQU $2B
+
+; Staff ($2C-$2F) - Advanced magical weapon
+RED_STAFF_ITEM      EQU $2C
+YEL_STAFF_ITEM      EQU $2D
+MAG_STAFF_ITEM      EQU $2E
+WHT_STAFF_ITEM      EQU $2F
+
+; Crossbow ($30-$33) - Advanced ranged weapon
+RED_CROSSBOW_ITEM   EQU $30
+YEL_CROSSBOW_ITEM   EQU $31
+MAG_CROSSBOW_ITEM   EQU $32
+WHT_CROSSBOW_ITEM   EQU $33
+
+; Arrow Flying Left ($3C) - Player attack animation (not pickupable)
+ARROW_LEFT_ITEM     EQU $3C
+
+; Ladder ($40-$43) - Level progression (only MAG used in game)
+RED_LADDER_ITEM     EQU $40
+YEL_LADDER_ITEM     EQU $41
+MAG_LADDER_ITEM     EQU $42
+WHT_LADDER_ITEM     EQU $43
+
+; Chest ($44-$47) - Opens into loot
+RED_CHEST_ITEM      EQU $44
+YEL_CHEST_ITEM      EQU $45
+MAG_CHEST_ITEM      EQU $46
+WHT_CHEST_ITEM      EQU $47
+
+; Food ($48-$4B) - Increases FOOD_INV
+RED_FOOD_ITEM       EQU $48
+YEL_FOOD_ITEM       EQU $49
+MAG_FOOD_ITEM       EQU $4A
+WHT_FOOD_ITEM       EQU $4B
+
+; Quiver ($4C-$4F) - Increases ARROW_INV
+RED_QUIVER_ITEM     EQU $4C
+YEL_QUIVER_ITEM     EQU $4D
+MAG_QUIVER_ITEM     EQU $4E
+WHT_QUIVER_ITEM     EQU $4F
+
+; Locked Chest ($50-$53) - Requires key
+RED_LOCKED_CHEST_ITEM EQU $50
+YEL_LOCKED_CHEST_ITEM EQU $51
+MAG_LOCKED_CHEST_ITEM EQU $52
+WHT_LOCKED_CHEST_ITEM EQU $53
+
+; Amulet ($54-$57) - Trinket/treasure
+RED_AMULET_ITEM     EQU $54
+YEL_AMULET_ITEM     EQU $55
+MAG_AMULET_ITEM     EQU $56
+WHT_AMULET_ITEM     EQU $57
+
+; Key ($58-$5B) - Used by DO_USE_KEY
+RED_KEY_ITEM        EQU $58
+YEL_KEY_ITEM        EQU $59
+MAG_KEY_ITEM        EQU $5A
+WHT_KEY_ITEM        EQU $5B
+
+; Chalice ($5C-$5F) - Trinket/treasure
+RED_CHALICE_ITEM    EQU $5C
+YEL_CHALICE_ITEM    EQU $5D
+MAG_CHALICE_ITEM    EQU $5E
+WHT_CHALICE_ITEM    EQU $5F
+
+; Warrior Potion ($64-$67) - Physical stat effect
+RED_WARRIOR_POTION_ITEM EQU $64
+YEL_WARRIOR_POTION_ITEM EQU $65
+MAG_WARRIOR_POTION_ITEM EQU $66
+WHT_WARRIOR_POTION_ITEM EQU $67
+
+; Mage Potion ($68-$6B) - Spiritual stat effect
+RED_MAGE_POTION_ITEM    EQU $68
+YEL_MAGE_POTION_ITEM    EQU $69
+MAG_MAGE_POTION_ITEM    EQU $6A
+WHT_MAGE_POTION_ITEM    EQU $6B
+
+; Map ($6C-$6F) - Sets HAVE MAP flag
+RED_MAP_ITEM        EQU $6C
+YEL_MAP_ITEM        EQU $6D
+MAG_MAP_ITEM        EQU $6E
+WHT_MAP_ITEM        EQU $6F
+
+; Chaos Potion ($70-$73) - Special effects
+RED_CHAOS_POTION_ITEM   EQU $70
+YEL_CHAOS_POTION_ITEM   EQU $71
+MAG_CHAOS_POTION_ITEM   EQU $72
+WHT_CHAOS_POTION_ITEM   EQU $73
+
+;==============================================================================
+; Monster Base Stats Constants
+;==============================================================================
+; Macro to combine SPRT and PHYS HP into 16-bit value for HL register
+; Format: High byte = SPRT HP (BCD), Low byte = PHYS HP (BCD)
+
+#define MONSTER_HP(sprt,phys) (sprt * 256) + phys
+
+; Skeleton - Common undead enemy
+SKELETON_BASE_DMG       EQU 7
+SKELETON_BASE_HP        EQU MONSTER_HP(3, 4)        ; 3 SPRT, 4 PHYS
+SKELETON_WEAPON_SPRITE  EQU ARROW_LEFT_ITEM         ; Physical attack
+
+; Snake - Fast physical attacker
+SNAKE_BASE_DMG          EQU 3
+SNAKE_BASE_HP           EQU MONSTER_HP(1, 1)        ; 1 SPRT, 1 PHYS
+SNAKE_WEAPON_SPRITE     EQU ARROW_LEFT_ITEM         ; Physical attack
+
+; Spider - Weak but numerous
+SPIDER_BASE_DMG         EQU 4
+SPIDER_BASE_HP          EQU MONSTER_HP(0, 2)        ; 0 SPRT, 2 PHYS
+SPIDER_WEAPON_SPRITE    EQU RED_FIREBALL_ITEM       ; Spiritual attack
+
+; Mimic - Disguised chest enemy
+MIMIC_BASE_DMG          EQU 5
+MIMIC_BASE_HP           EQU MONSTER_HP(2, 3)        ; 2 SPRT, 3 PHYS
+MIMIC_WEAPON_SPRITE     EQU ARROW_LEFT_ITEM         ; Physical attack
+
+; Malocchio - Evil eye creature
+MALOCCHIO_BASE_DMG      EQU 3
+MALOCCHIO_BASE_HP       EQU MONSTER_HP(3, 2)        ; 3 SPRT, 2 PHYS
+MALOCCHIO_WEAPON_SPRITE EQU RED_FIREBALL_ITEM       ; Spiritual attack
+
+; Dragon - Powerful fire-breather
+DRAGON_BASE_DMG         EQU 8
+DRAGON_BASE_HP          EQU MONSTER_HP(4, 5)        ; 4 SPRT, 5 PHYS
+DRAGON_WEAPON_SPRITE    EQU RED_FIREBALL_ITEM       ; Spiritual attack
+
+; Mummy - Slow but tough
+MUMMY_BASE_DMG          EQU 6
+MUMMY_BASE_HP           EQU MONSTER_HP(2, 4)        ; 2 SPRT, 4 PHYS
+MUMMY_WEAPON_SPRITE     EQU ARROW_LEFT_ITEM         ; Physical attack
+
+; Necromancer - Magical enemy (BCD damage: $13 = 19 decimal)
+NECROMANCER_BASE_DMG    EQU $13
+NECROMANCER_BASE_HP     EQU MONSTER_HP(5, 5)        ; 5 SPRT, 5 PHYS
+NECROMANCER_WEAPON_SPRITE EQU RED_FIREBALL_ITEM     ; Spiritual attack
+
+; Gryphon - Flying beast
+GRYPHON_BASE_DMG        EQU 4
+GRYPHON_BASE_HP         EQU MONSTER_HP(4, 5)        ; 4 SPRT, 5 PHYS
+GRYPHON_WEAPON_SPRITE   EQU ARROW_LEFT_ITEM         ; Physical attack
+
+; Minotaur - Boss monster (BCD damage: $11 = 17 decimal)
+; Note: Weapon sprite selected dynamically based on player survivability
+MINOTAUR_BASE_DMG       EQU $11
+MINOTAUR_BASE_HP        EQU MONSTER_HP(4, 5)        ; 4 SPRT, 5 PHYS
+MINOTAUR_WEAPON_HARD    EQU RED_FIREBALL_ITEM       ; Spiritual (if player survives)
+MINOTAUR_WEAPON_MERCY   EQU ARROW_LEFT_ITEM         ; Physical (mercy mode)

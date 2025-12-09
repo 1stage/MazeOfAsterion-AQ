@@ -6153,9 +6153,9 @@ CALC_MONSTER_HP:
 CHK_FOR_SKELETON:
     SUB         $1e                                 ; Subtract $1E (first monster code)
     JP          NZ,CHK_FOR_SNAKE                    ; If not $1E, check next monster
-    LD          D,0x7                               ; Skeleton: base damage = 7
-    LD          HL,$304                             ; Skeleton: HP = 3 SPRT, 4 PHYS (BCD)
-    LD          A,$3c                               ; Sprite base = $3C (spiritual/magenta)
+    LD          D,SKELETON_BASE_DMG                 ; Skeleton: base damage
+    LD          HL,SKELETON_BASE_HP                 ; Skeleton: base HP (SPRT, PHYS in BCD)
+    LD          A,SKELETON_WEAPON_SPRITE            ; Skeleton: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
