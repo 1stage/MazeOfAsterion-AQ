@@ -6162,80 +6162,80 @@ CHK_FOR_SKELETON:
 CHK_FOR_SNAKE:
     DEC         A                                   ; Test for Snake ($1F)
     JP          NZ,CHK_FOR_SPIDER                   ; If not $1F, check next
-    LD          D,0x3                               ; Snake: base damage = 3
-    LD          HL,$101                             ; Snake: HP = 1 SPRT, 1 PHYS (BCD)
-    LD          A,$3c                               ; Sprite base = $3C (spiritual/magenta)
+    LD          D,SNAKE_BASE_DMG                    ; Snake: base damage
+    LD          HL,SNAKE_BASE_HP                    ; Snake: base HP (SPRT, PHYS in BCD)
+    LD          A,SNAKE_WEAPON_SPRITE               ; Snake: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_SPIDER:
     DEC         A                                   ; Test for Spider ($20)
     JP          NZ,CHK_FOR_MIMIC                    ; If not $20, check next
-    LD          D,0x4                               ; Spider: base damage = 4
-    LD          HL,0x2                              ; Spider: HP = 0 SPRT, 2 PHYS (BCD)
-    LD          A,$24                               ; Sprite base = $24 (physical/red)
+    LD          D,SPIDER_BASE_DMG                   ; Spider: base damage
+    LD          HL,SPIDER_BASE_HP                   ; Spider: base HP (SPRT, PHYS in BCD)
+    LD          A,SPIDER_WEAPON_SPRITE              ; Spider: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_MIMIC:
     DEC         A                                   ; Test for Mimic ($21)
     JP          NZ,CHK_FOR_MALOCCHIO                ; If not $21, check next
-    LD          D,0x5                               ; Mimic: base damage = 5
-    LD          HL,$203                             ; Mimic: HP = 2 SPRT, 3 PHYS (BCD)
-    LD          A,$3c                               ; Sprite base = $3C (spiritual/magenta)
+    LD          D,MIMIC_BASE_DMG                    ; Mimic: base damage
+    LD          HL,MIMIC_BASE_HP                    ; Mimic: base HP (SPRT, PHYS in BCD)
+    LD          A,MIMIC_WEAPON_SPRITE               ; Mimic: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_MALOCCHIO:
     DEC         A                                   ; Test for Malocchio ($22)
     JP          NZ,CHK_FOR_DRAGON                   ; If not $22, check next
-    LD          D,0x3                               ; Malocchio: base damage = 3
-    LD          HL,$302                             ; Malocchio: HP = 3 SPRT, 2 PHYS (BCD)
-    LD          A,$24                               ; Sprite base = $24 (physical/red)
+    LD          D,MALOCCHIO_BASE_DMG                ; Malocchio: base damage
+    LD          HL,MALOCCHIO_BASE_HP                ; Malocchio: base HP (SPRT, PHYS in BCD)
+    LD          A,MALOCCHIO_WEAPON_SPRITE           ; Malocchio: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_DRAGON:
     DEC         A                                   ; Test for Dragon ($23)
     JP          NZ,CHK_FOR_MUMMY                    ; If not $23, check next
-    LD          D,0x8                               ; Dragon: base damage = 8
-    LD          HL,$405                             ; Dragon: HP = 4 SPRT, 5 PHYS (BCD)
-    LD          A,$24                               ; Sprite base = $24 (physical/red)
+    LD          D,DRAGON_BASE_DMG                   ; Dragon: base damage
+    LD          HL,DRAGON_BASE_HP                   ; Dragon: base HP (SPRT, PHYS in BCD)
+    LD          A,DRAGON_WEAPON_SPRITE              ; Dragon: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_MUMMY:
     DEC         A                                   ; Test for Mummy ($24)
     JP          NZ,CHK_FOR_NECROMANCER              ; If not $24, check next
-    LD          D,0x6                               ; Mummy: base damage = 6
-    LD          HL,$204                             ; Mummy: HP = 2 SPRT, 4 PHYS (BCD)
-    LD          A,$3c                               ; Sprite base = $3C (spiritual/magenta)
+    LD          D,MUMMY_BASE_DMG                    ; Mummy: base damage
+    LD          HL,MUMMY_BASE_HP                    ; Mummy: base HP (SPRT, PHYS in BCD)
+    LD          A,MUMMY_WEAPON_SPRITE               ; Mummy: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_NECROMANCER:
     DEC         A                                   ; Test for Necromancer ($25)
     JP          NZ,CHK_FOR_GRYPHON                  ; If not $25, check next
-    LD          D,$13                               ; Necromancer: base damage = 19 (BCD)
-    LD          HL,$505                             ; Necromancer: HP = 5 SPRT, 5 PHYS (BCD)
-    LD          A,$24                               ; Sprite base = $24 (physical/red)
+    LD          D,NECROMANCER_BASE_DMG              ; Necromancer: base damage (BCD)
+    LD          HL,NECROMANCER_BASE_HP              ; Necromancer: base HP (SPRT, PHYS in BCD)
+    LD          A,NECROMANCER_WEAPON_SPRITE         ; Necromancer: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_GRYPHON:
     DEC         A                                   ; Test for Gryphon ($26)
     JP          NZ,CHK_FOR_MINOTAUR                 ; If not $26, must be Minotaur
-    LD          D,0x4                               ; Gryphon: base damage = 4
-    LD          HL,$405                             ; Gryphon: HP = 4 SPRT, 5 PHYS (BCD)
-    LD          A,$3c                               ; Sprite base = $3C (spiritual/magenta)
+    LD          D,GRYPHON_BASE_DMG                  ; Gryphon: base damage
+    LD          HL,GRYPHON_BASE_HP                  ; Gryphon: base HP (SPRT, PHYS in BCD)
+    LD          A,GRYPHON_WEAPON_SPRITE             ; Gryphon: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_MINOTAUR:
     DEC         A                                   ; Test for Minotaur ($27)
     JP          NZ,INVALID_MONSTER_CODE             ; If not $27, invalid monster code
-    LD          D,$11                               ; Minotaur: base damage = 17 (BCD)
-    LD          HL,$405                             ; Minotaur: HP = 4 SPRT, 5 PHYS (BCD)
+    LD          D,MINOTAUR_BASE_DMG                 ; Minotaur: base damage (BCD)
+    LD          HL,MINOTAUR_BASE_HP                 ; Minotaur: base HP (SPRT, PHYS in BCD)
     EXX                                             ; Switch to alternate registers
     LD          HL,(PLAYER_PHYS_HEALTH)             ; Load player physical health
     CALL        DIVIDE_BCD_HL_BY_2                  ; Divide by 2 (halve phys health)
@@ -6246,13 +6246,13 @@ CHK_FOR_MINOTAUR:
     CALL        RECALC_PHYS_HEALTH                  ; Add phys/2 + sprt health
     EXX                                             ; Switch back to main registers
     JP          NC,MINOTAUR_MERCY_SPRITE            ; If player would die, use easier sprite
-    LD          A,$24                               ; Player survives: physical sprite (red/harder)
+    LD          A,MINOTAUR_WEAPON_HARD              ; Player survives: harder weapon
 MINOTAUR_SET_SPRITE:
     ADD         A,B                                 ; Add level for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 MINOTAUR_MERCY_SPRITE:
-    LD          A,$3c                               ; Player would die: spiritual sprite (magenta/easier)
+    LD          A,MINOTAUR_WEAPON_MERCY             ; Player would die: mercy weapon
     JP          MINOTAUR_SET_SPRITE                 ; Jump to set sprite
 INVALID_MONSTER_CODE:
     JP          NO_ACTION_TAKEN                     ; Invalid code, take no action

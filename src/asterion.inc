@@ -336,8 +336,11 @@ YEL_PAVISE_ITEM     EQU $11
 MAG_PAVISE_ITEM     EQU $12
 WHT_PAVISE_ITEM     EQU $13
 
-; Arrow Flying Right ($14) - Monster attack animation (not pickupable)
-ARROW_RIGHT_ITEM    EQU $14
+; Arrow Flying Left ($14) - Player attack animation (not pickupable)
+RED_ARROW_LEFT_ITEM    EQU $14
+YEL_ARROW_LEFT_ITEM    EQU $15
+WHT_ARROW_LEFT_ITEM    EQU $16
+MAG_ARROW_LEFT_ITEM    EQU $17
 
 ; Bow ($18-$1B) - Basic ranged weapon
 RED_BOW_ITEM        EQU $18
@@ -381,8 +384,11 @@ YEL_CROSSBOW_ITEM   EQU $31
 MAG_CROSSBOW_ITEM   EQU $32
 WHT_CROSSBOW_ITEM   EQU $33
 
-; Arrow Flying Left ($3C) - Player attack animation (not pickupable)
-ARROW_LEFT_ITEM     EQU $3C
+; Arrow Flying right ($3C) - Monster attack animation (not pickupable)
+RED_ARROW_RIGHT_ITEM    EQU $3C
+YEL_ARROW_RIGHT_ITEM    EQU $3D
+WHT_ARROW_RIGHT_ITEM    EQU $3E
+MAG_ARROW_RIGHT_ITEM    EQU $3F
 
 ; Ladder ($40-$43) - Level progression (only MAG used in game)
 RED_LADDER_ITEM     EQU $40
@@ -467,12 +473,12 @@ WHT_CHAOS_POTION_ITEM   EQU $73
 ; Skeleton - Common undead enemy
 SKELETON_BASE_DMG       EQU 7
 SKELETON_BASE_HP        EQU MONSTER_HP(3, 4)        ; 3 SPRT, 4 PHYS
-SKELETON_WEAPON_SPRITE  EQU ARROW_LEFT_ITEM         ; Physical attack
+SKELETON_WEAPON_SPRITE  EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
 
 ; Snake - Fast physical attacker
 SNAKE_BASE_DMG          EQU 3
 SNAKE_BASE_HP           EQU MONSTER_HP(1, 1)        ; 1 SPRT, 1 PHYS
-SNAKE_WEAPON_SPRITE     EQU ARROW_LEFT_ITEM         ; Physical attack
+SNAKE_WEAPON_SPRITE     EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
 
 ; Spider - Weak but numerous
 SPIDER_BASE_DMG         EQU 4
@@ -482,7 +488,7 @@ SPIDER_WEAPON_SPRITE    EQU RED_FIREBALL_ITEM       ; Spiritual attack
 ; Mimic - Disguised chest enemy
 MIMIC_BASE_DMG          EQU 5
 MIMIC_BASE_HP           EQU MONSTER_HP(2, 3)        ; 2 SPRT, 3 PHYS
-MIMIC_WEAPON_SPRITE     EQU ARROW_LEFT_ITEM         ; Physical attack
+MIMIC_WEAPON_SPRITE     EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
 
 ; Malocchio - Evil eye creature
 MALOCCHIO_BASE_DMG      EQU 3
@@ -497,7 +503,7 @@ DRAGON_WEAPON_SPRITE    EQU RED_FIREBALL_ITEM       ; Spiritual attack
 ; Mummy - Slow but tough
 MUMMY_BASE_DMG          EQU 6
 MUMMY_BASE_HP           EQU MONSTER_HP(2, 4)        ; 2 SPRT, 4 PHYS
-MUMMY_WEAPON_SPRITE     EQU ARROW_LEFT_ITEM         ; Physical attack
+MUMMY_WEAPON_SPRITE     EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
 
 ; Necromancer - Magical enemy (BCD damage: $13 = 19 decimal)
 NECROMANCER_BASE_DMG    EQU $13
@@ -507,11 +513,11 @@ NECROMANCER_WEAPON_SPRITE EQU RED_FIREBALL_ITEM     ; Spiritual attack
 ; Gryphon - Flying beast
 GRYPHON_BASE_DMG        EQU 4
 GRYPHON_BASE_HP         EQU MONSTER_HP(4, 5)        ; 4 SPRT, 5 PHYS
-GRYPHON_WEAPON_SPRITE   EQU ARROW_LEFT_ITEM         ; Physical attack
+GRYPHON_WEAPON_SPRITE   EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
 
 ; Minotaur - Boss monster (BCD damage: $11 = 17 decimal)
 ; Note: Weapon sprite selected dynamically based on player survivability
 MINOTAUR_BASE_DMG       EQU $11
 MINOTAUR_BASE_HP        EQU MONSTER_HP(4, 5)        ; 4 SPRT, 5 PHYS
 MINOTAUR_WEAPON_HARD    EQU RED_FIREBALL_ITEM       ; Spiritual (if player survives)
-MINOTAUR_WEAPON_MERCY   EQU ARROW_LEFT_ITEM         ; Physical (mercy mode)
+MINOTAUR_WEAPON_MERCY   EQU RED_ARROW_RIGHT_ITEM    ; Physical (mercy mode)
