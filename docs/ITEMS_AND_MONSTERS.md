@@ -41,7 +41,6 @@ A new line is listed for every 4-value group. The Compare column shows the value
 | `68–6B`    | `1A`    | Mage Potion     | RED, YEL, MAG, WHT     | Spirit stat effect. |
 | `6C–6F`    | `1B`    | Map             | RED, YEL, MAG, WHT     | Sets HAVE MAP; colors show in UI. |
 | `70–73`    | `1C`    | Chaos Potion    | RED, YEL, MAG, WHT     | Special effects cluster. |
-| `DE–DF`    | `37`    | Map (hi-tier)   | MAG, WHT               | Also treated as maps in logic. |
 
 Notes:
 - Post-shift compares seen in logic map CHEST→`$11`, KEY→`$16`, PHYS POTION→`$19`, SPRT POTION→`$1A`, CHAOS POTION→`$1C` after removing color bits.
@@ -251,7 +250,7 @@ Mapping offsets derived from `DIR_FACING` deltas (D/E). These feed into:
     - `$18–$1B` / `$30–$33`: Weapon sets (bow/crossbow) processed by `NEW_RIGHT_HAND_ITEM` for stat recalculation.
     - `$44–$47`: Chest; open converts to new item(s) (randomization in `DO_OPEN_CLOSE`).
     - `$48` boundary shifts to food/arrow handling: duplication loops guard caps (arrows max `$33`, food increments with BCD correction).
-    - Map codes `$6C,$6D,$DE,$DF`: Set HAVE MAP bit and store map slot for color display.
+    - Map codes `$6C–$6F` and `$DE–$DF`: Set HAVE MAP bit and store map slot for color display. All processed identically via `PROCESS_MAP`.
     - Key and potion ranges trigger specialized use logic (restoration or unlocking).
     - Ladder `$42`: Not pickable (processed elsewhere via ladder use interaction `DO_USE_LADDER`, not standard pickup path).
 - Box (Chest) open logic `DO_OPEN_CLOSE` uses SRL transformations to derive item-level and probabilities for spawned content.
