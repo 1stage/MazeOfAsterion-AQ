@@ -2063,7 +2063,7 @@ DRAW_DOOR_FR1_A:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = COLRAM_FR2_A_IDX (left), then COLRAM_FR2_B, then bottom chars
+;   HL = COLRAM_FR2_B (right), then COLRAM_FR2_A (left), then bottom chars
 ;   BC = RECT(2,4), then RECT(4,1)
 ;   A  = COLOR(BLK,DKGRY), then CHAR_BOTTOM_LINE
 ;   C  = 4 (height reset)
@@ -2074,12 +2074,12 @@ DRAW_DOOR_FR1_A:
 ; Calls: FILL_CHRCOL_RECT, DRAW_CHRCOLS, jumps to DRAW_CHRCOLS
 ;==============================================================================
 DRAW_WALL_FR2:
-    LD          HL,COLRAM_FR2_A_IDX              ; Point to FR2 left wall area
+    LD          HL,COLRAM_FR2_B            ; Point to FR2 right wall area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
-    CALL        FILL_CHRCOL_RECT                    ; Fill left wall
+    CALL        FILL_CHRCOL_RECT                    ; Fill right wall
     LD          C,0x4                               ; Set height to 4
-    LD          HL,COLRAM_FR2_B                  ; FR2 Right wall area
+    LD          HL,COLRAM_FR2_A             ; FR2 left wall area
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
     CALL        DRAW_CHRCOLS                        ; Fill right wall (was JP)
     LD          HL,$31c8 + 120                      ; Bottom row of FR2 right, CHRRAM
@@ -2096,7 +2096,7 @@ DRAW_WALL_FR2:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = COLRAM_FR2_B
+;   HL = COLRAM_FR2_A
 ;   BC = RECT(4,4)
 ;   A  = COLOR(BLK,BLK)
 ; ---  End  ---
@@ -2106,7 +2106,7 @@ DRAW_WALL_FR2:
 ; Calls: Jumps to FILL_CHRCOL_RECT
 ;==============================================================================
 DRAW_WALL_FR2_EMPTY:
-    LD          HL,COLRAM_FR2_B                  ; Point to FR2 right wall area
+    LD          HL,COLRAM_FR2_A             ; Point to FR2 left wall area
     LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
     JP          FILL_CHRCOL_RECT                    ; Fill area with black
@@ -2228,7 +2228,7 @@ DRAW_RIGHT_DOOR:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = COLRAM_FR2_A, then bottom row chars
+;   HL = COLRAM_F2_FR2_GAP, then bottom row chars
 ;   BC = RECT(2,4), then RECT(4,1)
 ;   A  = COLOR(BLK,DKGRY), then CHAR_BOTTOM_LINE
 ; ---  End  ---
@@ -2238,7 +2238,7 @@ DRAW_RIGHT_DOOR:
 ; Calls: FILL_CHRCOL_RECT, jumps to DRAW_CHRCOLS
 ;==============================================================================
 DRAW_WALL_FR2_A:
-    LD          HL,COLRAM_FR2_A                  ; FR2_A_SOLID area
+    LD          HL,COLRAM_F2_FR2_GAP             ; Gap between F2 and FR2
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
     CALL        FILL_CHRCOL_RECT                    ; Fill left wall (was JP)
@@ -2256,7 +2256,7 @@ DRAW_WALL_FR2_A:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = COLRAM_FR2_A
+;   HL = COLRAM_F2_FR2_GAP
 ;   BC = RECT(2,4)
 ;   A  = COLOR(BLK,BLK)
 ; ---  End  ---
@@ -2266,7 +2266,7 @@ DRAW_WALL_FR2_A:
 ; Calls: Jumps to FILL_CHRCOL_RECT
 ;==============================================================================
 DRAW_WALL_FR2_A_EMPTY:
-    LD          HL,COLRAM_FR2_A                  ; FR2_A_OPEN area
+    LD          HL,COLRAM_F2_FR2_GAP             ; Gap between F2 and FR2
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
     JP          FILL_CHRCOL_RECT                    ; Fill with black
