@@ -43,10 +43,10 @@ JP   NZ,MONSTER_PHYS_BRANCH     ; If NOT $24, use Physical path
 | **$11** | YEL_PAVISE_ITEM | $10 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Pavise (YEL) | Large shield |
 | **$12** | MAG_PAVISE_ITEM | $10 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Pavise (MAG) | Large shield |
 | **$13** | WHT_PAVISE_ITEM | $10 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Pavise (WHT) | Large shield |
-| **$14** | ARROW_RIGHT_ITEM | $14 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Arrow → | Monster to player arrow |
-| **$15** | UNUSED | $14 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | (undefined) | Would mask to $14 base |
-| **$16** | UNUSED | $14 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | (undefined) | Would mask to $14 base |
-| **$17** | UNUSED | $14 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | (undefined) | Would mask to $14 base |
+| **$14** | RED_ARROW_LEFT_ITEM | $14 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Arrow ← | Player weapon sprite |
+| **$15** | YEL_ARROW_LEFT_ITEM | $14 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Arrow ← | Player weapon sprite |
+| **$16** | WHT_ARROW_LEFT_ITEM | $14 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Arrow ← | Player weapon sprite |
+| **$17** | MAG_ARROW_LEFT_ITEM | $14 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Arrow ← | Player weapon sprite |
 | **$18** | RED_BOW_ITEM | $18 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Bow (RED) | Ranged weapon |
 | **$19** | YEL_BOW_ITEM | $18 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Bow (YEL) | Ranged weapon |
 | **$1A** | MAG_BOW_ITEM | $18 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Bow (MAG) | Ranged weapon |
@@ -83,9 +83,9 @@ JP   NZ,MONSTER_PHYS_BRANCH     ; If NOT $24, use Physical path
 | **$39** | UNUSED | $38 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | (undefined) | Would mask to $38 base |
 | **$3A** | UNUSED | $38 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | (undefined) | Would mask to $38 base |
 | **$3B** | UNUSED | $38 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | (undefined) | Would mask to $38 base |
-| **$3C** | ARROW_LEFT_ITEM | $3C | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | ← Arrow | Player to monster arrow |
-| **$3D** | UNUSED | $3C | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | (undefined) | Would mask to $3C base |
-| **$3E** | UNUSED | $3C | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | (undefined) | Would mask to $3C base |
+| **$3C** | RED_ARROW_RIGHT_ITEM | $3C | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Arrow → | Monster weapon sprite |
+| **$3D** | YEL_ARROW_RIGHT_ITEM | $3C | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Arrow → | Monster weapon sprite |
+| **$3E** | WHT_ARROW_RIGHT_ITEM | $3C | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Arrow → | Monster weapon sprite |
 | **$3F** | UNUSED | $3C | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | (undefined) | Would mask to $3C base |
 | **$40** | RED_LADDER_ITEM | $40 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Ladder (RED) | Level transition |
 | **$41** | YEL_LADDER_ITEM | $40 | **Physical** | SHIELD_PHYS | PLAYER_PHYS_HEALTH | Ladder (YEL) | Level transition |
@@ -166,7 +166,9 @@ JP   NZ,MONSTER_PHYS_BRANCH     ; If NOT $24, use Physical path
 2. **All other item codes use physical damage,** including:
    - Magical-themed items (Scroll, Staff, Mage Potion)
    - Non-weapon items (Ladder, Chest, Food, etc.)
-   - Arrow sprites ($14, $3C)
+   - Arrow sprites:
+     - Arrow Left family ($14-$17): Player weapon sprites, arrow points left ←
+     - Arrow Right family ($3C-$3E): Monster weapon sprites, arrow points right →
    - All other weapon sprites (Axe, Mace, etc.)
 
 3. **The level bits (0-1) are stripped** during damage routing (`AND $FC`)
@@ -182,10 +184,17 @@ For **Spiritual damage** monsters, use:
 - `WHT_FIREBALL_ITEM` ($27)
 
 For **Physical damage** monsters, use any other sprite:
-- `ARROW_LEFT_ITEM` ($3C) - most common physical weapon sprite
+- `RED_ARROW_RIGHT_ITEM` ($3C) - standard monster arrow (points right →)
+- `YEL_ARROW_RIGHT_ITEM` ($3D) - yellow monster arrow
+- `WHT_ARROW_RIGHT_ITEM` ($3E) - white monster arrow
 - `RED_MACE_ITEM` ($28) - alternative physical weapon
-- `ARROW_RIGHT_ITEM` ($14) - monster→player arrow direction
 - Any other item code (all route to physical damage)
+
+For **Player weapon sprites** (when needed):
+- `RED_ARROW_LEFT_ITEM` ($14) - player arrow (points left ←)
+- `YEL_ARROW_LEFT_ITEM` ($15) - yellow player arrow
+- `WHT_ARROW_LEFT_ITEM` ($16) - white player arrow
+- `MAG_ARROW_LEFT_ITEM` ($17) - magenta player arrow
 
 ---
 
