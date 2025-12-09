@@ -2040,7 +2040,7 @@ DRAW_DOOR_FR1_A_NORMAL:
 ; --- Start ---
 ;   A  = door color
 ; --- In Process ---
-;   HL = COLRAM_FR2_A_IDX
+;   HL = COLRAM_FR1_A_IDX
 ;   BC = RECT(2,6)
 ; ---  End  ---
 ;   Jumps to DRAW_CHRCOLS
