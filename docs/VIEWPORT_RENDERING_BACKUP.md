@@ -46,63 +46,6 @@ UPDATE_VIEWPORT:
 - Item interactions
 - Combat state changes
 
-### 1.5 VRAM Layout and Viewport Architecture
-
-**Critical Information for All Agents**: The Aquarius screen uses a character-based video system with dual memory regions:
-
-**Screen Organization:**
-- Total screen: 40 columns × 25 rows = 1000 character cells
-- **Viewport area**: 24×24 character region
-  - Starts at **column 0, row 1** (left side, second row)
-  - Occupies columns 0-23, rows 1-24
-- **UI area**: 16 columns on the right side (columns 24-39, rows 1-24)
-  - Contains player stats, inventory, compass, etc.
-- **Top row** (row 0): Level indicator, mode indicators, etc.
-- **Bottom row** (row 24): (additional screen row)
-
-**VRAM Memory Layout:**
-
-1. **CHRRAM (Character RAM)**: Stores AQUASCII character bytes
-   - Screen memory: $3000 - $33E7 (1000 bytes for 40×25 screen)
-   - Base address: $3000 (also defines border character fill)
-   - Viewport starts at: $3028 (column 0, row 1)
-   - Each cell = 1 byte (AQUASCII character code $00-$FF)
-   - Sequential addressing: row-major order (left-to-right, top-to-bottom)
-   - Address calculation: `CHRRAM_BASE + (row * 40) + column`
-   - **Spare 24 bytes** ($33E8 - $33FF): Wall state variables
-     - Stores calculated wall visibility states (WALL_F0_STATE through WALL_B0_STATE)
-     - Updated by REDRAW_START after every player move/rotation
-
-2. **COLRAM (Color RAM)**: Stores color pair values
-   - Screen memory: $3400 - $37E7 (1000 bytes for 40×25 screen)
-   - Base address: $3400 (also defines border color fill)
-   - Viewport starts at: $3428 (column 0, row 1)
-   - Each cell = 1 byte: `(foreground_color << 4) | background_color`
-     - **High nybble** = Foreground color (bits 7-4)
-     - **Low nybble** = Background color (bits 3-0)
-   - Color values defined in `aquarius.inc` (0-15)
-   - Parallel structure to CHRRAM (same row-major addressing)
-   - Address calculation: `COLRAM_BASE + (row * 40) + column`
-   - **Spare 24 bytes** ($37E8 - $37FF): Game state variables
-     - Item position flags (ITEM_S2 through ITEM_SB)
-     - Keyboard input buffers (KEY_INPUT_COL0 through KEY_INPUT_COL7)
-     - Handcontroller input (HC_INPUT_HOLDER, HC_LAST_INPUT)
-
-**Viewport Coordinates:**
-- All COLRAM/CHRRAM index constants (e.g., `COLRAM_F0_WALL_IDX`) are **absolute screen addresses**
-- Viewport rendering uses these pre-calculated addresses for each wall position
-- Each wall section has specific column/row ranges within the 24×24 viewport
-- Example: F0 wall occupies viewport columns 4-19 (screen columns 4-19), rows 5-20
-
-**Drawing Process:**
-- `FILL_CHRCOL_RECT` writes to both CHRRAM and COLRAM in parallel
-- For each cell: writes AQUASCII character code to CHRRAM, color byte to COLRAM
-- 40-byte stride between rows (entire screen width, not just viewport)
-
-**Key Point**: All wall position constants are absolute screen addresses accounting for the viewport location starting at column 0, row 1 of the 40×24 screen. When modifying rendering code, always use these pre-calculated constants rather than attempting manual address arithmetic.
-
----
-
 ### 2. Stage 1: REDRAW_START - Calculate Wall States
 **Location**: `asterion_high_rom.asm:7270`
 
@@ -123,9 +66,9 @@ UPDATE_VIEWPORT:
 | 2 | `WALL_F1_STATE` | $33e9 | Wall one step ahead (front wall at S1) |
 | 3 | `WALL_F2_STATE` | $33ea | Wall two steps ahead (front wall at S2) |
 | 4 | `WALL_L2_STATE` | $33eb | Left wall at distance 2 (north wall of SL2) |
-| 5 | `WALL_FL2_A_STATE` | $33ec | F2/FL2 gap rendering state (drawn when L2 absent) |
+| 5 | `WALL_FL2_A_STATE` | $33ec | Front-left wall 2, part A (west wall of SL2) |
 | 6 | `WALL_R2_STATE` | $33ed | Right wall at distance 2 (north wall of S2) |
-| 7 | `WALL_FR2_A_STATE` | $33ee | F2/FR2 gap rendering state (drawn when R2 absent) |
+| 7 | `WALL_FR2_A_STATE` | $33ee | Front-right wall 2, part A (west wall of SR2) |
 | 8 | `WALL_L1_STATE` | $33ef | Left wall at distance 1 (north wall of SL1) |
 | 9 | `WALL_FL1_A_STATE` | $33f0 | Front-left wall 1, part A (west wall of SL1) |
 | 10 | `WALL_FL2_B_STATE` | $33f1 | Front-left wall 2, part B (duplicate of FL2_A) |
@@ -211,11 +154,7 @@ The rendering system uses a **conditional front-to-back ordering**, NOT traditio
 **Complete Rendering Sequence** (asterion_high_rom.asm:8085+):
 
 **0. Background Initialization (line 8086)**
-
-**Brief Summary:**
-- `DRAW_BKGD` - Clear entire viewport area with SPACE characters ($20)
-- Draw multi-layer background: ceiling (dark gray/black), horizon (black), floor (dark green/dark gray gradient)
-- Continue to **step 1**
+   - `DRAW_BKGD` - Clear viewport with SPACE chars, draw ceiling/horizon/floor layers
 
 **Visual Representation (24×24 Viewport):**
 
@@ -252,13 +191,22 @@ Legend: ⬛ Ceiling/Horizon | 🟫 Floor
 ---
 
 **1. F0 (Front Wall at Distance 0) Processing (lines 8088-8149)**
-
-**Brief Summary:**
-- Test WALL_F0_STATE for hidden door (bit 0), wall exists (bit 1), door open (bit 2)
-- **If wall with open door:** `DRAW_WALL_F0_AND_OPEN_DOOR` → Jump to **step 10**
-- **If wall with closed door:** `DRAW_F0_WALL_AND_CLOSED_DOOR` → Continue to **step 6**
-- **If hidden door:** `DRAW_F0_WALL`, optionally `DRAW_WALL_F0_AND_OPEN_DOOR`
-- **If no wall:** Continue to **step 2**
+   - Load WALL_F0_STATE and test bits
+   - **If hidden door (bit 0 set):**
+     - `DRAW_F0_WALL` - Draw 16×15 blue wall background
+     - **If wall exists AND door open (bits 1,2 set):**
+       - `DRAW_WALL_F0_AND_OPEN_DOOR` - Draw open door overlay
+       - → Jump to **step 10** (skip F1, F2, all distance-2 walls, all distance-1 L/R walls)
+     - **Else:** Continue to **step 6** (skip to L1/R1 side walls)
+   - **If no hidden door (bit 0 clear):**
+     - **If wall exists (bit 1 set):**
+       - **If door open (bit 2 set):**
+         - `DRAW_WALL_F0_AND_OPEN_DOOR` - Draw wall with open door
+         - → Jump to **step 10** (skip F1, F2, all distance-2 walls, all distance-1 L/R walls)
+       - **If door closed (bit 2 clear):**
+         - `DRAW_F0_WALL_AND_CLOSED_DOOR` - Draw wall with closed door overlay
+         - → Continue to **step 6** (skip to L1/R1 side walls)
+     - **If no wall (bit 1 clear):** Continue to **step 2**
 
 **Visual Representation - F0 Wall with Door:**
 
@@ -294,13 +242,22 @@ Legend: ⬛🟫 Background | 🟦 F0 Wall | 🟩 FO Door
 ---
 
 **2. F1 (Front Wall at Distance 1) Processing (lines 8150-8196)**
-
-**Brief Summary:**
-- Test WALL_F1_STATE for hidden door (bit 0), wall exists (bit 1), door open (bit 2)
-- **If wall with open door:** `DRAW_WALL_F1_AND_OPEN_DOOR` → Jump to **step 5**
-- **If wall with closed door:** `DRAW_WALL_F1_AND_CLOSED_DOOR` → Continue to **step 6**
-- **If hidden door:** `DRAW_WALL_F1`, optionally `DRAW_WALL_F1_AND_OPEN_DOOR`
-- **If no wall:** Continue to **step 3**
+   - Load WALL_F1_STATE and test bits
+   - **If hidden door (bit 0 set):**
+     - `DRAW_WALL_F1` - Draw 8×8 wall background
+     - **If wall exists AND door open (bits 1,2 set):**
+       - `DRAW_WALL_F1_AND_OPEN_DOOR` - Draw open door overlay
+       - → Jump to **step 5** (skip F2, distance-2 walls, go to F2 item check)
+     - **Else:** Continue to **step 6** (skip to L1/R1 side walls)
+   - **If no hidden door (bit 0 clear):**
+     - **If wall exists (bit 1 set):**
+       - **If door open (bit 2 set):**
+         - `DRAW_WALL_F1_AND_OPEN_DOOR` - Draw wall with open door
+         - → Jump to **step 5** (skip F2, distance-2 walls)
+       - **If door closed (bit 2 clear):**
+         - `DRAW_WALL_F1_AND_CLOSED_DOOR` - Draw wall with closed door overlay
+         - → Continue to **step 6** (skip to L1/R1 side walls)
+     - **If no wall (bit 1 clear):** Continue to **step 3**
 
 **Visual Representation - F1 Wall with Door:**
 
@@ -336,12 +293,12 @@ Legend: ⬛🟫 Background | 🟦 F1 Wall | 🟩 F1 Door
 ---
 
 **3. F2 (Front Wall at Distance 2) Processing (lines 8197-8211)**
-
-**Brief Summary:**
-- Load WALL_F2_STATE and test bits
-- **If hidden door OR wall exists:** `DRAW_WALL_F2` - Draw 4×4 wall with base line
-- **If no wall:** `DRAW_WALL_F2_EMPTY` - Draw 4×4 black rectangle
-- Continue to **step 4**
+   - Load WALL_F2_STATE and test bits
+   - **If hidden door OR wall exists (bit 0 OR bit 1 set):**
+     - `DRAW_WALL_F2` - Draw 4×4 wall with base line
+   - **If no wall (bits 0,1 clear):**
+     - `DRAW_WALL_F2_EMPTY` - Draw 4×4 black rectangle
+   - Continue to **step 4**
 
 **Visual Representation - F2 Wall:**
 
@@ -377,11 +334,50 @@ Legend: ⬛🟫 Background | 🟦 F2 Wall
 ---
 
 **4. Distance 2 Left Side Walls (lines 8212-8247)**
+   - **L2 Processing (WALL_L2_STATE):**
+     - **If hidden door OR wall exists:**
+       - `DRAW_WALL_L2` - Draw left wall at distance 2
+       - → Jump to **step 4b** (skip FL2_A check)
+     - **If no wall:** Continue to FL2_A check
+   - **FL2_A Processing (WALL_FL2_A_STATE):**
+     - **If hidden door OR wall exists:**
+       - `DRAW_WALL_FL2_A` - Draw front-left wall part A
+     - **If no wall:**
+       - `DRAW_WALL_FL2_A_EMPTY` - Clear FL2_A area
+   - Continue to **step 4b**
 
-**Brief Summary:**
-- Test WALL_L2_STATE: if hidden door OR wall exists, draw L2 → Jump to **step 4b**
-- Test WALL_FL2_A_STATE: if gap needed (L2 absent), draw F2/FL2 gap, else clear gap area
-- Continue to **step 4b**
+**Visual Representation - FL2_A and FL2_B Walls:**
+
+```
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛🟦🟦🟪🟪⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛🟦🟦🟪🟪⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛🟦🟦🟪🟪⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛🟦🟦🟪🟪⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
+🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
+🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
+🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
+🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
+⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
+```
+
+Legend: ⬛🟫 Background | 🟦 FL2_A Wall | 🟪 FL2_B Wall
+
+---
 
 **Visual Representation - L2 Wall:**
 
@@ -414,45 +410,53 @@ Legend: ⬛🟫 Background | 🟦 F2 Wall
 
 Legend: ⬛🟫 Background | 🟦 L2 Wall | ↘️ Top Angle | ↗️ Bottom Angle
 
-**Visual Representation - F2/FL2 Gap:**
-
-```
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-```
-
-Legend: ⬛🟫 Background | 🟦 F2/FL2 Gap (col 8-9)
-
 ---
 
 **4b. Distance 2 Right Side Walls (lines 8248-8261)**
+   - **R2 Processing (WALL_R2_STATE):**
+     - **If hidden door OR wall exists:**
+       - `DRAW_WALL_R2` - Draw right wall at distance 2
+       - → Jump to **step 5** (skip FR2_A check)
+     - **If no wall:** Continue to FR2_A check
+   - **FR2_A Processing (WALL_FR2_A_STATE):**
+     - **If hidden door OR wall exists:**
+       - `DRAW_WALL_FR2_A` - Draw front-right wall part A
+     - **If no wall:**
+       - `DRAW_WALL_FR2_A_EMPTY` - Clear FR2_A area
+   - Continue to **step 5**
 
-**Brief Summary:**
-- Test WALL_R2_STATE: if hidden door OR wall exists, draw R2 → Jump to **step 5**
-- Test WALL_FR2_A_STATE: if gap needed (R2 absent), draw F2/FR2 gap, else clear gap area
-- Continue to **step 5**
+**Visual Representation - FR2_A and FR2_B Walls:**
+
+```
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟪🟪⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟪🟪⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟪🟪⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟪🟪⬛⬛⬛⬛⬛⬛
+🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
+🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
+🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
+🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
+🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
+⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
+```
+
+Legend: ⬛🟫 Background | 🟦 FR2_A Wall | 🟪 FR2_B Wall
+
+---
 
 **Visual Representation - R2 Wall:**
 
@@ -485,45 +489,13 @@ Legend: ⬛🟫 Background | 🟦 F2/FL2 Gap (col 8-9)
 
 Legend: ⬛🟫 Background | 🟦 R2 Wall | ↙️ Top Angle | ↘️ Bottom Angle
 
-**Visual Representation - F2/FR2 Gap:**
-
-```
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-```
-
-Legend: ⬛🟫 Background | 🟦 F2/FR2 Gap (col 14-15)
-
 ---
 
 **5. S2 Sprite Rendering (line 8314-8317)**
-
-**Brief Summary:**
-- `CHK_ITEM_F2`: Load sprite at S2 position (distance 2, center)
-- `CALL CHK_ITEM` with parameter $48a - Check and draw item/monster sprite at S2
-- Continue to **step 6**
+   - `CHK_ITEM_F2`: Load sprite at S2 position (distance 2, center)
+   - `LD BC,$48a` - Set distance/size parameters for S2 rendering
+   - `CALL CHK_ITEM` - Check and draw item/monster sprite at S2
+   - Continue to **step 6**
 
 **Visual Representation - S2 Item or S2 Monster:**
 
@@ -566,11 +538,7 @@ Legend: ⬛🟫 Background | 🟡 S2 Item | 🔴 S2 Monster
 
 **6. Distance 1 Left Side Walls (lines 8318-8381)**
 
-**Brief Summary:**
-- Test WALL_L1_STATE: if wall/door exists, draw L1 → Jump to **step 7**
-- Test WALL_FL1_B_STATE: if wall/door exists, draw FL1_B → Jump to **step 7**
-- Test WALL_FL2_STATE: if hidden door OR wall exists, draw FL2, else draw FL2_EMPTY
-- Continue to **step 7**
+This section handles the left-side wall rendering at distance 1, including the main L1 wall, the FL1_B back section, and the FL2 wall visible through gaps.
 
 **Visual Representation - L1 Main Wall:**
 
@@ -634,7 +602,7 @@ Legend: ⬛🟫 Background | 🟦 L1 Wall | 🟩 L1 Door
 
 Legend: ⬛🟫 Background | 🟦 FL1_B Wall | 🟩 FL1_B Door
 
-**Visual Representation - FL2_A (Left half, visible when no L1):**
+**Visual Representation - FL2 Wall (visible when no L1):**
 
 ```
 ⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
@@ -647,10 +615,10 @@ Legend: ⬛🟫 Background | 🟦 FL1_B Wall | 🟩 FL1_B Door
 ⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
 ⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
 ⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛🟦🟦🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛🟦🟦🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛🟦🟦🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛🟦🟦🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
 🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
 🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
 🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
@@ -663,38 +631,7 @@ Legend: ⬛🟫 Background | 🟦 FL1_B Wall | 🟩 FL1_B Door
 ⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
 ```
 
-Legend: ⬛🟫 Background | 🟦 FL2_A Left half (cols 4-5)
-
-**Visual Representation - FL2_B (Right half, visible when no L1):**
-
-```
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-```
-
-Legend: ⬛🟫 Background | 🟦 FL2_B Right half (cols 6-7)
+Legend: ⬛🟫 Background | 🟦 FL2 Wall
 
 **Visual Representation - FL22 Area (Cleared/Empty):**
 
@@ -746,13 +683,46 @@ Legend: ⬛🟫 Background | ❌ FL22 Cleared Area (4×4 actively wiped with bla
 
 ---
 
+**6. Distance 1 Left Side Walls (lines 8263-8369)**
+   - **L1 Main Wall (WALL_L1_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_L1` - Draw L1 wall background
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_FL1_DOOR` - Draw FL1 door overlay
+         - → Jump to **step 7** (skip FL1_A/FL2_B processing)
+       - **Else:** → Jump to **step 7**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_FL1_DOOR` - Draw FL1 door
+         - **If door closed:**
+           - `DRAW_L1` - Draw L1 wall/door
+         - → Jump to **step 7**
+       - **If no wall:** Continue to FL1_B check
+   - **FL1_B Wall (WALL_FL1_B_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_FL1_B` - Draw FL1_B wall
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_DOOR_FL1_B_HIDDEN` - Draw hidden door
+       - → Jump to **step 7**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_DOOR_FL1_B_HIDDEN` - Draw hidden door
+         - **If door closed:**
+           - `DRAW_DOOR_FL1_B_NORMAL` - Draw normal door
+         - → Jump to **step 7**
+       - **If no wall:** Continue to FL2_B check
+   - **FL2_B Check (WALL_FL2_B_STATE):**
+     - **If hidden door OR wall exists (bit 0 OR 1 set):**
+       - `DRAW_WALL_FL2` - Draw FL2 wall
+     - **If no wall:**
+       - `DRAW_WALL_FL2_EMPTY` - Clear FL2 area
+   - Continue to **step 7**
+
 **7. Distance 1 Right Side Walls (lines 8370-8415)**
 
-**Brief Summary:**
-- Test WALL_R1_STATE: if wall/door exists, draw R1 → Jump to **step 8**
-- Test WALL_FR1_A_STATE: if wall/door exists, draw FR1_A → Jump to **step 8**
-- Test WALL_FR2_B_STATE: if hidden door OR wall exists, draw FR2, else draw FR2_EMPTY
-- Continue to **step 8**
+This section handles the right-side wall rendering at distance 1, including the main R1 wall, the FR1_B back section, and the FR2 wall visible through gaps.
 
 **Visual Representation - R1 Main Wall:**
 
@@ -816,7 +786,7 @@ Legend: ⬛🟫 Background | 🟦 R1 Wall | 🟩 R1 Door
 
 Legend: ⬛🟫 Background | 🟦 FR1_A Wall | 🟩 FR1_A Door
 
-**Visual Representation - FR2_A (Left half, visible when no R1):**
+**Visual Representation - FR2 Wall (visible when no R1):**
 
 ```
 ⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
@@ -829,10 +799,10 @@ Legend: ⬛🟫 Background | 🟦 FR1_A Wall | 🟩 FR1_A Door
 ⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
 ⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
 ⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦⬛⬛⬛⬛
 🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
 🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
 🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
@@ -845,38 +815,7 @@ Legend: ⬛🟫 Background | 🟦 FR1_A Wall | 🟩 FR1_A Door
 ⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
 ```
 
-Legend: ⬛🟫 Background | 🟦 FR2_A Left half (cols 16-17)
-
-**Visual Representation - FR2_B (Right half, visible when no R1):**
-
-```
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦⬛⬛⬛⬛
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-```
-
-Legend: ⬛🟫 Background | 🟦 FR2_B Right half (cols 18-19)
+Legend: ⬛🟫 Background | 🟦 FR2 Wall
 
 **Visual Representation - FR22 Area (Cleared/Empty):**
 
@@ -928,13 +867,47 @@ Legend: ⬛🟫 Background | ❌ FR22 Cleared Area (4×4 actively wiped with bla
 
 ---
 
-**8. S1 Sprite Rendering (line 8416)**
+   - **R1 Main Wall (WALL_R1_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_R1` - Draw R1 wall background
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_DOOR_R1_HIDDEN` - Draw hidden door
+         - → Jump to **step 8** (skip FR1_A/FR2 processing)
+       - **Else:** → Jump to **step 8**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_DOOR_R1_HIDDEN` - Draw hidden door
+         - **If door closed:**
+           - `DRAW_DOOR_R1_NORMAL` - Draw normal door
+         - → Jump to **step 8**
+       - **If no wall:** Continue to FR1_A check
+   - **FR1_A Wall (WALL_FR1_A_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_FR1_A` - Draw FR1 wall part A
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_DOOR_FR1_A_HIDDEN` - Draw hidden door
+       - → Jump to **step 8**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_DOOR_FR1_A_HIDDEN` - Draw hidden door
+         - **If door closed:**
+           - `DRAW_DOOR_FR1_A_NORMAL` - Draw normal door
+         - → Jump to **step 8**
+       - **If no wall:** Continue to FR2 check
+   - **FR2 Check (WALL_FR2_B_STATE):**
+     - **If hidden door OR wall exists (bit 0 OR 1 set):**
+       - `DRAW_WALL_FR2` - Draw FR2 wall
+     - **If no wall:**
+       - `DRAW_WALL_FR2_EMPTY` - Clear FR2 area
+   - Continue to **step 8**
 
-**Brief Summary:**
-- `CALL CHK_ITEM` with ITEM_S1 and parameter $28a - Check and draw item/monster sprite at S1
-- Continue to **step 9**
+**8. S1 Item Rendering (line 8416)**
 
-**Visual Representation - S1 Item or S1 Monster:
+This section renders items and monsters at the S1 position (distance 1, center).
+
+**Visual Representation - S1 Item or S1 Monster:**
 
 ```
 ⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
@@ -975,16 +948,14 @@ Legend: ⬛🟫 Background | 🟡 S1 Item | 🔴 S1 Monster
 
 ---
 
+   - `CHK_ITEM(ITEM_S1, $28a)` - Check and draw item/monster at S1 position
+   - Continue to **step 9**
+
 **9. Distance 0 Left Side Walls (lines 8417-8471)**
 
-**Brief Summary:**
-- Test WALL_L0_STATE: if wall/door exists, draw L0 → Jump to **step 9b**
-- Test WALL_FL0_STATE: if wall exists, draw FL0 → Jump to **step 9b**
-- Test WALL_FL1_B_STATE: if wall/door exists, draw FL1_A and FL1 item → Jump to **step 9b**
-- Test FL22 flag: if set draw wall, else `DRAW_WALL_FL22_EMPTY` to clear area
-- Continue to **step 9b**
+This section handles the left-side wall rendering at distance 0 (closest position), including the main L0 wall, FL0 wall, and FL1_B section visible through gaps.
 
-**Visual Representation - L0 Main Wall:
+**Visual Representation - L0 Main Wall:**
 
 ```
 ↘️⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
@@ -1087,123 +1058,104 @@ Legend: ⬛🟫 Background | 🟦 FL1_A Wall | 🟩 FL1_A Door
 
 ---
 
+   - **L0 Main Wall (WALL_L0_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_L0` - Draw L0 wall background
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_DOOR_L0_HIDDEN` - Draw hidden door
+       - → Jump to **step 9b**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_DOOR_L0_HIDDEN` - Draw hidden door
+         - **If door closed:**
+           - `DRAW_DOOR_L0_NORMAL` - Draw normal door
+         - → Jump to **step 9b**
+       - **If no wall:** Continue to FL0 check
+   - **FL0 Wall (WALL_FL0_STATE):**
+     - **If hidden door OR wall exists (bit 0 OR 1 set):**
+       - `DRAW_WALL_FL0` - Draw FL0 wall
+       - → Jump to **step 9b**
+     - **If no wall:** Continue to FL1_B check
+   - **FL1_B Wall (WALL_FL1_B_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_FL1_A` - Draw FL1 wall part A
+       - `CHK_ITEM(ITEM_FL1, $4d0)` - Draw FL1 item
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_DOOR_L1_HIDDEN` - Draw hidden door on L1
+         - `CHK_ITEM(ITEM_FL1, $4d0)` - Draw FL1 item again
+       - → Jump to **step 9b**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_DOOR_L1_HIDDEN` - Draw hidden door
+           - `CHK_ITEM(ITEM_FL1, $4d0)` - Draw FL1 item
+         - **If door closed:**
+           - `DRAW_DOOR_L1_NORMAL` - Draw normal door
+           - `CHK_ITEM(ITEM_FL1, $4d0)` - Draw FL1 item
+         - → Jump to **step 9b**
+       - **If no wall:** Continue to FL22 check
+   - **FL22 Wall (Far Left Corner at Distance 2):**
+     - Accessed via bit rotation after FL1_B check
+     - **If bit indicates wall exists (bit test after rotation):**
+       - `DRAW_WALL_L1_SIMPLE` - Draw wall
+       - `CHK_ITEM(ITEM_FL1, $4d0)` - Draw FL1 item
+     - **If no wall (bit clear):**
+       - `DRAW_WALL_FL22_EMPTY` - Clear FL22 area (4×4 black rectangle, cols 0-3, rows 11-14)
+       - `CHK_ITEM(ITEM_FL1, $4d0)` - Draw FL1 item
+     - **Note**: FL22 is the furthest left visible wall corner, only has EMPTY variant in rendering code
+   - Continue to **step 9b**
+
 **9b. Distance 0 Right Side Walls (lines 8472-8504)**
+   - **R0 Main Wall (WALL_R0_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_R0` - Draw R0 wall background
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_R0_DOOR_HIDDEN` - Draw hidden door
+       - → Jump to **step 10**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_R0_DOOR_HIDDEN` - Draw hidden door
+         - **If door closed:**
+           - `DRAW_R0_DOOR_NORMAL` - Draw normal door
+         - → Jump to **step 10**
+       - **If no wall:** Continue to FR0 check
+   - **FR0 Wall (WALL_FR0_STATE):**
+     - **If hidden door OR wall exists (bit 0 OR 1 set):**
+       - `DRAW_WALL_FR0` - Draw FR0 wall
+       - → Jump to **step 10**
+     - **If no wall:** Continue to FR1_B check
+   - **FR1_B Wall (WALL_FR1_B_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_FR1_B` - Draw FR1 back wall
+       - `CHK_ITEM(ITEM_FR1, $4e4)` - Draw FR1 item
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_DOOR_FR1_B_HIDDEN` - Draw hidden door
+         - `CHK_ITEM(ITEM_FR1, $4e4)` - Draw FR1 item again
+       - → Jump to **step 10**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_DOOR_FR1_B_HIDDEN` - Draw hidden door
+           - `CHK_ITEM(ITEM_FR1, $4e4)` - Draw FR1 item
+         - **If door closed:**
+           - `DRAW_DOOR_FR1_B_NORMAL` - Draw normal door
+           - `CHK_ITEM(ITEM_FR1, $4e4)` - Draw FR1 item
+         - → Jump to **step 10**
+       - **If no wall:** Continue to R22 check
+   - **R22 Wall (WALL_R22_STATE - accessed via bit rotation):**
+     - **If bit indicates wall exists:**
+       - `DRAW_WALL_R1_SIMPLE` - Draw wall
+       - `CHK_ITEM(ITEM_FR1, $4e4)` - Draw FR1 item
+     - **If no wall:**
+       - `DRAW_WALL_FR22_EMPTY` - Clear FR22 area
+       - `CHK_ITEM(ITEM_FR1, $4e4)` - Draw FR1 item
+   - Continue to **step 10**
 
-**Brief Summary:**
-- Test WALL_R0_STATE: if wall/door exists (hidden/normal), draw R0 with appropriate door → Jump to **step 10**
-- Test WALL_FR0_STATE: if wall exists, draw FR0 → Jump to **step 10**
-- Test WALL_FR1_A_STATE: if wall/door exists, draw FR1_A and FR1 item → Jump to **step 10**
-- Test FR22 flag: if set draw wall, else `DRAW_WALL_FR22_EMPTY` to clear area
-- Continue to **step 10**
-
-**Visual Representation - R0 Main Wall:**
-
-```
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟩🟩🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟩🟩🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟩🟩🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟩🟩🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟩🟩🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟩🟩🟦
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟦🟩🟩🟦
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟦🟩🟩🟦
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟦🟩🟩🟦
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟦🟩🟩🟦
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟦🟩🟩🟦
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-```
-
-Legend: ⬛🟫 Background | 🟦 R0 Wall | 🟩 R0 Door
-
-**Visual Representation - FR0 Wall:**
-
-```
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟦🟦🟦🟦
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟦🟦🟦🟦
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟦🟦🟦🟦
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟦🟦🟦🟦
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-```
-
-Legend: ⬛🟫 Background | 🟦 FR0 Wall
-
-**Visual Representation - FR1_A Wall (visible when no R0/FR0):**
-
-```
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟦🟦
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟩🟩
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟩🟩
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟩🟩
-⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛🟦🟦🟩🟩
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟦🟦🟩🟩
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟦🟦🟩🟩
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
-```
-
-Legend: ⬛🟫 Background | 🟦 FR1_A Wall | 🟩 FR1_A Door
-
-**Note:**
-- **R0** is the main right wall at distance 0 (columns 20-23, rows 4-18, 15 rows tall)
-- **FR0** is the front-right wall at distance 0 (columns 20-23, rows 4-18, same as R0 position)
-- **FR1_A** is the right half of FR1 wall, visible only when R0 and FR0 are absent (columns 20-23, rows 8-15, 8 rows tall)
-  - FR1_B (left half, columns 16-19) renders in Section 7 when R1 is absent
-- **FR22** cleared area already documented in Section 7 (rendered after FR1_A check, cols 20-23, rows 11-14)
-- Drawing routines: `DRAW_WALL_R0`, `DRAW_DOOR_R0_*`, `DRAW_WALL_FR0`, `DRAW_WALL_FR1_A`, `DRAW_DOOR_R1_*`, `DRAW_WALL_FR22_EMPTY`
-
----
-
-**10. F0 Sprite Rendering (line 8505)****
-
-**Brief Summary:**
-- `CALL CHK_ITEM` with ITEM_F0 and parameter $8a - Check and draw item/monster sprite at F0
-- **Viewport rendering complete**
+**10. F0 Item Rendering (line 8505)**
+   - `CHK_ITEM(ITEM_F0, $8a)` - Check and draw item/monster at F0 position
+   - **Viewport rendering complete**
 
 ---
 
