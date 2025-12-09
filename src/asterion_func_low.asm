@@ -2049,7 +2049,7 @@ DRAW_DOOR_FR1_A_NORMAL:
 ; Calls: Jumps to DRAW_CHRCOLS
 ;==============================================================================
 DRAW_DOOR_FR1_A:
-    LD          HL,COLRAM_FR2_A_IDX              ; Point to door area
+    LD          HL,COLRAM_FR1_A_IDX              ; Point to door area
     LD          BC,RECT(2,6)                        ; 2 x 6 rectangle
     JP          DRAW_CHRCOLS                        ; Fill door area
 
