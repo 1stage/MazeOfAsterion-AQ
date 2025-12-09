@@ -8288,7 +8288,7 @@ DRAW_FL2_A_WALL:
 CHK_WALL_FL2_A_EXISTS:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          C,DRAW_FL2_A_WALL                   ; If wall exists, draw it
-    CALL        DRAW_WALL_FL2_A_EMPTY               ; Draw empty FL2_A space
+    CALL        DRAW_WALL_F2_FL2_GAP_EMPTY               ; Draw empty FL2_A space
 CHK_WALL_R2_HD:
     LD          DE,WALL_R2_STATE                    ; DE = right wall 2 state
     LD          A,(DE)                              ; Load R2 wall state

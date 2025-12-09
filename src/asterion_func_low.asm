@@ -1387,7 +1387,7 @@ DRAW_WALL_F2_FL2_GAP:
     JP          FILL_CHRCOL_RECT                    ; Fill bottom edge
 
 ;==============================================================================
-; DRAW_WALL_FL2_A_EMPTY
+; DRAW_WALL_F2_FL2_GAP_EMPTY
 ;==============================================================================
 ; Draws empty FL2_A section - black 2x4 rectangle for empty corridor.
 ;
@@ -1404,7 +1404,7 @@ DRAW_WALL_F2_FL2_GAP:
 ; Memory Modified: COLRAM at FL2_A position (2x4)
 ; Calls: Jumps to FILL_CHRCOL_RECT
 ;==============================================================================
-DRAW_WALL_FL2_A_EMPTY:
+DRAW_WALL_F2_FL2_GAP_EMPTY:
     LD          HL,COLRAM_F2_FL2_GAP                     ; Point to FL2_A wall color area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
