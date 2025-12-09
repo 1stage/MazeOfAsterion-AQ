@@ -1217,7 +1217,7 @@ DRAW_DOOR_FL1_B_NORMAL:
 ; --- Start ---
 ;   A  = door color
 ; --- In Process ---
-;   HL = COLRAM_FL2_WALL_IDX
+;   HL = COLRAM_FL2_A
 ;   BC = RECT(2,6)
 ; ---  End  ---
 ;   Jumps to DRAW_CHRCOLS
@@ -1226,7 +1226,7 @@ DRAW_DOOR_FL1_B_NORMAL:
 ; Calls: Jumps to DRAW_CHRCOLS
 ;==============================================================================
 DRAW_DOOR_FL1_B:
-    LD          HL,COLRAM_FL2_WALL_IDX              ; Point to FL2 wall area for door
+    LD          HL,COLRAM_FL2_A              ; Point to FL2 wall area for door
     LD          BC,RECT(2,6)                        ; 2 x 6 rectangle
     JP          DRAW_CHRCOLS                        ; Fill door area
 
@@ -1239,7 +1239,7 @@ DRAW_DOOR_FL1_B:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = COLRAM_FL2_WALL_IDX
+;   HL = COLRAM_FL2_A
 ;   BC = RECT(4,4)
 ;   A  = COLOR(BLK,BLK)
 ; ---  End  ---
@@ -1249,7 +1249,7 @@ DRAW_DOOR_FL1_B:
 ; Calls: Jumps to FILL_CHRCOL_RECT
 ;==============================================================================
 DRAW_WALL_FL2_EMPTY:
-    LD          HL,COLRAM_FL2_WALL_IDX              ; Point to FL2 wall color area
+    LD          HL,COLRAM_FL2_A              ; Point to FL2 wall color area
     LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
     JP          FILL_CHRCOL_RECT                    ; Fill area with black
@@ -1367,7 +1367,7 @@ DRAW_LEFT_DOOR:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = COLRAM_FL2_A, then $3238 (bottom edge)
+;   HL = COLRAM_F2_FL2_GAP, then $3238 (bottom edge)
 ;   BC = RECT(2,4), then RECT(2,1)
 ;   A  = COLOR(BLK,DKGRY), then CHAR_BOTTOM_LINE
 ; ---  End  ---
@@ -1377,7 +1377,7 @@ DRAW_LEFT_DOOR:
 ; Calls: FILL_CHRCOL_RECT, jumps to FILL_CHRCOL_RECT
 ;==============================================================================
 DRAW_WALL_FL2_A:
-    LD          HL,COLRAM_FL2_A                     ; Point to FL2_A wall color area
+    LD          HL,COLRAM_F2_FL2_GAP                     ; Point to FL2_A wall color area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
     CALL        FILL_CHRCOL_RECT                    ; Fill color area
@@ -1395,7 +1395,7 @@ DRAW_WALL_FL2_A:
 ; --- Start ---
 ;   None specific
 ; --- In Process ---
-;   HL = COLRAM_FL2_A
+;   HL = COLRAM_F2_FL2_GAP
 ;   BC = RECT(2,4)
 ;   A  = COLOR(BLK,BLK)
 ; ---  End  ---
@@ -1405,7 +1405,7 @@ DRAW_WALL_FL2_A:
 ; Calls: Jumps to FILL_CHRCOL_RECT
 ;==============================================================================
 DRAW_WALL_FL2_A_EMPTY:
-    LD          HL,COLRAM_FL2_A                     ; Point to FL2_A wall color area
+    LD          HL,COLRAM_F2_FL2_GAP                     ; Point to FL2_A wall color area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
     JP          FILL_CHRCOL_RECT                    ; Fill area with black
