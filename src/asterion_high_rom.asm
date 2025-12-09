@@ -8559,7 +8559,7 @@ DRAW_FR0_WALL:
 ;==============================================================================
 ; Helper subroutine for FR1 wall rendering paths. Loads item code at ITEM_FR1
 ; and dispatches to CHK_ITEM with FR1-specific distance/size parameters ($4e4).
-; Mirror of CHK_ITEM_FL1 for right side.
+; Right side complement of CHK_ITEM_FL1.
 ;
 ; Registers:
 ; --- Start ---

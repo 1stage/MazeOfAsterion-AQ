@@ -1414,7 +1414,7 @@ DRAW_WALL_F2_FL2_GAP_EMPTY:
 ; DRAW_WALL_R0
 ;==============================================================================
 ; Draws right wall at closest distance (R0) - large 4x15 wall with corner
-; pattern and right angle bracket characters. Mirror of DRAW_WALL_L0.
+; pattern and right angle bracket characters. Right side complement of DRAW_WALL_L0.
 ;
 ; Registers:
 ; --- Start ---
@@ -1502,7 +1502,7 @@ DRAW_R0_DOOR_NORMAL:
 ;==============================================================================
 ; Draws R0 door overlay - 3x11 door with corner pattern, vertical color fill,
 ; and right angle bracket characters. Uses alternate AF for door color.
-; Mirror of DRAW_DOOR_L0.
+; Right side complement of DRAW_DOOR_L0.
 ;
 ; Registers:
 ; --- Start ---
@@ -1543,7 +1543,7 @@ DRAW_R0_DOOR:
 ; DRAW_WALL_FR0
 ;==============================================================================
 ; Draws front-right wall at closest distance (FR0) - 4x15 blue wall section.
-; Mirror of DRAW_WALL_FL0.
+; Right side complement of DRAW_WALL_FL0.
 ;
 ; Registers:
 ; --- Start ---
@@ -1568,7 +1568,7 @@ DRAW_WALL_FR0:
 ; DRAW_WALL_FR1_B
 ;==============================================================================
 ; Draws front-right wall variant B at mid-distance (FR1_B) - 4x8 with space
-; chars then colors. Mirror of DRAW_WALL_FL1_B.
+; chars then colors. Right side complement of DRAW_WALL_FL1_B.
 ;
 ; Registers:
 ; --- Start ---
@@ -1661,8 +1661,8 @@ DRAW_DOOR_FR1_B:
 ; DRAW_WALL_R1_SIMPLE
 ;==============================================================================
 ; Draws FR1 wall edge characters and colors with angle brackets and color
-; gradients. Creates visible edges and door opening in middle. Mirror of
-; DRAW_WALL_L1_SIMPLE for right side.
+; gradients. Creates visible edges and door opening in middle. Right side
+; complement of DRAW_WALL_L1_SIMPLE.
 ;
 ; Registers:
 ; --- Start ---
@@ -1750,7 +1750,7 @@ DRAW_WALL_FR22_EMPTY:
 ; DRAW_WALL_R1
 ;==============================================================================
 ; Draws right wall at mid-distance (R1) - uses stack-based corner pattern with
-; characters and colors. Mirror of DRAW_WALL_L1.
+; characters and colors. Right side complement of DRAW_WALL_L1.
 ;
 ; Registers:
 ; --- Start ---
@@ -1931,7 +1931,7 @@ DRAW_DOOR_R1_NORMAL:
 ; DRAW_DOOR_R1
 ;==============================================================================
 ; Draws R1 door overlay - 2x7 door with diagonal fill pattern using stacked
-; colors, plus right angle bracket characters. Mirror of DRAW_L1_DOOR.
+; colors, plus right angle bracket characters. Right side complement of DRAW_L1_DOOR.
 ;
 ; Registers:
 ; --- Start ---
@@ -2115,7 +2115,7 @@ DRAW_WALL_FR2_EMPTY:
 ; DRAW_WALL_R2
 ;==============================================================================
 ; Draws right wall at far distance (R2) - uses diagonal pattern with stacked
-; colors and slash/angle characters. Mirror of DRAW_WALL_L2.
+; colors and slash/angle characters. Right side complement of DRAW_WALL_L2.
 ;
 ; Registers:
 ; --- Start ---
@@ -2159,7 +2159,7 @@ DRAW_WALL_R2:
 ; DRAW_RIGHT_DOOR
 ;==============================================================================
 ; Stack-based diagonal fill pattern for right-side angled walls/doors.
-; Mirror of DRAW_LEFT_DOOR - creates down-right diagonal using stride $27 (39).
+; Right side complement of DRAW_LEFT_DOOR - creates down-right diagonal using stride $27 (39).
 ;
 ; Values: P=first (in register A), Q=second (stack), R=third (stack)
 ;
@@ -3702,7 +3702,7 @@ DRAW_WALL_FL22_EMPTY:
 ; DRAW_WALL_FL2
 ;==============================================================================
 ; Draws front-left wall at far distance (FL2) - left and right 2x4 sections
-; with bottom edge line. Mirror of DRAW_WALL_FR2.
+; with bottom edge line. Left side complement of DRAW_WALL_FR2.
 ;
 ; Registers:
 ; --- Start ---
