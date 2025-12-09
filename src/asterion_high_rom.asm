@@ -8305,7 +8305,7 @@ CHK_WALL_R2_EXISTS:
     RRCA                                            ; Test bit 0 (hidden door flag)
     JP          NC,CHK_WALL_FR2_A_EXISTS            ; If no hidden door, check bit 1
 DRAW_FR2_A_WALL:
-    CALL        DRAW_WALL_FR2_A                     ; Draw R2 right wall
+    CALL        DRAW_WALL_F2_FR2_GAP                     ; Draw R2 right wall
     JP          CHK_ITEM_S2                         ; Continue to S2 sprite check
 CHK_WALL_FR2_A_EXISTS:
     RRCA                                            ; Test bit 1 (wall exists flag)

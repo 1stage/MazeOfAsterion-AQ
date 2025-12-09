@@ -2220,7 +2220,7 @@ DRAW_RIGHT_DOOR:
     JP          (IX)                                ; Return to caller
 
 ;==============================================================================
-; DRAW_WALL_FR2_A
+; DRAW_WALL_F2_FR2_GAP
 ;==============================================================================
 ; Draws FR2 left solid wall section - 2x4 colored area with bottom edge line.
 ;
@@ -2237,7 +2237,7 @@ DRAW_RIGHT_DOOR:
 ; Memory Modified: COLRAM at FR2 left + CHRRAM bottom edge
 ; Calls: FILL_CHRCOL_RECT, jumps to DRAW_CHRCOLS
 ;==============================================================================
-DRAW_WALL_FR2_A:
+DRAW_WALL_F2_FR2_GAP:
     LD          HL,COLRAM_F2_FR2_GAP             ; Gap between F2 and FR2
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
