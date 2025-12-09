@@ -1359,7 +1359,7 @@ DRAW_LEFT_DOOR:
     JP          (IX)                                ; Return to caller
 
 ;==============================================================================
-; DRAW_WALL_FL2_A
+; DRAW_WALL_F2_FL2_GAP
 ;==============================================================================
 ; Draws FL2_A wall section - 2x4 colored area with bottom edge line.
 ;
@@ -1376,7 +1376,7 @@ DRAW_LEFT_DOOR:
 ; Memory Modified: COLRAM at FL2_A + CHRRAM bottom edge
 ; Calls: FILL_CHRCOL_RECT, jumps to FILL_CHRCOL_RECT
 ;==============================================================================
-DRAW_WALL_FL2_A:
+DRAW_WALL_F2_FL2_GAP:
     LD          HL,COLRAM_F2_FL2_GAP                     ; Point to FL2_A wall color area
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
