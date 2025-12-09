@@ -194,31 +194,33 @@ REDRAW_VIEWPORT uses **conditional front-to-back rendering** with strategic jump
                                             ; ELSE bit 0 = 1:
 8246: DRAW_R2_WALL:
 8247:     CALL    DRAW_WALL_R2              ; Draw R2 wall
-8248:     JP      CHK_ITEM_F2               ; → Line 8303 (skip FR2_A)
+8248:     JP      CHK_ITEM_F2               ; → Line 8303 (skip F2/FR2 gap)
 
 8249: CHK_WALL_R2_EXISTS:
 8250:     RRCA                              ; bit 1 → Carry
 8251:     JP      C,DRAW_R2_WALL            ; IF bit 1 = 1 → Line 8246
                                             ; ELSE bit 1 = 0:
-           ; Fall through to FR2_A check
+           ; Fall through to F2/FR2 gap check
 ```
 
-#### FR2_A (Front-Right Wall Distance 2, Part A)
+#### F2/FR2 Gap (Gap between F2 center wall and FR2 right wall)
+**Note**: Only rendered when R2 wall is absent. This is NOT the FR2 wall itself.
+
 ```
 8252:     INC     DE                        ; DE = $33ee (WALL_FR2_A_STATE)
-8253:     LD      A,(DE)                    ; A = FR2_A wall state
+8253:     LD      A,(DE)                    ; A = F2/FR2 gap state
 8254:     RRCA                              ; bit 0 → Carry
 8255:     JP      NC,CHK_WALL_FR2_A_EXISTS  ; IF bit 0 = 0 → Line 8259
                                             ; ELSE bit 0 = 1:
 8256: DRAW_FR2_A_WALL:
-8257:     CALL    DRAW_WALL_FR2_A           ; Draw FR2_A wall
+8257:     CALL    DRAW_WALL_F2_FR2_GAP           ; Draw F2/FR2 gap piece
 8258:     JP      CHK_ITEM_F2               ; → Line 8303
 
 8259: CHK_WALL_FR2_A_EXISTS:
 8260:     RRCA                              ; bit 1 → Carry
 8261:     JP      C,DRAW_FR2_A_WALL         ; IF bit 1 = 1 → Line 8256
                                             ; ELSE bit 1 = 0:
-           CALL    DRAW_WALL_FR2_A_EMPTY   ; Clear FR2_A area
+           CALL    DRAW_WALL_F2_FR2_GAP_EMPTY   ; Clear F2/FR2 gap area
            ; Fall through to CHK_ITEM_F2
 ```
 
@@ -712,8 +714,8 @@ The actual rendering order is **CONDITIONAL** based on wall states:
 **Best Case (no walls, all empty)**:
 1. Background (DRAW_BKGD)
 2. F0 → F1 → F2 walls (all EMPTY variants)
-3. L2 → FL2_A (EMPTY variants)
-4. R2 → FR2_A (EMPTY variants)
+3. L2 → F2/FL2 gap (EMPTY variants)
+4. R2 → F2/FR2 gap (EMPTY variants)
 5. F2 item
 6. L1 → FL1_B → FL2_B (EMPTY variants)
 7. R1 → FR1_A → FR2_B (EMPTY variants)
