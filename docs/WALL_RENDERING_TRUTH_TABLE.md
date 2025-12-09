@@ -316,12 +316,12 @@ This document provides a comprehensive reference for every wall rendering decisi
 | `WALL_FL1_B_STATE` | $33f7 | 8470-8471 | 1 | X | X | Hidden door path | → 8472 | Start HD logic |
 | `WALL_FL1_B_STATE` | $33f7 | 8475-8476 | 1 | 0 | X | HD, no wall | → 8527 (CHK_WALL_R0_HD) | Skip to R0 |
 | `WALL_FL1_B_STATE` | $33f7 | 8477-8478 | 1 | 1 | 0 | HD, closed door | → 8527 (CHK_WALL_R0_HD) | Skip to R0 |
-| `WALL_FL1_B_STATE` | $33f7 | 8477-8479 | 1 | 1 | 1 | HD, open door | → 8480 (CHK_ITEM_FL1) | DRAW_DOOR_FL1_A_HIDDEN + items |
+| `WALL_FL1_B_STATE` | $33f7 | 8477-8479 | 1 | 1 | 1 | HD, open door | → 8480 (CHK_ITEM_SL1) | DRAW_DOOR_FL1_A_HIDDEN + items |
 | `WALL_FL1_B_STATE` | $33f7 | 8483-8484 | 0 | 0 | X | No HD, no wall | → 8490 (CHK_WALL_FL22) | Check FL22 |
 | `WALL_FL1_B_STATE` | $33f7 | 8485-8486 | 0 | 1 | 1 | No HD, open door | → 8479 (DRAW_FL1_B_DOOR_OPEN) | DRAW_DOOR_FL1_A_NORMAL + items |
-| `WALL_FL1_B_STATE` | $33f7 | 8485-8487 | 0 | 1 | 0 | No HD, closed door | → 8480 (CHK_ITEM_FL1) | DRAW_WALL_FL1_A + items |
+| `WALL_FL1_B_STATE` | $33f7 | 8485-8487 | 0 | 1 | 0 | No HD, closed door | → 8480 (CHK_ITEM_SL1) | DRAW_WALL_FL1_A + items |
 
-**Special Behavior**: FL1_B rendering triggers multiple FL1 item checks (up to 5 calls to CHK_ITEM)
+**Special Behavior**: FL1_B rendering triggers multiple SL1 item checks (up to 5 calls to CHK_ITEM)
 
 **Item Rendering**: Lines 8480-8500 contain 5 CHK_ITEM calls for FL1 position with different parameters
 
@@ -395,14 +395,14 @@ This document provides a comprehensive reference for every wall rendering decisi
 | `WALL_FR1_B_STATE` | $33fb | 8570-8571 | 1 | X | X | Hidden door path | → 8572 | Start HD logic |
 | `WALL_FR1_B_STATE` | $33fb | 8575-8576 | 1 | 0 | X | HD, no wall | → 8622 (CHK_ITEM_F0) | Skip to F0 item |
 | `WALL_FR1_B_STATE` | $33fb | 8577-8578 | 1 | 1 | 0 | HD, closed door | → 8622 (CHK_ITEM_F0) | Skip to F0 item |
-| `WALL_FR1_B_STATE` | $33fb | 8577-8579 | 1 | 1 | 1 | HD, open door | → 8580 (CHK_ITEM_FR1) | DRAW_DOOR_FR1_A_HIDDEN + items |
+| `WALL_FR1_B_STATE` | $33fb | 8577-8579 | 1 | 1 | 1 | HD, open door | → 8580 (CHK_ITEM_SR1) | DRAW_DOOR_FR1_A_HIDDEN + items |
 | `WALL_FR1_B_STATE` | $33fb | 8583-8584 | 0 | 0 | X | No HD, no wall | → 8590 (CHK_WALL_FR22) | Check FR22 |
 | `WALL_FR1_B_STATE` | $33fb | 8585-8586 | 0 | 1 | 1 | No HD, open door | → 8579 (DRAW_FR1_B_DOOR_OPEN) | DRAW_DOOR_FR1_A_NORMAL + items |
-| `WALL_FR1_B_STATE` | $33fb | 8585-8587 | 0 | 1 | 0 | No HD, closed door | → 8580 (CHK_ITEM_FR1) | DRAW_WALL_FR1_A + items |
+| `WALL_FR1_B_STATE` | $33fb | 8585-8587 | 0 | 1 | 0 | No HD, closed door | → 8580 (CHK_ITEM_SR1) | DRAW_WALL_FR1_A + items |
 
-**Special Behavior**: FR1_B rendering triggers multiple FR1 item checks (up to 5 calls to CHK_ITEM)
+**Special Behavior**: FR1_B rendering triggers multiple SR1 item checks (up to 5 calls to CHK_ITEM)
 
-**Item Rendering**: Lines 8580-8600 contain 5 CHK_ITEM calls for FR1 position with different parameters
+**Item Rendering**: Lines 8580-8600 contain 5 CHK_ITEM calls for SR1 position with different parameters
 
 **Rendering Functions**:
 - `DRAW_WALL_FR1_A` (line 1853): FR1 front wall section

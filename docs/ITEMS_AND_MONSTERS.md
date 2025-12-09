@@ -352,6 +352,6 @@ Mapping offsets derived from `DIR_FACING` deltas (D/E). These feed into:
 
 **asterion.inc:**
 - Memory address constants: `CHRRAM_ITEM_IDX`, `CHRRAM_MONSTER_IDX`, `COLRAM_*_ITEM_IDX`.
-- Item state slots: `ITEM_F0`, `ITEM_F1`, `ITEM_F2`, `ITEM_FL1`, `ITEM_FR1`, etc.
+- Item state slots: `ITEM_F0`, `ITEM_F1`, `ITEM_F2`, `ITEM_SL1`, `ITEM_SR1`, etc.
 - `ITEM_TABLE` ($3900) – sparse item/monster table base address.
 - `MAP_ITEM_SPACE` ($3902) – item table working space.
