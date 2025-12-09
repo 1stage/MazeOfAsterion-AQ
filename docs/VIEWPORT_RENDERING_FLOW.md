@@ -154,31 +154,33 @@ REDRAW_VIEWPORT uses **conditional front-to-back rendering** with strategic jump
                                             ; ELSE bit 0 = 1:
 8225: DRAW_L2_WALL:
 8226:     CALL    DRAW_WALL_L2              ; Draw L2 wall
-8227:     JP      CHK_WALL_R2_HD            ; → Line 8241 (skip FL2_A, go to R2)
+8227:     JP      CHK_WALL_R2_HD            ; → Line 8241 (skip F2/FL2 gap, go to R2)
 
 8228: CHK_WALL_L2_EXISTS:
 8229:     RRCA                              ; bit 1 → Carry
 8230:     JP      C,DRAW_L2_WALL            ; IF bit 1 = 1 → Line 8225
                                             ; ELSE bit 1 = 0 (no L2 wall):
-           ; Fall through to FL2_A check
+           ; Fall through to F2/FL2 gap check
 ```
 
-#### FL2_A (Front-Left Wall Distance 2, Part A)
+#### F2/FL2 Gap (Gap between F2 center wall and FL2 left wall)
+**Note**: Only rendered when L2 wall is absent. This is NOT the FL2 wall itself.
+
 ```
 8231:     INC     DE                        ; DE = $33ec (WALL_FL2_A_STATE)
-8232:     LD      A,(DE)                    ; A = FL2_A wall state
+8232:     LD      A,(DE)                    ; A = F2/FL2 gap state
 8233:     RRCA                              ; bit 0 → Carry
 8234:     JP      NC,CHK_WALL_FL2_A_EXISTS  ; IF bit 0 = 0 → Line 8238
                                             ; ELSE bit 0 = 1:
 8235: DRAW_FL2_A_WALL:
-8236:     CALL    DRAW_WALL_FL2_A           ; Draw FL2_A wall
+8236:     CALL    DRAW_WALL_F2_FL2_GAP           ; Draw F2/FL2 gap piece
 8237:     JP      CHK_WALL_R2_HD            ; → Line 8241
 
 8238: CHK_WALL_FL2_A_EXISTS:
 8239:     RRCA                              ; bit 1 → Carry
 8240:     JP      C,DRAW_FL2_A_WALL         ; IF bit 1 = 1 → Line 8235
                                             ; ELSE bit 1 = 0:
-           CALL    DRAW_WALL_FL2_A_EMPTY   ; Clear FL2_A area
+           CALL    DRAW_WALL_F2_FL2_GAP_EMPTY   ; Clear F2/FL2 gap area
            ; Fall through to CHK_WALL_R2_HD
 ```
 
