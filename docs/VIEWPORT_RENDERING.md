@@ -710,6 +710,42 @@ Legend: ⬛🟫 Background | ❌ FL22 Cleared Area (4×4 actively wiped with bla
 
 ---
 
+   - **L1 Main Wall (WALL_L1_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_L1` - Draw L1 wall background
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_FL1_DOOR` - Draw hidden door
+         - → Jump to **step 7** (skip FL1_B/FL2 processing)
+       - **Else:** → Jump to **step 7**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_FL1_DOOR` - Draw hidden door
+         - **If door closed:**
+           - `DRAW_L1` - Draw normal door
+         - → Jump to **step 7**
+       - **If no wall:** Continue to FL1_B check
+   - **FL1_B Wall (WALL_FL1_B_STATE):**
+     - **If hidden door (bit 0 set):**
+       - `DRAW_WALL_FL1_B` - Draw FL1 wall part B
+       - **If wall exists AND door open (bits 1,2 set):**
+         - `DRAW_DOOR_FL1_B_HIDDEN` - Draw hidden door
+       - → Jump to **step 7**
+     - **If no hidden door:**
+       - **If wall exists (bit 1 set):**
+         - **If door open (bit 2 set):**
+           - `DRAW_DOOR_FL1_B_HIDDEN` - Draw hidden door
+         - **If door closed:**
+           - `DRAW_DOOR_FL1_B_NORMAL` - Draw normal door
+         - → Jump to **step 7**
+       - **If no wall:** Continue to FL2 check
+   - **FL2 Check (WALL_FL2_STATE):**
+     - **If hidden door OR wall exists (bit 0 OR 1 set):**
+       - `DRAW_WALL_FL2` - Draw FL2 wall
+     - **If no wall:**
+       - `DRAW_WALL_FL2_EMPTY` - Clear FL2 area
+   - Continue to **step 7**
+
 **7. Distance 1 Right Side Walls (lines 8370-8415)**
 
 This section handles the right-side wall rendering at distance 1, including the main R1 wall, the FR1_B back section, and the FR2 wall visible through gaps.
