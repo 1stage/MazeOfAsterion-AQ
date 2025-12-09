@@ -34,13 +34,13 @@ CALL    CHK_ITEM           ; Render item
 | `ITEM_F2` | $37e8 | Item 2 spaces directly ahead |
 | `ITEM_F1` | $37e9 | Item 1 space directly ahead |
 | `ITEM_F0` | $37ea | Item in player's current space |
-| `ITEM_FL1` | $37eb | Item 1 space diagonally ahead-left |
-| `ITEM_FR1` | $37ec | Item 1 space diagonally ahead-right |
-| `ITEM_R1` | $37ed | Item 1 space to the right |
-| `ITEM_L1` | $37ee | Item 1 space to the left |
+| `ITEM_SL1` | $37eb | Item 1 space diagonally ahead-left |
+| `ITEM_SR1` | $37ec | Item 1 space diagonally ahead-right |
+| `ITEM_SR0` | $37ed | Item 1 space to the right |
+| `ITEM_SL0` | $37ee | Item 1 space to the left |
 | `ITEM_B1` | $37ef | Item 1 space behind |
 
-**Note**: Not all item positions are rendered by REDRAW_VIEWPORT (e.g., ITEM_R1, ITEM_L1, ITEM_B1 are not rendered in the 3D viewport).
+**Note**: Not all item positions are rendered by REDRAW_VIEWPORT (e.g., ITEM_SR0, ITEM_SL0, ITEM_B1 are not rendered in the 3D viewport).
 
 ---
 
