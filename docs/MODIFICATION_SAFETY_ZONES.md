@@ -251,9 +251,9 @@ POP  AF
 
 ### 3. Modifying Item Rendering Parameters
 
-**What**: Changing the 5 FL1/FR1 item rendering parameters to add/remove calls
+**What**: Changing the 5 SL1/SR1 item rendering parameters to add/remove calls
 
-**Where**: Lines 8467-8497 (FL1), 8567-8597 (FR1)
+**Where**: Lines 8467-8497 (SL1), 8567-8597 (SR1)
 
 **Current FL1 Rendering** (5 calls):
 ```asm
@@ -272,10 +272,10 @@ POP  AF
 **Risks**:
 - **Visual Gaps**: Removing calls may leave items partially rendered
 - **Overlap**: Adding calls may overwrite walls
-- **Asymmetry**: FL1 and FR1 should match for visual consistency
+- **Asymmetry**: SL1 and SR1 should match for visual consistency
 
 **Testing Required**:
-- Test with items at FL1/FR1 positions
+- Test with items at SL1/SR1 positions
 - Verify all wall configurations (L1 closed, open, no wall)
 - Check visual appearance is balanced
 
@@ -690,7 +690,7 @@ DRAW_CHRCOLS:
 - [ ] L1/R1 walls
 - [ ] L2/R2 walls
 - [ ] FL0/FR0 diagonal walls
-- [ ] FL1/FR1 diagonal walls with items (5 renders each)
+- [ ] SL1/SR1 diagonal walls with items (5 renders each)
 - [ ] FL22/FR22 corner walls
 - [ ] Straight corridor (all distances visible)
 - [ ] T-junction (left/right walls)
@@ -727,7 +727,7 @@ DRAW_CHRCOLS:
 4. **Item Color Variations**: Use different colors for item types
 
 ### MEDIUM Enhancements
-1. **Larger Item Graphics**: Use regular instead of _S for FL1/FR1
+1. **Larger Item Graphics**: Use regular instead of _S for SL1/SR1
 2. **Wall Decorations**: Add small overlays (torches, banners) after walls
 3. **Distance Fog**: Gradually darken far walls (F2, distance-2)
 4. **Door Animations**: Multi-frame door open/close sequences

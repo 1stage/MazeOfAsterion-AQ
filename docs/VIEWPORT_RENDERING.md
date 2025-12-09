@@ -980,7 +980,7 @@ Legend: ⬛🟫 Background | 🟡 S1 Item | 🔴 S1 Monster
 **Brief Summary:**
 - Test WALL_L0_STATE: if wall/door exists, draw L0 → Jump to **step 9b**
 - Test WALL_FL0_STATE: if wall exists, draw FL0 → Jump to **step 9b**
-- Test WALL_FL1_B_STATE: if wall/door exists, draw FL1_A and FL1 item → Jump to **step 9b**
+- Test WALL_FL1_B_STATE: if wall/door exists, draw FL1_A and SL1 item → Jump to **step 9b**
 - Test FL22 flag: if set draw wall, else `DRAW_WALL_FL22_EMPTY` to clear area
 - Continue to **step 9b**
 
@@ -1077,7 +1077,7 @@ Legend: ⬛🟫 Background | 🟦 FL0 Wall
 
 Legend: ⬛🟫 Background | 🟦 FL1_A Wall | 🟩 FL1_A Door
 
-**Visual Representation - FL1 Item/Monster (visible when no L0/FL0):**
+**Visual Representation - SL1 Item/Monster (visible when no L0/FL0):**
 
 ```
 ⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
@@ -1106,7 +1106,7 @@ Legend: ⬛🟫 Background | 🟦 FL1_A Wall | 🟩 FL1_A Door
 ⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
 ```
 
-Legend: ⬛🟫 Background | 🟡 FL1 Item (1×1) | 🟥 FL1 Monster (4×4)
+Legend: ⬛🟫 Background | 🟡 SL1 Item (1×1) | 🟥 SL1 Monster (4×4)
 
 **Visual Representation - FL22 Wall (visible when no L0/FL0/FL1_A):**
 
@@ -1139,7 +1139,7 @@ Legend: ⬛🟫 Background | 🟡 FL1 Item (1×1) | 🟥 FL1 Monster (4×4)
 
 Legend: ⬛🟫 Background | 🟦 FL22 Wall
 
-**Visual Representation - FL1 Item/Monster (visible when no L0/FL0):**
+**Visual Representation - SL1 Item/Monster (visible when no L0/FL0):**
 
 ```
 ⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
@@ -1168,7 +1168,7 @@ Legend: ⬛🟫 Background | 🟦 FL22 Wall
 ⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
 ```
 
-Legend: ⬛🟫 Background | 🟡 FL1 Item (1×1) | 🟥 FL1 Monster (4×4)
+Legend: ⬛🟫 Background | 🟡 SL1 Item (1×1) | 🟥 SL1 Monster (4×4)
 
 **Note**:
 - **L0** is the main left wall at distance 0 (columns 0-3, rows 4-18, 15 rows tall)
@@ -1185,7 +1185,7 @@ Legend: ⬛🟫 Background | 🟡 FL1 Item (1×1) | 🟥 FL1 Monster (4×4)
 **Brief Summary:**
 - Test WALL_R0_STATE: if wall/door exists (hidden/normal), draw R0 with appropriate door → Jump to **step 10**
 - Test WALL_FR0_STATE: if wall exists, draw FR0 → Jump to **step 10**
-- Test WALL_FR1_A_STATE: if wall/door exists, draw FR1_A and FR1 item → Jump to **step 10**
+- Test WALL_FR1_A_STATE: if wall/door exists, draw FR1_A and SR1 item → Jump to **step 10**
 - Test FR22 flag: if set draw wall, else `DRAW_WALL_FR22_EMPTY` to clear area
 - Continue to **step 10**
 
@@ -1313,7 +1313,7 @@ Legend: ⬛🟫 Background | 🟦 FR1_B Wall | 🟩 FR1_B Door
 
 Legend: ⬛🟫 Background | 🟦 FR22 Wall
 
-**Visual Representation - FR1 Item/Monster (visible when no R0/FR0):**
+**Visual Representation - SR1 Item/Monster (visible when no R0/FR0):**
 
 ```
 ⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
@@ -1342,7 +1342,7 @@ Legend: ⬛🟫 Background | 🟦 FR22 Wall
 ⬛⬛⬛⬛⬛⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛⬛⬛⬛⬛⬛
 ```
 
-Legend: ⬛🟫 Background | 🟡 FR1 Item (1×1) | 🟥 FR1 Monster (4×4)
+Legend: ⬛🟫 Background | 🟡 SR1 Item (1×1) | 🟥 SR1 Monster (4×4)
 
 **Note:**
 - **R0** is the main right wall at distance 0 (columns 20-23, rows 4-18, 15 rows tall)
@@ -1406,7 +1406,7 @@ Legend: ⬛🟫 Background | 🟡 S0 Item
 - **Conditional depth testing**: F0 → F1 → F2 sequence ONLY progresses if previous position is empty
 - **Jump-based occlusion**: When F0/F1 has a wall with door, rendering jumps forward, skipping intermediate depths
 - **Half-wall interleaving**: FL/FR half-walls split across multiple distance sections (A/B parts)
-- **Items rendered strategically**: FL1/FR1 items can render multiple times depending on wall configuration
+- **Items rendered strategically**: SL1/SR1 items can render multiple times depending on wall configuration
 - **EMPTY functions**: Clear occluded areas that would otherwise show ghost walls
 
 **This is NOT painter's algorithm** because traditional painter's algorithm renders back-to-front with overdraw. This system uses front-to-back conditional rendering with strategic jumps for occlusion.

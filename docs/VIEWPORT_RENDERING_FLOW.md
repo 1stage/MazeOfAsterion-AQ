@@ -481,7 +481,7 @@ REDRAW_VIEWPORT uses **conditional front-to-back rendering** with strategic jump
                                             ; ELSE bit 0 = 1 (hidden door):
 8465:     EX      AF,AF'                    ; Save
 8466:     CALL    DRAW_WALL_FL1_A           ; Draw FL1 wall part A
-8467:     CALL    CHK_ITEM_FL1              ; *** Draw FL1 item (1st time)
+8467:     CALL    CHK_ITEM_SL1              ; *** Draw SL1 item (1st time)
 8468:     EX      AF,AF'                    ; Restore
 8469:     RRCA                              ; bit 1 → Carry
 8470:     JP      NC,CHK_WALL_R0            ; IF bit 1 = 0 → Line 8527
@@ -491,7 +491,7 @@ REDRAW_VIEWPORT uses **conditional front-to-back rendering** with strategic jump
                                             ; ELSE bit 2 = 1 (open):
 8473: DRAW_FL1_A_HD:
 8474:     CALL    DRAW_DOOR_L1_HIDDEN       ; Draw hidden door on L1
-8475:     CALL    CHK_ITEM_FL1              ; *** Draw FL1 item (2nd time)
+8475:     CALL    CHK_ITEM_SL1              ; *** Draw SL1 item (2nd time)
            JP      CHK_WALL_R0               ; → Line 8527
 
 8476: CHK_FL1_A_NO_HD:
@@ -502,7 +502,7 @@ REDRAW_VIEWPORT uses **conditional front-to-back rendering** with strategic jump
 8480:     JP      C,DRAW_FL1_A_HD           ; IF bit 2 = 1 → Line 8473
                                             ; ELSE bit 2 = 0:
 8481:     CALL    DRAW_DOOR_L1_NORMAL       ; Draw normal door
-8482:     CALL    CHK_ITEM_FL1              ; *** Draw FL1 item (3rd time)
+8482:     CALL    CHK_ITEM_SL1              ; *** Draw SL1 item (3rd time)
 8483:     JP      CHK_WALL_R0               ; → Line 8527
 ```
 
@@ -515,7 +515,7 @@ REDRAW_VIEWPORT uses **conditional front-to-back rendering** with strategic jump
                                             ; ELSE bit 1 = 1:
 8490: DRAW_FL1_B_WALL:
 8491:     CALL    DRAW_WALL_L1_SIMPLE       ; Draw simple wall
-8492:     CALL    CHK_ITEM_FL1              ; *** Draw FL1 item (4th time)
+8492:     CALL    CHK_ITEM_SL1              ; *** Draw SL1 item (4th time)
            JP      CHK_WALL_R0               ; → Line 8527
 
 8493: CHK_FL22_EXISTS:
@@ -523,18 +523,18 @@ REDRAW_VIEWPORT uses **conditional front-to-back rendering** with strategic jump
 8495:     JP      C,DRAW_FL1_B_WALL         ; IF bit 2 = 1 → Line 8490
                                             ; ELSE bit 2 = 0:
 8496:     CALL    DRAW_WALL_FL22_EMPTY      ; Clear FL22 area
-8497:     CALL    CHK_ITEM_FL1              ; *** Draw FL1 item (5th time)
+8497:     CALL    CHK_ITEM_SL1              ; *** Draw SL1 item (5th time)
            ; Fall through to CHK_WALL_R0
 ```
 
-**CRITICAL FINDING**: CHK_ITEM_FL1 can be called up to **5 times** depending on wall configuration! This is intentional for layering.
+**CRITICAL FINDING**: CHK_ITEM_SL1 can be called up to **5 times** depending on wall configuration! This is intentional for layering.
 
-#### CHK_ITEM_FL1 Helper (Lines 8498-8501)
+#### CHK_ITEM_SL1 Helper (Lines 8498-8501)
 ```
-8498: CHK_ITEM_FL1:
-8499:     LD      A,(ITEM_FL1)              ; A = item code at FL1 ($37eb)
-8500:     LD      BC,$4d0                   ; BC = FL1 distance/size parameters
-8501:     JP      CHK_ITEM                  ; Render FL1 item if present
+8498: CHK_ITEM_SL1:
+8499:     LD      A,(ITEM_SL1)              ; A = item code at SL1 ($37eb)
+8500:     LD      BC,$4d0                   ; BC = SL1 distance/size parameters
+8501:     JP      CHK_ITEM                  ; Render SL1 item if present
 ```
 
 ---
@@ -601,7 +601,7 @@ REDRAW_VIEWPORT uses **conditional front-to-back rendering** with strategic jump
                                             ; ELSE bit 0 = 1 (hidden door):
 8565:     EX      AF,AF'                    ; Save
 8566:     CALL    DRAW_WALL_FR1_B           ; Draw FR1 back wall
-8567:     CALL    CHK_ITEM_FR1              ; *** Draw FR1 item (1st time)
+8567:     CALL    CHK_ITEM_SR1              ; *** Draw SR1 item (1st time)
 8568:     EX      AF,AF'                    ; Restore
 8569:     RRCA                              ; bit 1 → Carry
 8570:     JP      NC,CHK_ITEM_F0            ; IF bit 1 = 0 → Line 8620
@@ -611,7 +611,7 @@ REDRAW_VIEWPORT uses **conditional front-to-back rendering** with strategic jump
                                             ; ELSE bit 2 = 1 (open):
 8573: DRAW_FR1_B_HD:
 8574:     CALL    DRAW_DOOR_FR1_B_HIDDEN    ; Draw hidden door on FR1 back
-8575:     CALL    CHK_ITEM_FR1              ; *** Draw FR1 item (2nd time)
+8575:     CALL    CHK_ITEM_SR1              ; *** Draw SR1 item (2nd time)
            JP      CHK_ITEM_F0               ; → Line 8620
 
 8576: CHK_FR1_B_NO_HD:
@@ -622,7 +622,7 @@ REDRAW_VIEWPORT uses **conditional front-to-back rendering** with strategic jump
 8580:     JP      C,DRAW_FR1_B_HD           ; IF bit 2 = 1 → Line 8573
                                             ; ELSE bit 2 = 0:
 8581:     CALL    DRAW_DOOR_FR1_B_NORMAL    ; Draw normal door on FR1 back
-8582:     CALL    CHK_ITEM_FR1              ; *** Draw FR1 item (3rd time)
+8582:     CALL    CHK_ITEM_SR1              ; *** Draw SR1 item (3rd time)
 8583:     JP      CHK_ITEM_F0               ; → Line 8620
 ```
 
@@ -635,7 +635,7 @@ REDRAW_VIEWPORT uses **conditional front-to-back rendering** with strategic jump
                                             ; ELSE bit 1 = 1:
 8590: DRAW_FR1_B_WALL:
 8591:     CALL    DRAW_WALL_R1_SIMPLE       ; Draw simple wall
-8592:     CALL    CHK_ITEM_FR1              ; *** Draw FR1 item (4th time)
+8592:     CALL    CHK_ITEM_SR1              ; *** Draw SR1 item (4th time)
            JP      CHK_ITEM_F0               ; → Line 8620
 
 8593: CHK_FR22_EXISTS:
@@ -643,18 +643,18 @@ REDRAW_VIEWPORT uses **conditional front-to-back rendering** with strategic jump
 8595:     JP      C,DRAW_FR1_B_WALL         ; IF bit 2 = 1 → Line 8590
                                             ; ELSE bit 2 = 0:
 8596:     CALL    DRAW_WALL_FR22_EMPTY      ; Clear FR22 area
-8597:     CALL    CHK_ITEM_FR1              ; *** Draw FR1 item (5th time)
+8597:     CALL    CHK_ITEM_SR1              ; *** Draw SR1 item (5th time)
            ; Fall through to CHK_ITEM_F0
 ```
 
-**CRITICAL FINDING**: CHK_ITEM_FR1 can also be called up to **5 times**, mirroring FL1 behavior.
+**CRITICAL FINDING**: CHK_ITEM_SR1 can also be called up to **5 times**, mirroring SL1 behavior.
 
-#### CHK_ITEM_FR1 Helper (Lines 8598-8601)
+#### CHK_ITEM_SR1 Helper (Lines 8598-8601)
 ```
-8598: CHK_ITEM_FR1:
-8599:     LD      A,(ITEM_FR1)              ; A = item code at FR1 ($37ec)
-8600:     LD      BC,$4e4                   ; BC = FR1 distance/size parameters
-8601:     JP      CHK_ITEM                  ; Render FR1 item if present
+8598: CHK_ITEM_SR1:
+8599:     LD      A,(ITEM_SR1)              ; A = item code at SR1 ($37ec)
+8600:     LD      BC,$4e4                   ; BC = SR1 distance/size parameters
+8601:     JP      CHK_ITEM                  ; Render SR1 item if present
 ```
 
 ---
@@ -701,8 +701,8 @@ REDRAW_VIEWPORT uses **conditional front-to-back rendering** with strategic jump
 
 Certain items render multiple times intentionally:
 
-- **FL1 item**: Up to 5 times (lines 8467, 8475, 8482, 8492, 8497)
-- **FR1 item**: Up to 5 times (lines 8567, 8575, 8582, 8592, 8597)
+- **SL1 item**: Up to 5 times (lines 8467, 8475, 8482, 8492, 8497)
+- **SR1 item**: Up to 5 times (lines 8567, 8575, 8582, 8592, 8597)
 - **F2 item**: Once (line 8304)
 - **F1 item**: Once (line 8424)
 - **F0 item**: Once (line 8623)
@@ -720,8 +720,8 @@ The actual rendering order is **CONDITIONAL** based on wall states:
 6. L1 → FL1_B → FL2_B (EMPTY variants)
 7. R1 → FR1_A → FR2_B (EMPTY variants)
 8. F1 item
-9. L0 → FL0 → FL1_B → FL22 (EMPTY variants + FL1 items)
-10. R0 → FR0 → FR1_B → FR22 (EMPTY variants + FR1 items)
+9. L0 → FL0 → FL1_B → FL22 (EMPTY variants + SL1 items)
+10. R0 → FR0 → FR1_B → FR22 (EMPTY variants + SR1 items)
 11. F0 item
 
 **Worst Case (F0 solid wall)**:

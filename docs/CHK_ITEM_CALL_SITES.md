@@ -68,11 +68,11 @@ CALL    CHK_ITEM           ; Render item
 
 ---
 
-### 2. FL1 Item (Distance 1, Diagonal Left-Forward)
+### 2. SL1 Item (Distance 1, Diagonal Left-Forward)
 
 **Lines**: 8467, 8475, 8482, 8492, 8497  
-**Helper**: `CHK_ITEM_FL1` (lines 8498-8501)  
-**Item Code**: `(ITEM_FL1)` = $37eb  
+**Helper**: `CHK_ITEM_SL1` (lines 8498-8501)  
+**Item Code**: `(ITEM_SL1)` = $37eb  
 **Parameters**: `BC = $4d0`  
 **Graphics**: Small variant (_S suffix)
 
@@ -131,11 +131,11 @@ CALL    CHK_ITEM           ; Render item
 
 ---
 
-### 4. FR1 Item (Distance 1, Diagonal Right-Forward)
+### 4. SR1 Item (Distance 1, Diagonal Right-Forward)
 
 **Lines**: 8567, 8575, 8582, 8592, 8597  
-**Helper**: `CHK_ITEM_FR1` (lines 8598-8601)  
-**Item Code**: `(ITEM_FR1)` = $37ec  
+**Helper**: `CHK_ITEM_SR1` (lines 8598-8601)  
+**Item Code**: `(ITEM_SR1)` = $37ec  
 **Parameters**: `BC = $4e4`  
 **Graphics**: Small variant (_S suffix)
 
@@ -195,9 +195,9 @@ CALL    CHK_ITEM           ; Render item
 | Item | Calls | Parameters | Graphics | First Call Line | Helper Function |
 |------|-------|------------|----------|----------------|-----------------|
 | F2   | 1     | $48a       | _T (tiny)| 8304           | None            |
-| FL1  | 1-5   | $4d0       | _S (small)| 8467          | CHK_ITEM_FL1    |
+| SL1  | 1-5   | $4d0       | _S (small)| 8467          | CHK_ITEM_SL1    |
 | F1   | 1     | $28a       | _S (small)| 8424          | None            |
-| FR1  | 1-5   | $4e4       | _S (small)| 8567          | CHK_ITEM_FR1    |
+| SR1  | 1-5   | $4e4       | _S (small)| 8567          | CHK_ITEM_SR1    |
 | F0   | 1     | $8a        | Regular  | 8623           | None            |
 
 **Total CHK_ITEM calls per frame**: 5 to 13 (depending on wall configuration)
@@ -215,16 +215,16 @@ Best Case (All Walls Empty):
 11-14. L1, FL1, R1, FR1 walls (empty)
  15. → CHK_ITEM(F1) ← Item renders on empty background
 16-19. L0, FL0, R0, FR0 walls (empty)
-20-24. FL1 checks (may call CHK_ITEM_FL1 up to 5 times)
-25-29. FR1 checks (may call CHK_ITEM_FR1 up to 5 times)
+20-24. SL1 checks (may call CHK_ITEM_SL1 up to 5 times)
+25-29. SR1 checks (may call CHK_ITEM_SR1 up to 5 times)
  30. → CHK_ITEM(F0) ← Final item render
 
 Worst Case (F0 Solid Wall):
   1. Background
   2. F0 wall
   3-6. Skip to L0/R0 side walls
-  7-11. L0 side processing (FL1 items may render)
- 12-16. R0 side processing (FR1 items may render)
+  7-11. L0 side processing (SL1 items may render)
+ 12-16. R0 side processing (SR1 items may render)
   17. → CHK_ITEM(F0) ← Only F0 item visible
 ```
 
@@ -233,17 +233,17 @@ Worst Case (F0 Solid Wall):
 ## Critical Insights
 
 ### 1. Multiple Rendering is Intentional
-FL1 and FR1 items can render up to 5 times because they need to appear on top of different wall layers. Each rendering ensures the item is visible regardless of which walls are drawn.
+SL1 and SR1 items can render up to 5 times because they need to appear on top of different wall layers. Each rendering ensures the item is visible regardless of which walls are drawn.
 
 ### 2. Distance-Based Graphics Selection
 The BC parameter determines which graphics variant is used:
 - `$8a` (F0) → Regular 4×4 graphics
 - `$28a` (F1) → _S small variant (usually 2×2)
-- `$4d0`, `$4e4` (FL1, FR1) → _S small variant
+- `$4d0`, `$4e4` (SL1, SR1) → _S small variant
 - `$48a` (F2) → _T tiny variant (usually 1×1)
 
 ### 3. Occlusion Affects Item Visibility
-When F0 has a closed wall, F2 and F1 items are NEVER rendered because those code paths are skipped entirely. Only F0, FL1, and FR1 items can appear.
+When F0 has a closed wall, F2 and F1 items are NEVER rendered because those code paths are skipped entirely. Only F0, SL1, and SR1 items can appear.
 
 ### 4. Item Rendering Always Happens Last
 Items are rendered AFTER their associated wall layers, ensuring they appear on top of walls, never behind them.
