@@ -2248,7 +2248,7 @@ DRAW_WALL_F2_FR2_GAP:
     JP          DRAW_CHRCOLS                        ; Fill bottom edge
 
 ;==============================================================================
-; DRAW_WALL_FR2_A_EMPTY
+; DRAW_WALL_F2_FR2_GAP_EMPTY
 ;==============================================================================
 ; Draws FR2 left open/empty section - black 2x4 rectangle for empty corridor.
 ;
@@ -2265,7 +2265,7 @@ DRAW_WALL_F2_FR2_GAP:
 ; Memory Modified: COLRAM at FR2 left position (2x4)
 ; Calls: Jumps to FILL_CHRCOL_RECT
 ;==============================================================================
-DRAW_WALL_FR2_A_EMPTY:
+DRAW_WALL_F2_FR2_GAP_EMPTY:
     LD          HL,COLRAM_F2_FR2_GAP             ; Gap between F2 and FR2
     LD          BC,RECT(2,4)                        ; 2 x 4 rectangle
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)

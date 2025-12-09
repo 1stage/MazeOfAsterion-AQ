@@ -8310,7 +8310,7 @@ DRAW_FR2_A_WALL:
 CHK_WALL_FR2_A_EXISTS:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          C,DRAW_FR2_A_WALL                   ; If wall exists, draw it
-    CALL        DRAW_WALL_FR2_A_EMPTY               ; Draw empty R2 right space
+    CALL        DRAW_WALL_F2_FR2_GAP_EMPTY               ; Draw empty R2 right space
 CHK_ITEM_S2:
     LD          A,(ITEM_S2)                         ; Load sprite at S2 position
     LD          BC,$48a                             ; BC = distance/size parameters
