@@ -41,7 +41,7 @@ A new line is listed for every 4-value group. The Compare column shows the value
 | `68–6B`    | `1A`    | Mage Potion     | RED, YEL, MAG, WHT     | Spirit stat effect. |
 | `6C–6F`    | `1B`    | Map             | RED, YEL, MAG, WHT     | Sets HAVE MAP; colors show in UI. |
 | `70–73`    | `1C`    | Chaos Potion    | RED, YEL, MAG, WHT     | Special effects cluster. |
-| `DE–DF`    | `37`    | Map (hi-tier)   | PUR, WHT               | Also treated as maps in logic. |
+| `DE–DF`    | `37`    | Map (hi-tier)   | MAG, WHT               | Also treated as maps in logic. |
 
 Notes:
 - Post-shift compares seen in logic map CHEST→`$11`, KEY→`$16`, PHYS POTION→`$19`, SPRT POTION→`$1A`, CHAOS POTION→`$1C` after removing color bits.
@@ -73,7 +73,7 @@ Verified from pointer ordering (`asterion_gfx_pointers.asm`) and combat initiali
 ### Snakes
 
 | Code | Compare | Monster | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|---------|-------|------------|---------|---------|----------|
+|------|---------|---------|-------|------------|---------|---------|
 | `7C` | `1F`    | Snake   | RED   | 3          | 1       | 01      |
 | `7D` | `1F`    | Snake   | YEL   | 6          | 1       | 01      |
 | `7E` | `1F`    | Snake   | MAG   | 9          | 1       | 01      |
@@ -82,7 +82,7 @@ Verified from pointer ordering (`asterion_gfx_pointers.asm`) and combat initiali
 ### Spiders
 
 | Code | Compare | Monster | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|---------|-------|------------|---------|---------|----------|
+|------|---------|---------|-------|------------|---------|---------|
 | `80` | `20`    | Spider  | RED   | 4          | 0       | 02      |
 | `81` | `20`    | Spider  | YEL   | 8          | 0       | 02      |
 | `82` | `20`    | Spider  | MAG   | 12         | 0       | 02      |
@@ -91,7 +91,7 @@ Verified from pointer ordering (`asterion_gfx_pointers.asm`) and combat initiali
 ### Mimics
 
 | Code | Compare | Monster | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|---------|-------|------------|---------|---------|----------|
+|------|---------|---------|-------|------------|---------|---------|
 | `84` | `21`    | Mimic   | RED   | 5          | 2       | 03      |
 | `85` | `21`    | Mimic   | YEL   | 10         | 2       | 03      |
 | `86` | `21`    | Mimic   | MAG   | 15         | 2       | 03      |
@@ -100,7 +100,7 @@ Verified from pointer ordering (`asterion_gfx_pointers.asm`) and combat initiali
 ### Malocchi
 
 | Code | Compare | Monster   | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|-----------|-------|------------|---------|---------|----------|
+|------|---------|-----------|-------|------------|---------|---------|
 | `88` | `22`    | Malocchio | RED   | 3          | 3       | 02      |
 | `89` | `22`    | Malocchio | YEL   | 6          | 3       | 02      |
 | `8A` | `22`    | Malocchio | MAG   | 9          | 3       | 02      |
@@ -109,7 +109,7 @@ Verified from pointer ordering (`asterion_gfx_pointers.asm`) and combat initiali
 ### Dragons
 
 | Code | Compare | Monster | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|---------|-------|------------|---------|---------|----------|
+|------|---------|---------|-------|------------|---------|---------|
 | `8C` | `23`    | Dragon  | RED   | 8          | 4       | 05      |
 | `8D` | `23`    | Dragon  | YEL   | 16         | 4       | 05      |
 | `8E` | `23`    | Dragon  | MAG   | 24         | 4       | 05      |
@@ -118,7 +118,7 @@ Verified from pointer ordering (`asterion_gfx_pointers.asm`) and combat initiali
 ### Mummies
 
 | Code | Compare | Monster | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|---------|-------|------------|---------|---------|----------|
+|------|---------|---------|-------|------------|---------|---------|
 | `90` | `24`    | Mummy   | RED   | 6          | 2       | 04      |
 | `91` | `24`    | Mummy   | YEL   | 12         | 2       | 04      |
 | `92` | `24`    | Mummy   | MAG   | 18         | 2       | 04      |
@@ -127,7 +127,7 @@ Verified from pointer ordering (`asterion_gfx_pointers.asm`) and combat initiali
 ### Necromancers
 
 | Code | Compare | Monster     | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|-------------|-------|------------|---------|---------|----------|
+|------|---------|-------------|-------|------------|---------|---------|
 | `94` | `25`    | Necromancer | RED   | 19         | 5       | 05      |
 | `95` | `25`    | Necromancer | YEL   | 38         | 5       | 05      |
 | `96` | `25`    | Necromancer | MAG   | 57         | 5       | 05      |
@@ -136,7 +136,7 @@ Verified from pointer ordering (`asterion_gfx_pointers.asm`) and combat initiali
 ### Gryphons
 
 | Code | Compare | Monster | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|---------|-------|------------|---------|---------|----------|
+|------|---------|---------|-------|------------|---------|---------|
 | `98` | `26`    | Gryphon | RED   | 4          | 4       | 05      |
 | `99` | `26`    | Gryphon | YEL   | 8          | 4       | 05      |
 | `9A` | `26`    | Gryphon | MAG   | 12         | 4       | 05      |
@@ -145,7 +145,7 @@ Verified from pointer ordering (`asterion_gfx_pointers.asm`) and combat initiali
 ### Minotaur (Boss)
 
 | Code | Compare | Monster  | Color | Attack Dmg | SPRT HP | PHYS HP |
-|------|---------|----------|-------|------------|---------|---------|----------|
+|------|---------|----------|-------|------------|---------|---------|
 | `9F` | `27`    | Minotaur | WHT   | 17 (special) | 4     | 05      |
 
 - ITEM_DRAW renders monsters via the same path; forward movement is blocked when `ITEM_F1 + 2 >= $7A`, which is equivalent to original code `>= $78` (Skeleton RED and all higher).
@@ -153,7 +153,7 @@ Verified from pointer ordering (`asterion_gfx_pointers.asm`) and combat initiali
 - **Minotaur Special Calculation (CHK_FOR_MINOTAUR, line 6220):**
   - Base damage: $11 (17 BCD), base HP: $405 (4 SPRT, 5 PHYS)
   - Special player-stat-based HP boost calculation using alternate registers
-  - Sprite selection based on player survivability: $24 (physical/red) if player would survive, $3C (spiritual/purple) if mercy needed
+  - Sprite selection based on player survivability: $24 (physical/red) if player would survive, $3C (spiritual/magenta) if mercy needed
   - Attack damage shown (17) is base before level multiplication - actual damage calculated via CALC_WEAPON_VALUE
 - HP values shown are **base values before randomization**. Actual HP at spawn = base - random(0-7) for each component independently.
 - Attack damage values shown are **after level multiplication** (RED=×1, YEL=×2, MAG=×3, WHT=×4) but before randomization and dungeon bonus.

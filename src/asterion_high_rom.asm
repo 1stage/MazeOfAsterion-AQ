@@ -564,7 +564,7 @@ SOUND_DELAY_LOOP:
 ; Displays the dungeon mini-map overlay when the player uses the map item.
 ; Checks if the map is owned and available, then draws a 24x24 character area
 ; showing walls, player position, and optionally ladders/monsters/items based
-; on the map's quality level (red=basic, yellow=+ladder, purple=+monsters,
+; on the map's quality level (red=basic, yellow=+ladder, magenta=+monsters,
 ; white=+items).
 ;
 ; Registers:
@@ -582,7 +582,7 @@ SOUND_DELAY_LOOP:
 ;   Viewport restored after map closed
 ;
 ; Memory Modified: CHRRAM_VIEWPORT_IDX, COLRAM_VIEWPORT_IDX
-; Calls: FILL_CHRCOL_RECT, SOUND_03, DRAW_RED/YELLOW/PURPLE/WHITE_MAP, UPDATE_VIEWPORT
+; Calls: FILL_CHRCOL_RECT, SOUND_03, DRAW_RED/YELLOW/MAGENTA/WHITE_MAP, UPDATE_VIEWPORT
 ;==============================================================================
 USE_MAP:
     LD          A,(GAME_BOOLEANS)                   ; Load game state flags
@@ -612,7 +612,7 @@ USE_MAP:
     JP          Z,DRAW_RED_MAP                      ; Draw basic walls and player only
     DEC         B                                   ; Test for level 2 (yellow map)
     JP          Z,DRAW_YELLOW_MAP                   ; Draw walls, player, and ladder
-    DEC         B                                   ; Test for level 3 (purple map)
+    DEC         B                                   ; Test for level 3 (magenta map)
     JP          Z,DRAW_PURPLE_MAP                   ; Draw walls, player, ladder, and monsters
 
 ;==============================================================================
@@ -2732,8 +2732,8 @@ CHECK_MAP_NECKLACE_CHARMS:
     JP          Z,PROCESS_MAP                       ; If red map, process map pickup
     CP          $6d                                 ; Compare to YELLOW MAP (item code $6D)
     JP          Z,PROCESS_MAP                       ; If yellow map, process map pickup
-    CP          $de                                 ; Compare to PURPLE MAP (item code $DE)
-    JP          Z,PROCESS_MAP                       ; If purple map, process map pickup
+    CP          $de                                 ; Compare to MAGENTA MAP (item code $DE)
+    JP          Z,PROCESS_MAP                       ; If magenta map, process map pickup
     CP          $df                                 ; Compare to WHITE MAP (item code $DF)
     JP          Z,PROCESS_MAP                       ; If white map, process map pickup
     CP          $5c                                 ; Compare to WHITE KEY (item code $5C)
@@ -4723,7 +4723,7 @@ DO_USE_ATTACK:
 ; Handles large chaos potion consumption. Routes to color-specific effects:
 ; - Red (level 0): Full heal (phys + sprt)
 ; - Yellow (level 1): +10 phys health
-; - Purple (level 2): +6 sprt health
+; - Magenta (level 2): +6 sprt health
 ; - White (level 3): Random effect (4 possibilities)
 ;
 ; Registers:
@@ -4885,7 +4885,7 @@ TOTAL_HEAL:
 ;==============================================================================
 YEL_CHAOS_CHK:
     DEC         B                                   ; Decrement level (B=0 for yellow large)
-    JP          NZ,MAG_CHAOS_CHK                    ; If not zero, check purple
+    JP          NZ,MAG_CHAOS_CHK                    ; If not zero, check magenta
     LD          BC,$10                              ; BC = 10 physical health increase
     LD          E,0x0                               ; E = 0 spiritual health increase
 
@@ -4911,22 +4911,22 @@ PROCESS_CHAOS_POTION:
     JP          PROCESS_POTION_UPDATES              ; Continue with updates
 
 ;==============================================================================
-; MAG_CHAOS_CHK - Process purple large potion (+6 sprt health)
+; MAG_CHAOS_CHK - Process magenta large potion (+6 sprt health)
 ;==============================================================================
-; Handles purple chaos potion (level 2) which grants +6 spiritual health.
+; Handles magenta chaos potion (level 2) which grants +6 spiritual health.
 ; Jumps to PROCESS_CHAOS_POTION with BC=0, E=$06.
 ;
 ; Registers:
 ; --- Start ---
-;   B  = 0 after second DEC (purple level)
+;   B  = 0 after second DEC (magenta level)
 ; ---  End  ---
 ;   BC = 0, E = $06
 ;
 ; Memory Modified: None directly (PROCESS_CHAOS_POTION handles updates)
-; Calls: WHT_CHAOS_CHK (if not purple), PROCESS_CHAOS_POTION (jump)
+; Calls: WHT_CHAOS_CHK (if not magenta), PROCESS_CHAOS_POTION (jump)
 ;==============================================================================
 MAG_CHAOS_CHK:
-    DEC         B                                   ; Decrement level (B=0 for purple large)
+    DEC         B                                   ; Decrement level (B=0 for magenta large)
     JP          NZ,WHT_CHAOS_CHK                    ; If not zero, check white
     LD          BC,0x0                              ; BC = 0 physical health increase
     LD          E,0x6                               ; E = 6 spiritual health increase
@@ -5326,7 +5326,7 @@ PLAYER_DIES:
 ; Color Mapping:
 ; Level 0 (red) → Color 1
 ; Level 1 (yellow) → Color 2
-; Level 2 (purple) → Color 3
+; Level 2 (magenta) → Color 3
 ; Level 3 (white) → Color 4
 ;
 ; Registers:
@@ -5364,7 +5364,7 @@ DO_USE_PHYS_POTION:
 ; Color Mapping:
 ; Level 0 (red) → Color 1
 ; Level 1 (yellow) → Color 2
-; Level 2 (purple) → Color 3
+; Level 2 (magenta) → Color 3
 ; Level 3 (white) → Color 4
 ;
 ; Registers:
@@ -6134,7 +6134,7 @@ CALC_MONSTER_HP:
 ;==============================================================================
 ; Tests if the current monster type code matches Skeleton ($1E). If match,
 ; sets Skeleton-specific stats: base damage 7, HP 3/4 (SPRT/PHYS BCD),
-; spiritual sprite type (purple), then seeds HP/attack values.
+; spiritual sprite type (magenta), then seeds HP/attack values.
 ;
 ; Registers:
 ; --- Start ---
@@ -6155,7 +6155,7 @@ CHK_FOR_SKELETON:
     JP          NZ,CHK_FOR_SNAKE                    ; If not $1E, check next monster
     LD          D,0x7                               ; Skeleton: base damage = 7
     LD          HL,$304                             ; Skeleton: HP = 3 SPRT, 4 PHYS (BCD)
-    LD          A,$3c                               ; Sprite base = $3C (spiritual/purple)
+    LD          A,$3c                               ; Sprite base = $3C (spiritual/magenta)
     ADD         A,B                                 ; Add level (0-3) for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
@@ -6164,7 +6164,7 @@ CHK_FOR_SNAKE:
     JP          NZ,CHK_FOR_SPIDER                   ; If not $1F, check next
     LD          D,0x3                               ; Snake: base damage = 3
     LD          HL,$101                             ; Snake: HP = 1 SPRT, 1 PHYS (BCD)
-    LD          A,$3c                               ; Sprite base = $3C (spiritual/purple)
+    LD          A,$3c                               ; Sprite base = $3C (spiritual/magenta)
     ADD         A,B                                 ; Add level (0-3) for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
@@ -6182,7 +6182,7 @@ CHK_FOR_MIMIC:
     JP          NZ,CHK_FOR_MALOCCHIO                ; If not $21, check next
     LD          D,0x5                               ; Mimic: base damage = 5
     LD          HL,$203                             ; Mimic: HP = 2 SPRT, 3 PHYS (BCD)
-    LD          A,$3c                               ; Sprite base = $3C (spiritual/purple)
+    LD          A,$3c                               ; Sprite base = $3C (spiritual/magenta)
     ADD         A,B                                 ; Add level (0-3) for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
@@ -6209,7 +6209,7 @@ CHK_FOR_MUMMY:
     JP          NZ,CHK_FOR_NECROMANCER              ; If not $24, check next
     LD          D,0x6                               ; Mummy: base damage = 6
     LD          HL,$204                             ; Mummy: HP = 2 SPRT, 4 PHYS (BCD)
-    LD          A,$3c                               ; Sprite base = $3C (spiritual/purple)
+    LD          A,$3c                               ; Sprite base = $3C (spiritual/magenta)
     ADD         A,B                                 ; Add level (0-3) for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
@@ -6227,7 +6227,7 @@ CHK_FOR_GRYPHON:
     JP          NZ,CHK_FOR_MINOTAUR                 ; If not $26, must be Minotaur
     LD          D,0x4                               ; Gryphon: base damage = 4
     LD          HL,$405                             ; Gryphon: HP = 4 SPRT, 5 PHYS (BCD)
-    LD          A,$3c                               ; Sprite base = $3C (spiritual/purple)
+    LD          A,$3c                               ; Sprite base = $3C (spiritual/magenta)
     ADD         A,B                                 ; Add level (0-3) for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
@@ -6252,7 +6252,7 @@ MINOTAUR_SET_SPRITE:
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 MINOTAUR_MERCY_SPRITE:
-    LD          A,$3c                               ; Player would die: spiritual sprite (purple/easier)
+    LD          A,$3c                               ; Player would die: spiritual sprite (magenta/easier)
     JP          MINOTAUR_SET_SPRITE                 ; Jump to set sprite
 INVALID_MONSTER_CODE:
     JP          NO_ACTION_TAKEN                     ; Invalid code, take no action
