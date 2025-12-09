@@ -33,6 +33,7 @@ MazeOfAsterion-AQ is a character-based first-person dungeon crawler for the Aqua
     - Review section of code related to the label, including CALL or JP references to it
     - Make a brief recommendation of the updated label to the user, ensuring first that the recommended replacement does not conflict with other labels in code files in the src folder
     - When instructed to do so (and not before), perform the requested label change, ensuring that all references are updated
+    - **Use whole-word search and replace** (regex word boundaries `\b` or equivalent) to prevent partial matches and unintended substitutions
     - Summarize and cite all lines of code changed in all files, ensuring that duplicate labels have not been created and that labels have not inadvertently merged disparate sections of code
 
 - **Graphics:**
