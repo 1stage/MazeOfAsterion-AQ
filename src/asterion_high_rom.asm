@@ -3504,7 +3504,7 @@ REVERSE_ROTATE_LOOP:
 ; --- In Process ---
 ;   A  = State/flag bytes, comparisons, randomness
 ;   B  = Loop/selector for direction cases (4 -> back/left/right/forward)
-;   HL = Points to MASTER_TICK_TIMER or item lists (ITEM_S1/ITEM_FR1)
+;   HL = Points to MASTER_TICK_TIMER or item lists (ITEM_S1/ITEM_SR1)
 ; ---  End  ---
 ;   Jumps to WAIT_FOR_INPUT or into AI branch (RANDOM_ACTION_HANDLER)
 ;
@@ -3565,7 +3565,7 @@ IDLE_SCREENSAVER_CHK:
     LD          A,(HL)                              ; A = item/monster id at S1
     INC         A                                   ; Normalize/flag for threshold compare
     INC         A                                   ; (two INCs used consistently in this code)
-    LD          HL,ITEM_FR1                         ; HL = pointer to FR1 (probing sequence)
+    LD          HL,ITEM_SR1                         ; HL = pointer to SR1 (probing sequence)
 PROBE_MONSTER_LOOP:
     CP          $7a                                 ; >= $7A ⇒ monster/eligible target present
     JP          NC,RANDOM_ACTION_HANDLER            ; If present, run AI/random action
@@ -8470,7 +8470,7 @@ CHK_WALL_FL0_EXISTS:
     JP          NC,CHK_FL1_A_NO_HD                  ; If no hidden door, check bit 1
     EX          AF,AF'                              ; Save wall state to alternate
     CALL        DRAW_WALL_FL1_A                     ; Draw L1 wall
-    CALL        CHK_ITEM_FL1                        ; Check and draw FL1 item
+    CALL        CHK_ITEM_SL1                        ; Check and draw SL1 item
     EX          AF,AF'                              ; Restore wall state
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          NC,CHK_WALL_R0                      ; If no wall, continue to R0
@@ -8478,38 +8478,38 @@ CHK_WALL_FL0_EXISTS:
     JP          NC,CHK_WALL_R0                      ; If door closed, continue to R0
 DRAW_FL1_A_HD:
     CALL        DRAW_DOOR_L1_HIDDEN                 ; Draw hidden door on L1
-    CALL        CHK_ITEM_FL1                        ; Check and draw FL1 item
+    CALL        CHK_ITEM_SL1                        ; Check and draw SL1 item
     JP          CHK_WALL_R0                         ; Continue to R0 walls
 ;==============================================================================
-; CHK_ITEM_FL1 - Check and draw item at FL1 position
+; CHK_ITEM_SL1 - Check and draw item at SL1 position
 ;==============================================================================
-; Helper subroutine called from multiple FL1 wall rendering paths. Loads the
-; item code at ITEM_FL1 and dispatches to CHK_ITEM with FL1-specific distance
+; Helper subroutine called from multiple SL1 wall rendering paths. Loads the
+; item code at ITEM_SL1 and dispatches to CHK_ITEM with SL1-specific distance
 ; and size parameters ($4d0).
 ;
 ; Registers:
 ; --- Start ---
 ;   None
 ; --- In Process ---
-;   A  = ITEM_FL1 value
-;   BC = $4d0 (distance/size for FL1)
+;   A  = ITEM_SL1 value
+;   BC = $4d0 (distance/size for SL1)
 ; ---  End  ---
 ;   Modified by CHK_ITEM
 ;
 ; Memory Modified: CHRRAM/COLRAM if item drawn
 ; Calls: CHK_ITEM
 ;==============================================================================
-CHK_ITEM_FL1:
-    LD          A,(ITEM_FL1)                        ; Load item at FL1 position
+CHK_ITEM_SL1:
+    LD          A,(ITEM_SL1)                        ; Load item at SL1 position
     LD          BC,$4d0                             ; BC = distance/size parameters
-    JP          CHK_ITEM                            ; Check and draw FL1 item
+    JP          CHK_ITEM                            ; Check and draw SL1 item
 CHK_FL1_A_NO_HD:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          NC,CHK_WALL_FL1_B_EXISTS            ; If no wall, check next position
     RRCA                                            ; Test bit 2 (door open flag)
     JP          C,DRAW_FL1_A_HD                     ; If door open, draw hidden door
     CALL        DRAW_DOOR_L1_NORMAL                 ; Draw normal door on L1
-    CALL        CHK_ITEM_FL1                        ; Check and draw FL1 item
+    CALL        CHK_ITEM_SL1                        ; Check and draw SL1 item
     JP          CHK_WALL_R0                         ; Continue to R0 walls
 CHK_WALL_FL1_B_EXISTS:
     INC         E                                   ; Move to next wall state byte
@@ -8517,13 +8517,13 @@ CHK_WALL_FL1_B_EXISTS:
     JP          NC,CHK_FL22_EXISTS                  ; If no wall, draw empty
 DRAW_FL1_B_WALL:
     CALL        DRAW_WALL_L1_SIMPLE                 ; Draw wall
-    CALL        CHK_ITEM_FL1                        ; Check and draw FL1 item
+    CALL        CHK_ITEM_SL1                        ; Check and draw SL1 item
     JP          CHK_WALL_R0                         ; Continue to R0 walls
 CHK_FL22_EXISTS:
     RRCA                                            ; Test bit 2 (next flag)
     JP          C,DRAW_FL1_B_WALL                   ; If bit set, draw wall
     CALL        DRAW_WALL_FL22_EMPTY                ; Draw empty FL22 space
-    CALL        CHK_ITEM_FL1                        ; Check and draw FL1 item
+    CALL        CHK_ITEM_SL1                        ; Check and draw SL1 item
 CHK_WALL_R0:
     LD          DE,WALL_R0_STATE                    ; DE = right wall 0 state
     LD          A,(DE)                              ; Load R0 wall state
@@ -8555,28 +8555,28 @@ DRAW_FR0_WALL:
     CALL        DRAW_WALL_FR0                       ; Draw FR0 wall
     JP          CHK_ITEM_S0                         ; Jump to S0 sprite check
 ;==============================================================================
-; CHK_ITEM_FR1 - Check and draw item at FR1 position
+; CHK_ITEM_SR1 - Check and draw item at SR1 position
 ;==============================================================================
-; Helper subroutine for FR1 wall rendering paths. Loads item code at ITEM_FR1
-; and dispatches to CHK_ITEM with FR1-specific distance/size parameters ($4e4).
-; Right side complement of CHK_ITEM_FL1.
+; Helper subroutine for SR1 wall rendering paths. Loads item code at ITEM_SR1
+; and dispatches to CHK_ITEM with SR1-specific distance/size parameters ($4e4).
+; Right side complement of CHK_ITEM_SL1.
 ;
 ; Registers:
 ; --- Start ---
 ;   None
 ; --- In Process ---
-;   A  = ITEM_FR1 value
-;   BC = $4e4 (distance/size for FR1)
+;   A  = ITEM_SR1 value
+;   BC = $4e4 (distance/size for SR1)
 ; ---  End  ---
 ;   Modified by CHK_ITEM
 ;
 ; Memory Modified: CHRRAM/COLRAM if item drawn
 ; Calls: CHK_ITEM
 ;==============================================================================
-CHK_ITEM_FR1:
-    LD          A,(ITEM_FR1)                        ; Load item at FR1 position
+CHK_ITEM_SR1:
+    LD          A,(ITEM_SR1)                        ; Load item at SR1 position
     LD          BC,$4e4                             ; BC = distance/size parameters
-    JP          CHK_ITEM                            ; Check and draw FR1 item
+    JP          CHK_ITEM                            ; Check and draw SR1 item
 CHK_WALL_FR0_EXISTS:
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          C,DRAW_FR0_WALL                     ; If wall exists, draw it
@@ -8586,7 +8586,7 @@ CHK_WALL_FR0_EXISTS:
     JP          NC,CHK_FR1_B_NO_HD                  ; If no hidden door, check bit 1
     EX          AF,AF'                              ; Save wall state to alternate
     CALL        DRAW_WALL_FR1_B                     ; Draw FR1 back wall
-    CALL        CHK_ITEM_FR1                        ; Check and draw FR1 item
+    CALL        CHK_ITEM_SR1                        ; Check and draw SR1 item
     EX          AF,AF'                              ; Restore wall state
     RRCA                                            ; Test bit 1 (wall exists flag)
     JP          NC,CHK_ITEM_S0                      ; If no wall, continue to S0
@@ -8594,7 +8594,7 @@ CHK_WALL_FR0_EXISTS:
     JP          NC,CHK_ITEM_S0                      ; If door closed, continue to S0
 DRAW_FR1_B_HD:
     CALL        DRAW_DOOR_FR1_B_HIDDEN              ; Draw hidden door on FR1 back
-    CALL        CHK_ITEM_FR1                        ; Check and draw FR1 item
+    CALL        CHK_ITEM_SR1                        ; Check and draw SR1 item
     JP          CHK_ITEM_S0                         ; Jump to S0 sprite check
 CHK_FR1_B_NO_HD:
     RRCA                                            ; Test bit 1 (wall exists flag)
@@ -8602,7 +8602,7 @@ CHK_FR1_B_NO_HD:
     RRCA                                            ; Test bit 2 (door open flag)
     JP          C,DRAW_FR1_B_HD                     ; If door open, draw hidden door
     CALL        DRAW_DOOR_FR1_B_NORMAL              ; Draw normal door on FR1 back
-    CALL        CHK_ITEM_FR1                        ; Check and draw FR1 item
+    CALL        CHK_ITEM_SR1                        ; Check and draw SR1 item
     JP          CHK_ITEM_S0                         ; Jump to S0 sprite check
 CHK_WALL_FR1_B_EXISTS:
     INC         E                                   ; Move to FR2 wall state
@@ -8610,13 +8610,13 @@ CHK_WALL_FR1_B_EXISTS:
     JP          NC,CHK_FR22_EXISTS                  ; If no wall, draw empty
 DRAW_FR1_B_WALL:
     CALL        DRAW_WALL_R1_SIMPLE                 ; Draw FR2 wall
-    CALL        CHK_ITEM_FR1                        ; Check and draw FR1 item
+    CALL        CHK_ITEM_SR1                        ; Check and draw SR1 item
     JP          CHK_ITEM_S0                         ; Jump to S0 sprite check
 CHK_FR22_EXISTS:
     RRCA                                            ; Test bit 2 (next flag)
     JP          C,DRAW_FR1_B_WALL                   ; If bit set, draw wall
     CALL        DRAW_WALL_FR22_EMPTY                ; Draw empty FR2 space
-    CALL        CHK_ITEM_FR1                        ; Check and draw FR1 item
+    CALL        CHK_ITEM_SR1                        ; Check and draw SR1 item
 CHK_ITEM_S0:
     LD          A,(ITEM_S0)                         ; Load sprite at S0 position
     LD          BC,$8a                              ; BC = distance/size parameters
