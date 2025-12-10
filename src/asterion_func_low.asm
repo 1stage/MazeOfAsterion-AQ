@@ -3076,27 +3076,27 @@ NOT_IN_BATTLE:
 
 ; DRAW_LEFT_HAND_AREA
 ;==============================================================================
-; Fills the 6x5 lower-left corner of the viewport with black (SPACE chars,
-; BLK on BLK color). Used during initialization and to clear the hand area.
+; Clears the 6x5 lower-left corner of the viewport to black, then draws
+; the item graphic specified by the caller.
 ;
 ; Registers:
 ; --- Start ---
-;   None specific
+;   B  = Color for GFX_DRAW
+;   HL = Screen position for GFX_DRAW (CHRRAM_LEFT_HAND_VP_DRAW_IDX)
+;   DE = Graphics pointer for GFX_DRAW
 ; --- In Process ---
 ;   A  = $20 (SPACE), then COLOR(BLK,BLK)
-;   HL = CHRRAM/COLRAM addresses
-;   BC = RECT(6,5)
+;   BC, HL, DE (saved/restored)
 ; ---  End  ---
-;   A  = COLOR(BLK,BLK)
-;   HL = modified by FILL_CHRCOL_RECT
-;   BC = modified by FILL_CHRCOL_RECT
-;   DE = preserved
-;   F  = modified
+;   All registers modified by GFX_DRAW
 ;
-; Memory Modified: CHRRAM $3320-$3345 (6x5), COLRAM $3720-$3745 (6x5)
-; Calls: FILL_CHRCOL_RECT (×2)
+; Memory Modified: CHRRAM/COLRAM left-hand area (6x5), then item graphics
+; Calls: FILL_CHRCOL_RECT (×2), GFX_DRAW
 ;==============================================================================
 DRAW_LEFT_HAND_AREA:
+    PUSH        DE                                  ; Save graphics pointer
+    PUSH        BC                                  ; Save color (B)
+    PUSH        HL                                  ; Save draw position
     LD          A,$20                               ; SPACE character
     LD          HL,CHRRAM_VIEWPORT_IDX + (19 * 40)  ; Row 20, Col 0 (lower-left CHRRAM)
     LD          BC,RECT(6,5)                        ; 6 x 5 rectangle
@@ -3104,7 +3104,11 @@ DRAW_LEFT_HAND_AREA:
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK
     LD          HL,COLRAM_VIEWPORT_IDX + (19 * 40)  ; Row 20, Col 0 (lower-left COLRAM)
     LD          BC,RECT(6,5)                        ; 6 x 5 rectangle
-    JP          FILL_CHRCOL_RECT                    ; Fill with black (tail call)
+    CALL        FILL_CHRCOL_RECT                    ; Fill with black
+    POP         HL                                  ; Restore draw position
+    POP         BC                                  ; Restore color (B)
+    POP         DE                                  ; Restore graphics pointer
+    JP          GFX_DRAW                            ; Draw item and return (tail call)
 
 ; DRAW_RIGHT_HAND_AREA
 ;==============================================================================
