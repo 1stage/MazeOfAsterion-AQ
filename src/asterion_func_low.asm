@@ -3074,6 +3074,70 @@ DRAW_BKGD:
 NOT_IN_BATTLE:
     RET                                             ; Return to caller
 
+; DRAW_LEFT_HAND_AREA
+;==============================================================================
+; Fills the 6x5 lower-left corner of the viewport with black (SPACE chars,
+; BLK on BLK color). Used during initialization and to clear the hand area.
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = $20 (SPACE), then COLOR(BLK,BLK)
+;   HL = CHRRAM/COLRAM addresses
+;   BC = RECT(6,5)
+; ---  End  ---
+;   A  = COLOR(BLK,BLK)
+;   HL = modified by FILL_CHRCOL_RECT
+;   BC = modified by FILL_CHRCOL_RECT
+;   DE = preserved
+;   F  = modified
+;
+; Memory Modified: CHRRAM $3320-$3345 (6x5), COLRAM $3720-$3745 (6x5)
+; Calls: FILL_CHRCOL_RECT (×2)
+;==============================================================================
+DRAW_LEFT_HAND_AREA:
+    LD          A,$20                               ; SPACE character
+    LD          HL,CHRRAM_VIEWPORT_IDX + (19 * 40)  ; Row 20, Col 0 (lower-left CHRRAM)
+    LD          BC,RECT(6,5)                        ; 6 x 5 rectangle
+    CALL        FILL_CHRCOL_RECT                    ; Fill with spaces
+    LD          A,COLOR(BLK,BLK)                    ; BLK on BLK
+    LD          HL,COLRAM_VIEWPORT_IDX + (19 * 40)  ; Row 20, Col 0 (lower-left COLRAM)
+    LD          BC,RECT(6,5)                        ; 6 x 5 rectangle
+    JP          FILL_CHRCOL_RECT                    ; Fill with black (tail call)
+
+; DRAW_RIGHT_HAND_AREA
+;==============================================================================
+; Fills the 6x5 lower-right corner of the viewport with black (SPACE chars,
+; BLK on BLK color). Used during initialization and to clear the hand area.
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   A  = $20 (SPACE), then COLOR(BLK,BLK)
+;   HL = CHRRAM/COLRAM addresses
+;   BC = RECT(6,5)
+; ---  End  ---
+;   A  = COLOR(BLK,BLK)
+;   HL = modified by FILL_CHRCOL_RECT
+;   BC = modified by FILL_CHRCOL_RECT
+;   DE = preserved
+;   F  = modified
+;
+; Memory Modified: CHRRAM $3332-$3357 (6x5), COLRAM $3732-$3757 (6x5)
+; Calls: FILL_CHRCOL_RECT (×2)
+;==============================================================================
+DRAW_RIGHT_HAND_AREA:
+    LD          A,$20                               ; SPACE character
+    LD          HL,CHRRAM_VIEWPORT_IDX + (19 * 40) + 18 ; Row 20, Col 18 (lower-right CHRRAM)
+    LD          BC,RECT(6,5)                        ; 6 x 5 rectangle
+    CALL        FILL_CHRCOL_RECT                    ; Fill with spaces
+    LD          A,COLOR(BLK,BLK)                    ; BLK on BLK
+    LD          HL,COLRAM_VIEWPORT_IDX + (19 * 40) + 18 ; Row 20, Col 18 (lower-right COLRAM)
+    LD          BC,RECT(6,5)                        ; 6 x 5 rectangle
+    JP          FILL_CHRCOL_RECT                    ; Fill with black (tail call)
+
 ;==============================================================================
 ; WIPE_VARIABLE_SPACE
 ;==============================================================================
