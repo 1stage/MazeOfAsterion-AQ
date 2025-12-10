@@ -2768,13 +2768,12 @@ PROCESS_MAP:
     SET         0x2,A                               ; Set bit 2 (map acquired flag)
     LD          (GAME_BOOLEANS),A                   ; Store updated boolean flags
     POP         AF                                  ; Restore A (map item code)
-    CALL        PICK_UP_S0_ITEM                     ; Remove map from floor, get data in DE
-    LD          (MAP_INV_SLOT),DE                   ; Store map data to inventory slot
-    PUSH        AF                                  ; Save A (map item code)
-    LD          A,(MAP_INV_SLOT)                    ; Load map level/type from inventory
+    CALL        PICK_UP_S0_ITEM                     ; Remove map from floor, level (0-3) in D
+    LD          A,D                                 ; Get map level from D register
+    INC         A                                   ; Convert to 1-4 range for USE_MAP checks
+    LD          (MAP_INV_SLOT),A                    ; Store map level (1=RED, 2=YEL, 3=MAG, 4=WHT)
     CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color RAM value
     LD          (COLRAM_MAP_IDX),A                  ; Store color value for map display
-    POP         AF                                  ; Restore A (map item code)
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 
 ;==============================================================================
