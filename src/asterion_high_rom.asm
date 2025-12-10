@@ -6246,13 +6246,13 @@ CHK_FOR_MINOTAUR:
     CALL        RECALC_PHYS_HEALTH                  ; Add phys/2 + sprt health
     EXX                                             ; Switch back to main registers
     JP          NC,MINOTAUR_MERCY_SPRITE            ; If player would die, use easier sprite
-    LD          A,MINOTAUR_WEAPON_HARD              ; Player survives: harder weapon
+    LD          A,MINOTAUR_WEAPON_SPRT              ; Player survives: harder weapon
 MINOTAUR_SET_SPRITE:
     ADD         A,B                                 ; Add level for sprite index
     LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 MINOTAUR_MERCY_SPRITE:
-    LD          A,MINOTAUR_WEAPON_MERCY             ; Player would die: mercy weapon
+    LD          A,MINOTAUR_WEAPON_PHYS              ; Player would die: mercy weapon
     JP          MINOTAUR_SET_SPRITE                 ; Jump to set sprite
 INVALID_MONSTER_CODE:
     JP          NO_ACTION_TAKEN                     ; Invalid code, take no action

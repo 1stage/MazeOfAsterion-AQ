@@ -471,53 +471,53 @@ WHT_CHAOS_POTION_ITEM   EQU $73
 #define MONSTER_HP(sprt,phys) (sprt * 256) + phys
 
 ; Skeleton - Common undead enemy
-SKELETON_BASE_DMG       EQU 7
+SKELETON_BASE_DMG       EQU $07                     ; Base damage: 7 (BCD)
 SKELETON_BASE_HP        EQU MONSTER_HP(3, 4)        ; 3 SPRT, 4 PHYS
 SKELETON_WEAPON_SPRITE  EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
 
 ; Snake - Fast physical attacker
-SNAKE_BASE_DMG          EQU 3
+SNAKE_BASE_DMG          EQU $03                     ; Base damage: 3 (BCD)
 SNAKE_BASE_HP           EQU MONSTER_HP(1, 1)        ; 1 SPRT, 1 PHYS
 SNAKE_WEAPON_SPRITE     EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
 
 ; Spider - Weak but numerous
-SPIDER_BASE_DMG         EQU 4
+SPIDER_BASE_DMG         EQU $04                     ; Base damage: 4 (BCD)
 SPIDER_BASE_HP          EQU MONSTER_HP(0, 2)        ; 0 SPRT, 2 PHYS
 SPIDER_WEAPON_SPRITE    EQU RED_FIREBALL_ITEM       ; Spiritual attack
 
 ; Mimic - Disguised chest enemy
-MIMIC_BASE_DMG          EQU 5
+MIMIC_BASE_DMG          EQU $05                     ; Base damage: 5 (BCD)
 MIMIC_BASE_HP           EQU MONSTER_HP(2, 3)        ; 2 SPRT, 3 PHYS
 MIMIC_WEAPON_SPRITE     EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
 
 ; Malocchio - Evil eye creature
-MALOCCHIO_BASE_DMG      EQU 3
+MALOCCHIO_BASE_DMG      EQU $03                     ; Base damage: 3 (BCD)
 MALOCCHIO_BASE_HP       EQU MONSTER_HP(3, 2)        ; 3 SPRT, 2 PHYS
 MALOCCHIO_WEAPON_SPRITE EQU RED_FIREBALL_ITEM       ; Spiritual attack
 
 ; Dragon - Powerful fire-breather
-DRAGON_BASE_DMG         EQU 8
+DRAGON_BASE_DMG         EQU $08                     ; Base damage: 8 (BCD)
 DRAGON_BASE_HP          EQU MONSTER_HP(4, 5)        ; 4 SPRT, 5 PHYS
 DRAGON_WEAPON_SPRITE    EQU RED_FIREBALL_ITEM       ; Spiritual attack
 
 ; Mummy - Slow but tough
-MUMMY_BASE_DMG          EQU 6
+MUMMY_BASE_DMG          EQU $06                     ; Base damage: 6 (BCD)
 MUMMY_BASE_HP           EQU MONSTER_HP(2, 4)        ; 2 SPRT, 4 PHYS
 MUMMY_WEAPON_SPRITE     EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
 
-; Necromancer - Magical enemy (BCD damage: $13 = 19 decimal)
-NECROMANCER_BASE_DMG    EQU $13
+; Necromancer - Magical enemy
+NECROMANCER_BASE_DMG    EQU $13                     ; Base damage: 13 (BCD)
 NECROMANCER_BASE_HP     EQU MONSTER_HP(5, 5)        ; 5 SPRT, 5 PHYS
 NECROMANCER_WEAPON_SPRITE EQU RED_FIREBALL_ITEM     ; Spiritual attack
 
 ; Gryphon - Flying beast
-GRYPHON_BASE_DMG        EQU 4
+GRYPHON_BASE_DMG        EQU $04                     ; Base damage: 4 (BCD)
 GRYPHON_BASE_HP         EQU MONSTER_HP(4, 5)        ; 4 SPRT, 5 PHYS
 GRYPHON_WEAPON_SPRITE   EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
 
-; Minotaur - Boss monster (BCD damage: $11 = 17 decimal)
+; Minotaur - Boss monster
 ; Note: Weapon sprite selected dynamically based on player survivability
-MINOTAUR_BASE_DMG       EQU $11
+MINOTAUR_BASE_DMG       EQU $11                     ; Base damage: 11 (BCD)
 MINOTAUR_BASE_HP        EQU MONSTER_HP(4, 5)        ; 4 SPRT, 5 PHYS
-MINOTAUR_WEAPON_HARD    EQU RED_FIREBALL_ITEM       ; Spiritual (if player survives)
-MINOTAUR_WEAPON_MERCY   EQU RED_ARROW_RIGHT_ITEM    ; Physical (mercy mode)
+MINOTAUR_WEAPON_SPRT    EQU RED_FIREBALL_ITEM       ; Spiritual (if player survives)
+MINOTAUR_WEAPON_PHYS    EQU RED_ARROW_RIGHT_ITEM    ; Physical (mercy mode)
