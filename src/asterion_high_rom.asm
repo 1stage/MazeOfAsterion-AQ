@@ -6443,10 +6443,40 @@ DO_USE_LADDER:
     JP          NZ,NO_ACTION_TAKEN                  ; If not ladder, no action
     LD          A,(PLAYER_MAP_POS)                  ; Load current map position
     LD          (PLAYER_PREV_MAP_LOC),A             ; Store as previous location
+    CALL        RESET_MAP                           ; Clear map ownership for new level
     CALL        BUILD_MAP                           ; Generate new dungeon level
     CALL        PLAY_PITCH_DOWN_MED                 ; Call pitch-down routine
     CALL        INC_DUNGEON_LEVEL                   ; Update dungeon level display
     JP          RESET_SHIFT_MODE                    ; Reset shift mode and return
+
+;==============================================================================
+; RESET_MAP - Clear map ownership when descending to new level
+;==============================================================================
+; Resets all map-related state when player uses ladder to descend. Clears
+; the "have map" flag in GAME_BOOLEANS, resets MAP_INV_SLOT to zero, and
+; sets the map icon color back to default (dark grey on black).
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = GAME_BOOLEANS value, then 0, then COLOR(DKGRY,BLK)
+; ---  End  ---
+;   A  = COLOR(DKGRY,BLK) ($F0)
+;
+; Memory Modified: GAME_BOOLEANS (bit 2 cleared), MAP_INV_SLOT, COLRAM_MAP_IDX
+; Calls: None
+;==============================================================================
+RESET_MAP:
+    LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
+    RES         0x2,A                               ; Clear bit 2 (map owned flag)
+    LD          (GAME_BOOLEANS),A                   ; Store updated boolean flags
+    XOR         A                                   ; A = 0
+    LD          (MAP_INV_SLOT),A                    ; Clear map inventory slot
+    LD          A,COLOR(DKGRY,BLK)                  ; Load default map icon color
+    LD          (COLRAM_MAP_IDX),A                  ; Reset map icon to dark grey
+    RET                                             ; Return to caller
+
 ;==============================================================================
 ; INC_DUNGEON_LEVEL - Increment and display dungeon level
 ;==============================================================================
