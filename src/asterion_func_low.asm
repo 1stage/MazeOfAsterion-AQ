@@ -685,7 +685,7 @@ DRAW_WALL_F2_EMPTY:
 ; Memory Modified: 4x4 color rectangle at HL
 ; Calls: Jumps to FILL_CHRCOL_RECT
 ;==============================================================================
-UPDATE_F0_ITEM:
+UPDATE_S0_ITEM:
     LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
     JP          FILL_CHRCOL_RECT                    ; Fill area with color in A
 

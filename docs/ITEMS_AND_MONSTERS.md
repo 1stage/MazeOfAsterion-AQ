@@ -21,7 +21,10 @@ A new line is listed for every 4-value group. The Compare column shows the value
 |------------|---------|-----------------|------------------------|-------|
 | `00–03`    | `00`    | Buckler         | RED, YEL, MAG, WHT     | Small left-hand shield. |
 | `04–07`    | `01`    | Ring            | RED, YEL, MAG, WHT     | Auto-wear enchant; replaces weaker ring. |
+| `08–0B`    | `02`    | Helmet          | RED, YEL, MAG, WHT     | Auto-wear enchant; replaces weaker helmet. |
+| `0C–0F`    | `03`    | Armor           | RED, YEL, MAG, WHT     | Auto-wear enchant; replaces weaker armor. |
 | `10–13`    | `04`    | Pavise          | RED, YEL, MAG, WHT     | Large left-hand shield. |
+| `14–17`    | `05`    | Arrow Left      | RED (singleton)        | Monster's Flying ARROW (SPRITE ONLY!) |
 | `18–1B`    | `06`    | Bow             | RED, YEL, MAG, WHT     | Starting right-hand `$18` (RED). |
 | `1C–1F`    | `07`    | Scroll          | RED, YEL, MAG, WHT     | Magical attack item. |
 | `20–23`    | `08`    | Axe             | RED, YEL, MAG, WHT     | Throwing melee weapon. |
@@ -29,6 +32,9 @@ A new line is listed for every 4-value group. The Compare column shows the value
 | `28–2B`    | `0A`    | Mace            | RED, YEL, MAG, WHT     | Throwing melee weapon. |
 | `2C–2F`    | `0B`    | Staff           | RED, YEL, MAG, WHT     | Advanced magical weapon. |
 | `30–33`    | `0C`    | Crossbow        | RED, YEL, MAG, WHT     | Advanced physical ranged. |
+| `34–37`    | `0D`    | Spider Web      | RED, YEL, MAG, WHT     | Only used by SPIDER (SPRITE ONLY!) |
+| `38–3B`    | `0E`    | Spare 02        | ???                    | ??? |
+| `3C–3F`    | `0F`    | Arrow Right     | RED, YEL, MAG, WHT     | Player's Flying Arrow (SPRITE ONLY!) |
 | `42`       | `10`    | Ladder          | MAG (singleton)        | First entry in `$3900` as `[pos,$42]`. |
 | `44–47`    | `11`    | Chest           | RED, YEL, MAG, WHT     | Opens into loot (treasure/potion/map/key). |
 | `48–4B`    | `12`    | Food            | RED, YEL, MAG, WHT     | Increases FOOD_INV (BCD corrected). |
@@ -37,6 +43,7 @@ A new line is listed for every 4-value group. The Compare column shows the value
 | `54–57`    | `15`    | Amulet          | RED, YEL, MAG, WHT     | Trinket/treasure. |
 | `58–5B`    | `16`    | Key             | RED, YEL, MAG, WHT     | Used by `DO_USE_KEY`. |
 | `5C–5F`    | `17`    | Chalice         | RED, YEL, MAG, WHT     | Trinket/treasure. |
+| `60–63`    | `18`    | ???             | ???                    | ??? |
 | `64–67`    | `19`    | Warrior Potion  | RED, YEL, MAG, WHT     | Physical stat effect. |
 | `68–6B`    | `1A`    | Mage Potion     | RED, YEL, MAG, WHT     | Spirit stat effect. |
 | `6C–6F`    | `1B`    | Map             | RED, YEL, MAG, WHT     | Sets HAVE MAP; colors show in UI. |

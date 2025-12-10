@@ -2554,9 +2554,9 @@ DO_PICK_UP:
     DEC         A                                   ; Restore original player position
     CALL        ITEM_MAP_CHECK                      ; Check item type and validity
     JP          Z,CHECK_CHEST_PICKUP                ; If Z flag set, handle special case
-    CP          0x4                                 ; Compare item to RING (item code 4)
+    CP          RED_RING_ITEM                       ; Compare item to RED RING (item code 4)
     JP          C,CHECK_FOOD_ARROWS                 ; If < RING (items 0-3), check food/arrows
-    CP          $10                                 ; Compare to PAVISE (item code $10)
+    CP          RED_PAVISE_ITEM                     ; Compare to RED PAVISE (item code $10)
     JP          NC,CHECK_FOOD_ARROWS                ; If >= PAVISE, check food/arrows
 
 ;==============================================================================
@@ -2579,7 +2579,7 @@ DO_PICK_UP:
 ; Calls: PICK_UP_F0_ITEM, equipment stat handlers
 ;==============================================================================
 PROCESS_RHA:
-    CALL        PICK_UP_F0_ITEM                     ; Remove item from map, increment D
+    CALL        PICK_UP_S0_ITEM                     ; Remove item from map, increment D
     LD          HL,ARMOR_INV_SLOT                   ; Point HL to armor inventory slot
     DEC         A                                   ; Decrement item code (test if armor, code 4)
                                                     ; After DEC: 4->3, 5->4, 6->5, etc.
@@ -2637,15 +2637,15 @@ UPDATE_SHIELD_STATS:
 CHECK_CHEST_PICKUP:
     CALL        Z,VALIDATE_RH_ITEM_PRESENT          ; If Z flag set, call special handler
 CHECK_FOOD_ARROWS:
-    CP          $48                                 ; Compare to CHEST (item code $48)
-    JP          C,CHECK_MAP_NECKLACE_CHARMS         ; If < $48, check map/necklace/charms
-    CP          $50                                 ; Compare to LOCKED_CHEST (item code $50)
-    JP          NC,CHECK_MAP_NECKLACE_CHARMS        ; If >= $50, check map/necklace/charms
-    CALL        PICK_UP_F0_ITEM                     ; Remove item from map, increment D
+    CP          RED_FOOD_ITEM                       ; Compare to RED FOOD (item code $48)
+    JP          C,CHECK_MAPS                        ; If < $48, check map/necklace/charms
+    CP          RED_LOCKED_CHEST_ITEM               ; Compare to LOCKED_CHEST (item code $50)
+    JP          NC,CHECK_MAPS                       ; If >= $50, check map/necklace/charms
+    CALL        PICK_UP_S0_ITEM                     ; Remove item from map, increment D
     INC         D                                   ; Increment D (item quantity/tier)
     RL          D                                   ; Rotate left (multiply by 2, with carry)
     INC         D                                   ; Increment D again
-    CP          $12                                 ; Compare to FOOD item code ($12)
+    CP          FOOD_ITEM_CP                        ; Compare to FOOD item code ($12)
     JP          NZ,PICK_UP_ARROWS                   ; If not food, handle as arrows
     PUSH        DE                                  ; Save DE (item data)
     CALL        PICK_UP_FOOD                        ; Add food to inventory (first portion)
@@ -2727,20 +2727,40 @@ PICK_UP_ARROWS:
 ADD_ARROWS_TO_INV:
     LD          (ARROW_INV),A                       ; Store updated arrow inventory count
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
-CHECK_MAP_NECKLACE_CHARMS:
-    CP          $6c                                 ; Compare to RED MAP (item code $6C)
+CHECK_MAPS:
+    CP          RED_MAP_ITEM                        ; Compare to RED MAP (item code $6C)
     JP          Z,PROCESS_MAP                       ; If red map, process map pickup
-    CP          $6d                                 ; Compare to YELLOW MAP (item code $6D)
+    CP          YEL_MAP_ITEM                        ; Compare to YELLOW MAP (item code $6D)
     JP          Z,PROCESS_MAP                       ; If yellow map, process map pickup
-    CP          $de                                 ; Compare to MAGENTA MAP (item code $DE)
+    CP          MAG_MAP_ITEM                        ; Compare to MAGENTA MAP (item code $6E)
     JP          Z,PROCESS_MAP                       ; If magenta map, process map pickup
-    CP          $df                                 ; Compare to WHITE MAP (item code $DF)
+    CP          WHT_MAP_ITEM                        ; Compare to WHITE MAP (item code $6F)
     JP          Z,PROCESS_MAP                       ; If white map, process map pickup
-    CP          $5c                                 ; Compare to WHITE KEY (item code $5C)
+CHECK_CHALICES:
+    CP          RED_CHALICE_ITEM                    ; Compare to RED CHALICE (item code $5C)
+    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+    CP          YEL_CHALICE_ITEM                    ; Compare to YEL CHALICE (item code $5D)
+    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+    CP          MAG_CHALICE_ITEM                    ; Compare to MAG CHALICE (item code $5E)
+    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+    CP          WHT_CHALICE_ITEM                    ; Compare to WHT CHALICE (item code $5F)
+    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+
+CHECK_AMULETS:
+    CP          RED_AMULET_ITEM                     ; Compare to RED AMULET (item code $54)
+    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+    CP          YEL_AMULET_ITEM                     ; Compare to YEL AMULET (item code $55)
+    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+    CP          MAG_AMULET_ITEM                     ; Compare to MAG AMULET (item code $56)
+    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+    CP          WHT_AMULET_ITEM                     ; Compare to WHT AMULET (item code $57)
+    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+
+HANDLE_NON_TREASURES:
     JP          C,PICK_UP_NON_TREASURE              ; If < $5C, handle as non-treasure item
-    CP          $64                                 ; Compare to WARRIOR POTION (item code $64)
+    CP          RED_WARRIOR_POTION_ITEM             ; Compare to RED WARRIOR POTION (item code $64)
     JP          NC,PICK_UP_NON_TREASURE             ; If >= $64, handle as non-treasure item
-    CALL        PICK_UP_F0_ITEM                     ; Remove item from map, increment D
+    CALL        PICK_UP_S0_ITEM                     ; Remove item from map, increment D
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 PROCESS_MAP:
     PUSH        AF                                  ; Save A (map item code)
@@ -2748,7 +2768,7 @@ PROCESS_MAP:
     SET         0x2,A                               ; Set bit 2 (map acquired flag)
     LD          (GAME_BOOLEANS),A                   ; Store updated boolean flags
     POP         AF                                  ; Restore A (map item code)
-    CALL        PICK_UP_F0_ITEM                     ; Remove map from floor, get data in DE
+    CALL        PICK_UP_S0_ITEM                     ; Remove map from floor, get data in DE
     LD          (MAP_INV_SLOT),DE                   ; Store map data to inventory slot
     PUSH        AF                                  ; Save A (map item code)
     LD          A,(MAP_INV_SLOT)                    ; Load map level/type from inventory
@@ -2790,14 +2810,14 @@ PICK_UP_NON_TREASURE:
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics in CHRRAM
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary graphics buffer
     CALL        COPY_GFX_2_BUFFER                   ; Copy right-hand graphics to temp buffer (4x4 chars)
-    LD          HL,CHRRAM_F0_ITEM_IDX               ; Point to F0 floor item graphics in CHRRAM
+    LD          HL,CHRRAM_S0_ITEM_IDX               ; Point to S0 floor item graphics in CHRRAM
     LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics position
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy F0 item graphics to right-hand position
     LD          HL,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer (old right-hand graphics)
-    LD          DE,CHRRAM_F0_ITEM_IDX               ; Point to F0 floor item graphics position
+    LD          DE,CHRRAM_S0_ITEM_IDX               ; Point to S0 floor item graphics position
     CALL        COPY_GFX_FROM_BUFFER                ; Copy temp buffer to F0 position (complete swap)
 
-    LD          HL,COLRAM_F0_ITEM_IDX               ; Point to F0 item color attributes in COLRAM
+    LD          HL,COLRAM_S0_ITEM_IDX               ; Point to S0 item color attributes in COLRAM
     LD          DE,TWOCOLOR(NOCLR,DKGRY,DKGRY,NOCLR)  ; NOCLR, DKGRY, DKGRY, NOCLR
                                                     ;   D  = Target BG color: 
                                                     ;       $0 in upper nybble, BG in lower nybble
@@ -2908,9 +2928,9 @@ WAIT_A_TICK:
     JP          SLEEP                               ; Jump to sleep routine: void SLEEP(short cycleCount)
 
 ;==============================================================================
-; PICK_UP_F0_ITEM
+; PICK_UP_S0_ITEM
 ;==============================================================================
-; Removes an item from floor position F0 (directly in front of player) and
+; Removes an item from floor position S0 (directly in front of player) and
 ; extracts the item's level information through bit manipulation. Clears the
 ; floor graphics with empty space character and default floor colors, then
 ; performs bit rotation operations to decode the item level from the item code.
@@ -2923,37 +2943,37 @@ WAIT_A_TICK:
 ; Registers:
 ; --- Start ---
 ;   A  = Item code with level encoded in bits 2-3
-;   AF'= Available for temporary storage during UPDATE_F0_ITEM calls
+;   AF'= Available for temporary storage during UPDATE_S0_ITEM calls
 ;   BC = Pointer to floor item storage location
 ;   D  = Will receive level information through bit manipulation
 ;   HL = Will point to CHRRAM and COLRAM addresses for graphics updates
 ; --- In Process ---
 ;   A  = $FE (empty item marker), $20 (space char), color values, item code
 ;   AF'= Item code preservation during graphics clearing operations
-;   HL = CHRRAM_F0_ITEM_IDX, then COLRAM_F0_ITEM_IDX for graphics clearing
+;   HL = CHRRAM_S0_ITEM_IDX, then COLRAM_S0_ITEM_IDX for graphics clearing
 ;   D  = Progressive level value built through bit rotations
 ; ---  End  ---
 ;   A  = Final rotated item code value
 ;   AF'= Restored item code (for level extraction)
 ;   D  = Item level (0-3) extracted from original bits 2-3
-;   HL = Points to COLRAM_F0_ITEM_IDX area after clearing
+;   HL = Points to COLRAM_S0_ITEM_IDX area after clearing
 ;   BC = Unchanged (still points to floor item storage)
 ;   Floor graphics cleared to empty space with floor colors
 ;
-; Memory Modified: Floor item storage (BC), CHRRAM_F0_ITEM_IDX area, COLRAM_F0_ITEM_IDX area
-; Calls: UPDATE_F0_ITEM (twice - for character and color clearing)
+; Memory Modified: Floor item storage (BC), CHRRAM_S0_ITEM_IDX area, COLRAM_S0_ITEM_IDX area
+; Calls: UPDATE_S0_ITEM (twice - for character and color clearing)
 ;==============================================================================
-PICK_UP_F0_ITEM:
+PICK_UP_S0_ITEM:
     AND         A                                   ; Clear carry flag and test A for zero
     EX          AF,AF'                              ; Save item code in alternate AF register
     LD          A,$fe                               ; A = $FE (empty item marker)
     LD          (BC),A                              ; Clear floor item storage (mark as empty)
-    LD          HL,CHRRAM_F0_ITEM_IDX               ; Point to F0 item character graphics in CHRRAM
+    LD          HL,CHRRAM_S0_ITEM_IDX               ; Point to S0 item character graphics in CHRRAM
     LD          A,$20                               ; A = $20 (SPACE character)
-    CALL        UPDATE_F0_ITEM                      ; Clear F0 character graphics with space (4x4 area)
-    LD          HL,COLRAM_F0_ITEM_IDX               ; Point to F0 item color attributes in COLRAM
+    CALL        UPDATE_S0_ITEM                      ; Clear S0 character graphics with space (4x4 area)
+    LD          HL,COLRAM_S0_ITEM_IDX               ; Point to S0 item color attributes in COLRAM
     LD          A,COLOR(BLK,DKGRY)                  ; A = BLK on DKGRY (floor color scheme)
-    CALL        UPDATE_F0_ITEM                      ; Clear F0 color graphics with floor colors (4x4 area)
+    CALL        UPDATE_S0_ITEM                      ; Clear S0 color graphics with floor colors (4x4 area)
     EX          AF,AF'                              ; Restore original item code to A register
     RRA                                             ; Rotate A right: bit 0 → carry, bits 7-1 → bits 6-0
     RR          D                                   ; Rotate D right: carry → bit 7, bits 7-1 → bits 6-0
