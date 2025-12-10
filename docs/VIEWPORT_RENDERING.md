@@ -204,6 +204,8 @@ RRCA                    ; Rotate bit 2 → Carry (door state)
 JP C,DOOR_OPEN
 ```
 
+**Note**: For proposed hand item zone changes (moving left/right hand items into the viewport), see `GAMESCREEN_RENDERING.md`.
+
 #### 3.3 Wall Rendering Order and Algorithm
 
 The rendering system uses a **conditional front-to-back ordering**, NOT traditional painter's algorithm. Below is the complete rendering sequence showing every wall, door, and item draw operation.

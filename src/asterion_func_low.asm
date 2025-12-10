@@ -3009,12 +3009,14 @@ DO_HC_SHIFT_ACTIONS:
 ; active battle to display monster health bar.
 ;
 ; Background Layers:
-; - Clears viewport with spaces (24x24 character area)
+; - Clears upper viewport with spaces (24x19 character area)
+; - Clears center floor with spaces (12x5 character area)
 ; - Upper ceiling: 8 rows DKGRY on BLK
 ; - Lower ceiling: 6 rows BLK on BLK  
 ; - Upper floor: 5 rows DKGRN on DKGRY
 ; - Lower floor: 5 rows BLK on DKGRY (12 wide centered)
 ; - Battle check: If monster active, redraw health bar
+; NOTE: Lower-left and lower-right 6x5 corners are NOT cleared (hand item zones)
 ;
 ; Registers:
 ; --- Start ---
@@ -3034,9 +3036,13 @@ DO_HC_SHIFT_ACTIONS:
 DRAW_BKGD:
     LD          A,$20                               ; Set VIEWPORT fill chars to SPACE
     LD          HL,CHRRAM_VIEWPORT_IDX              ; Set CHRRAM starting point at the beginning of the VIEWPORT
-    LD          BC,RECT(24,24)                      ; 24 x 24 rectangle
-    CALL        FILL_CHRCOL_RECT                    ; Fill viewport with spaces
-    LD          C,0x8                               ; 8 rows of ceiling
+    LD          BC,RECT(24,19)                      ; 24 x 19 rectangle (top portion, excludes hand zones)
+    CALL        FILL_CHRCOL_RECT                    ; Fill upper viewport with spaces
+    LD          A,$20                               ; Reload SPACE character (A was modified)
+    LD          HL,CHRRAM_VIEWPORT_IDX + (19 * 40) + 6 ; Row 20, Col 6 (center floor CHRRAM)
+    LD          BC,RECT(12,5)                       ; 12 x 5 rectangle (center floor area)
+    CALL        FILL_CHRCOL_RECT                    ; Fill center floor with spaces
+    LD          BC,RECT(24,8)                       ; Set B=24 (width), C=8 (rows of ceiling)
     LD          HL,COLRAM_VIEWPORT_IDX              ; Set COLRAM starting point at the beginning of the VIEWPORT
     LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (upper ceiling)
     CALL        DRAW_CHRCOLS                        ; Fill upper ceiling rows
