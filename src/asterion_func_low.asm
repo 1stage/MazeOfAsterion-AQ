@@ -3777,3 +3777,935 @@ ICON_GREY_FILL_LOOP:
     LD          (HL),$f0                            ; Set color to WHT on BLK
     DJNZ        ICON_GREY_FILL_LOOP                 ; Repeat B times
     RET                                             ; Return to caller
+
+;==============================================================================
+;==============================================================================
+;  ROUTINES MOVED FROM asterion_high_rom.asm FOR ROM BALANCING
+;==============================================================================
+;==============================================================================
+
+;==============================================================================
+; USE_MAP
+;==============================================================================
+; Displays the dungeon mini-map overlay when the player uses the map item.
+; Checks if the map is owned and available, then draws a 24x24 character area
+; showing walls, player position, and optionally ladders/monsters/items based
+; on the map's quality level (red=basic, yellow=+ladder, magenta=+monsters,
+; white=+items).
+;
+; Registers:
+; --- Start ---
+;   A  = GAME_BOOLEANS value for map check
+; --- In Process ---
+;   BC = Rectangle dimensions and iteration counters
+;   HL = CHRRAM/COLRAM pointers for map drawing
+;   DE = Map data pointers
+;   A  = Map characters, colors, and item/monster codes
+;   B  = Map quality level counter
+;   D  = Color values for map elements
+; ---  End  ---
+;   All registers modified by map drawing routines
+;   Viewport restored after map closed
+;
+; Memory Modified: CHRRAM_VIEWPORT_IDX, COLRAM_VIEWPORT_IDX
+; Calls: FILL_CHRCOL_RECT, SOUND_03, DRAW_RED/YELLOW/MAGENTA/WHITE_MAP, UPDATE_VIEWPORT
+;==============================================================================
+USE_MAP:
+    LD          A,(GAME_BOOLEANS)                   ; Load game state flags
+    BIT         0x2,A                               ; Check bit 2 (map owned flag)
+    JP          Z,NO_ACTION_TAKEN                   ; If not owned, exit without action
+    LD          A,(MAP_INV_SLOT)                    ; Load map quality level (0-4)
+    AND         A                                   ; Test if zero (no map)
+    JP          Z,INIT_MELEE_ANIM                   ; If no map slot, exit to melee animation
+    EXX								                ; Swap to alternate register set
+
+    LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high
+    LD          HL,CHRRAM_VIEWPORT_IDX              ; Point to viewport character RAM
+    LD          A,$20                               ; Load SPACE character ($20)
+    CALL        FILL_CHRCOL_RECT                    ; Clear viewport with spaces
+    CALL        SOUND_03                            ; Play map open sound
+    LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high
+    LD          HL,COLRAM_VIEWPORT_IDX              ; Point to viewport color RAM
+    LD          A,COLOR(DKBLU,BLK)                  ; Set color: dark blue on black
+    CALL        FILL_CHRCOL_RECT                    ; Fill viewport with map background color
+
+    EXX								                ; Swap back to main register set
+    PUSH        AF                                  ; Preserve A register
+    LD          A,(MAP_INV_SLOT)                    ; Load map quality level
+    LD          B,A                                 ; Copy to B for decrement testing
+    POP         AF                                  ; Restore A register
+    DEC         B                                   ; Test for level 1 (red map)
+    JP          Z,DRAW_RED_MAP                      ; Draw basic walls and player only
+    DEC         B                                   ; Test for level 2 (yellow map)
+    JP          Z,DRAW_YELLOW_MAP                   ; Draw walls, player, and ladder
+    DEC         B                                   ; Test for level 3 (magenta map)
+    JP          Z,DRAW_PURPLE_MAP                   ; Draw walls, player, ladder, and monsters
+
+;==============================================================================
+; DRAW_WHITE_MAP
+;==============================================================================
+; Draws the highest-quality map (level 4), adding item locations on top of
+; walls, player position, ladder, and monsters. Iterates over the item list
+; and marks each item cell with a distinct color.
+;
+; Registers:
+; --- Start ---
+;   HL = $74 (low bound in H, high bound set by loop)
+; --- In Process ---
+;   BC = List pointer through item entries
+;   A  = Position offset for current item
+;   D  = Item color value ($b6)
+; ---  End  ---
+;   BC advanced to end or next phase; Z indicates end-of-list
+;
+; Memory Modified: COLRAM_VIEWPORT_IDX (item positions)
+; Calls: MAP_ITEM_MONSTER, UPDATE_ITEM_CELLS
+;==============================================================================
+DRAW_WHITE_MAP:
+    LD          HL,$74                              ; Set item range lower bound ($74..$78)
+    CALL        MAP_ITEM_MONSTER                    ; Prepare list pointer (BC = MAP_LADDER_OFFSET)
+
+;==============================================================================
+; UPDATE_ITEM_CELLS
+;==============================================================================
+; Iterates the item list, coloring each matching item cell in the mini-map.
+; Each entry is [position_offset][item_code]; entries outside $74..$78 are
+; skipped by FIND_NEXT_ITEM_MONSTER_LOOP. Ends when $FF terminator reached.
+;
+; Registers:
+; --- Start ---
+;   BC = Pointer to [offset][code]
+; --- In Process ---
+;   A  = Position offset; D = item color ($b6)
+;   BC = Advanced through list entries
+; ---  End  ---
+;   Z flag indicates list end; falls through to DRAW_PURPLE_MAP
+;
+; Memory Modified: COLRAM_VIEWPORT_IDX (item positions)
+; Calls: UPDATE_COLRAM_FROM_OFFSET, FIND_NEXT_ITEM_MONSTER_LOOP, DRAW_PURPLE_MAP
+;==============================================================================
+UPDATE_ITEM_CELLS:
+    JP          Z,DRAW_PURPLE_MAP                   ; If end of list, proceed to monster coloring
+    LD          A,(BC)                              ; Load item position offset
+    INC         C                                   ; Advance pointer to item code
+    INC         C                                   ; Skip past item code byte
+    EXX                                             ; Swap to alternate register set for COLRAM
+    LD          D,$b6                               ; Set item color (DKBLU on YEL-ish index $b6)
+    CALL        UPDATE_COLRAM_FROM_OFFSET           ; Color the cell at offset A with D
+    EXX                                             ; Swap back to main register set
+    CALL        FIND_NEXT_ITEM_MONSTER_LOOP         ; Find next matching item in range
+    JP          UPDATE_ITEM_CELLS                   ; Repeat until list exhausted
+
+;==============================================================================
+; DRAW_PURPLE_MAP
+;==============================================================================
+; Draws a level-3 quality map showing walls, player position, ladder, and
+; monster locations. Iterates through the monster list and marks each monster
+; position with red color on the mini-map.
+;
+; Registers:
+; --- Start ---
+;   HL = $78a8 (item range filter)
+; --- In Process ---
+;   BC = Map data pointer (incremented through list)
+;   A  = Current item position offset
+;   D  = COLOR(DKBLU,RED) for monster cells
+; ---  End  ---
+;   BC = Advanced past all monster entries
+;   Monsters marked on map, control passes to DRAW_YELLOW_MAP
+;
+; Memory Modified: COLRAM_VIEWPORT_IDX (monster positions)
+; Calls: MAP_ITEM_MONSTER, UPDATE_COLRAM_FROM_OFFSET, FIND_NEXT_ITEM_MONSTER_LOOP
+;==============================================================================
+DRAW_PURPLE_MAP:
+    LD          HL,$78a8                            ; Set item range for monsters ($78 to $a8)
+    CALL        MAP_ITEM_MONSTER                    ; Initialize monster search (BC = MAP_LADDER_OFFSET)
+UPDATE_MONSTER_CELLS_LOOP:
+    JP          Z,DRAW_YELLOW_MAP                   ; If no more monsters, continue to yellow map
+    LD          A,(BC)                              ; Load monster position offset
+    INC         C                                   ; Advance pointer past position
+    INC         C                                   ; Advance pointer past monster code
+    EXX								                ; Swap to alternate register set (viewport pointers)
+    LD          D,COLOR(DKBLU,RED)                  ; Set monster cell color: dark blue on red
+    CALL        UPDATE_COLRAM_FROM_OFFSET           ; Update color at monster position
+    EXX								                ; Swap back to main register set
+    CALL        FIND_NEXT_ITEM_MONSTER_LOOP         ; Find next monster in list
+    JP          UPDATE_MONSTER_CELLS_LOOP           ; Repeat for all monsters
+
+;==============================================================================
+; DRAW_YELLOW_MAP
+;==============================================================================
+; Draws a level-2 quality map showing walls, player position, and ladder.
+; Marks the ladder position with magenta color, then continues to red map
+; to draw walls and player.
+;
+; Registers:
+; --- Start ---
+;   D  = COLOR(DKBLU,MAG) set before DRAW_RED_MAP
+; --- In Process ---
+;   A  = ITEM_HOLDER value (ladder position)
+;   D  = Ladder cell color value
+; ---  End  ---
+;   Ladder marked, control passes to DRAW_RED_MAP
+;
+; Memory Modified: COLRAM_VIEWPORT_IDX (ladder position)
+; Calls: UPDATE_COLRAM_FROM_OFFSET, DRAW_RED_MAP
+;==============================================================================
+DRAW_YELLOW_MAP:
+    LD          D,COLOR(DKBLU,MAG)                  ; Set ladder cell color: dark blue on magenta
+    LD          A,(ITEM_HOLDER)                     ; Load ladder position offset
+    CALL        UPDATE_COLRAM_FROM_OFFSET           ; Update color at ladder position
+
+;==============================================================================
+; DRAW_RED_MAP
+;==============================================================================
+; Draws a level-1 (basic) quality map showing only walls and player position.
+; Iterates through the dungeon data in HC_LAST_INPUT, drawing wall characters
+; in the mini-map viewport based on north/west wall flags in each cell.
+;
+; Registers:
+; --- Start ---
+;   BC = RECT(16,24) (width in B, height stored)
+;   DE = HC_LAST_INPUT pointer (dungeon data)
+;   HL = CHRRAM_MINI_MAP_IDX (mini-map character area)
+; --- In Process ---
+;   A  = Wall flags and wall characters
+;   B  = Column counter (decrements to 0, then resets to $10)
+;   D  = Current dungeon data row pointer (high byte)
+; ---  End  ---
+;   HL = Advanced past all mini-map cells
+;   DE = Advanced past all dungeon data
+;   Walls drawn, control passes to SET_MINIMAP_PLAYER_LOC
+;
+; Memory Modified: CHRRAM_MINI_MAP_IDX (wall graphics)
+; Calls: SET_MINIMAP_PLAYER_LOC
+;==============================================================================
+DRAW_RED_MAP:
+    LD          BC,RECT(16,24)                      ; Set dimensions: 16 wide, 24 high (B=16, C=24)
+    LD          DE,HC_LAST_INPUT                    ; Point to dungeon map data
+    LD          HL,CHRRAM_MINI_MAP_IDX              ; Point to mini-map character area
+CALC_MINIMAP_WALL:
+    INC         DE                                  ; Advance to next dungeon cell
+    LD          A,D                                 ; Check high byte of dungeon pointer
+    CP          $39                                 ; Compare to end of dungeon data ($39xx)
+    JP          Z,SET_MINIMAP_PLAYER_LOC            ; If at end, mark player position
+    LD          A,(DE)                              ; Load wall flags from current cell
+    OR          A                                   ; Test if any walls present
+    JP          Z,SET_MINIMAP_NO_WALLS              ; If no walls, draw empty cell
+    AND         0xf                                 ; Mask lower nybble (north wall flag)
+    JP          NZ,CHECK_MINIMAP_WEST_WALL          ; If north wall set, check west wall
+SET_MINIMAP_N_WALL:
+    LD          A,$a3                               ; Load character $a3 (north wall only)
+    JP          DRAW_MINIMAP_WALL                   ; Draw wall character
+SET_MINIMAP_NO_WALLS:
+    LD          A,$a0                               ; Load character $a0 (no walls)
+    JP          DRAW_MINIMAP_WALL                   ; Draw empty cell character
+SET_MINIMAP_NW_WALLS:
+    LD          A,$b7                               ; Load character $b7 (north and west walls)
+    JP          DRAW_MINIMAP_WALL                   ; Draw corner wall character
+;==============================================================================
+; CHECK_MINIMAP_WEST_WALL - Reload wall state and check for west wall
+;==============================================================================
+; Continuation point after north+west wall check. Reloads wall flags from (DE)
+; and masks upper nybble to check west wall bit. If set, draws north+west
+; corner, otherwise falls through to west-only wall character.
+;
+; Registers:
+; --- Start ---
+;   DE = Wall state pointer
+; --- In Process ---
+;   A  = Wall state byte, then masked upper nybble
+; ---  End  ---
+;   A  = Test result or wall character code
+;
+; Memory Modified: None
+; Calls: SET_MINIMAP_NW_WALLS (via JP)
+;==============================================================================
+CHECK_MINIMAP_WEST_WALL:
+    LD          A,(DE)                              ; Reload wall flags
+    AND         $f0                                 ; Mask upper nybble (west wall flag)
+    JP          NZ,SET_MINIMAP_NW_WALLS             ; If west wall set, draw north+west
+SET_MINIMAP_W_WALL:
+    LD          A,$b5                               ; Load character $b5 (west wall only)
+DRAW_MINIMAP_WALL:
+    LD          (HL),A                              ; Write wall character to mini-map
+    INC         HL                                  ; Advance to next mini-map cell
+    DJNZ        CALC_MINIMAP_WALL                   ; Decrement B (column counter), repeat if not zero
+    ADD         HL,BC                               ; Advance HL to next row (skip remainder of 40-char line)
+    LD          B,$10                               ; Reset column counter to 16
+    JP          CALC_MINIMAP_WALL                   ; Continue to next row
+
+;==============================================================================
+; SET_MINIMAP_PLAYER_LOC
+;==============================================================================
+; Marks the player's current position on the mini-map with white color, then
+; waits for a keypress or hand controller input before closing the map and
+; returning to the normal viewport.
+;
+; Registers:
+; --- Start ---
+;   A  = PLAYER_MAP_POS value
+;   D  = COLOR(DKBLU,WHT)
+; --- In Process ---
+;   BC = $ff (keyboard port), then $f7/$f6 (hand controller ports)
+;   A  = Input values from ports (incremented for testing)
+;   C  = Port selector ($ff, $f7, $f6)
+; ---  End  ---
+;   All registers modified by input polling
+;   Control passes to UPDATE_VIEWPORT
+;
+; Memory Modified: COLRAM_VIEWPORT_IDX (player position)
+; Calls: UPDATE_COLRAM_FROM_OFFSET, WAIT_A_TICK, UPDATE_VIEWPORT
+;==============================================================================
+SET_MINIMAP_PLAYER_LOC:
+    LD          A,(PLAYER_MAP_POS)                  ; Load player position offset
+    LD          D,COLOR(DKBLU,WHT)                  ; Set player cell color: dark blue on white
+    CALL        UPDATE_COLRAM_FROM_OFFSET           ; Mark player position on map
+    CALL        WAIT_A_TICK                         ; Wait for display stability
+
+READ_KEY:
+    LD          BC,$ff                              ; Set BC to keyboard port ($ff)
+    IN          A,(C)                               ; Read keyboard input
+    INC         A                                   ; Test for $FF (no key pressed)
+    JP          NZ,READ_KEY                         ; If key pressed, wait for release
+ENABLE_HC:
+    LD          C,$f7                               ; Set port to hand controller 1 ($f7)
+    LD          A,0xf                               ; Load hand controller enable value
+    OUT         (C),A                               ; Enable hand controller
+    DEC         C                                   ; Set port to hand controller 2 ($f6)
+READ_HC:
+    IN          A,(C)                               ; Read hand controller input
+    INC         A                                   ; Test for $FF (no input)
+    JP          NZ,READ_KEY                         ; If input detected, wait for release
+    INC         C                                   ; Switch back to port $f7
+    LD          A,0xe                               ; Load hand controller disable value
+DISABLE_HC:
+    OUT         (C),A                               ; Disable hand controller
+    DEC         C                                   ; Set port back to $f6
+    IN          A,(C)                               ; Read hand controller input again
+    INC         A                                   ; Test for $FF (no input)
+    JP          NZ,READ_KEY                         ; If input detected, keep waiting
+    JP          UPDATE_VIEWPORT                     ; Close map and return to normal viewport
+
+;==============================================================================
+; MAP_ITEM_MONSTER
+;==============================================================================
+; Initializes search for monsters or items in the dungeon map data. Sets BC
+; to point to the map item/monster list and falls through to the search loop.
+;
+; Registers:
+; --- Start ---
+;   HL = Item range bounds (H=min, L=max)
+; --- In Process ---
+;   BC = MAP_LADDER_OFFSET (list start pointer)
+; ---  End  ---
+;   BC = First entry pointer (or end marker)
+;   Z flag set if no matching items found
+;
+; Memory Modified: None
+; Calls: FIND_NEXT_ITEM_MONSTER_LOOP (fall-through)
+;==============================================================================
+MAP_ITEM_MONSTER:
+    LD          BC,MAP_LADDER_OFFSET                ; Point to start of map item/monster list
+
+;==============================================================================
+; FIND_NEXT_ITEM_MONSTER_LOOP
+;==============================================================================
+; Searches through the map item/monster list for entries matching the specified
+; type range. Each list entry is 2 bytes: [position_offset][item_code]. The
+; list is terminated with $FF. Filters entries based on H/L range bounds.
+;
+; Registers:
+; --- Start ---
+;   BC = List pointer (entry position offset)
+;   HL = Range bounds (H=min, L=max)
+; --- In Process ---
+;   A  = Position offset, then item code
+;   BC = Incremented through list entries
+; ---  End  ---
+;   BC = Match position (BC-2) or end of list
+;   A  = Last item code compared
+;   Z flag = match status
+;
+; Memory Modified: None
+; Calls: None (returns to caller)
+;==============================================================================
+FIND_NEXT_ITEM_MONSTER_LOOP:
+    LD          A,(BC)                              ; Load position offset byte
+    INC         BC                                  ; Advance to item code byte
+    INC         A                                   ; Test for $FF terminator (becomes $00)
+    RET         Z                                   ; Return with Z flag if end of list
+    LD          A,(BC)                              ; Load item code
+    CP          H                                   ; Compare to low bound (H)
+    INC         BC                                  ; Advance to next entry
+    JP          C,FIND_NEXT_ITEM_MONSTER_LOOP       ; If code < low bound, continue search
+    CP          L                                   ; Compare to high bound (L)
+    JP          NC,FIND_NEXT_ITEM_MONSTER_LOOP      ; If code >= high bound, continue search
+    DEC         C                                   ; Back up to item code byte
+    DEC         BC                                  ; Back up to position offset byte
+    RET                                             ; Return with Z clear (match found)
+
+;==============================================================================
+; UPDATE_COLRAM_FROM_OFFSET
+;==============================================================================
+; Updates a color RAM cell in the viewport based on a linear offset (0-383).
+; Converts the offset to a 2D coordinate in the 24x16 viewport grid and sets
+; the color at that position to the value in D register.
+;
+; Registers:
+; --- Start ---
+;   A  = Linear offset value
+;   D  = Color value to set
+; --- In Process ---
+;   A  = X coordinate, then row calculations
+;   BC = Offset accumulators for row/column math
+;   HL = COLRAM_F0_WALL_IDX base, then final COLRAM address
+;   B  = Row multiplier carry bit
+; ---  End  ---
+;   HL = Final COLRAM address
+;   (HL) = Color value from D
+;   A, BC modified
+;
+; Memory Modified: COLRAM_VIEWPORT_IDX (one cell at calculated offset)
+; Calls: None
+;==============================================================================
+UPDATE_COLRAM_FROM_OFFSET:
+    PUSH        AF                                  ; Preserve original offset
+    AND         0xf                                 ; Mask lower nybble (X coordinate 0-15)
+    LD          HL,COLRAM_MINI_MAP_IDX              ; Point to viewport COLRAM base
+    LD          C,A                                 ; Copy X coordinate to C
+    LD          B,0x0                               ; Clear B for 16-bit addition
+    ADD         HL,BC                               ; Add X offset to base address
+    POP         AF                                  ; Restore original offset
+    AND         $f0                                 ; Mask upper nybble (row number * 16)
+    RRA                                             ; Divide by 2 (row * 8)
+    LD          C,A                                 ; Copy to C
+    ADD         HL,BC                               ; Add (row * 8) to address
+    RLA                                             ; Multiply by 2 (row * 16)
+    RLA                                             ; Multiply by 2 (row * 32)
+    RL          B                                   ; Capture carry bit into B
+    LD          C,A                                 ; Copy (row * 32) to C
+    ADD         HL,BC                               ; Add (row * 32), total = row * 40
+    LD          (HL),D                              ; Write color value D to COLRAM
+    RET                                             ; Return to caller
+
+;==============================================================================
+; RANDOMIZE_BCD_NYBBLES — Randomize BCD nybbles in L
+;==============================================================================
+; Takes the value in L, extracts and randomizes each BCD nybble independently,
+; then recombines them back into L. Uses modulo arithmetic to constrain the
+; random value to valid BCD ranges (0-9 for each nybble).
+;
+; Registers:
+; --- Start ---
+;   L = Input BCD value
+; --- In Process ---
+;   A = Extracted nybbles and calculations
+;   B = Range parameter for modulo
+;   C = Randomized lower nybble (temporary)
+; ---  End  ---
+;   L = Randomized output
+;   A = Combined result
+;
+; Memory Modified: None directly; screen saver timer via RANDOM_MOD_B
+; Calls: RANDOM_MOD_B (twice)
+;==============================================================================
+RANDOMIZE_BCD_NYBBLES:
+    LD          A,L                                 ; Load BCD value
+    AND         0xf                                 ; Mask lower nybble (0-15)
+    LD          B,A                                 ; Copy to B
+    INC         B                                   ; B = nybble + 1 (range 1-16)
+    CALL        RANDOM_MOD_B                        ; Get random A mod B
+    LD          C,A                                 ; Save randomized lower nybble in C
+    LD          A,L                                 ; Reload BCD value
+    AND         $f0                                 ; Mask upper nybble
+    RLCA                                            ; Shift right 4 bits (nybble to lower position)
+    RLCA
+    RLCA
+    RLCA
+    LD          B,A                                 ; Copy to B
+    INC         B                                   ; B = nybble + 1 (range 1-16)
+    CALL        RANDOM_MOD_B                        ; Get random A mod B
+    RLCA                                            ; Shift left 4 bits (nybble to upper position)
+    RLCA
+    RLCA
+    RLCA
+    ADD         A,C                                 ; Combine upper nybble with lower (from C)
+    LD          L,A                                 ; Store combined result in L
+    RET
+;==============================================================================
+; RANDOM_MOD_B — Random Modulo
+;==============================================================================
+; Returns a pseudo-random value modulo B. Uses UPDATE_SCR_SAVER_TIMER as a
+; random source, then repeatedly subtracts B until result is in range [0,B-1].
+;
+; Registers:
+; --- Start ---
+;   B = Divisor
+; --- In Process ---
+;   A = Random byte, then modulo result
+; ---  End  ---
+;   A = Result in range [0, B-1]
+;
+; Memory Modified: Screen saver timer via UPDATE_SCR_SAVER_TIMER
+; Calls: UPDATE_SCR_SAVER_TIMER
+;==============================================================================
+RANDOM_MOD_B:
+    CALL        UPDATE_SCR_SAVER_TIMER              ; Get pseudo-random byte in A
+    AND         0xf                                 ; Mask to lower nybble (0-15)
+RAND_MOD_LOOP:                                      ; Modulo loop
+    SUB         B                                   ; A = A - B
+    JP          NC,RAND_MOD_LOOP                    ; If no borrow (A >= B), repeat
+    ADD         A,B                                 ; A went negative; add B back
+    RET                                             ; Return A in range [0, B-1]
+
+;==============================================================================
+; ADD_BCD_HL_DE — Add BCD Values (HL += DE)
+;==============================================================================
+; Adds two 16-bit BCD (Binary Coded Decimal) values. Uses DAA (Decimal Adjust
+; Accumulator) after each byte addition to keep result in valid BCD format.
+;
+; Registers:
+; --- Start ---
+;   HL = BCD addend 1
+;   DE = BCD addend 2
+; --- In Process ---
+;   A = Intermediate sums with carry
+; ---  End  ---
+;   HL = BCD result
+;   A = Final high byte result
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
+ADD_BCD_HL_DE:
+    LD          A,L                                 ; Load low byte of HL
+    ADD         A,E                                 ; Add low byte of DE
+    DAA                                             ; Decimal adjust for BCD
+    LD          L,A                                 ; Store BCD result in L
+    LD          A,D                                 ; Load high byte of DE
+    ADC         A,H                                 ; Add high byte of HL with carry
+    DAA                                             ; Decimal adjust for BCD
+    LD          H,A                                 ; Store BCD result in H
+    RET
+
+;==============================================================================
+; RECALC_PHYS_HEALTH — Subtract BCD Values (HL -= DE)
+;==============================================================================
+; Subtracts two 16-bit BCD values, typically used to recalculate physical
+; health after damage. Uses DAA after each byte subtraction to maintain BCD.
+;
+; Registers:
+; --- Start ---
+;   HL = BCD minuend
+;   DE = BCD subtrahend
+; --- In Process ---
+;   A = Intermediate differences with borrow
+; ---  End  ---
+;   HL = BCD result
+;   A = Final high byte result
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
+RECALC_PHYS_HEALTH:
+    LD          A,L                                 ; Load low byte of HL
+    SUB         E                                   ; Subtract low byte of DE
+    DAA                                             ; Decimal adjust for BCD
+    LD          L,A                                 ; Store BCD result in L
+    LD          A,H                                 ; Load high byte of HL
+    SBC         A,D                                 ; Subtract high byte of DE with borrow
+    DAA                                             ; Decimal adjust for BCD
+    LD          H,A                                 ; Store BCD result in H
+    RET
+
+;==============================================================================
+; DIVIDE_BCD_HL_BY_2 — Divide BCD HL by 2 with Rounding
+;==============================================================================
+; Divides a 16-bit BCD value in HL by 2 using right shifts. Applies BCD
+; correction when shifting across nybble boundaries and rounds down if the
+; lower nybble of L has bit 3 set.
+;
+; Registers:
+; --- Start ---
+;   HL = BCD dividend
+; --- In Process ---
+;   A = Correction values ($30, 3)
+; ---  End  ---
+;   HL = BCD quotient
+;   Flags reflect final state
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
+DIVIDE_BCD_HL_BY_2:
+    XOR         A                                   ; Clear A and carry flag
+    RR          H                                   ; Rotate H right (divide high byte by 2)
+    JP          NC,DIVIDE_NO_CARRY                  ; If no carry, skip BCD correction
+    RR          L                                   ; Rotate L right with carry from H
+    LD          A,L                                 ; Load L
+    SUB         $30                                 ; BCD correction: subtract $30
+    LD          L,A                                 ; Store corrected value
+    JP          DIVIDE_ROUND_CHECK                  ; Continue to rounding check
+DIVIDE_NO_CARRY:                                    ; No carry from H
+    RR          L                                   ; Rotate L right (divide by 2)
+DIVIDE_ROUND_CHECK:                                 ; Rounding adjustment
+    BIT         0x3,L                               ; Test bit 3 of L
+    RET         Z                                   ; If clear, no rounding needed
+    LD          A,L                                 ; Load L
+    SUB         0x3                                 ; Subtract 3 for rounding
+    LD          L,A                                 ; Store adjusted value
+    RET
+
+;==============================================================================
+; COPY_GFX_2_BUFFER
+;==============================================================================
+; Copies a 4x4 character block from source to destination address. Source
+; pointer (HL) advances through screen rows while destination (DE) remains
+; a contiguous buffer. Automatically handles both CHRRAM and COLRAM addressing
+; by detecting the memory page and recursively copying color data.
+;
+; Memory Layout:
+; - Screen is 40 characters wide, so next row = current + 40 ($28)
+; - After copying 4 characters in a row, skip 36 positions to next row
+; - If crossing from CHRRAM to COLRAM ($3400+), add $384 offset
+;
+; Registers:
+; --- Start ---
+;   HL = Source address for 4x4 block (screen memory)
+;   DE = Destination address for 4x4 block (buffer)
+;   A  = Row counter (will be set to 4)
+; --- In Process ---
+;   A  = Row counter (4→3→2→1→0)
+;   BC = Copy length (4 chars) and row skip offset ($24 = 36)
+;   HL = Current source position advancing through screen rows
+;   DE = Current destination position (auto-increments contiguously via LDIR)
+;   H  = Used for source memory page detection ($30-$33 vs $34+)
+; ---  End  ---
+;   A  = 0 (exhausted row counter) or memory page value for COLRAM handling
+;   BC = $384 (COLRAM offset) if memory page transition occurred
+;   HL = Final source position after all copying and potential page adjustment
+;   DE = Final destination position (16 bytes past start)
+;
+; Memory Modified: 16 memory locations in 4x4 destination area
+; Calls: None (uses LDIR instruction for block copying)
+;==============================================================================
+COPY_GFX_2_BUFFER:
+    LD          A,0x4                               ; Set row counter to 4 (copy 4 rows)
+COPY_GFX_2_BUFF_LOOP:
+    LD          BC,0x4                              ; Set BC to 4 (copy 4 characters per row)
+    LDIR                                            ; Copy 4 bytes from (HL) to (DE), auto-increment both
+    DEC         A                                   ; Decrement row counter
+    JP          Z,COPY_GFX_2_BUF_MEMCHK             ; If all 4 rows copied, jump to memory page check
+    LD          BC,$24                              ; BC = 36 (skip to next row: 40 - 4 = 36)
+    ADD         HL,BC                               ; Advance HL to start of next source row
+    JP          COPY_GFX_2_BUFF_LOOP                ; Loop back to copy next row
+COPY_GFX_2_BUF_MEMCHK:
+    LD          A,H                                 ; Load high byte of HL for memory page detection
+    CP          $34                                 ; Compare with $34 (COLRAM start page)
+    RET         NC                                  ; If HL >= $34xx (in COLRAM range), return
+    LD          BC,$384                             ; BC = $384 (offset from CHRRAM to corresponding COLRAM)
+    ADD         HL,BC                               ; Adjust HL from CHRRAM ($30xx) to COLRAM ($34xx)
+    JP          COPY_GFX_2_BUFFER                   ; Recursive call to copy corresponding COLRAM area
+
+;==============================================================================
+; COPY_GFX_FROM_BUFFER
+;==============================================================================
+; Copies a 4x4 character block from source buffer to destination screen memory.
+; Source pointer (HL) remains contiguous while destination (DE) advances through
+; screen rows. Inverse of COPY_GFX_2_BUFFER. Includes COLRAM page transition
+; detection for the destination pointer.
+;
+; Registers:
+; --- Start ---
+;   HL = Source address for 4x4 block (buffer)
+;   DE = Destination address for 4x4 block (screen memory)
+;   A  = Row counter (will be set to 4)
+; --- In Process ---
+;   A  = Row counter (4→3→2→1→0)
+;   BC = Copy length (4 chars) and row skip offset ($24 = 36)
+;   HL = Current source position (auto-increments contiguously via LDIR)
+;   DE = Current destination position advancing through screen rows
+;   D  = Used for destination memory page detection ($30-$33 vs $34+)
+; ---  End  ---
+;   A  = Final row counter value or memory page value
+;   BC = $384 (COLRAM offset) if destination page transition occurred
+;   HL = Final source position (16 bytes past start)
+;   DE = Final destination position after copying and potential page adjustment
+;
+; Memory Modified: 16 memory locations in 4x4 destination area
+; Calls: None (uses LDIR instruction for block copying)
+;==============================================================================
+COPY_GFX_FROM_BUFFER:
+    LD          A,0x4                               ; Set row counter to 4 (copy 4 rows)
+COPY_GFX_FROM_BUFF_LOOP:
+    LD          BC,0x4                              ; Set BC to 4 (copy 4 characters per row)
+    LDIR                                            ; Copy 4 bytes from (HL) to (DE), auto-increment both
+    DEC         A                                   ; Decrement row counter
+    JP          Z,COPY_GFX_FROM_BUFF_MEMCHK         ; If all 4 rows copied, jump to memory page check
+    EX          DE,HL                               ; Swap HL and DE for destination pointer advancement
+    LD          BC,$24                              ; BC = 36 (skip to next row: 40 - 4 = 36)
+    ADD         HL,BC                               ; Advance destination pointer to next row
+    EX          DE,HL                               ; Restore HL as source, DE as destination
+    JP          COPY_GFX_FROM_BUFF_LOOP             ; Loop back to copy next row
+COPY_GFX_FROM_BUFF_MEMCHK:
+    LD          A,D                                 ; Load high byte of DE for destination memory page detection
+    CP          $34                                 ; Compare with $34 (COLRAM start page)
+    RET         NC                                  ; If DE >= $34xx (in COLRAM range), return
+    LD          BC,$384                             ; BC = $384 (offset from CHRRAM to corresponding COLRAM)
+    EX          DE,HL                               ; Swap to adjust destination pointer
+    ADD         HL,BC                               ; Adjust DE from CHRRAM ($30xx) to COLRAM ($34xx)
+    EX          DE,HL                               ; Restore HL as source, DE as adjusted destination
+    JP          COPY_GFX_FROM_BUFFER                ; Recursive call to copy corresponding COLRAM area
+
+;==============================================================================
+; COPY_GFX_SCRN_2_SCRN  
+;==============================================================================
+; Copies a 4x4 character block from source to destination with synchronized
+; row advancement for both pointers. Both source and destination advance by
+; the row stride, and both are checked for COLRAM page transitions. This
+; function handles cases where both source and destination areas need to
+; maintain proper screen memory alignment.
+;
+; Registers:
+; --- Start ---
+;   HL = Source address for 4x4 block
+;   DE = Destination address for 4x4 block
+;   A  = Row counter (will be set to 4)
+; --- In Process ---
+;   A  = Row counter (4→3→2→1→0)  
+;   BC = Copy length (4 chars) and row skip offset ($24 = 36)
+;   HL = Current source position advancing through 4x4 area
+;   DE = Current destination position advancing through 4x4 area
+;   H  = Used for source memory page detection ($30-$33 vs $34+)
+; ---  End  ---
+;   A  = Final row counter or memory page value
+;   BC = $384 (COLRAM offset) if page transitions occurred
+;   HL = Final source position after copying and potential page adjustment
+;   DE = Final destination position after copying and potential page adjustment
+;
+; Memory Modified: 16 memory locations in 4x4 destination area
+; Calls: None (uses LDIR instruction for block copying)
+;==============================================================================
+COPY_GFX_SCRN_2_SCRN:
+    LD          A,0x4                               ; Set row counter to 4 (copy 4 rows)
+COPY_GFX_SCRN_2_SCRN_LOOP:
+    LD          BC,0x4                              ; Set BC to 4 (copy 4 characters per row)
+    LDIR                                            ; Copy 4 bytes from (HL) to (DE), auto-increment both
+    DEC         A                                   ; Decrement row counter  
+    JP          Z,COPY_GFX_SCRN_2_SCRN_MEMCHK       ; If all 4 rows copied, jump to memory page check
+    LD          BC,$24                              ; BC = 36 (skip to next row: 40 - 4 = 36)
+    ADD         HL,BC                               ; Advance source pointer to next row
+    EX          DE,HL                               ; Swap to advance destination pointer
+    ADD         HL,BC                               ; Advance destination pointer to next row
+    EX          DE,HL                               ; Restore HL as source, DE as destination
+    JP          COPY_GFX_SCRN_2_SCRN_LOOP           ; Loop back to copy next row
+COPY_GFX_SCRN_2_SCRN_MEMCHK:
+    LD          A,H                                 ; Load high byte of HL for source memory page detection
+    CP          $34                                 ; Compare with $34 (COLRAM start page)
+    RET         NC                                  ; If HL >= $34xx (in COLRAM range), return
+    LD          BC,$384                             ; BC = $384 (offset from CHRRAM to corresponding COLRAM)
+    ADD         HL,BC                               ; Adjust source from CHRRAM ($30xx) to COLRAM ($34xx)
+    EX          DE,HL                               ; Swap to adjust destination pointer
+    ADD         HL,BC                               ; Adjust destination from CHRRAM ($30xx) to COLRAM ($34xx)
+    EX          DE,HL                               ; Restore HL as source, DE as destination
+    JP          COPY_GFX_SCRN_2_SCRN                ; Recursive call to copy corresponding COLRAM areas
+
+;==============================================================================
+; CHECK_RING - Update ring icon color based on inventory level
+;==============================================================================
+; Reads the ring inventory slot level, converts it to a color value using
+; LEVEL_TO_COLRAM_FIX, and updates the ring icon color in COLRAM. Preserves
+; the A register across the operation.
+;
+; Registers:
+; --- Start ---
+;   A = Preserved (pushed/popped)
+; --- In Process ---
+;   A = RING_INV_SLOT value, then color value from LEVEL_TO_COLRAM_FIX
+; ---  End  ---
+;   A = Original value (restored)
+;
+; Memory Modified: COLRAM_RING_IDX
+; Calls: LEVEL_TO_COLRAM_FIX
+;==============================================================================
+CHECK_RING:
+    PUSH        AF                                  ; Preserve A register
+    LD          A,(RING_INV_SLOT)                   ; A = ring level (0-3)
+    CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color value
+    LD          (COLRAM_RING_IDX),A                 ; Update ring icon color
+    POP         AF                                  ; Restore A register
+    RET                                             ; Return to caller
+
+;==============================================================================
+; CHECK_HELMET - Update helmet icon color based on inventory level
+;==============================================================================
+; Reads the helmet inventory slot level, converts it to a color value using
+; LEVEL_TO_COLRAM_FIX, and updates the helmet icon color in COLRAM. Preserves
+; the A register across the operation. Mirrors CHECK_RING logic for helmet.
+;
+; Registers:
+; --- Start ---
+;   A = Preserved (pushed/popped)
+; --- In Process ---
+;   A = HELMET_INV_SLOT value, then color value from LEVEL_TO_COLRAM_FIX
+; ---  End  ---
+;   A = Original value (restored)
+;
+; Memory Modified: COLRAM_HELMET_IDX
+; Calls: LEVEL_TO_COLRAM_FIX
+;==============================================================================
+CHECK_HELMET:
+    PUSH        AF                                  ; Preserve A register
+    LD          A,(HELMET_INV_SLOT)                 ; A = helmet level (0-3)
+    CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color value
+    LD          (COLRAM_HELMET_IDX),A               ; Update helmet icon color
+    POP         AF                                  ; Restore A register
+    RET                                             ; Return to caller
+
+;==============================================================================
+; CHECK_ARMOR - Update armor icon color based on inventory level
+;==============================================================================
+; Reads the armor inventory slot level, converts it to a color value using
+; LEVEL_TO_COLRAM_FIX, and updates the armor icon color in COLRAM. Preserves
+; the A register across the operation.
+;
+; Registers:
+; --- Start ---
+;   A = Preserved (pushed/popped)
+; --- In Process ---
+;   A = ARMOR_INV_SLOT value, then color value from LEVEL_TO_COLRAM_FIX
+; ---  End  ---
+;   A = Original value (restored)
+;
+; Memory Modified: COLRAM_ARMOR_IDX
+; Calls: LEVEL_TO_COLRAM_FIX
+;==============================================================================
+CHECK_ARMOR:
+    PUSH        AF                                  ; Preserve A register
+    LD          A,(ARMOR_INV_SLOT)                  ; A = armor level (0-3)
+    CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color value
+    LD          (COLRAM_ARMOR_IDX),A                ; Update armor icon color
+    POP         AF                                  ; Restore A register
+    RET                                             ; Return to caller
+
+;==============================================================================
+; LEVEL_TO_COLRAM_FIX - Convert equipment level to color attribute value
+;==============================================================================
+; Converts an equipment level (0-3) to a COLRAM color attribute value using
+; the formula: ((level * 2) - 1) * 16. This maps levels to color palette
+; indices: 0→-16 (wraps), 1→16, 2→48, 3→80.
+;
+; Registers:
+; --- Start ---
+;   A = Level (0-3)
+; --- In Process ---
+;   A = Intermediate calculations
+; ---  End  ---
+;   A = Color value (palette index * 16)
+;
+; Memory Modified: None
+; Calls: None
+;==============================================================================
+LEVEL_TO_COLRAM_FIX:
+    ADD         A,A                                 ; A = level * 2
+    SUB         0x1                                 ; A = (level * 2) - 1
+    SLA         A                                   ; A = ((level * 2) - 1) * 2
+    SLA         A                                   ; A = ((level * 2) - 1) * 4
+    SLA         A                                   ; A = ((level * 2) - 1) * 8
+    SLA         A                                   ; A = ((level * 2) - 1) * 16
+    RET                                             ; Return color value in A
+
+;==============================================================================
+; RHA_REDRAW - Redraw Ring/Helmet/Armor icons and return to input
+;==============================================================================
+; Updates the color attributes for all three equipment icons (Ring, Helmet,
+; Armor) based on their current inventory levels, then returns to the input
+; debounce loop. Typically called after equipment changes.
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A = Modified by CHECK_* routines
+; ---  End  ---
+;   Control transfers to INPUT_DEBOUNCE (no return)
+;
+; Memory Modified: COLRAM_RING_IDX, COLRAM_HELMET_IDX, COLRAM_ARMOR_IDX
+; Calls: CHECK_RING, CHECK_HELMET, CHECK_ARMOR, INPUT_DEBOUNCE
+;==============================================================================
+RHA_REDRAW:
+    CALL        CHECK_RING                          ; Update ring icon color
+    CALL        CHECK_HELMET                        ; Update helmet icon color
+    CALL        CHECK_ARMOR                         ; Update armor icon color
+    JP          INPUT_DEBOUNCE                      ; Return to input loop
+
+;==============================================================================
+; PLAY_TELEPORT_SOUND - Play descending teleport sound effect
+;==============================================================================
+; Plays a four-tone descending sound sequence to indicate teleportation.
+; Each tone is played at progressively lower frequency (higher BC value)
+; for a short duration (DE=$18).
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   BC = Duration values ($220, $110, $88, $44)
+;   DE = Pitch value ($18 for all tones)
+;   All registers modified by PLAY_SOUND_LOOP
+; ---  End  ---
+;   All registers modified
+;
+; Memory Modified: None
+; Calls: PLAY_SOUND_LOOP (4 times)
+;==============================================================================
+PLAY_TELEPORT_SOUND:
+    LD          BC,$220                             ; BC = duration for first tone
+    LD          DE,$18                              ; DE = pitch/frequency
+    CALL        PLAY_SOUND_LOOP                     ; Play first (highest) tone
+    LD          BC,$110                             ; BC = duration for second tone
+    LD          DE,$18                              ; DE = pitch/frequency
+    CALL        PLAY_SOUND_LOOP                     ; Play second tone
+    LD          BC,$88                              ; BC = duration for third tone
+    LD          DE,$18                              ; DE = pitch/frequency
+    CALL        PLAY_SOUND_LOOP                     ; Play third tone
+    LD          BC,$44                              ; BC = duration for fourth tone
+    LD          DE,$18                              ; DE = pitch/frequency
+    CALL        PLAY_SOUND_LOOP                     ; Play fourth (lowest) tone
+    RET                                             ; Return to caller
+
+;==============================================================================
+; PLAY_POWER_UP_SOUND - Play ascending power-up sound effect
+;==============================================================================
+; Plays a four-tone ascending sound sequence to indicate power-up or stat
+; maximization. Each tone is played at progressively higher frequency (lower
+; BC value). The final tone has extended duration (DE=$60).
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   BC = Duration values ($220, $200, $1e0, $1c0)
+;   DE = Pitch values ($18 for first 3, $60 for last)
+;   All registers modified by PLAY_SOUND_LOOP
+; ---  End  ---
+;   All registers modified
+;
+; Memory Modified: None
+; Calls: PLAY_SOUND_LOOP (4 times)
+;==============================================================================
+PLAY_POWER_UP_SOUND:
+    LD          BC,$220                             ; BC = duration for first tone
+    LD          DE,$18                              ; DE = pitch/frequency (short)
+    CALL        PLAY_SOUND_LOOP                     ; Play first tone
+    LD          BC,$200                             ; BC = duration for second tone
+    LD          DE,$18                              ; DE = pitch/frequency (short)
+    CALL        PLAY_SOUND_LOOP                     ; Play second tone
+    LD          BC,$1e0                             ; BC = duration for third tone
+    LD          DE,$18                              ; DE = pitch/frequency (short)
+    CALL        PLAY_SOUND_LOOP                     ; Play third tone
+    LD          BC,$1c0                             ; BC = duration for fourth tone
+    LD          DE,$60                              ; DE = pitch/frequency (long final tone)
+    CALL        PLAY_SOUND_LOOP                     ; Play fourth tone (extended)
+    RET                                             ; Return to caller
