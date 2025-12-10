@@ -218,6 +218,7 @@ BLANK_SCRN:
     LD          A,$14                               ; A = 14 (starting food/arrows BCD)
     LD          (FOOD_INV),A                        ; Initialize food inventory
     LD          (ARROW_INV),A                       ; Initialize arrow inventory
+    CALL        DRAW_LEFT_HAND_AREA                 ; Clear left hand viewport area to black
     LD          B,COLOR(RED,BLK)                    ; B = red on black (left hand item color)
     LD          HL,CHRRAM_LEFT_HAND_VP_DRAW_IDX     ; HL = left hand viewport draw position
     LD          DE,BOW                              ; DE = BOW graphics pointer
