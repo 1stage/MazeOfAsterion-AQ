@@ -78,7 +78,8 @@ GFX_PTR_CROSSBOW_S:
     dw        CROSSBOW_S
 GFX_PTR_CROSSBOW_T:
     dw        CROSSBOW_T
-    dw        EXCL_MARK_GFX
+GFX_PTR_SPIDER_WEB:
+    dw        SPIDER_WEB
     dw        EXCL_MARK_GFX
     dw        EXCL_MARK_GFX
     dw        EXCL_MARK_GFX

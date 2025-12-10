@@ -316,10 +316,16 @@ CROSSBOW_T:
     db          $A0,$91,$A0,$D8,$02,$04,$90,$FF
 
 ; =================================
-; UNKNOWN ITEM -
+; SPIDER_WEB -
 ;   OBJECT TYPE:  $0D
 ;   OBJECT INDEX: $34
 ; The purpose of this item is unknown, but maybe used for the flying animation for AXE or MACE. Note that this item/object does not appear in the maze and cannot be picked up.
+
+SPIDER_WEB:
+    db          $01,$01,$01,$01,$01
+    db          $00,47,216,92,$01
+    db          $00,216,216,216,$01
+    db          $00,92,216,47,$FF
 
 ; =================================
 ; UNKNOWN ITEM -

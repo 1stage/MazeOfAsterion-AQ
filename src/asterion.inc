@@ -384,6 +384,12 @@ YEL_CROSSBOW_ITEM   EQU $31
 MAG_CROSSBOW_ITEM   EQU $32
 WHT_CROSSBOW_ITEM   EQU $33
 
+; Spider Web ($34-$37) - Biological weapon
+RED_SPIDER_WEB_ITEM     EQU $34
+YEL_SPIDER_WEB_ITEM     EQU $35
+WHT_SPIDER_WEB_ITEM     EQU $36
+MAG_SPIDER_WEB_ITEM     EQU $37
+
 ; Arrow Flying right ($3C) - Monster attack animation (not pickupable)
 RED_ARROW_RIGHT_ITEM    EQU $3C
 YEL_ARROW_RIGHT_ITEM    EQU $3D
@@ -483,7 +489,7 @@ SNAKE_WEAPON_SPRITE     EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
 ; Spider - Weak but numerous
 SPIDER_BASE_DMG         EQU $04                     ; Base damage: 4 (BCD)
 SPIDER_BASE_HP          EQU MONSTER_HP(0, 2)        ; 0 SPRT, 2 PHYS
-SPIDER_WEAPON_SPRITE    EQU RED_FIREBALL_ITEM       ; Spiritual attack
+SPIDER_WEAPON_SPRITE    EQU RED_SPIDER_WEB_ITEM     ; Physical attack
 
 ; Mimic - Disguised chest enemy
 MIMIC_BASE_DMG          EQU $05                     ; Base damage: 5 (BCD)
