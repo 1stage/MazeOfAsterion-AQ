@@ -78,8 +78,9 @@ CHRRAM_LEVEL_IDX EQU $333d
 CHRRAM_RIGHT_HD_GFX_IDX EQU $3343
 CHRRAM_AUTHORS_IDX EQU $3348
 ; New viewport hand positions (lower corners of viewport)
-CHRRAM_LEFT_HAND_VP_IDX EQU $3349   ; Row 21, Col 1 (lower-left viewport corner)
-COLRAM_LEFT_HAND_VP_IDX EQU $3749   ; Corresponding COLRAM address
+CHRRAM_LEFT_HAND_VP_DRAW_IDX EQU $3281  ; Row 16, Col 1 - GFX_DRAW start point (5 rows above 4x4)
+CHRRAM_LEFT_HAND_VP_IDX EQU $3349       ; Row 21, Col 1 - actual 4x4 location for copy routines
+COLRAM_LEFT_HAND_VP_IDX EQU $3749       ; Corresponding COLRAM address
 CHRRAM_S0_ITEM_IDX EQU $3352
 ; DAT_ram_335c EQU $335c
 CHRRAM_RH_POOF_IDX EQU $336c

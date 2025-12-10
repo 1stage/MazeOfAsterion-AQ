@@ -219,7 +219,7 @@ BLANK_SCRN:
     LD          (FOOD_INV),A                        ; Initialize food inventory
     LD          (ARROW_INV),A                       ; Initialize arrow inventory
     LD          B,COLOR(RED,BLK)                    ; B = red on black (left hand item color)
-    LD          HL,CHRRAM_LEFT_HAND_ITEM_IDX        ; HL = left hand item position
+    LD          HL,CHRRAM_LEFT_HAND_VP_DRAW_IDX     ; HL = left hand viewport draw position
     LD          DE,BOW                              ; DE = BOW graphics pointer
     CALL        GFX_DRAW                            ; Draw BOW in left hand slot
     CALL        FIX_ICON_COLORS                     ; Normalize icon colors post-draw
@@ -1508,11 +1508,11 @@ DO_SWAP_HANDS:
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; HL = right-hand graphics source
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; DE = temporary buffer destination
     CALL        COPY_GFX_2_BUFFER                   ; Save right-hand graphics to buffer
-    LD          HL,CHRRAM_LEFT_HD_GFX_IDX           ; HL = left-hand graphics source
+    LD          HL,CHRRAM_LEFT_HAND_VP_IDX          ; HL = left-hand viewport graphics source
     LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; DE = right-hand graphics destination
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy left-hand graphics to right-hand slot
     LD          HL,ITEM_MOVE_CHR_BUFFER             ; HL = buffered graphics source
-    LD          DE,CHRRAM_LEFT_HD_GFX_IDX           ; DE = left-hand graphics destination
+    LD          DE,CHRRAM_LEFT_HAND_VP_IDX          ; DE = left-hand viewport graphics destination
     CALL        COPY_GFX_FROM_BUFFER                ; Copy buffered graphics to left-hand slot
     CALL        NEW_RIGHT_HAND_ITEM                 ; Update right-hand item attributes
     LD          BC,0x0                              ; Clear BC (will hold shield bonuses)
