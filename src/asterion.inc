@@ -259,13 +259,13 @@ ITEM_ANIM_STATE EQU $3a87
 RANDOM_OUTPUT_BYTE EQU $3a88 
 ITEM_ANIM_TIMER_COPY EQU $3a89
 ; Cached timer value for item animation sync
-MONSTER_SPRITE_FRAME EQU $3a8a
-; Monster sprite frame index (base + level offset)
+MELEE_WEAPON_SPRITE EQU $3a8a
+; Melee weapon sprite ID (determines which weapon is animated and damage target)
 MELEE_ANIM_STATE EQU $3a8b 
 MONSTER_ANIM_TIMER_COPY EQU $3a8c
 ; Cached timer value for monster animation sync 
 MONSTER_ATT_POS_COUNT EQU $3a8d 
-MONSTER_ATT_POS_OFFSET EQU $3a8f 
+WEAPON_SPRITE_POS_OFFSET EQU $3a8f 
 RND_SEED_LFSR EQU $3a91
 PLAYER_PHYS_HEALTH EQU $3a93 
 PLAYER_PHYS_HEALTH_MAX EQU $3a95 

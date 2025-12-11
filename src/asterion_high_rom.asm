@@ -1099,7 +1099,7 @@ EXPAND_STAT_THRESHOLDS:
 ;
 ; Registers:
 ; --- Start ---
-;   (Reads from memory: MELEE_ANIM_STATE, MONSTER_ATT_POS_COUNT, MONSTER_ATT_POS_OFFSET)
+;   (Reads from memory: MELEE_ANIM_STATE, MONSTER_ATT_POS_COUNT, WEAPON_SPRITE_POS_OFFSET)
 ; --- In Process ---
 ;   A  = Animation state values, flags, and temporary calculations
 ;   HL = Position frame counters and screen position offsets
@@ -1109,7 +1109,7 @@ EXPAND_STAT_THRESHOLDS:
 ;   All registers modified by called functions
 ;   Animation state, position, and timer updated in memory
 ;
-; Memory Modified: MELEE_ANIM_STATE, MONSTER_ATT_POS_COUNT, MONSTER_ATT_POS_OFFSET,
+; Memory Modified: MELEE_ANIM_STATE, MONSTER_ATT_POS_COUNT, WEAPON_SPRITE_POS_OFFSET,
 ;                  SPRITE_FRAME_SELECTOR, MONSTER_ANIM_TIMER_COPY, MONSTER_BG_SAVE_BUFFER (buffer)
 ; Calls: SOUND_05, MELEE_DRAW_WEAPON_FRAME, COPY_GFX_2_BUFFER, CHK_ITEM
 ;==============================================================================
@@ -1118,28 +1118,28 @@ MELEE_ANIM_LOOP:
     LD          A,(MELEE_ANIM_STATE)                ; Load current animation state (1 or 3)
     LD          HL,(MONSTER_ATT_POS_COUNT)          ; Load position frame counter
     DEC         A                                   ; Decrement state: 1→0 or 3→2
-    JP          NZ,MELEE_MOVE_MONSTER_TO_PLAYER     ; If state≠1, jump to increment position
+    JP          NZ,MELEE_ANIM_SMALL_STEP            ; If state≠1, jump to increment position
     DEC         L                                   ; State=1: decrement low byte of counter
-    JP          NZ,MELEE_MOVE_PLAYER_TO_MONSTER     ; If L≠0, continue animation
+    JP          NZ,MELEE_ANIM_LARGE_STEP            ; If L≠0, continue animation
     DEC         H                                   ; L reached 0: decrement high byte
     JP          Z,FINISH_AND_APPLY_DAMAGE           ; If both bytes=0, animation done, apply damage
     LD          A,$32                               ; Reset some animation flag
     LD          (DAMAGE_CALC_FLAG),A                ; Store flag value
     LD          L,0x2                               ; Reset low counter to 2
-MELEE_MOVE_PLAYER_TO_MONSTER:
+MELEE_ANIM_LARGE_STEP:
     LD          A,0x3                               ; Set animation state to 3 (player attacking)
     LD          (MELEE_ANIM_STATE),A                ; Store new state
     LD          (MONSTER_ATT_POS_COUNT),HL          ; Save updated frame counter
-    LD          HL,(MONSTER_ATT_POS_OFFSET)         ; Load current weapon screen position
+    LD          HL,(WEAPON_SPRITE_POS_OFFSET)       ; Load current weapon screen position
     LD          BC,$29                              ; BC = 41 (one row + 1 cell advance)
     ADD         HL,BC                               ; Advance weapon position by 41 bytes
-    LD          (MONSTER_ATT_POS_OFFSET),HL         ; Store new weapon position
+    LD          (WEAPON_SPRITE_POS_OFFSET),HL       ; Store new weapon position
     JP          MELEE_DRAW_WEAPON_FRAME             ; Draw weapon at new position
-MELEE_MOVE_MONSTER_TO_PLAYER:
+MELEE_ANIM_SMALL_STEP:
     LD          (MELEE_ANIM_STATE),A                ; Store current state (decremented)
-    LD          HL,(MONSTER_ATT_POS_OFFSET)         ; Load current weapon screen position
+    LD          HL,(WEAPON_SPRITE_POS_OFFSET)       ; Load current weapon screen position
     INC         HL                                  ; Move weapon forward by 1 byte
-    LD          (MONSTER_ATT_POS_OFFSET),HL         ; Store new position
+    LD          (WEAPON_SPRITE_POS_OFFSET),HL       ; Store new position
 
 ;==============================================================================
 ; MELEE_DRAW_WEAPON_FRAME
@@ -1173,7 +1173,7 @@ MELEE_DRAW_WEAPON_FRAME:
     LD          B,0x0                               ; B = 0 (clear high byte for CHK_ITEM parameter)
     LD          A,(DAMAGE_CALC_FLAG)                ; Load animation frame/flag
     LD          (SPRITE_FRAME_SELECTOR),A           ; Store as monster/weapon sprite frame selector
-    LD          A,(MONSTER_SPRITE_FRAME)            ; Load weapon sprite ID
+    LD          A,(MELEE_WEAPON_SPRITE)             ; Load weapon sprite ID
     CALL        CHK_ITEM                            ; Draw weapon sprite at position BC
     LD          A,$32                               ; Reset sprite frame flag
     LD          (SPRITE_FRAME_SELECTOR),A           ; Store reset value
@@ -1198,10 +1198,11 @@ MELEE_DRAW_WEAPON_FRAME:
 ; ---  End  ---
 ;   Modified by COPY_GFX_FROM_BUFFER
 ;
+; Memory Modified: None
 ; Calls: COPY_GFX_FROM_BUFFER
 ;==============================================================================
 MELEE_RESTORE_BG_FROM_BUFFER:
-    LD          DE,(MONSTER_ATT_POS_OFFSET)         ; DE = screen position where weapon is drawn
+    LD          DE,(WEAPON_SPRITE_POS_OFFSET)       ; DE = screen position where weapon is drawn
     LD          HL,MONSTER_BG_SAVE_BUFFER           ; HL = buffer with saved background
     JP          COPY_GFX_FROM_BUFFER                ; Restore background, erasing weapon sprite
 
@@ -1210,11 +1211,11 @@ MELEE_RESTORE_BG_FROM_BUFFER:
 ;==============================================================================
 ; Animation complete handler. Restores final background, then calculates and
 ; applies damage from the completed attack. Determines if monster or player
-; took damage based on MONSTER_SPRITE_FRAME, then updates health and redraws.
+; took damage based on MELEE_WEAPON_SPRITE, then updates health and redraws.
 ;
 ; Registers:
 ; --- Start ---
-;   (Reads from memory: MONSTER_SPRITE_FRAME, WEAPON_VALUE_HOLDER, MULTIPURPOSE_BYTE)
+;   (Reads from memory: MELEE_WEAPON_SPRITE, WEAPON_VALUE_HOLDER, MULTIPURPOSE_BYTE)
 ; --- In Process ---
 ;   A  = Flags, damage values, health calculations (BCD arithmetic)
 ;   B  = Loop counter for damage multiplication
@@ -1291,7 +1292,7 @@ ACCUM_DAMAGE_STEP:
 ACCUM_DAMAGE_LOOP:
     DJNZ        ACCUM_DAMAGE_STEP                   ; Loop B times: B--, if B != 0 jump to step
     LD          L,A                                 ; L = total calculated damage
-    LD          A,(MONSTER_SPRITE_FRAME)            ; Load target identifier (sprite frame code)
+    LD          A,(MELEE_WEAPON_SPRITE)             ; Load target identifier (sprite frame code)
     AND         $fc                                 ; Mask to sprite family ($24-$27 → $24)
     CP          $24                                 ; Check if player is target ($24-$27 range)
     JP          NZ,MONSTER_PHYS_BRANCH              ; If not player target, jump to monster damage
@@ -5449,7 +5450,7 @@ CALC_MONSTER_HP:
 ; ---  End  ---
 ;   Control transfers to SEED_MONSTER_HP_AND_ATTACK or CHK_FOR_SNAKE
 ;
-; Memory Modified: MONSTER_SPRITE_FRAME (if Skeleton)
+; Memory Modified: MELEE_WEAPON_SPRITE (if Skeleton)
 ; Calls: SEED_MONSTER_HP_AND_ATTACK (if Skeleton)
 ;==============================================================================
 CHK_FOR_SKELETON:
@@ -5459,7 +5460,7 @@ CHK_FOR_SKELETON:
     LD          HL,SKELETON_BASE_HP                 ; Skeleton: base HP (SPRT, PHYS in BCD)
     LD          A,SKELETON_WEAPON_SPRITE            ; Skeleton: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
-    LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
+    LD          (MELEE_WEAPON_SPRITE),A             ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_SNAKE:
     DEC         A                                   ; Test for Snake ($1F)
@@ -5468,7 +5469,7 @@ CHK_FOR_SNAKE:
     LD          HL,SNAKE_BASE_HP                    ; Snake: base HP (SPRT, PHYS in BCD)
     LD          A,SNAKE_WEAPON_SPRITE               ; Snake: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
-    LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
+    LD          (MELEE_WEAPON_SPRITE),A             ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_SPIDER:
     DEC         A                                   ; Test for Spider ($20)
@@ -5477,7 +5478,7 @@ CHK_FOR_SPIDER:
     LD          HL,SPIDER_BASE_HP                   ; Spider: base HP (SPRT, PHYS in BCD)
     LD          A,SPIDER_WEAPON_SPRITE              ; Spider: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
-    LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
+    LD          (MELEE_WEAPON_SPRITE),A             ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_MIMIC:
     DEC         A                                   ; Test for Mimic ($21)
@@ -5486,7 +5487,7 @@ CHK_FOR_MIMIC:
     LD          HL,MIMIC_BASE_HP                    ; Mimic: base HP (SPRT, PHYS in BCD)
     LD          A,MIMIC_WEAPON_SPRITE               ; Mimic: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
-    LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
+    LD          (MELEE_WEAPON_SPRITE),A             ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_MALOCCHIO:
     DEC         A                                   ; Test for Malocchio ($22)
@@ -5495,7 +5496,7 @@ CHK_FOR_MALOCCHIO:
     LD          HL,MALOCCHIO_BASE_HP                ; Malocchio: base HP (SPRT, PHYS in BCD)
     LD          A,MALOCCHIO_WEAPON_SPRITE           ; Malocchio: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
-    LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
+    LD          (MELEE_WEAPON_SPRITE),A             ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_DRAGON:
     DEC         A                                   ; Test for Dragon ($23)
@@ -5504,7 +5505,7 @@ CHK_FOR_DRAGON:
     LD          HL,DRAGON_BASE_HP                   ; Dragon: base HP (SPRT, PHYS in BCD)
     LD          A,DRAGON_WEAPON_SPRITE              ; Dragon: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
-    LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
+    LD          (MELEE_WEAPON_SPRITE),A             ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_MUMMY:
     DEC         A                                   ; Test for Mummy ($24)
@@ -5513,7 +5514,7 @@ CHK_FOR_MUMMY:
     LD          HL,MUMMY_BASE_HP                    ; Mummy: base HP (SPRT, PHYS in BCD)
     LD          A,MUMMY_WEAPON_SPRITE               ; Mummy: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
-    LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
+    LD          (MELEE_WEAPON_SPRITE),A             ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_NECROMANCER:
     DEC         A                                   ; Test for Necromancer ($25)
@@ -5522,7 +5523,7 @@ CHK_FOR_NECROMANCER:
     LD          HL,NECROMANCER_BASE_HP              ; Necromancer: base HP (SPRT, PHYS in BCD)
     LD          A,NECROMANCER_WEAPON_SPRITE         ; Necromancer: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
-    LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
+    LD          (MELEE_WEAPON_SPRITE),A             ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_GRYPHON:
     DEC         A                                   ; Test for Gryphon ($26)
@@ -5531,7 +5532,7 @@ CHK_FOR_GRYPHON:
     LD          HL,GRYPHON_BASE_HP                  ; Gryphon: base HP (SPRT, PHYS in BCD)
     LD          A,GRYPHON_WEAPON_SPRITE             ; Gryphon: weapon sprite base
     ADD         A,B                                 ; Add level (0-3) for sprite index
-    LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
+    LD          (MELEE_WEAPON_SPRITE),A             ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 CHK_FOR_MINOTAUR:
     DEC         A                                   ; Test for Minotaur ($27)
@@ -5551,7 +5552,7 @@ CHK_FOR_MINOTAUR:
     LD          A,MINOTAUR_WEAPON_SPRT              ; Player survives: harder weapon
 MINOTAUR_SET_SPRITE:
     ADD         A,B                                 ; Add level for sprite index
-    LD          (MONSTER_SPRITE_FRAME),A            ; Store sprite frame index
+    LD          (MELEE_WEAPON_SPRITE),A             ; Store sprite frame index
     JP          SEED_MONSTER_HP_AND_ATTACK          ; Jump to seed HP and attack
 MINOTAUR_MERCY_SPRITE:
     LD          A,MINOTAUR_WEAPON_PHYS              ; Player would die: mercy weapon
@@ -5581,7 +5582,7 @@ INIT_MELEE_ANIM:
     LD          HL,$206                             ; HL = $206 (position count)
     LD          (MONSTER_ATT_POS_COUNT),HL          ; Store position count
     LD          HL,$31ea                            ; HL = $31EA (position offset)
-    LD          (MONSTER_ATT_POS_OFFSET),HL         ; Store position offset
+    LD          (WEAPON_SPRITE_POS_OFFSET),HL       ; Store position offset
     LD          A,L                                 ; A = low byte ($EA)
     LD          (KEYBOARD_SCAN_FLAG),A              ; Store to KEYBOARD_SCAN_FLAG
     CALL        MELEE_DRAW_WEAPON_FRAME             ; Draw weapon frame for melee
