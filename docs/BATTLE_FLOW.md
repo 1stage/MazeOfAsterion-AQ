@@ -130,7 +130,7 @@ When frame counter reaches 0 (both H and L bytes = 0):
    - Result in A register
 
 ### Target Determination (FINISH_AND_APPLY_DAMAGE)
-Check **MONSTER_SPRITE_FRAME** to determine who takes damage:
+Check **MELEE_WEAPON_SPRITE** to determine who takes damage:
 - **$24-$27**: Monster attacking player
   - Player is damage target
   - Apply shield defense calculation
@@ -173,7 +173,7 @@ After damage applied and displays updated:
 - **MONSTER_ATT_POS_COUNT** ($0206): Frame counter (H=cycles, L=frames)
 - **WEAPON_SPRITE_POS_OFFSET** ($31EA): Current screen position of weapon
 - **WEAPON_VALUE_HOLDER**: Damage value for this attack
-- **MONSTER_SPRITE_FRAME**: Sprite ID (determines target)
+- **MELEE_WEAPON_SPRITE**: Sprite ID (determines which weapon and damage target)
 - **MULTIPURPOSE_BYTE**: Iteration count (damage multiplier)
 - **CURR_MONSTER_PHYS** / **CURR_MONSTER_SPRT**: Current monster HP
 - **PLAYER_PHYS_HEALTH** / **PLAYER_SPRT_HEALTH**: Current player HP
@@ -208,23 +208,26 @@ Total: 16 monster frames + 8 player frames = 24 frames
 
 ## Important Notes on Naming
 
-**Variable and routine names may be misleading based on their apparent purpose:**
+**Label refactoring completed Dec 11, 2025:**
 
-- `WEAPON_SPRITE_POS_OFFSET` - Stores the **current weapon sprite position for BOTH monster and player attack phases**. It's a shared/generic animation position variable.
+Variables and routines have been renamed for clarity:
 
-- `MELEE_MOVE_MONSTER_TO_PLAYER` / `MELEE_MOVE_PLAYER_TO_MONSTER` - Names suggest direction of movement (toward opponent), but actually refer to **whose weapon is being animated** in that phase, not the direction of travel.
+- **`WEAPON_SPRITE_POS_OFFSET`** - Shared position variable for all weapon animation phases. Stores the current screen position where the weapon sprite is drawn, regardless of whether it's a monster or player attack phase.
 
-- `MONSTER_SPRITE_FRAME` - Named as if it only stores monster sprite data, but actually determines **who is the target of damage** ($24-$27 = monster attacking player; other values = player attacking monster).
+- **`MELEE_ANIM_SMALL_STEP`** - Animation routine that advances weapon position by +1 (small stride, horizontal movement). Executes during animation states 3 and 2.
 
-These names likely reflect an early/incomplete understanding of the animation system, possibly from reverse engineering or iterative development. The actual behavior uses shared variables that alternate between representing monster and player attack states within the same animation loop.
+- **`MELEE_ANIM_LARGE_STEP`** - Animation routine that advances weapon position by +41 (large stride, diagonal down-right movement). Executes during animation state 1.
 
-**Current understanding (as of Dec 11, 2025)**: The animation displays ONE weapon at a time, alternating between monster weapon frames (2 per cycle) and player weapon frames (1 per cycle). Both use the same position offset variable, incrementing it forward each frame. Visual observation suggests weapons may move in opposing directions, but code analysis shows both use ADD operations on the position offset.
+- **`MELEE_WEAPON_SPRITE`** - Stores the weapon sprite ID that determines both which sprite graphic is drawn during animation AND who is the damage target ($24-$27 = monster attacking player; other values = player attacking monster).
+
+**Historical context**: Original names reflected an incomplete understanding from early development/reverse engineering. The animation system uses a single shared position variable that advances continuously throughout both attack phases, with different sprites drawn based on `MELEE_WEAPON_SPRITE`. Both phases use ADD operations to move the position forward.
 
 ---
 
 ## Future Enhancements / Notes
 
-- Monster attack animation direction can be adjusted by changing stride value in MELEE_MOVE_MONSTER_TO_PLAYER
+- Monster attack animation direction can be adjusted by changing stride value in `MELEE_ANIM_SMALL_STEP`
+- Player attack animation direction can be adjusted by changing stride value in `MELEE_ANIM_LARGE_STEP`
 - Player attack can be skipped in one-sided battles (surprise attacks) by modifying animation state initialization
 - Damage multiplier (MULTIPURPOSE_BYTE) can vary based on weapon type, player level, or other factors
 - Animation frame count ($0206) can be adjusted to speed up or slow down battles
