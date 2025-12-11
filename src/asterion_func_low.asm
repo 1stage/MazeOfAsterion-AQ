@@ -3086,14 +3086,15 @@ NOT_IN_BATTLE:
 ;   DE = Graphics pointer for GFX_DRAW
 ; --- In Process ---
 ;   A  = $20 (SPACE), then COLOR(BLK,BLK)
-;   BC, HL, DE (saved/restored)
+;   AF, BC, HL, DE (saved/restored)
 ; ---  End  ---
-;   All registers modified by GFX_DRAW
+;   AF, BC, HL, DE restored; then modified by GFX_DRAW
 ;
 ; Memory Modified: CHRRAM/COLRAM left-hand area (6x5), then item graphics
 ; Calls: FILL_CHRCOL_RECT (×2), GFX_DRAW
 ;==============================================================================
 DRAW_LEFT_HAND_AREA:
+    PUSH        AF                                  ; Save A register
     PUSH        DE                                  ; Save graphics pointer
     PUSH        BC                                  ; Save color (B)
     PUSH        HL                                  ; Save draw position
@@ -3108,6 +3109,7 @@ DRAW_LEFT_HAND_AREA:
     POP         HL                                  ; Restore draw position
     POP         BC                                  ; Restore color (B)
     POP         DE                                  ; Restore graphics pointer
+    POP         AF                                  ; Restore A register
     JP          GFX_DRAW                            ; Draw item and return (tail call)
 
 ; DRAW_RIGHT_HAND_AREA
