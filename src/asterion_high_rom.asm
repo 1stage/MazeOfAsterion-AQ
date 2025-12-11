@@ -694,7 +694,7 @@ COPY_RH_ITEM_FRAME_GFX:
     LD          A,(SPRITE_FRAME_STATE)              ; Load accumulator for monster frame
     LD          (SPRITE_FRAME_SELECTOR),A           ; Update SPRITE_FRAME_SELECTOR from SPRITE_FRAME_STATE
     LD          A,(ITEM_SPRITE_INDEX)               ; Load item sprite index
-    CALL        CHK_ITEM                            ; Run item check/update routine
+    CALL        CHK_ITEM                            ; Draw RH item/weapon sprite (first of two draws this tick)
     LD          A,$32                               ; Set monster frame state constant
     LD          (SPRITE_FRAME_SELECTOR),A           ; Update SPRITE_FRAME_SELECTOR to $32
     LD          A,(MASTER_TICK_TIMER)               ; Load timer A
@@ -1174,7 +1174,7 @@ MELEE_DRAW_WEAPON_FRAME:
     LD          A,(DAMAGE_CALC_FLAG)                ; Load animation frame/flag
     LD          (SPRITE_FRAME_SELECTOR),A           ; Store as monster/weapon sprite frame selector
     LD          A,(MELEE_WEAPON_SPRITE)             ; Load weapon sprite ID
-    CALL        CHK_ITEM                            ; Draw weapon sprite at position BC
+    CALL        CHK_ITEM                            ; Draw melee weapon sprite (second draw this tick)
     LD          A,$32                               ; Reset sprite frame flag
     LD          (SPRITE_FRAME_SELECTOR),A           ; Store reset value
     LD          A,(MASTER_TICK_TIMER)               ; Load system timer
@@ -1204,7 +1204,7 @@ MELEE_DRAW_WEAPON_FRAME:
 MELEE_RESTORE_BG_FROM_BUFFER:
     LD          DE,(WEAPON_SPRITE_POS_OFFSET)       ; DE = screen position where weapon is drawn
     LD          HL,MONSTER_BG_SAVE_BUFFER           ; HL = buffer with saved background
-    JP          COPY_GFX_FROM_BUFFER                ; Restore background, erasing weapon sprite
+    JP          COPY_GFX_FROM_BUFFER                ; Restore background, erasing the melee sprite only (RH item not erased here)
 
 ;==============================================================================
 ; FINISH_AND_APPLY_DAMAGE
