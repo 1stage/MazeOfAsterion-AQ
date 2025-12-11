@@ -99,14 +99,14 @@ Called repeatedly from input handler during battle. Each call:
 ⬛🖐️🖐️🖐️🖐️⬛🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫🟫⬛🤚🤚🤚🤚⬛🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲🔲
 ```
 
-Legend: 
-- ⬛🟫 Viewport Background (ceiling/floor)
-- 🖐️ Left Hand Item (PROPOSED position in viewport)
-- 🤚 Right Hand Item (PROPOSED position in viewport)
-- ▶️ Right Hand Item (CURRENT position in UI)
-- 🔴 S1 Monster
-- 🔲 UI Area
-- 0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣ Weapon Animation Indexes, each render step
+ Legend: 
+ - ⬛🟫 Viewport Background (ceiling/floor)
+ - 🖐️ Left Hand Item
+ - 🤚 Right Hand Item
+ - ▶️ Right Hand Item (CURRENT position in UI)
+ - 🔴 S1 Monster
+ - 🔲 UI Area
+ - 0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣ Weapon Animation Indexes, each render step
 
 ### Frame Trace (code-derived)
 - INIT_MELEE_ANIM draws the first frame at **$31EA** (row 12, col 10) before call #1 enters the loop.
