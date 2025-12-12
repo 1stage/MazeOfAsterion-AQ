@@ -3895,14 +3895,26 @@ USE_MAP:
     JP          Z,INIT_MELEE_ANIM                   ; If no map slot, exit to melee animation
     EXX								                ; Swap to alternate register set
 
-    LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high
+    ; LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high
+    LD          BC,RECT(24,19)                      ; Set dimensions: 24 wide x 19 high
     LD          HL,CHRRAM_VIEWPORT_IDX              ; Point to viewport character RAM
     LD          A,$20                               ; Load SPACE character ($20)
     CALL        FILL_CHRCOL_RECT                    ; Clear viewport with spaces
+
+    LD          BC,RECT(12,5)                       ; Set dimensions: 12 wide x 5 high
+    LD          HL,CHRRAM_VP_MID_BOTTOM_IDX         ; Point to viewport middle bottom character RAM
+    CALL        FILL_CHRCOL_RECT                    ; Clear viewport with spaces
+
     CALL        SOUND_03                            ; Play map open sound
-    LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high
+
+    ; LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high
+    LD          BC,RECT(24,19)                      ; Set dimensions: 24 wide x 24 high
     LD          HL,COLRAM_VIEWPORT_IDX              ; Point to viewport color RAM
     LD          A,COLOR(DKBLU,BLK)                  ; Set color: dark blue on black
+    CALL        FILL_CHRCOL_RECT                    ; Fill viewport with map background color
+
+    LD          BC,RECT(12,5)                       ; Set dimensions: 12 wide x 5 high
+    LD          HL,COLRAM_VP_MID_BOTTOM_IDX         ; Point to viewport middle bottom color RAM
     CALL        FILL_CHRCOL_RECT                    ; Fill viewport with map background color
 
     EXX								                ; Swap back to main register set
@@ -4715,6 +4727,32 @@ RHA_REDRAW:
     CALL        CHECK_HELMET                        ; Update helmet icon color
     CALL        CHECK_ARMOR                         ; Update armor icon color
     JP          INPUT_DEBOUNCE                      ; Return to input loop
+
+;==============================================================================
+; VP_LH_GAP_REDRAW - Redraw Viewport Left Hand Filler
+;==============================================================================
+; Draws the ornaments to the right of the left hand item in the viewport
+;
+;==============================================================================
+VP_LH_GAP_REDRAW:
+    LD          DE,VP_LH_GAP                        ; DE = viewport left hand gap graphic
+    LD          HL,CHRRAM_VP_LH_GAP_IDX             ; HL = Viewport Left hand gap index
+    LD          B,COLOR(DKGRY,BLK)                  ; BLK on DKGRY
+    ; CALL        GFX_DRAW                            ; Draw filler
+    JP          GFX_DRAW                            ; Draw filler
+
+;==============================================================================
+; VP_RH_GAP_REDRAW - Redraw Viewport Right Hand Filler
+;==============================================================================
+; Draws the ornaments to the right of the right hand item in the viewport
+;
+;==============================================================================
+VP_RH_GAP_REDRAW:
+    LD          DE,VP_RH_GAP                        ; DE = viewport left hand gap graphic
+    LD          HL,CHRRAM_VP_RH_GAP_IDX             ; HL = Viewport Left hand gap index
+    LD          B,COLOR(BLK,DKGRY)                  ; BLK on DKGRY
+    ; CALL        GFX_DRAW                            ; Draw filler
+    JP          GFX_DRAW                            ; Draw filler
 
 ;==============================================================================
 ; PLAY_TELEPORT_SOUND - Play descending teleport sound effect

@@ -198,11 +198,14 @@ BLANK_SCRN:
     LD          BC,RECT(9,3)                        ; 9 x 3 rectangle
     CALL        FILL_CHRCOL_RECT                    ; Paint stats panel background
 
+    CALL        VP_LH_GAP_REDRAW                   ; Fill in space to right of left hand item
+    CALL        VP_RH_GAP_REDRAW                   ; Fill in space to left of right hand item
+
     LD          DE,STATS_TXT                        ; DE = stats label graphics
     LD          HL,CHRRAM_STATS_TOP                 ; HL = position to draw stats label
     LD          B,COLOR(DKGRN,BLK)                  ; B = panel text color
     CALL        GFX_DRAW                            ; Draw stats text
-    LD          HL,CHRRAM_HEALTH_SPACER_IDX        ; HL = spacer graphics location
+    LD          HL,CHRRAM_HEALTH_SPACER_IDX         ; HL = spacer graphics location
     CALL        GFX_DRAW                            ; Draw spacer
     LD          HL,$30                              ; HL = 0030 (initial PHYS health BCD)
     LD          E,$15                               ; E = 15 (initial SPRT health BCD)
@@ -229,7 +232,7 @@ BLANK_SCRN:
     LD          A,0x3                               ; A = 3 (base for shield computation)
     SUB         B                                   ; A = 3 - 13 = wrap/underflow (used to derive right-hand item code)
     LD          (RIGHT_HAND_ITEM),A                 ; Store computed right-hand item code
-    RRCA							                                     ; Rotate for flag-based shield path decision
+    RRCA							                ; Rotate for flag-based shield path decision
     JP          C,SET_ALT_SHIELD_BASE               ; If carry set, use alternate shield base
     LD          B,$10                               ; B = $10 (standard shield base level)
     JP          ADJUST_SHIELD_LEVEL                 ; Continue shield setup
@@ -319,7 +322,8 @@ ADJUST_SHIELD_LEVEL:
 FINALIZE_STARTUP_STATE:
     LD          A,$18                               ; A = $18 (BOW item code)
     LD          (LEFT_HAND_ITEM),A                  ; Set left hand item to BOW
-    LD          HL,CHRRAM_RIGHT_HAND_ITEM_IDX       ; HL = right hand item screen pos
+    ; LD          HL,CHRRAM_RIGHT_HAND_ITEM_IDX       ; HL = right hand item screen pos
+    LD          HL,CHRRAM_RIGHT_HAND_VP_DRAW_IDX    ; HL = right hand item screen pos
     LD          DE,BUCKLER                          ; DE = BUCKLER graphics pointer
     CALL        GFX_DRAW                            ; Draw BUCKLER in right hand slot
     CALL        BUILD_MAP                           ; Generate dungeon walls/items
@@ -1506,11 +1510,13 @@ DO_SWAP_HANDS:
     LD          HL,RIGHT_HAND_ITEM                  ; HL points to right-hand item code
     LD          BC,LEFT_HAND_ITEM                   ; BC points to left-hand item code
     CALL        SWAP_BYTES_AT_HL_BC                 ; Swap the two item codes
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; HL = right-hand graphics source
+    ; LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; HL = right-hand graphics source
+    LD          HL,CHRRAM_RIGHT_HAND_VP_IDX         ; HL = right-hand graphics source
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; DE = temporary buffer destination
     CALL        COPY_GFX_2_BUFFER                   ; Save right-hand graphics to buffer
     LD          HL,CHRRAM_LEFT_HAND_VP_IDX          ; HL = left-hand viewport graphics source
-    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; DE = right-hand graphics destination
+    ; LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; DE = right-hand graphics destination
+    LD          DE,CHRRAM_RIGHT_HAND_VP_IDX         ; DE = right-hand graphics destination
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy left-hand graphics to right-hand slot
     LD          HL,ITEM_MOVE_CHR_BUFFER             ; HL = buffered graphics source
     LD          DE,CHRRAM_LEFT_HAND_VP_IDX          ; DE = left-hand viewport graphics destination
@@ -2244,11 +2250,13 @@ PICK_UP_NON_TREASURE:
     LD          A,(HL)                              ; Load current right-hand item code
     LD          (ITEM_S0),A                         ; Store it as new floor item at S0 position
     CALL        SWAP_BYTES_AT_HL_BC                 ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics in CHRRAM
+    ; LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics in CHRRAM
+    LD          HL,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to right-hand graphics in CHRRAM
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary graphics buffer
     CALL        COPY_GFX_2_BUFFER                   ; Copy right-hand graphics to temp buffer (4x4 chars)
     LD          HL,CHRRAM_S0_ITEM_IDX               ; Point to S0 floor item graphics in CHRRAM
-    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics position
+    ; LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics position
+    LD          DE,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to right-hand graphics position
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy F0 item graphics to right-hand position
     LD          HL,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer (old right-hand graphics)
     LD          DE,CHRRAM_S0_ITEM_IDX               ; Point to S0 floor item graphics position
@@ -2642,11 +2650,13 @@ DO_SWAP_PACK:
     LD          HL,INV_ITEM_SLOT_1                  ; Point to inventory slot 1
     LD          BC,RIGHT_HAND_ITEM                  ; Point to right-hand item slot
     CALL        SWAP_BYTES_AT_HL_BC                 ; Swap inv slot 1 with right-hand item
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics
+    ; LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics
+    LD          HL,CHRRAM_RIGHT_HAND_VP_IDX          ; Point to right-hand graphics
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer
     CALL        COPY_GFX_2_BUFFER                   ; Copy right-hand graphics to buffer
     LD          HL,CHRRAM_INV_1_IDX                 ; Point to inv slot 1 graphics
-    LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics
+    ; LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics
+    LD          DE,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to right-hand graphics
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy inv slot 1 graphics to right-hand
     LD          HL,WAIT_FOR_INPUT                   ; Stash WAIT_FOR_INPUT as a later return value
     PUSH        HL                                  ; Push return address to stack
@@ -4121,7 +4131,8 @@ CLEAR_RIGHT_HAND:                                   ; Clear right-hand item and 
     LD          A,$fe                               ; Load empty item marker ($FE)
     LD          (RIGHT_HAND_ITEM),A                 ; Store to right-hand slot (clear item)
     LD          DE,POOF_6                           ; Point to poof graphics ("    ", $01)
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics location
+    ; LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics location
+    LD          HL,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to right-hand graphics location
     LD          B,$d0                               ; Load color attribute ($D0)
     CALL        GFX_DRAW                            ; Draw poof graphics
     EXX                                             ; Switch back to main register set
@@ -5269,6 +5280,7 @@ SETUP_ITEM_ANIMATION:
     LD          HL,$203                             ; HL = $203 (loop count)
     LD          (ITEM_ANIM_LOOP_COUNT),HL           ; Store animation loop count
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics area
+    ; LD          HL,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to right-hand graphics area
     LD          (ITEM_ANIM_CHRRAM_PTR),HL           ; Store graphics pointer
     LD          A,L                                 ; A = low byte of CHRRAM pointer
     LD          (SCREENSAVER_STATE),A               ; Store to SCREENSAVER_STATE

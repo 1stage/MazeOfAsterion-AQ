@@ -978,3 +978,16 @@ SOUTH_TXT:
 EAST_TXT:
     db          $06,$FF
 
+VP_LH_GAP:
+    db          32,$01
+    db          129,$01
+    db          151,$01
+    db          152,$01
+    db          245,$FF
+
+VP_RH_GAP:
+    db          $A0,127,$01
+    db          145,$01
+    db          195,$01
+    db          153,$01
+    db          165,$FF
