@@ -1123,8 +1123,8 @@ MELEE_ANIM_LOOP:
     JP          NZ,MELEE_ANIM_LARGE_STEP            ; If L≠0, continue animation
     DEC         H                                   ; L reached 0: decrement high byte
     JP          Z,FINISH_AND_APPLY_DAMAGE           ; If both bytes=0, animation done, apply damage
-    LD          A,$32                               ; Reset some animation flag
-    LD          (DAMAGE_CALC_FLAG),A                ; Store flag value
+    LD          A,$32                               ; Monster sprite CHRRAM high byte
+    LD          (SPRITE_CHRRAM_ADDR_HI),A           ; Store high byte for sprite positioning
     LD          L,0x2                               ; Reset low counter to 2
 MELEE_ANIM_LARGE_STEP:
     LD          A,0x3                               ; Set animation state to 3 (player attacking)
@@ -1171,7 +1171,7 @@ MELEE_DRAW_WEAPON_FRAME:
     CALL        COPY_GFX_2_BUFFER                   ; Save 4x4 screen area to buffer
     POP         BC                                  ; BC = adjusted screen address (from stack)
     LD          B,0x0                               ; B = 0 (clear high byte for CHK_ITEM parameter)
-    LD          A,(DAMAGE_CALC_FLAG)                ; Load animation frame/flag
+    LD          A,(SPRITE_CHRRAM_ADDR_HI)           ; Load CHRRAM high byte for sprite positioning
     LD          (SPRITE_FRAME_SELECTOR),A           ; Store as monster/weapon sprite frame selector
     LD          A,(MELEE_WEAPON_SPRITE)             ; Load weapon sprite ID
     CALL        CHK_ITEM                            ; Draw melee weapon sprite (second draw this tick)
@@ -1233,8 +1233,8 @@ FINISH_AND_APPLY_DAMAGE:
                                                     ; Note: This call restores the saved 4x4 background
                                                     ; block into the viewport, effectively erasing the
                                                     ; weapon sprite drawn during the previous frame.
-    LD          A,$31                               ; Set damage calculation flag
-    LD          (DAMAGE_CALC_FLAG),A                ; Store flag
+    LD          A,$31                               ; Set player sprite CHRRAM high byte
+    LD          (SPRITE_CHRRAM_ADDR_HI),A           ; Store high byte (also signals damage calc phase)
     LD          (KEYBOARD_SCAN_FLAG),A              ; Store flag copy
     LD          A,(MULTIPURPOSE_BYTE)               ; Load number of damage iterations
     LD          B,A                                 ; B = iteration counter
