@@ -6063,7 +6063,7 @@ STORE_FINAL_CHAR:
 ;          4. Continue until $FF terminator found
 ;
 ; REGISTERS MODIFIED:
-;   INPUT:  HL (cursor position), DE (AQUASCII string pointer), B (color byte)
+;   INPUT:  HL (cursor position), DE (AQUASCII string pointer), B (color byte),
 ;   DURING: A (processing bytes), C ($28), DE (advancing), HL (cursor tracking), B (temp. modified)
 ;   OUTPUT: HL (restored to original), DE (past $FF), B (restored), A ($00), C ($28)
 ;
