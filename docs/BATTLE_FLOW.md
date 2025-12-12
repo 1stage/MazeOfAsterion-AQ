@@ -112,41 +112,6 @@ Implications:
  - 🔲 UI Area
  - 0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣8️⃣9️⃣ Weapon Animation Indexes, each render step
 
-### Frame Trace (code-derived)
-- INIT_MELEE_ANIM draws the first frame at **$31EA** (row 12, col 10) before call #1 enters the loop.
-
-| Call | State In | Branch | Counter After (H,L) | Position Before | Draws (RH / Melee) |
-| ---: | :------- | :----- | :------------------ | :-------------- | :------------------ |
-| 0 | - | - | - | - | $31EA / $31EA |
-| 1 | 3 | +1 (small) | 0206 | $31EA | $31EB / $31EB |
-| 2 | 2 | +1 (small) | 0206 | $31EB | $31EC / $31EC |
-| 3 | 1 | +$29 (large) | 0205 | $31EC | $3215 / $3215 |
-| 4 | 3 | +1 (small) | 0205 | $3215 | $3216 / $3216 |
-| 5 | 2 | +1 (small) | 0205 | $3216 | $3217 / $3217 |
-| 6 | 1 | +$29 (large) | 0204 | $3217 | $3240 / $3240 |
-| 7 | 3 | +1 (small) | 0204 | $3240 | $3241 / $3241 |
-| 8 | 2 | +1 (small) | 0204 | $3241 | $3242 / $3242 |
-| 9 | 1 | +$29 (large) | 0203 | $3242 | $326B / $326B |
-| 10 | 3 | +1 (small) | 0203 | $326B | $326C / $326C |
-| 11 | 2 | +1 (small) | 0203 | $326C | $326D / $326D |
-| 12 | 1 | +$29 (large) | 0202 | $326D | $3296 / $3296 |
-| 13 | 3 | +1 (small) | 0202 | $3296 | $3297 / $3297 |
-| 14 | 2 | +1 (small) | 0202 | $3297 | $3298 / $3298 |
-| 15 | 1 | +$29 (large) | 0201 | $3298 | $32C1 / $32C1 |
-| 16 | 3 | +1 (small) | 0201 | $32C1 | $32C2 / $32C2 |
-| 17 | 2 | +1 (small) | 0201 | $32C2 | $32C3 / $32C3 |
-| 18 | 1 | +$29 (large) | 0102 | $32C3 | $32EC / $32EC |
-| 19 | 3 | +1 (small) | 0102 | $32EC | $32ED / $32ED |
-| 20 | 2 | +1 (small) | 0102 | $32ED | $32EE / $32EE |
-| 21 | 1 | +$29 (large) | 0101 | $32EE | $3317 / $3317 |
-| 22 | 3 | +1 (small) | 0101 | $3317 | $3318 / $3318 |
-| 23 | 2 | +1 (small) | 0101 | $3318 | $3319 / $3319 |
-| 24 | 1 | Stop (H,L→0000) | 0000 | $3319 | — / — (FINISH_AND_APPLY_DAMAGE, no draw) |
-
-Notes:
-- Last on-screen draw from the loop is at **$3319** (row 19, col 33).
-- Each table row reflects two draws per tick unless FINISH_AND_APPLY_DAMAGE triggers (call 24, no draw).
-
 ### REVISED Frame Trace with Register Details
 
 **GFX_DRAW register inputs (from CHK_ITEM tail call):**
@@ -165,8 +130,8 @@ Notes:
 | Round | State | WP | Routine Flow | H | L | B (Color) | DE (Graphics Ptr) |
 | :---: | :---: | :-: | :----------- | :- | :- | :-------: | :----- |
 | 0 | - | PL | INIT_MELEE_ANIM > CHK_ITEM > GFX_DRAW | $31 | $7B | $30 | $C1D3 (ARROW_FLYING_L) |
-| 1 | 3 | PL | ANIMATE_RH_ITEM_STEP > CHK_ITEM > GFX_DRAW | $31 | $7A | $30 | $C1D3 (ARROW_FLYING_L) |
-| 1 | 3 | MN | MELEE_ANIM_LOOP > MELEE_DRAW_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $EA | $50 | $C0A9 (ARROW_FLYING_R) |
+| 1 | 3 | PL | DRAW_PLAYER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $31 | $7A | $30 | $C1D3 (ARROW_FLYING_L) |
+| 1 | 3 | MN | MONSTER_WEAPON_ANIM_STEP > DRAW_MONSTER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $EA | $50 | $C0A9 (ARROW_FLYING_R) |
 | 2 | 2 | PL | ANIMATE_RH_ITEM_STEP > CHK_ITEM > GFX_DRAW | $31 | $79 | $30 | $C1D3 (ARROW_FLYING_L) |
 | 2 | 2 | MN | MELEE_ANIM_LOOP > MELEE_DRAW_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $EB | $50 | $C0A9 (ARROW_FLYING_R) |
 | 3 | 1 | PL | ANIMATE_RH_ITEM_STEP > CHK_ITEM > GFX_DRAW | $31 | $50 | $30 | $C1D3 (ARROW_FLYING_L) |
@@ -195,22 +160,22 @@ Notes:
 | 14 | 2 | MN | MELEE_ANIM_LOOP > MELEE_DRAW_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $98 | $50 | $C0A9 (ARROW_FLYING_R) |
 | 15 | 1 | PL | ANIMATE_RH_ITEM_STEP > CHK_ITEM > GFX_DRAW | $31 | $A4 | $30 | $C1D3 (ARROW_FLYING_L) |
 | 15 | 1 | MN | MELEE_ANIM_LOOP > MELEE_DRAW_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $C1 | $50 | $C0A9 (ARROW_FLYING_R) |
-| 16 | 3 | PL | ANIMATE_RH_ITEM_STEP > CHK_ITEM > GFX_DRAW | $31 | $A3 | $30 | $C1D3 (ARROW_FLYING_L) |
-| 16 | 3 | MN | MELEE_ANIM_LOOP > MELEE_DRAW_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $C2 | $50 | $C0A9 (ARROW_FLYING_R) |
-| 17 | 2 | PL | ANIMATE_RH_ITEM_STEP > CHK_ITEM > GFX_DRAW | $31 | $A2 | $30 | $C1D3 (ARROW_FLYING_L) |
-| 17 | 2 | MN | MELEE_ANIM_LOOP > MELEE_DRAW_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $C3 | $50 | $C0A9 (ARROW_FLYING_R) |
-| 18 | 1 | PL | ANIMATE_RH_ITEM_STEP > CHK_ITEM > GFX_DRAW | $31 | $79 | $30 | $C1D3 (ARROW_FLYING_L) |
-| 18 | 1 | MN | MELEE_ANIM_LOOP > MELEE_DRAW_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $EC | $50 | $C0A9 (ARROW_FLYING_R) |
-| 19 | 3 | PL | ANIMATE_RH_ITEM_STEP > CHK_ITEM > GFX_DRAW | $31 | $78 | $30 | $C1D3 (ARROW_FLYING_L) |
-| 19 | 3 | MN | MELEE_ANIM_LOOP > MELEE_DRAW_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $ED | $50 | $C0A9 (ARROW_FLYING_R) |
-| 20 | 2 | PL | ANIMATE_RH_ITEM_STEP > CHK_ITEM > GFX_DRAW | $31 | $77 | $30 | $C1D3 (ARROW_FLYING_L) |
-| 20 | 2 | MN | MELEE_ANIM_LOOP > MELEE_DRAW_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $EE | $50 | $C0A9 (ARROW_FLYING_R) |
-| 21 | 1 | PL | ANIMATE_RH_ITEM_STEP > CHK_ITEM > GFX_DRAW | — | — | — | — |
-| 21 | 1 | MN | MELEE_ANIM_LOOP > MELEE_DRAW_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $17 | $50 | $C0A9 (ARROW_FLYING_R) |
-| 22 | 3 | PL | ANIMATE_RH_ITEM_STEP > CHK_ITEM > GFX_DRAW | — | — | — | — |
-| 22 | 3 | MN | MELEE_ANIM_LOOP > MELEE_DRAW_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $18 | $50 | $C0A9 (ARROW_FLYING_R) |
-| 23 | 2 | PL | ANIMATE_RH_ITEM_STEP > CHK_ITEM > GFX_DRAW | — | — | — | — |
-| 23 | 2 | MN | MELEE_ANIM_LOOP > MELEE_DRAW_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $19 | $50 | $C0A9 (ARROW_FLYING_R) |
+| 16 | 3 | PL | DRAW_PLAYER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $31 | $A3 | $30 | $C1D3 (ARROW_FLYING_L) |
+| 16 | 3 | MN | MONSTER_WEAPON_ANIM_STEP > DRAW_MONSTER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $C2 | $50 | $C0A9 (ARROW_FLYING_R) |
+| 17 | 2 | PL | DRAW_PLAYER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $31 | $A2 | $30 | $C1D3 (ARROW_FLYING_L) |
+| 17 | 2 | MN | MONSTER_WEAPON_ANIM_STEP > DRAW_MONSTER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $C3 | $50 | $C0A9 (ARROW_FLYING_R) |
+| 18 | 1 | PL | DRAW_PLAYER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $31 | $79 | $30 | $C1D3 (ARROW_FLYING_L) |
+| 18 | 1 | MN | MONSTER_WEAPON_ANIM_STEP > DRAW_MONSTER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $EC | $50 | $C0A9 (ARROW_FLYING_R) |
+| 19 | 3 | PL | DRAW_PLAYER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $31 | $78 | $30 | $C1D3 (ARROW_FLYING_L) |
+| 19 | 3 | MN | MONSTER_WEAPON_ANIM_STEP > DRAW_MONSTER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $ED | $50 | $C0A9 (ARROW_FLYING_R) |
+| 20 | 2 | PL | DRAW_PLAYER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $31 | $77 | $30 | $C1D3 (ARROW_FLYING_L) |
+| 20 | 2 | MN | MONSTER_WEAPON_ANIM_STEP > DRAW_MONSTER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $EE | $50 | $C0A9 (ARROW_FLYING_R) |
+| 21 | 1 | PL | DRAW_PLAYER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | — | — | — | — |
+| 21 | 1 | MN | MONSTER_WEAPON_ANIM_STEP > DRAW_MONSTER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $17 | $50 | $C0A9 (ARROW_FLYING_R) |
+| 22 | 3 | PL | DRAW_PLAYER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | — | — | — | — |
+| 22 | 3 | MN | MONSTER_WEAPON_ANIM_STEP > DRAW_MONSTER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $18 | $50 | $C0A9 (ARROW_FLYING_R) |
+| 23 | 2 | PL | DRAW_PLAYER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | — | — | — | — |
+| 23 | 2 | MN | MONSTER_WEAPON_ANIM_STEP > DRAW_MONSTER_WEAPON_FRAME > CHK_ITEM > GFX_DRAW | $32 | $19 | $50 | $C0A9 (ARROW_FLYING_R) |
 | 24 | 1 | -  | FINISH_AND_APPLY_DAMAGE | — | — | — | — |
 
 ---

@@ -609,7 +609,7 @@ FIX_RH_COLORS:
     RET
 
 ;==============================================================================
-; ANIMATE_RH_ITEM_STEP — RH Item Animation Step
+; DRAW_PLAYER_WEAPON_FRAME — Player Weapon Animation Frame Step
 ;==============================================================================
 ; Advances the right-hand item animation, manages loop counters, updates the
 ; CHRRAM pointer for sprite frames, and copies character graphics into a
@@ -630,7 +630,7 @@ FIX_RH_COLORS:
 ;                  ITEM_MOVE_CHR_BUFFER, WEAPON_SPRITE_CHRRAM_ADDR_HI, ITEM_ANIM_TIMER_COPY
 ; Calls: SOUND_05, COPY_GFX_2_BUFFER, CHK_ITEM, ADVANCE_RH_ANIM_FRAME, COPY_RH_ITEM_FRAME_GFX
 ;==============================================================================
-ANIMATE_RH_ITEM_STEP:
+DRAW_PLAYER_WEAPON_FRAME:
     CALL        SOUND_05                            ; Play animation sound 05
     LD          A,(ITEM_ANIM_STATE)                 ; Load item animation state
     LD          HL,(ITEM_ANIM_LOOP_COUNT)           ; Load loop counters (HL)
@@ -1087,11 +1087,11 @@ EXPAND_STAT_THRESHOLDS:
     RET                                             ; Return with B/C prepared
 
 ;==============================================================================
-; MELEE_ANIM_LOOP
+; MONSTER_WEAPON_ANIM_STEP
 ;==============================================================================
-; Main loop for melee combat weapon animation. Animates flying weapons moving
-; across the screen during player/monster attacks. Updates animation state,
-; position counters, and triggers weapon sprite drawing at each frame.
+; Advances the monster weapon animation by one frame, managing state machine,
+; position counters, and triggers weapon sprite drawing. Called once per frame,
+; this is NOT an internal loop but a single animation step.
 ;
 ; Animation States (MELEE_ANIM_STATE):
 ;   1 = Monster attacking (weapon flying from center to down-right)
@@ -1111,9 +1111,9 @@ EXPAND_STAT_THRESHOLDS:
 ;
 ; Memory Modified: MELEE_ANIM_STATE, MONSTER_ATT_POS_COUNT, WEAPON_SPRITE_POS_OFFSET,
 ;                  WEAPON_SPRITE_CHRRAM_ADDR_HI, MONSTER_ANIM_TIMER_COPY, MONSTER_BG_SAVE_BUFFER (buffer)
-; Calls: SOUND_05, MELEE_DRAW_WEAPON_FRAME, COPY_GFX_2_BUFFER, CHK_ITEM
+; Calls: SOUND_05, DRAW_MONSTER_WEAPON_FRAME, COPY_GFX_2_BUFFER, CHK_ITEM
 ;==============================================================================
-MELEE_ANIM_LOOP:
+MONSTER_WEAPON_ANIM_STEP:
     CALL        SOUND_05                            ; Play attack sound blip
     LD          A,(MELEE_ANIM_STATE)                ; Load current animation state (1 or 3)
     LD          HL,(MONSTER_ATT_POS_COUNT)          ; Load position frame counter
@@ -1134,7 +1134,7 @@ MELEE_ANIM_LARGE_STEP:
     LD          BC,$29                              ; BC = 41 (one row + 1 cell advance)
     ADD         HL,BC                               ; Advance weapon position by 41 bytes
     LD          (WEAPON_SPRITE_POS_OFFSET),HL       ; Store new weapon position
-    JP          MELEE_DRAW_WEAPON_FRAME             ; Draw weapon at new position
+    JP          DRAW_MONSTER_WEAPON_FRAME           ; Draw weapon at new position
 MELEE_ANIM_SMALL_STEP:
     LD          (MELEE_ANIM_STATE),A                ; Store current state (decremented)
     LD          HL,(WEAPON_SPRITE_POS_OFFSET)       ; Load current weapon screen position
@@ -1142,9 +1142,9 @@ MELEE_ANIM_SMALL_STEP:
     LD          (WEAPON_SPRITE_POS_OFFSET),HL       ; Store new position
 
 ;==============================================================================
-; MELEE_DRAW_WEAPON_FRAME
+; DRAW_MONSTER_WEAPON_FRAME
 ;==============================================================================
-; Draws the weapon sprite at the current animation position. Saves the screen
+; Draws the monster weapon sprite at the current animation position. Saves the screen
 ; background to a buffer before drawing, allowing the weapon to be erased later
 ; by restoring the saved background.
 ;
@@ -1161,7 +1161,7 @@ MELEE_ANIM_SMALL_STEP:
 ; Memory Modified: MONSTER_BG_SAVE_BUFFER, WEAPON_SPRITE_CHRRAM_ADDR_HI, MONSTER_ANIM_TIMER_COPY
 ; Calls: COPY_GFX_2_BUFFER, CHK_ITEM
 ;==============================================================================
-MELEE_DRAW_WEAPON_FRAME:
+DRAW_MONSTER_WEAPON_FRAME:
     LD          BC,$c8                              ; BC = 200 (screen offset adjustment)
     XOR         A                                   ; A = 0 (clear for subtraction)
     SBC         HL,BC                               ; HL = screen position - 200 (calculate actual CHRRAM address)
@@ -2823,7 +2823,7 @@ TIMER_UPDATED_CHECK_INPUT:
     CP          (HL)                                ; Has MASTER_TICK_TIMER advanced since last item tick?
     JP          NZ,WAIT_FOR_INPUT                   ; No → nothing to animate this frame
     CALL        COPY_ITEM_GFX_TO_CHRRAM             ; Update item blink/phase bookkeeping
-    CALL        ANIMATE_RH_ITEM_STEP                ; Redraw/update UI/icons for item state
+    CALL        DRAW_PLAYER_WEAPON_FRAME            ; Redraw/update UI/icons for item state
     JP          WAIT_FOR_INPUT                      ; Return to main input loop
 
 ;-------------------------------------------------------------------------------
@@ -2836,8 +2836,8 @@ MONSTER_ANIM_TICK:
     JP          NZ,WAIT_FOR_INPUT                   ; No → skip animation this frame
     CALL        MELEE_RESTORE_BG_FROM_BUFFER        ; Restore background under melee sprites
     CALL        COPY_ITEM_GFX_TO_CHRRAM             ; Update blink/phase shared bookkeeping
-    CALL        ANIMATE_RH_ITEM_STEP                ; Redraw any UI impacted by anim state
-    CALL        MELEE_ANIM_LOOP                     ; Advance melee/monster animation frame(s)
+    CALL        DRAW_PLAYER_WEAPON_FRAME            ; Redraw any UI impacted by anim state
+    CALL        MONSTER_WEAPON_ANIM_STEP            ; Advance monster weapon animation frame
     JP          WAIT_FOR_INPUT                      ; Back to main loop
 
 ;-------------------------------------------------------------------------------
@@ -2849,7 +2849,7 @@ MELEE_ANIM_ONLY:
     CP          (HL)                                ; Has MASTER_TICK_TIMER advanced for monster anim?
     JP          NZ,WAIT_FOR_INPUT                   ; No → skip animation this frame
     CALL        MELEE_RESTORE_BG_FROM_BUFFER        ; Restore background under melee sprites
-    CALL        MELEE_ANIM_LOOP                     ; Advance melee/monster animation frame(s)
+    CALL        MONSTER_WEAPON_ANIM_STEP            ; Advance monster weapon animation frame
     JP          WAIT_FOR_INPUT                      ; Back to main loop
 
 ;-------------------------------------------------------------------------------
@@ -5585,7 +5585,7 @@ INIT_MELEE_ANIM:
     LD          (WEAPON_SPRITE_POS_OFFSET),HL       ; Store position offset
     LD          A,L                                 ; A = low byte ($EA)
     LD          (KEYBOARD_SCAN_FLAG),A              ; Store to KEYBOARD_SCAN_FLAG
-    CALL        MELEE_DRAW_WEAPON_FRAME             ; Draw weapon frame for melee
+    CALL        DRAW_MONSTER_WEAPON_FRAME           ; Draw weapon frame for initial melee state
     JP          WAIT_FOR_INPUT                      ; Return to input wait
 REDRAW_MONSTER_HEALTH:
     LD          DE,CHRRAM_MONSTER_PHYS              ; Point to monster physical health display
