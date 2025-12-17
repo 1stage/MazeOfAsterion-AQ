@@ -4735,10 +4735,23 @@ RHA_REDRAW:
 ;
 ;==============================================================================
 VP_LH_GAP_REDRAW:
+    ; LD          BC,$0028
+    ; LD          HL,COLRAM_VP_LH_GAP_IDX
+    ; LD          A,COLOR(BLK,DKGRY)
+    ; LD          (HL),A
+    ; ADD         HL,BC
+    ; LD          (HL),A
+    ; ADD         HL,BC
+    ; LD          (HL),A
+    ; ADD         HL,BC
+    ; LD          (HL),A
+    ; ADD         HL,BC
+    ; LD          (HL),A
+
     LD          DE,VP_LH_GAP                        ; DE = viewport left hand gap graphic
     LD          HL,CHRRAM_VP_LH_GAP_IDX             ; HL = Viewport Left hand gap index
     LD          B,COLOR(DKGRY,BLK)                  ; BLK on DKGRY
-    ; CALL        GFX_DRAW                            ; Draw filler
+    ; LD          B,COLOR(BLK,DKGRY)                  ; BLK on DKGRY
     JP          GFX_DRAW                            ; Draw filler
 
 ;==============================================================================
@@ -4750,8 +4763,7 @@ VP_LH_GAP_REDRAW:
 VP_RH_GAP_REDRAW:
     LD          DE,VP_RH_GAP                        ; DE = viewport left hand gap graphic
     LD          HL,CHRRAM_VP_RH_GAP_IDX             ; HL = Viewport Left hand gap index
-    LD          B,COLOR(BLK,DKGRY)                  ; BLK on DKGRY
-    ; CALL        GFX_DRAW                            ; Draw filler
+    LD          B,COLOR(DKGRY,BLK)                  ; DKGRY on BLK
     JP          GFX_DRAW                            ; Draw filler
 
 ;==============================================================================

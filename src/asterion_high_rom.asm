@@ -197,10 +197,6 @@ BLANK_SCRN:
     LD          HL,COLRAM_PHYS_STATS_1000           ; HL = top-left of stats panel color area
     LD          BC,RECT(9,3)                        ; 9 x 3 rectangle
     CALL        FILL_CHRCOL_RECT                    ; Paint stats panel background
-
-    CALL        VP_LH_GAP_REDRAW                   ; Fill in space to right of left hand item
-    CALL        VP_RH_GAP_REDRAW                   ; Fill in space to left of right hand item
-
     LD          DE,STATS_TXT                        ; DE = stats label graphics
     LD          HL,CHRRAM_STATS_TOP                 ; HL = position to draw stats label
     LD          B,COLOR(DKGRN,BLK)                  ; B = panel text color
@@ -331,6 +327,10 @@ FINALIZE_STARTUP_STATE:
     CALL        INC_DUNGEON_LEVEL                   ; Additional startup (timer/UI) routine
     CALL        REDRAW_START                        ; Draw initial non-viewport UI elements
     CALL        REDRAW_VIEWPORT                     ; Render initial 3D maze view
+    
+    ; CALL        VP_LH_GAP_REDRAW                    ; Fill in space to right of left hand item
+    ; CALL        VP_RH_GAP_REDRAW                    ; Fill in space to left of right hand item
+
     JP          DO_SWAP_HANDS                       ; Enter main input loop (no return)
 
 ;==============================================================================
@@ -645,7 +645,7 @@ DRAW_PLAYER_WEAPON_FRAME:
     DEC         H                                   ; Decrement outer loop count
     JP          Z,ITEM_COMBAT_DISPATCH              ; If zero, animation complete
     LD          A,$31                               ; Player weapon CHRRAM row base
-    LD          (PL_WPN_CHRRAM_ADDR_HI),A           ; Store into PL_WPN_CHRRAM_ADDR_HI
+    LD          (CHRRAM_SPRITE_ADDR_LO),A           ; Store into CHRRAM_SPRITE_ADDR_LO
     LD          L,0x4                               ; Reset inner loop count to 4
 RESET_RH_ANIM_STATE:
     LD          A,0x4                               ; Reset animation state to 4
@@ -695,12 +695,12 @@ COPY_RH_ITEM_FRAME_GFX:
     CALL        COPY_GFX_2_BUFFER                   ; Copy frame graphics to buffer
     POP         HL                                  ; Restore source pointer
     LD          C,L                                 ; Save low byte of pointer into C
-    LD          A,(PL_WPN_CHRRAM_ADDR_HI)           ; Load player weapon CHRRAM high byte
-    LD          (WEAPON_SPRITE_CHRRAM_ADDR_HI),A    ; Update WEAPON_SPRITE_CHRRAM_ADDR_HI from PL_WPN_CHRRAM_ADDR_HI
+    LD          A,(CHRRAM_SPRITE_ADDR_LO)           ; Load CHRRAM_SPRITE_ADDR_LO byte
+    LD          (CHRRAM_SPRITE_ADDR_HI),A           ; Update CHRRAM_SPRITE_ADDR_HI from CHRRAM_SPRITE_ADDR_HI
     LD          A,(ITEM_SPRITE_INDEX)               ; Load item sprite index
     CALL        CHK_ITEM                            ; Draw RH item/weapon sprite (first of two draws this tick)
     LD          A,$32                               ; Monster weapon CHRRAM row base
-    LD          (WEAPON_SPRITE_CHRRAM_ADDR_HI),A    ; Update WEAPON_SPRITE_CHRRAM_ADDR_HI to $32
+    LD          (CHRRAM_SPRITE_ADDR_HI),A           ; Update WEAPON_SPRITE_CHRRAM_ADDR_HI to $32
     LD          A,(MASTER_TICK_TIMER)               ; Load timer A
     ADD         A,$ff                               ; Decrement by 1
     LD          (ITEM_ANIM_TIMER_COPY),A            ; Cache copy for animation timing
@@ -752,7 +752,7 @@ COPY_ITEM_GFX_TO_CHRRAM:
 ITEM_COMBAT_DISPATCH:
     CALL        COPY_ITEM_GFX_TO_CHRRAM             ; Copy RH item gfx into CHRRAM
     LD          A,$32                               ; Monster weapon CHRRAM row base
-    LD          (PL_WPN_CHRRAM_ADDR_HI),A           ; Store status into PL_WPN_CHRRAM_ADDR_HI
+    LD          (CHRRAM_SPRITE_ADDR_LO),A           ; Store status into PCHRRAM_SPRITE_ADDR_LO
     LD          (SCREENSAVER_STATE),A               ; Store status into SCREENSAVER_STATE
     LD          A,(WEAPON_SPRT)                     ; Load spiritual/physical weapon flag
     LD          E,A                                 ; Move flag into E for math
@@ -1176,11 +1176,11 @@ DRAW_MONSTER_WEAPON_FRAME:
     POP         BC                                  ; BC = adjusted screen address (from stack)
     LD          B,0x0                               ; B = 0 (clear high byte for CHK_ITEM parameter)
     LD          A,(MN_WPN_CHRRAM_ADDR_HI)           ; Load monster weapon CHRRAM high byte
-    LD          (WEAPON_SPRITE_CHRRAM_ADDR_HI),A    ; Store as weapon sprite address high byte
+    LD          (CHRRAM_SPRITE_ADDR_HI),A           ; Store as sprite address high byte
     LD          A,(MELEE_WEAPON_SPRITE)             ; Load weapon sprite ID
     CALL        CHK_ITEM                            ; Draw melee weapon sprite (second draw this tick)
     LD          A,$32                               ; Reset to default CHRRAM row
-    LD          (WEAPON_SPRITE_CHRRAM_ADDR_HI),A    ; Store reset value
+    LD          (CHRRAM_SPRITE_ADDR_HI),A           ; Store as sprit address high byte
     LD          A,(MASTER_TICK_TIMER)               ; Load system timer
     ADD         A,$ff                               ; Decrement timer (add -1)
     LD          (MONSTER_ANIM_TIMER_COPY),A         ; Store updated animation timer
@@ -2245,6 +2245,21 @@ PROCESS_MAP:
 ; Memory Modified: RIGHT_HAND_ITEM, ITEM_S0, CHRRAM_*, COLRAM_*, ITEM_MOVE_CHR_BUFFER
 ; Calls: SWAP_BYTES_AT_HL_BC, UPDATE_MELEE_OBJECTS, COPY_GFX_SCRN_2_SCRN, COPY_GFX_FROM_BUFFER, RECOLOR_ITEM, NEW_RIGHT_HAND_ITEM
 ;==============================================================================
+PICK_UP_NON_TREASURE_NEW:
+    LD          HL,RIGHT_HAND_ITEM                  ; Point to current right-hand item
+    LD          BC,ITEM_S0                          ; Point to current S0 item
+    CALL        SWAP_BYTES_AT_HL_BC                 ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
+
+    CALL        CHK_ITEM_S0                         ; Check S0 item
+
+    LD          HL,CHRRAM_RIGHT_HAND_VP_DRAW_IDX
+    LD          (CHRRAM_SPRITE_ADDR_HI),HL
+    CALL        CHK_ITEM                            ; Check right hand item
+
+
+    CALL        NEW_RIGHT_HAND_ITEM                 ; Recalculate weapon stats for new right-hand item
+    JP          INPUT_DEBOUNCE                      ; Wait for input debounce then return to main loop
+
 PICK_UP_NON_TREASURE:
     LD          HL,RIGHT_HAND_ITEM                  ; Point to current right-hand item
     LD          A,(HL)                              ; Load current right-hand item code
@@ -2624,7 +2639,7 @@ SWAP_BYTES_AT_HL_BC:
     LD          (HL),A                              ; Store A to (HL)
     LD          A,D                                 ; Load saved (HL) value from D
     LD          (BC),A                              ; Store to (BC)
-    RET                                              ; Return (values swapped)
+    RET                                             ; Return (values swapped)
 
 ;==============================================================================
 ; DO_SWAP_PACK - Swap inventory slot 1 with right-hand item
@@ -3230,7 +3245,7 @@ SELECT_DIFFICULTY_LOOP:
     CP          $fb                                 ; Compare to key 1 value ($FB)
     JP          Z,SET_DIFFICULTY_3                  ; If key 1, set difficulty 3
 SET_DIFFICULTY_4:
-    LD          A,0x0                               ; Set difficulty to 0 (easiest/default)
+    LD          A,0x4                               ; Set difficulty to 4 (hardest)
 GOTO_GAME_START:
     LD          (MULTIPURPOSE_BYTE),A               ; Store difficulty level
     LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
@@ -3293,16 +3308,24 @@ ITEM_NOT_RD_YL:
     LD          A,E                                 ; Load E back to A
     SLA         A                                   ; Shift A left (multiply by 2)
     ADD         A,E                                 ; Add E (now A = E * 3)
+
     ADD         A,B                                 ; Add B (color/offset) to A
+
     LD          B,D                                 ; Store D in B (color base)
     LD          L,A                                 ; Store result in L
     LD          H,$ff                               ; Set H to $FF (graphics table high byte)
     LD          E,(HL)                              ; Load graphics pointer low byte
     INC         HL                                  ; Point to high byte
     LD          D,(HL)                              ; Load graphics pointer high byte
-    LD          A,(WEAPON_SPRITE_CHRRAM_ADDR_HI)    ; Load weapon sprite CHRRAM address high byte
+    LD          A,(CHRRAM_SPRITE_ADDR_HI)           ; Load sprite CHRRAM address high byte
     LD          H,A                                 ; Store in H register for GFX_DRAW
+
     LD          L,C                                 ; Store C in L
+
+; H = A = (CHRRAM_SPRITE_ADDR_HI)
+; L = C = low byte BC
+; D = (HL) = HL = $ff00 = E
+
     JP          GFX_DRAW                            ; Jump to graphics drawing routine
 
 ;==============================================================================
@@ -7962,10 +7985,17 @@ CHK_FR22_EXISTS:
     JP          C,DRAW_FR1_B_WALL                   ; If bit set, draw wall
     CALL        DRAW_WALL_FR22_EMPTY                ; Draw empty FR2 space
     CALL        CHK_ITEM_SR1                        ; Check and draw SR1 item
+
 CHK_ITEM_S0:
     LD          A,(ITEM_S0)                         ; Load sprite at S0 position
     LD          BC,$8a                              ; BC = distance/size parameters
     JP          CHK_ITEM                            ; Check and draw S0 sprite
+
+CHK_ITEM_RH:
+    LD          A,(RIGHT_HAND_ITEM)                 ; Load sprite at RH position
+    LD          BC,$8a
+    JP          CHK_ITEM                            ; Check and draw RH sprite
+
 ;==============================================================================
 ; MAKE_RANDOM_BYTE - Generate pseudo-random byte using 16-bit LFSR
 ;==============================================================================
