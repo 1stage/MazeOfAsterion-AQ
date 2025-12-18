@@ -2072,9 +2072,9 @@ CHECK_CHEST_PICKUP:
     CALL        Z,VALIDATE_RH_ITEM_PRESENT          ; If Z flag set, call special handler
 CHECK_FOOD_ARROWS:
     CP          RED_FOOD_ITEM                       ; Compare to RED FOOD (item code $48)
-    JP          C,CHECK_MAPS                        ; If < $48, check map/necklace/charms
+    JP          C,CHECK_MAPS                        ; If < $48, check map/amulet/charms
     CP          RED_LOCKED_CHEST_ITEM               ; Compare to LOCKED_CHEST (item code $50)
-    JP          NC,CHECK_MAPS                       ; If >= $50, check map/necklace/charms
+    JP          NC,CHECK_MAPS                       ; If >= $50, check map/amulet/charms
     CALL        PICK_UP_S0_ITEM                     ; Remove item from map, increment D
     INC         D                                   ; Increment D (item quantity/tier)
     RL          D                                   ; Rotate left (multiply by 2, with carry)
@@ -2147,10 +2147,10 @@ STORE_FOOD_NO_OVERFLOW:
 ;   A = ARROW_INV value, comparison result, possibly clamped to $32
 ; ---  End  ---
 ;   A = Final arrow count stored
-;   Jumps to CHECK_MAP_NECKLACE_CHARMS (does not return)
+;   Jumps to CHECK_MAPS (does not return)
 ;
 ; Memory Modified: ARROW_INV
-; Calls: CHECK_MAP_NECKLACE_CHARMS (jump)
+; Calls: CHECK_MAPS (jump)
 ;==============================================================================
 PICK_UP_ARROWS:
     LD          A,(ARROW_INV)                       ; Load current arrow inventory count
@@ -2172,23 +2172,23 @@ CHECK_MAPS:
     JP          Z,PROCESS_MAP                       ; If white map, process map pickup
 CHECK_CHALICES:
     CP          RED_CHALICE_ITEM                    ; Compare to RED CHALICE (item code $5C)
-    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+    JP          Z,PROCESS_CHALICE                   ; TO BE UPDATED, for now handle as usual
     CP          YEL_CHALICE_ITEM                    ; Compare to YEL CHALICE (item code $5D)
-    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+    JP          Z,PROCESS_CHALICE                   ; TO BE UPDATED, for now handle as usual
     CP          MAG_CHALICE_ITEM                    ; Compare to MAG CHALICE (item code $5E)
-    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+    JP          Z,PROCESS_CHALICE                   ; TO BE UPDATED, for now handle as usual
     CP          WHT_CHALICE_ITEM                    ; Compare to WHT CHALICE (item code $5F)
-    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+    JP          Z,PROCESS_CHALICE                   ; TO BE UPDATED, for now handle as usual
 
 CHECK_AMULETS:
     CP          RED_AMULET_ITEM                     ; Compare to RED AMULET (item code $54)
-    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+    JP          Z,PROCESS_AMULET                    ; TO BE UPDATED, for now handle as usual
     CP          YEL_AMULET_ITEM                     ; Compare to YEL AMULET (item code $55)
-    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+    JP          Z,PROCESS_AMULET                    ; TO BE UPDATED, for now handle as usual
     CP          MAG_AMULET_ITEM                     ; Compare to MAG AMULET (item code $56)
-    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+    JP          Z,PROCESS_AMULET                    ; TO BE UPDATED, for now handle as usual
     CP          WHT_AMULET_ITEM                     ; Compare to WHT AMULET (item code $57)
-    JP          Z,PICK_UP_NON_TREASURE              ; TO BE UPDATED, for now handle as usual
+    JP          Z,PROCESS_AMULET                    ; TO BE UPDATED, for now handle as usual
 
 CHECK_KEYS:
     CP          RED_KEY_ITEM                        ; Compare to RED KEY (item code $58)
@@ -2220,6 +2220,20 @@ PROCESS_MAP:
     LD          (COLRAM_MAP_IDX),A                  ; Store color value for map display
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 
+PROCESS_AMULET:
+    CALL        PICK_UP_S0_ITEM                     ; Remove amulet from floor
+
+; Now, do something interesting with the amulet here...
+
+    JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
+
+PROCESS_CHALICE:
+    CALL        PICK_UP_S0_ITEM                     ; Remove chalice from floor
+
+; Now, do something interesting with the chalice here...
+
+    JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
+
 ;==============================================================================
 ; PICK_UP_NON_TREASURE
 ;==============================================================================
@@ -2232,6 +2246,7 @@ PROCESS_MAP:
 ; --- Start ---
 ;   HL = RIGHT_HAND_ITEM address for item swap
 ;   A  = Current right-hand item code
+;   BC = S0 item pointer
 ; --- In Process ---
 ;   HL = Various CHRRAM/COLRAM pointer addresses
 ;   DE = Target addresses for graphics copying operations
@@ -2249,7 +2264,6 @@ PICK_UP_NON_TREASURE:
     LD          HL,RIGHT_HAND_ITEM                  ; Point to current right-hand item
     LD          A,(HL)
     LD          (ITEM_S0),A
-    ; LD          BC,ITEM_S0                          ; Point to current S0 item
     CALL        SWAP_BYTES_AT_HL_BC                 ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
 
     PUSH        HL
@@ -3291,7 +3305,7 @@ SET_DIFFICULTY_3:
 ; Registers:
 ; --- Start ---
 ;   A  = Item code
-;   B  = Item size offset value - 0 regular, 1 small, 2 tiny
+;   B  = Item size offset value - 0 regular, 2 small, 4 tiny
 ;   C  = Low byte of GFX pointer
 ;        (CHRRAM_SPRITE_ADDR_HI) should be loaded with the High byte
 ;        of the GFX pointer before calling CHK_ITEM
@@ -3604,9 +3618,12 @@ WAIT_TO_REDRAW_F0_DOOR:
     LD          A,0x0                               ; Load color (black on black)
                                                     ; (was blue on blue, $BB)
     CALL        DRAW_DOOR_F0                        ; Draw door at F0 position
+
+; Maybe we need to align this section with the CHK_ITEM_S1 routine and call it instead?
     LD          A,(ITEM_S1)                         ; Load sprite at S1 position
     LD          BC,$28a                             ; Load BC with offset/color
-    CALL        CHK_ITEM                            ; Check and draw item
+    CALL        CHK_ITEM                            ; Check and draw S1 item
+
     LD          HL,COLRAM_F0_DOOR_IDX               ; Point to F0 door color RAM
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer
     CALL        COPY_DOOR_GFX                       ; Copy door graphics to buffer
@@ -4178,7 +4195,6 @@ CLEAR_RIGHT_HAND:                                   ; Clear right-hand item and 
     LD          A,$fe                               ; Load empty item marker ($FE)
     LD          (RIGHT_HAND_ITEM),A                 ; Store to right-hand slot (clear item)
     LD          DE,POOF_6                           ; Point to poof graphics ("    ", $01)
-    ; LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics location
     LD          HL,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to right-hand graphics location
     LD          B,$d0                               ; Load color attribute ($D0)
     CALL        GFX_DRAW                            ; Draw poof graphics
@@ -5327,7 +5343,6 @@ SETUP_ITEM_ANIMATION:
     LD          HL,$203                             ; HL = $203 (loop count)
     LD          (ITEM_ANIM_LOOP_COUNT),HL           ; Store animation loop count
     LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics area
-    ; LD          HL,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to right-hand graphics area
     LD          (ITEM_ANIM_CHRRAM_PTR),HL           ; Store graphics pointer
     LD          A,L                                 ; A = low byte of CHRRAM pointer
     LD          (SCREENSAVER_STATE),A               ; Store to SCREENSAVER_STATE
@@ -5655,6 +5670,7 @@ REDRAW_MONSTER_HEALTH:
     LD          HL,CURR_MONSTER_SPRT                ; Point to current monster spiritual HP
     LD          B,0x1                               ; 1 byte (BCD format)
     JP          RECALC_AND_REDRAW_BCD               ; Recalculate and redraw spiritual HP
+
 ;==============================================================================
 ; GET_RANDOM_0_TO_7 - Generate random value 0-7 for HP variance
 ;==============================================================================
@@ -7719,8 +7735,10 @@ CHK_WALL_FR2_A_EXISTS:
     CALL        DRAW_WALL_F2_FR2_GAP_EMPTY               ; Draw empty R2 right space
 CHK_ITEM_S2:
     LD          A,(ITEM_S2)                         ; Load sprite at S2 position
-    LD          BC,$48a                             ; BC = distance/size parameters
-    CALL        CHK_ITEM                            ; Check and draw F2 item
+    ; LD          BC,$48a                             ; B = 4 (tiny); C = Low Byte of $328a
+    LD          BC,CHRRAM_S2_ITEM_DRAW_IDX          ; BC = $328a
+    LD          B,4                                 ; BC = $048a
+    CALL        CHK_ITEM                            ; Check and draw S2 item
 F1_HD_NO_WALL:
     LD          DE,WALL_L1_STATE                    ; DE = left wall 1 state
     LD          A,(DE)                              ; Load L1 wall state
@@ -7835,8 +7853,10 @@ CHK_WALL_FR2_EXISTS:
     CALL        DRAW_WALL_FR2_EMPTY                 ; Draw empty FR2 space
 CHK_ITEM_S1:
     LD          A,(ITEM_S1)                         ; Load sprite at S1 position
-    LD          BC,$28a                             ; BC = distance/size parameters
-    CALL        CHK_ITEM                            ; Check and draw S1 sprite
+    ; LD          BC,$28a                             ; B = 2 (small); C = Low Byte of $318a
+    LD          BC,CHRRAM_S1_ITEM_DRAW_IDX          ; BC = $328a
+    LD          B,2                                 ; BC = $028a
+    CALL        CHK_ITEM                            ; Check and draw S1 item
 F0_HD_NO_WALL:
     LD          DE,WALL_L0_STATE                    ; DE = left wall 0 state
     LD          A,(DE)                              ; Load L0 wall state
@@ -8028,8 +8048,8 @@ CHK_FR22_EXISTS:
 CHK_ITEM_S0:
     LD          A,(ITEM_S0)                         ; Load sprite at S0 position
     LD          BC,CHRRAM_S0_ITEM_DRAW_IDX          ; BC = $328a
-    LD          B,0                                 ; BC = $008a
-    JP          CHK_ITEM                            ; Check and draw S0 sprite
+    LD          B,0                                 ; BC = $008a; B = 0 (regular size item)
+    JP          CHK_ITEM                            ; Check and draw S0 item
 
 CHK_ITEM_RH:
     LD          A,(RIGHT_HAND_ITEM)                 ; Load sprite at RH position
@@ -8531,4 +8551,30 @@ REDRAW_STATS:
     LD          DE,CHRRAM_SPRT_HEALTH_10            ; DE = screen position for SPRT display
     LD          B,0x1                               ; B = 1 byte (8-bit BCD)
     JP          RECALC_AND_REDRAW_BCD               ; Draw spiritual health value and return
+
+CHK_ITEM_S2_NEW:
+    LD          A,(ITEM_S2)                         ; Load sprite at S2 position
+    LD          BC,CHRRAM_S2_ITEM_DRAW_IDX          ; BC = $328a
+    LD          B,4                                 ; BC = $048a; B = 4 (tiny size item)
+    CALL        CHK_ITEM                            ; Check and draw S2 item tiny
+    RET
+
+CHK_ITEM_S1_NEW:
+    LD          A,(ITEM_S1)                         ; Load sprite at S1 position
+    LD          BC,CHRRAM_S1_ITEM_DRAW_IDX          ; BC = $328a
+    LD          B,2                                 ; BC = $028a; B = 2 (small size item)
+    CALL        CHK_ITEM                            ; Check and draw S1 item small
+    RET
+
+CHK_ITEM_S0_NEW:
+    LD          A,(ITEM_S0)                         ; Load sprite at S0 position
+    LD          BC,CHRRAM_S0_ITEM_DRAW_IDX          ; BC = $328a
+    LD          B,0                                 ; BC = $008a; B = 0 (regular size item)
+    JP          CHK_ITEM                            ; Check and draw S0 item regular
+
+CHK_ITEM_RH_NEW:
+    LD          A,(RIGHT_HAND_ITEM)                 ; Load sprite at RH position
+    LD          BC,CHRRAM_RIGHT_HAND_VP_DRAW_IDX    ; BC = $3294
+    LD          B,0                                 ; BC = $0094
+    JP          CHK_ITEM                            ; Check and draw RH sprite
 

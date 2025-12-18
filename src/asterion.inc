@@ -75,6 +75,8 @@ CHRRAM_RIGHT_HAND_ITEM_IDX EQU $327b
 ; New viewport hand positions (lower corners of viewport)
 ; CHRRAM_LEFT_HAND_VP_DRAW_IDX EQU $3281  ; Row 16, Col 1 - GFX_DRAW start point (5 rows above 4x4)
 CHRRAM_LEFT_HAND_VP_DRAW_IDX EQU $3280  ; Row 16, Col 0 - GFX_DRAW start point (5 rows above 4x4)
+CHRRAM_S2_ITEM_DRAW_IDX EQU $328A  ; Row 16, Col 10 - GFX_DRAW start point (5 rows above 4x4)
+CHRRAM_S1_ITEM_DRAW_IDX EQU $328A  ; Row 16, Col 10 - GFX_DRAW start point (5 rows above 4x4)
 CHRRAM_S0_ITEM_DRAW_IDX EQU $328A  ; Row 16, Col 10 - GFX_DRAW start point (5 rows above 4x4)
 ; CHRRAM_RIGHT_HAND_VP_DRAW_IDX EQU $3293  ; Row 16, Col 19 - GFX_DRAW start point (5 rows above 4x4)
 CHRRAM_RIGHT_HAND_VP_DRAW_IDX EQU $3294  ; Row 16, Col 20 - GFX_DRAW start point (5 rows above 4x4)
@@ -420,6 +422,7 @@ MAG_CROSSBOW_ITEM   EQU $32
 WHT_CROSSBOW_ITEM   EQU $33
 
 ; Spider Web ($34-$37) - Physical (bio) weapon
+; (was previously Spare 01 item)
 SPIDER_WEB_ITEM_CP      EQU $0D
 RED_SPIDER_WEB_ITEM     EQU $34
 YEL_SPIDER_WEB_ITEM     EQU $35
@@ -475,12 +478,12 @@ YEL_LOCKED_CHEST_ITEM EQU $51
 MAG_LOCKED_CHEST_ITEM EQU $52
 WHT_LOCKED_CHEST_ITEM EQU $53
 
-; Amulet ($54-$57) - Trinket/treasure
-AMULET_ITEM_CP      EQU $15
-RED_AMULET_ITEM     EQU $54
-YEL_AMULET_ITEM     EQU $55
-MAG_AMULET_ITEM     EQU $56
-WHT_AMULET_ITEM     EQU $57
+; Spare 3 Item ($54-$57) - ???
+SPARE_03_ITEM_CP      EQU $15
+RED_SPARE_03_ITEM     EQU $54
+YEL_SPARE_03_ITEM     EQU $55
+MAG_SPARE_03_ITEM     EQU $56
+WHT_SPARE_03_ITEM     EQU $57
 
 ; Key ($58-$5B) - Used by DO_USE_KEY
 KEY_ITEM_CP         EQU $16
@@ -489,19 +492,19 @@ YEL_KEY_ITEM        EQU $59
 MAG_KEY_ITEM        EQU $5A
 WHT_KEY_ITEM        EQU $5B
 
-; Chalice ($5C-$5F) - Trinket/treasure
-CHALICE_ITEM_CP     EQU $17
-RED_CHALICE_ITEM    EQU $5C
-YEL_CHALICE_ITEM    EQU $5D
-MAG_CHALICE_ITEM    EQU $5E
-WHT_CHALICE_ITEM    EQU $5F
+; Amulet ($5C-$5F) - Trinket/treasure
+AMULET_ITEM_CP      EQU $17
+RED_AMULET_ITEM     EQU $5C
+YEL_AMULET_ITEM     EQU $5D
+MAG_AMULET_ITEM     EQU $5E
+WHT_AMULET_ITEM     EQU $5F
 
-; Spare 03 Item ($60-$63) - ???
-SPARE_03_ITEM_CP        EQU $18
-RED_SPARE_03_ITEM       EQU $60
-YEL_SPARE_03_ITEM       EQU $61
-WHT_SPARE_03_ITEM       EQU $62
-MAG_SPARE_03_ITEM       EQU $63
+; Chalice ($60-$63) - Trinket/treasure
+CHALICE_ITEM_CP         EQU $18
+RED_CHALICE_ITEM        EQU $60
+YEL_CHALICE_ITEM        EQU $61
+WHT_CHALICE_ITEM        EQU $62
+MAG_CHALICE_ITEM        EQU $63
 
 ; Warrior Potion ($64-$67) - Physical stat effect
 WARRIOR_POTION_ITEM_CP  EQU $19
