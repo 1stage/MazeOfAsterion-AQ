@@ -668,7 +668,7 @@ DRAW_WALL_F2_EMPTY:
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
 
 ;==============================================================================
-; UPDATE_F0_ITEM
+; WIPE_ITEM_4X4
 ;==============================================================================
 ; Generic utility for filling 4x4 color rectangle. Reused by multiple routines
 ; for item/wall updates at F0 distance.
@@ -685,7 +685,7 @@ DRAW_WALL_F2_EMPTY:
 ; Memory Modified: 4x4 color rectangle at HL
 ; Calls: Jumps to FILL_CHRCOL_RECT
 ;==============================================================================
-UPDATE_S0_ITEM:
+WIPE_ITEM_4X4:
     LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
     JP          FILL_CHRCOL_RECT                    ; Fill area with color in A
 

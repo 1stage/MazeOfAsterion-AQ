@@ -1974,7 +1974,7 @@ CLEAR_WEAPON_VALUES:
 ;   Varies by item type handler
 ;
 ; Memory Modified: Inventory slots, equipment stats (varies by item type)
-; Calls: ITEM_MAP_CHECK, PICK_UP_F0_ITEM, CHECK_FOOD_ARROWS, PROCESS_RHA
+; Calls: ITEM_MAP_CHECK, PICK_UP_S0_ITEM, CHECK_FOOD_ARROWS, PROCESS_RHA
 ;==============================================================================
 DO_PICK_UP:
     LD          A,(ITEM_HOLDER)                     ; Load item's map position
@@ -2010,7 +2010,7 @@ DO_PICK_UP:
 ;   Varies by equipment handler
 ;
 ; Memory Modified: ARMOR_INV_SLOT, HELMET_INV_SLOT, or RING_INV_SLOT
-; Calls: PICK_UP_F0_ITEM, equipment stat handlers
+; Calls: PICK_UP_S0_ITEM, equipment stat handlers
 ;==============================================================================
 PROCESS_RHA:
     CALL        PICK_UP_S0_ITEM                     ; Remove item from map, increment D
@@ -2245,60 +2245,79 @@ PROCESS_MAP:
 ; Memory Modified: RIGHT_HAND_ITEM, ITEM_S0, CHRRAM_*, COLRAM_*, ITEM_MOVE_CHR_BUFFER
 ; Calls: SWAP_BYTES_AT_HL_BC, UPDATE_MELEE_OBJECTS, COPY_GFX_SCRN_2_SCRN, COPY_GFX_FROM_BUFFER, RECOLOR_ITEM, NEW_RIGHT_HAND_ITEM
 ;==============================================================================
-PICK_UP_NON_TREASURE_NEW:
+PICK_UP_NON_TREASURE:
     LD          HL,RIGHT_HAND_ITEM                  ; Point to current right-hand item
-    LD          BC,ITEM_S0                          ; Point to current S0 item
+    LD          A,(HL)
+    LD          (ITEM_S0),A
+    ; LD          BC,ITEM_S0                          ; Point to current S0 item
     CALL        SWAP_BYTES_AT_HL_BC                 ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
+
+    PUSH        HL
+    PUSH        AF
+    PUSH        BC
+
+    LD          HL,CHRRAM_S0_ITEM_IDX               ; Point to S0 item character graphics in CHRRAM
+    LD          A,$20                               ; A = $20 (SPACE character)
+    CALL        WIPE_ITEM_4X4                       ; Clear S0 character graphics with space (4x4 area)
+    LD          HL,COLRAM_S0_ITEM_IDX               ; Point to S0 item color attributes in COLRAM
+    LD          A,COLOR(BLK,DKGRY)                  ; A = BLK on DKGRY (floor color scheme)
+    CALL        WIPE_ITEM_4X4                       ; Clear S0 color graphics with floor colors (4x4 area)
+
+    LD          HL,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to S0 item character graphics in CHRRAM
+    LD          A,$20                               ; A = $20 (SPACE character)
+    CALL        WIPE_ITEM_4X4                       ; Clear S0 character graphics with space (4x4 area)
+    LD          HL,COLRAM_RIGHT_HAND_VP_IDX         ; Point to S0 item color attributes in COLRAM
+    LD          A,COLOR(BLK,BLK)                    ; A = BLK on DKGRY (floor color scheme)
+    CALL        WIPE_ITEM_4X4                       ; Clear S0 color graphics with floor colors (4x4 area)
+
+    POP         BC
+    POP         AF
+    POP         HL
 
     CALL        CHK_ITEM_S0                         ; Check S0 item
 
-    LD          HL,CHRRAM_RIGHT_HAND_VP_DRAW_IDX
-    LD          (CHRRAM_SPRITE_ADDR_HI),HL
-    CALL        CHK_ITEM                            ; Check right hand item
-
+    CALL        CHK_ITEM_RH                         ; Check RH item
 
     CALL        NEW_RIGHT_HAND_ITEM                 ; Recalculate weapon stats for new right-hand item
     JP          INPUT_DEBOUNCE                      ; Wait for input debounce then return to main loop
 
-PICK_UP_NON_TREASURE:
-    LD          HL,RIGHT_HAND_ITEM                  ; Point to current right-hand item
-    LD          A,(HL)                              ; Load current right-hand item code
-    LD          (ITEM_S0),A                         ; Store it as new floor item at S0 position
-    CALL        SWAP_BYTES_AT_HL_BC                 ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
-    ; LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics in CHRRAM
-    LD          HL,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to right-hand graphics in CHRRAM
-    LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary graphics buffer
-    CALL        COPY_GFX_2_BUFFER                   ; Copy right-hand graphics to temp buffer (4x4 chars)
-    LD          HL,CHRRAM_S0_ITEM_IDX               ; Point to S0 floor item graphics in CHRRAM
-    ; LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics position
-    LD          DE,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to right-hand graphics position
-    CALL        COPY_GFX_SCRN_2_SCRN                ; Copy F0 item graphics to right-hand position
-    LD          HL,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer (old right-hand graphics)
-    LD          DE,CHRRAM_S0_ITEM_IDX               ; Point to S0 floor item graphics position
-    CALL        COPY_GFX_FROM_BUFFER                ; Copy temp buffer to F0 position (complete swap)
+; PICK_UP_NON_TREASURE_OLD:
+;     LD          HL,RIGHT_HAND_ITEM                  ; Point to current right-hand item
+;     LD          A,(HL)                              ; Load current right-hand item code
+;     LD          (ITEM_S0),A                         ; Store it as new floor item at S0 position
+;     CALL        SWAP_BYTES_AT_HL_BC                 ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
+;     LD          HL,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to right-hand graphics in CHRRAM
+;     LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary graphics buffer
+;     CALL        COPY_GFX_2_BUFFER                   ; Copy right-hand graphics to temp buffer (4x4 chars)
+;     LD          HL,CHRRAM_S0_ITEM_IDX               ; Point to S0 floor item graphics in CHRRAM
+;     LD          DE,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to right-hand graphics position
+;     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy F0 item graphics to right-hand position
+;     LD          HL,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer (old right-hand graphics)
+;     LD          DE,CHRRAM_S0_ITEM_IDX               ; Point to S0 floor item graphics position
+;     CALL        COPY_GFX_FROM_BUFFER                ; Copy temp buffer to F0 position (complete swap)
 
-    LD          HL,COLRAM_S0_ITEM_IDX               ; Point to S0 item color attributes in COLRAM
-    LD          DE,TWOCOLOR(NOCLR,DKGRY,DKGRY,NOCLR)  ; NOCLR, DKGRY, DKGRY, NOCLR
-                                                    ;   D  = Target BG color: 
-                                                    ;       $0 in upper nybble, BG in lower nybble
-                                                    ;   E  = Comparison FG color: 
-                                                    ;       FG in upper nybble, $0 in lower nybble
-    LD          C,COLOR(BLK,DKGRY)                  ; C  = Target FG color for reversed colors that match E: 
-                                                    ;       FG in upper nybble, $0 in lower nybble
-    CALL        RECOLOR_ITEM                        ; Recolor F0 item area (4x4 cells)
+;     LD          HL,COLRAM_S0_ITEM_IDX               ; Point to S0 item color attributes in COLRAM
+;     LD          DE,TWOCOLOR(NOCLR,DKGRY,DKGRY,NOCLR)  ; NOCLR, DKGRY, DKGRY, NOCLR
+;                                                     ;   D  = Target BG color: 
+;                                                     ;       $0 in upper nybble, BG in lower nybble
+;                                                     ;   E  = Comparison FG color: 
+;                                                     ;       FG in upper nybble, $0 in lower nybble
+;     LD          C,COLOR(BLK,DKGRY)                  ; C  = Target FG color for reversed colors that match E: 
+;                                                     ;       FG in upper nybble, $0 in lower nybble
+;     CALL        RECOLOR_ITEM                        ; Recolor F0 item area (4x4 cells)
 
-    LD          HL,COLRAM_RH_ITEM_IDX               ; Point to right-hand item color attributes
-    LD          DE,TWOCOLOR(NOCLR,BLK,DKGRY,NOCLR)  ; NOCLR, BLK, DKGRY, NOCLR
-                                                    ;   D  = Target BG color: 
-                                                    ;       $0 in upper nybble, BG in lower nybble
-                                                    ;   E  = Comparison FG color: 
-                                                    ;       FG in upper nybble, $0 in lower nybble
-    LD          C,COLOR(DKGRY,NOCLR)                ; C  = Target FG color for reversed colors that match E: 
-                                                    ;       FG in upper nybble, $0 in lower nybble
-    CALL        RECOLOR_ITEM                        ; Clear right-hand item area to floor color
+;     LD          HL,COLRAM_RH_ITEM_IDX               ; Point to right-hand item color attributes
+;     LD          DE,TWOCOLOR(NOCLR,BLK,DKGRY,NOCLR)  ; NOCLR, BLK, DKGRY, NOCLR
+;                                                     ;   D  = Target BG color: 
+;                                                     ;       $0 in upper nybble, BG in lower nybble
+;                                                     ;   E  = Comparison FG color: 
+;                                                     ;       FG in upper nybble, $0 in lower nybble
+;     LD          C,COLOR(DKGRY,NOCLR)                ; C  = Target FG color for reversed colors that match E: 
+;                                                     ;       FG in upper nybble, $0 in lower nybble
+;     CALL        RECOLOR_ITEM                        ; Clear right-hand item area to floor color
 
-    CALL        NEW_RIGHT_HAND_ITEM                 ; Recalculate weapon stats for new right-hand item
-    JP          INPUT_DEBOUNCE                      ; Wait for input debounce then return to main loop
+;     CALL        NEW_RIGHT_HAND_ITEM                 ; Recalculate weapon stats for new right-hand item
+;     JP          INPUT_DEBOUNCE                      ; Wait for input debounce then return to main loop
 
 ;==============================================================================
 ; RECOLOR_ITEM
@@ -2430,10 +2449,10 @@ PICK_UP_S0_ITEM:
     LD          (BC),A                              ; Clear floor item storage (mark as empty)
     LD          HL,CHRRAM_S0_ITEM_IDX               ; Point to S0 item character graphics in CHRRAM
     LD          A,$20                               ; A = $20 (SPACE character)
-    CALL        UPDATE_S0_ITEM                      ; Clear S0 character graphics with space (4x4 area)
+    CALL        WIPE_ITEM_4X4                       ; Clear S0 character graphics with space (4x4 area)
     LD          HL,COLRAM_S0_ITEM_IDX               ; Point to S0 item color attributes in COLRAM
     LD          A,COLOR(BLK,DKGRY)                  ; A = BLK on DKGRY (floor color scheme)
-    CALL        UPDATE_S0_ITEM                      ; Clear S0 color graphics with floor colors (4x4 area)
+    CALL        WIPE_ITEM_4X4                       ; Clear S0 color graphics with floor colors (4x4 area)
     EX          AF,AF'                              ; Restore original item code to A register
     RRA                                             ; Rotate A right: bit 0 → carry, bits 7-1 → bits 6-0
     RR          D                                   ; Rotate D right: carry → bit 7, bits 7-1 → bits 6-0
@@ -3271,12 +3290,13 @@ SET_DIFFICULTY_3:
 ;
 ; Registers:
 ; --- Start ---
-;   A = Item code
-;   B = Offset value
+;   A  = Item code
+;   B  = Item size offset value - 0 regular, 1 small, 2 tiny
+;   C  = Low byte of GFX pointer
 ; --- In Process ---
-;   A = Shifted and calculated values
-;   D = Color base accumulator ($10, $30, $50, $70)
-;   E = Temporary item code storage
+;   A  = Shifted and calculated values
+;   D  = Color base accumulator ($10, $30, $50, $70)
+;   E  = Temporary item code storage
 ; ---  End  ---
 ;   HL = Graphics pointer ($FF00 + calculated offset)
 ;   B  = Final color base
@@ -3309,11 +3329,11 @@ ITEM_NOT_RD_YL:
     SLA         A                                   ; Shift A left (multiply by 2)
     ADD         A,E                                 ; Add E (now A = E * 3)
 
-    ADD         A,B                                 ; Add B (color/offset) to A
+    ADD         A,B                                 ; Add B size offset (0 = regular, 1 = small, 2 = tiny offset) to A
 
     LD          B,D                                 ; Store D in B (color base)
     LD          L,A                                 ; Store result in L
-    LD          H,$ff                               ; Set H to $FF (graphics table high byte)
+    LD          H,$ff                               ; Set H to $FF (graphics pointer table high byte)
     LD          E,(HL)                              ; Load graphics pointer low byte
     INC         HL                                  ; Point to high byte
     LD          D,(HL)                              ; Load graphics pointer high byte
@@ -3322,9 +3342,11 @@ ITEM_NOT_RD_YL:
 
     LD          L,C                                 ; Store C in L
 
-; H = A = (CHRRAM_SPRITE_ADDR_HI)
-; L = C = low byte BC
-; D = (HL) = HL = $ff00 = E
+; INPUT: HL = CHRRAM cursor position
+;        DE = AQUASCII string pointer
+;        B  = color byte
+;        C  = L
+;        A  = H
 
     JP          GFX_DRAW                            ; Jump to graphics drawing routine
 
@@ -3347,7 +3369,7 @@ ITEM_NOT_RD_YL:
 ;   Varies by door vs chest handler
 ;
 ; Memory Modified: ITEM_S0 (chest items), wall states (doors)
-; Calls: UPDATE_SCR_SAVER_TIMER, PICK_UP_F0_ITEM, door handlers
+; Calls: UPDATE_SCR_SAVER_TIMER, PICK_UP_S0_ITEM, door handlers
 ;==============================================================================
 DO_OPEN_CLOSE:
     LD          A,(ITEM_S0)                         ; Load sprite at S0 position
@@ -7980,6 +8002,7 @@ DRAW_FR1_B_WALL:
     CALL        DRAW_WALL_R1_SIMPLE                 ; Draw FR2 wall
     CALL        CHK_ITEM_SR1                        ; Check and draw SR1 item
     JP          CHK_ITEM_S0                         ; Jump to S0 sprite check
+
 CHK_FR22_EXISTS:
     RRCA                                            ; Test bit 2 (next flag)
     JP          C,DRAW_FR1_B_WALL                   ; If bit set, draw wall
@@ -7988,12 +8011,14 @@ CHK_FR22_EXISTS:
 
 CHK_ITEM_S0:
     LD          A,(ITEM_S0)                         ; Load sprite at S0 position
-    LD          BC,$8a                              ; BC = distance/size parameters
+    LD          BC,CHRRAM_S0_ITEM_DRAW_IDX          ; BC = $328a
+    LD          B,0                                 ; BC = $008a
     JP          CHK_ITEM                            ; Check and draw S0 sprite
 
 CHK_ITEM_RH:
     LD          A,(RIGHT_HAND_ITEM)                 ; Load sprite at RH position
-    LD          BC,$8a
+    LD          BC,CHRRAM_RIGHT_HAND_VP_DRAW_IDX    ; BC = $3294
+    LD          B,0                                 ; BC = $0094
     JP          CHK_ITEM                            ; Check and draw RH sprite
 
 ;==============================================================================

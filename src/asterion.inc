@@ -70,8 +70,15 @@ CHRRAM_R2_DOOR_ANGLE_IDX EQU $3266
 CHRRAM_L1_CORNER_MID_IDX EQU $326e 
 CHRRAM_LEFT_HAND_ITEM_IDX EQU $3271
 CHRRAM_RIGHT_HAND_ITEM_IDX EQU $327b
-; DAT_ram_3280 EQU $3280 
 ; DAT_ram_3297 EQU $3297 
+
+; New viewport hand positions (lower corners of viewport)
+; CHRRAM_LEFT_HAND_VP_DRAW_IDX EQU $3281  ; Row 16, Col 1 - GFX_DRAW start point (5 rows above 4x4)
+CHRRAM_LEFT_HAND_VP_DRAW_IDX EQU $3280  ; Row 16, Col 0 - GFX_DRAW start point (5 rows above 4x4)
+CHRRAM_S0_ITEM_DRAW_IDX EQU $328A  ; Row 16, Col 10 - GFX_DRAW start point (5 rows above 4x4)
+; CHRRAM_RIGHT_HAND_VP_DRAW_IDX EQU $3293  ; Row 16, Col 19 - GFX_DRAW start point (5 rows above 4x4)
+CHRRAM_RIGHT_HAND_VP_DRAW_IDX EQU $3294  ; Row 16, Col 20 - GFX_DRAW start point (5 rows above 4x4)
+
 CHRRAM_MINOTAUR_IDX EQU $32da
 CHRRAM_VP_LH_GAP_IDX EQU $3325          ; POKE 13093,32 : POKE 14117,15
 CHRRAM_VP_MID_BOTTOM_IDX EQU $3326
@@ -81,12 +88,6 @@ CHRRAM_LEFT_HD_GFX_IDX EQU $3339
 CHRRAM_LEVEL_IDX EQU $333d
 CHRRAM_RIGHT_HD_GFX_IDX EQU $3343      ; Original 4x4 index
 CHRRAM_AUTHORS_IDX EQU $3348
-; New viewport hand positions (lower corners of viewport)
-; CHRRAM_LEFT_HAND_VP_DRAW_IDX EQU $3281  ; Row 16, Col 1 - GFX_DRAW start point (5 rows above 4x4)
-CHRRAM_LEFT_HAND_VP_DRAW_IDX EQU $3280  ; Row 16, Col 0 - GFX_DRAW start point (5 rows above 4x4)
-CHRRAM_S0_ITEM_DRAW_IDX EQU $328A  ; Row 16, Col 10 - GFX_DRAW start point (5 rows above 4x4)
-; CHRRAM_RIGHT_HAND_VP_DRAW_IDX EQU $3293  ; Row 16, Col 19 - GFX_DRAW start point (5 rows above 4x4)
-CHRRAM_RIGHT_HAND_VP_DRAW_IDX EQU $3294  ; Row 16, Col 20 - GFX_DRAW start point (5 rows above 4x4)
 
 ; CHRRAM_LEFT_HAND_VP_IDX EQU $3349       ; Row 21, Col 1 - actual 4x4 location for copy routines
 CHRRAM_LEFT_HAND_VP_IDX EQU $3348       ; Row 21, Col 0 - actual 4x4 location for copy routines
@@ -195,7 +196,7 @@ COLRAM_RH_ITEM_IDX EQU $3743
 ; COLRAM_LEFT_HAND_VP_IDX EQU $3749
 COLRAM_LEFT_HAND_VP_IDX EQU $3748
 COLRAM_S0_ITEM_IDX EQU $3752
-COLRAM_RIGHT_HAND_VP_IDX EQU $375B
+COLRAM_RIGHT_HAND_VP_IDX EQU $375C
 
 ; COLRAM Spare 24
 ITEM_S2 EQU $37e8 
