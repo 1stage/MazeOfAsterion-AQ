@@ -4751,7 +4751,6 @@ VP_LH_GAP_REDRAW:
     LD          DE,VP_LH_GAP                        ; DE = viewport left hand gap graphic
     LD          HL,CHRRAM_VP_LH_GAP_IDX             ; HL = Viewport Left hand gap index
     LD          B,COLOR(DKGRY,BLK)                  ; BLK on DKGRY
-    ; LD          B,COLOR(BLK,DKGRY)                  ; BLK on DKGRY
     JP          GFX_DRAW                            ; Draw filler
 
 ;==============================================================================

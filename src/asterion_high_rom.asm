@@ -316,9 +316,8 @@ ADJUST_SHIELD_LEVEL:
 ; Calls: GFX_DRAW, BUILD_MAP, PLAY_PITCH_DOWN_MED, INC_DUNGEON_LEVEL, UPDATE_VIEWPORT, DO_SWAP_HANDS
 ;==============================================================================
 FINALIZE_STARTUP_STATE:
-    LD          A,$18                               ; A = $18 (BOW item code)
+    LD          A,RED_BOW_ITEM                      ; A = $18 (BOW item code)
     LD          (LEFT_HAND_ITEM),A                  ; Set left hand item to BOW
-    ; LD          HL,CHRRAM_RIGHT_HAND_ITEM_IDX       ; HL = right hand item screen pos
     LD          HL,CHRRAM_RIGHT_HAND_VP_DRAW_IDX    ; HL = right hand item screen pos
     LD          DE,BUCKLER                          ; DE = BUCKLER graphics pointer
     CALL        GFX_DRAW                            ; Draw BUCKLER in right hand slot
@@ -328,8 +327,8 @@ FINALIZE_STARTUP_STATE:
     CALL        REDRAW_START                        ; Draw initial non-viewport UI elements
     CALL        REDRAW_VIEWPORT                     ; Render initial 3D maze view
     
-    ; CALL        VP_LH_GAP_REDRAW                    ; Fill in space to right of left hand item
-    ; CALL        VP_RH_GAP_REDRAW                    ; Fill in space to left of right hand item
+    CALL        VP_LH_GAP_REDRAW                    ; Fill in space to right of left hand item
+    CALL        VP_RH_GAP_REDRAW                    ; Fill in space to left of right hand item
 
     JP          DO_SWAP_HANDS                       ; Enter main input loop (no return)
 
@@ -596,7 +595,6 @@ CHK_ITEM_BREAK:
 ITEM_POOFS_RH:
     SCF                                             ; Set carry to indicate break
     EX          AF,AF'                              ; Preserve flags/state in alternate set
-    ; LD          HL,CHRRAM_RH_POOF_IDX               ; CHRRAM pointer for poof animation
     LD          HL,CHRRAM_RH_VP_POOF_IDX            ; CHRRAM pointer for poof animation
     CALL        PLAY_POOF_ANIM                      ; Execute poof animation frames
 
@@ -1512,12 +1510,10 @@ DO_SWAP_HANDS:
     LD          HL,RIGHT_HAND_ITEM                  ; HL points to right-hand item code
     LD          BC,LEFT_HAND_ITEM                   ; BC points to left-hand item code
     CALL        SWAP_BYTES_AT_HL_BC                 ; Swap the two item codes
-    ; LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; HL = right-hand graphics source
     LD          HL,CHRRAM_RIGHT_HAND_VP_IDX         ; HL = right-hand graphics source
     LD          DE,ITEM_MOVE_CHR_BUFFER             ; DE = temporary buffer destination
     CALL        COPY_GFX_2_BUFFER                   ; Save right-hand graphics to buffer
     LD          HL,CHRRAM_LEFT_HAND_VP_IDX          ; HL = left-hand viewport graphics source
-    ; LD          DE,CHRRAM_RIGHT_HD_GFX_IDX          ; DE = right-hand graphics destination
     LD          DE,CHRRAM_RIGHT_HAND_VP_IDX         ; DE = right-hand graphics destination
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy left-hand graphics to right-hand slot
     LD          HL,ITEM_MOVE_CHR_BUFFER             ; HL = buffered graphics source
@@ -2635,13 +2631,13 @@ ROTATE_PACK_SWAP_LOOP:
     LD          HL,CHRRAM_INV_5_IDX                 ; Point to inv slot 5 graphics
     LD          DE,CHHRAM_INV_4_IDX                 ; Point to inv slot 4 graphics
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 5 graphics to slot 4
-    LD          HL,CHHRAM_INV_6_IDX                 ; Point to inv slot 6 graphics
+    LD          HL,CHRRAM_INV_6_IDX                 ; Point to inv slot 6 graphics
     LD          DE,CHRRAM_INV_5_IDX                 ; Point to inv slot 5 graphics
     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy slot 6 graphics to slot 5
     LD          HL,WAIT_FOR_INPUT                   ; Stash WAIT_FOR_INPUT as a later return value
     PUSH        HL
     LD          HL,ITEM_MOVE_CHR_BUFFER             ; Point to buffer (saved slot 1 graphics)
-    LD          DE,CHHRAM_INV_6_IDX                 ; Point to inv slot 6 graphics
+    LD          DE,CHRRAM_INV_6_IDX                 ; Point to inv slot 6 graphics
     CALL        COPY_GFX_FROM_BUFFER                ; Copy buffer to slot 6 (complete rotation)
     JP          WAIT_A_TICK                         ; Jump to delay routine (will RET to WAIT_FOR_INPUT)
 
