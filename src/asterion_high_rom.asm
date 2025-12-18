@@ -596,8 +596,10 @@ CHK_ITEM_BREAK:
 ITEM_POOFS_RH:
     SCF                                             ; Set carry to indicate break
     EX          AF,AF'                              ; Preserve flags/state in alternate set
-    LD          HL,CHRRAM_RH_POOF_IDX               ; CHRRAM pointer for poof animation
+    ; LD          HL,CHRRAM_RH_POOF_IDX               ; CHRRAM pointer for poof animation
+    LD          HL,CHRRAM_RH_VP_POOF_IDX            ; CHRRAM pointer for poof animation
     CALL        PLAY_POOF_ANIM                      ; Execute poof animation frames
+
 FIX_RH_COLORS:
     PUSH        AF                                  ; Preserve registers during color fix
     PUSH        BC
