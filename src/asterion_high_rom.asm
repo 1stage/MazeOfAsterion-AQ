@@ -3293,6 +3293,8 @@ SET_DIFFICULTY_3:
 ;   A  = Item code
 ;   B  = Item size offset value - 0 regular, 1 small, 2 tiny
 ;   C  = Low byte of GFX pointer
+;        (CHRRAM_SPRITE_ADDR_HI) should be loaded with the High byte
+;        of the GFX pointer before calling CHK_ITEM
 ; --- In Process ---
 ;   A  = Shifted and calculated values
 ;   D  = Color base accumulator ($10, $30, $50, $70)
@@ -3346,7 +3348,7 @@ ITEM_NOT_RD_YL:
 ;        DE = AQUASCII string pointer
 ;        B  = color byte
 ;        C  = L
-;        A  = H
+;        A  = H (from CHRRAM_SPRITE_ADDR_HI)
 
     JP          GFX_DRAW                            ; Jump to graphics drawing routine
 
@@ -6119,15 +6121,29 @@ STORE_FINAL_CHAR:
 ;          3. Draw characters to CHRRAM and colors to COLRAM
 ;          4. Continue until $FF terminator found
 ;
-; REGISTERS MODIFIED:
-;   INPUT:  HL (cursor position), DE (AQUASCII string pointer), B (color byte),
-;   DURING: A (processing bytes), C ($28), DE (advancing), HL (cursor tracking), B (temp. modified)
-;   OUTPUT: HL (restored to original), DE (past $FF), B (restored), A ($00), C ($28)
+; Registers:
+; --- Start ---
+;   HL = CHRRAM start position
+;   DE = AQUASCII GFX start position
+;   B  = Color byte (FG,BG)
+; --- In Process ---
+;   A  = Processing bytes
+;   C  = Row stride ($28 / 40)
+;   DE = Current position in AQUASCII GFX
+;   HL = SCREEN RAM cursor tracking
+;   B  = Temp, color, etc.
+; --- End ---
+;   HL = Last SCREEN RAM location
+;   DE = One byte in AQUASCII GFX past $FF)
+;   B  = Last color OR temp value used
+;   A  = ($00) ???
+;   C  = Last row stride used ($28 / 40)
 ;
-; USES:    Stack for preserving cursor positions during row operations
-; CALLS:   Internal subroutines for each AQUASCII control code
-; NOTES:   Screen is 40x25 characters. Control codes: $00=right, $01=CR+LF, 
+; Uses:    Stack for preserving cursor positions during row operations
+; Calls:   Internal subroutines for each AQUASCII control code
+; Notes:   Screen is 40x25 characters. Control codes: $00=right, $01=CR+LF, 
 ;          $02=backspace, $03=LF, $04=up, $A0=reverse colors, $FF=end
+
 ;==============================================================================
 GFX_DRAW:
     PUSH        HL                                  ; Save original cursor position on stack
