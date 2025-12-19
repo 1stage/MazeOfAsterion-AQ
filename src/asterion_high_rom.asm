@@ -223,6 +223,7 @@ BLANK_SCRN:
     CALL        DRAW_LEFT_HAND_AREA                 ; Clear area and draw BOW
     CALL        FIX_ICON_COLORS                     ; Normalize icon colors post-draw
     CALL        DRAW_COMPASS                        ; Draw initial compass
+    CALL        DRAW_PACK_BKGD                      ; Draw pack background
     DEC         A                                   ; A = 13 (used in shield calc temp)
     LD          B,A                                 ; B = 13 (temp store)
     LD          A,0x3                               ; A = 3 (base for shield computation)

@@ -3713,6 +3713,40 @@ DRAW_COMPASS:
     RET                                             ; Return to caller
 
 ;==============================================================================
+; DRAW_PACK_BKGD
+;==============================================================================
+; Draws background of player's backpack on screen with DKBLU color.
+;
+; Registers:
+; --- Start ---
+;   AF, BC, HL, DE = pushed to stack
+; --- In Process ---
+;   B  = $B0 (DKBLU on BLK color)
+;   HL = CHRRAM_PACK_IDX, then COLRAM_PACK_IDX
+;   DE = Pack graphics data
+; ---  End  ---
+;   All registers restored
+;
+; Memory Modified: CHRRAM at CHRRAM_PACK_IDX
+; Calls: GFX_DRAW
+;==============================================================================
+
+DRAW_PACK_BKGD:
+    PUSH        AF                                  ; Save AF register (DKBLU on BLK)
+    PUSH        BC                                  ; Save BC register
+    PUSH        HL                                  ; Save HL register
+    PUSH        DE                                  ; Save DE register
+    LD          B,COLOR(DKBLU,BLK)                  ; Set color to DKBLU on BLK
+    LD          HL,CHRRAM_PACK_IDX                  ; Point to pack position
+    LD          DE,PACK_BKGD                        ; GFX for pack
+    CALL        GFX_DRAW                            ; Draw pack graphic
+    POP         DE                                  ; Restore DE register
+    POP         HL                                  ; Restore HL register
+    POP         BC                                  ; Restore BC register
+    POP         AF                                  ; Restore AF register
+    RET                                             ; Return to caller
+
+;==============================================================================
 ; WIPE_WALLS
 ;==============================================================================
 ; Clears wall data area ($3800) by writing zeros to 256 bytes, then updates
