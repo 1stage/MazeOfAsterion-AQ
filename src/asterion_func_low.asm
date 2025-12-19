@@ -3704,8 +3704,8 @@ DRAW_COMPASS:
     LD          HL,CHRRAM_COMPASS_IDX               ; Point to compass position
     LD          DE,COMPASS                          ; = $D7,"n",$C9,$01
     CALL        GFX_DRAW                            ; Draw compass graphic
-    LD          HL,COLRAM_COMPASS_IDX               ; Point to compass color area
-    LD          (HL),$10                            ; Set compass color
+    LD          HL,COLRAM_POINTER_IDX               ; Compass pointer color area
+    LD          (HL),$10                            ; Set compass pointer color
     POP         DE                                  ; Restore DE register
     POP         HL                                  ; Restore HL register
     POP         BC                                  ; Restore BC register
