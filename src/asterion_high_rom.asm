@@ -8451,7 +8451,8 @@ KEY_COL_7:
     CP          $f7                                 ; Test row 3 "Q"
     JP          Z,MAX_HEALTH_ARROWS_FOOD            ; If pressed, max stats (cheat?)
     CP          $ef                                 ; Test row 4 "SHFT"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    JP          Z,TOGGLE_SHIFT_MODE                 ; If pressed, toggle SHIFT mode
     CP          $df                                 ; Test row 5 "CTRL"
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     JP          NO_ACTION_TAKEN                     ; No valid key, ignore
