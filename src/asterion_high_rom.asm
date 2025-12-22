@@ -1043,8 +1043,13 @@ ITEM_USED_UP:
 CLEAR_MONSTER_STATS:
     XOR         A                                   ; A=0
     LD          (COMBAT_BUSY_FLAG),A                ; Clear combat busy flag
-    LD          BC,$403                             ; BC = width/height for fill rect
-    LD          HL,CHRRAM_LEVEL_IDX                 ; HL = CHRRAM start index
+    ; LD          BC,$403                             ; BC = width/height for fill rect
+    ; LD          HL,CHRRAM_LEVEL_IDX                 ; HL = CHRRAM start index
+    ; LD          A,$20                               ; A = fill color/code
+    ; JP          FILL_CHRCOL_RECT                    ; Fill screen region to clear stats
+    
+    LD          BC,RECT(14,2)                       ; 14 x 2 rectangle
+    LD          HL,CHRRAM_MONSTER_STATS_IDX         ; HL = Monster stats CHRRAM
     LD          A,$20                               ; A = fill color/code
     JP          FILL_CHRCOL_RECT                    ; Fill screen region to clear stats
  
@@ -1390,7 +1395,7 @@ SHIELD_BLOCKS_DAMAGE:
 ;   F  = Flags from RECALC_PHYS_HEALTH
 ;
 ; Memory Modified: None directly
-; Calls: RANDOMIZE_BCD_NYBBLES, RECALC_PHYS_HEALTH, MONSTER_CALC_PHYS_DAMAGE or BOOST_MIN_DAMAGE
+; Calls: RANDOMIZE_BCD_NYBBLES, RECALC_PHYS_HEALTH, PLAYER_CALC_PHYS_DAMAGE or BOOST_MIN_DAMAGE
 ;==============================================================================
 MONSTER_PHYS_BRANCH:
     CALL        RANDOMIZE_BCD_NYBBLES               ; Randomize L nybbles for damage variance
@@ -1407,18 +1412,17 @@ MONSTER_PHYS_BRANCH:
     JP          C,BOOST_MIN_DAMAGE                  ; If HL < DE (defense too strong), boost damage boost damage
 
 ;==============================================================================
-; MONSTER_CALC_PHYS_DAMAGE — Apply Physical Damage to Monster
+; PLAYER_CALC_PHYS_DAMAGE — Apply Physical Damage to Player
 ;==============================================================================
-; Applies calculated physical damage to monster health. During melee combat,
-; monster health is temporarily stored in PLAYER_PHYS_HEALTH. Checks for
-; monster death conditions and updates display.
+; Applies calculated physical damage to player health. Checks for
+; player death conditions and updates display.
 ;
 ; Registers:
 ; --- Start ---
 ;   HL = Damage value
 ; --- In Process ---
 ;   DE = Damage (after swap)
-;   HL = Monster health, then result
+;   HL = Player health, then result
 ;   A  = Health check
 ; ---  End  ---
 ;   HL = New health (if alive)
@@ -1427,14 +1431,14 @@ MONSTER_PHYS_BRANCH:
 ; Memory Modified: PLAYER_PHYS_HEALTH (if alive)
 ; Calls: RECALC_PHYS_HEALTH, PLAYER_DIES, REDRAW_STATS, REDRAW_SCREEN_AFTER_DAMAGE
 ;==============================================================================
-MONSTER_CALC_PHYS_DAMAGE:
+PLAYER_CALC_PHYS_DAMAGE:
     EX          DE,HL                               ; Swap: DE = damage, HL = unused
-    LD          HL,(PLAYER_PHYS_HEALTH)             ; Load monster's health (stored in player field during melee)
+    LD          HL,(PLAYER_PHYS_HEALTH)             ; Load player's health
     CALL        RECALC_PHYS_HEALTH                  ; HL = HL - DE; carry if HL < DE
-    JP          C,PLAYER_DIES                       ; If underflow (health < 0), monster dies
+    JP          C,PLAYER_DIES                       ; If underflow (health < 0), player dies
     OR          L                                   ; A = A | L; check if low byte is zero
-    JP          Z,PLAYER_DIES                       ; If health = 0, monster dies
-    LD          (PLAYER_PHYS_HEALTH),HL             ; Store monster's new health value
+    JP          Z,PLAYER_DIES                       ; If health = 0, player dies
+    LD          (PLAYER_PHYS_HEALTH),HL             ; Store player's new health value
     CALL        REDRAW_STATS                        ; Update stats display on screen on screen
 
 ;==============================================================================
@@ -1481,7 +1485,7 @@ REDRAW_SCREEN_AFTER_DAMAGE:
 BOOST_MIN_DAMAGE:
     LD          HL,0x3                              ; Base boosted damage = 3
     CALL        RANDOMIZE_BCD_NYBBLES               ; Randomize to 0-3 range
-    JP          MONSTER_CALC_PHYS_DAMAGE            ; Apply boosted damage to monster
+    JP          PLAYER_CALC_PHYS_DAMAGE             ; Apply boosted damage to player
 
 ;==============================================================================
 ; DO_SWAP_HANDS — Swap Left and Right Hand Items
