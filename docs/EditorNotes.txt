@@ -51,3 +51,9 @@ To fill to the end of a 4k file...
 (4k example given with $4000)
 
 ===================
+
+GitHub Progression
+
+git add .
+git commit -m "Details of update"
+git push

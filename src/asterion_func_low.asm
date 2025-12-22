@@ -3700,7 +3700,7 @@ DRAW_COMPASS:
     PUSH        BC                                  ; Save BC register
     PUSH        HL                                  ; Save HL register
     PUSH        DE                                  ; Save DE register
-    LD          B,$b0                               ; Set color to DKBLU on BLK
+    LD          B,COLOR(DKCYN,BLK)                  ; Set color to DKCYN on BLK
     LD          HL,CHRRAM_COMPASS_IDX               ; Point to compass position
     LD          DE,COMPASS                          ; = $D7,"n",$C9,$01
     CALL        GFX_DRAW                            ; Draw compass graphic
