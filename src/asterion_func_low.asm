@@ -4868,3 +4868,8 @@ PLAY_POWER_UP_SOUND:
     LD          DE,$60                              ; DE = pitch/frequency (long final tone)
     CALL        PLAY_SOUND_LOOP                     ; Play fourth tone (extended)
     RET                                             ; Return to caller
+
+; REFRESH_ARROWS_HEALTH
+
+REFRESH_ARROWS_HEALTH:
+    
