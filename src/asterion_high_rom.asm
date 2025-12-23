@@ -2125,7 +2125,6 @@ CHECK_FOOD_ARROWS:
 ;==============================================================================
 PICK_UP_FOOD:
     LD          A,(FOOD_INV)                        ; Load current food inventory count
-    ; DAA                                             ; BCD correct
     CP          MAX_FOOD                            ; Compare to MAX_FOOD
     JP          NC,STORE_FOOD_NO_OVERFLOW           ; If already at max, jump ahead
     ADD         A,D                                 ; Add food quantity from D
@@ -2137,16 +2136,13 @@ PICK_UP_FOOD:
     LD          D,A                                 ; Store reduced quantity back to D
     JP          PICK_UP_FOOD                        ; Try again with reduced quantity
 STORE_FOOD_NO_OVERFLOW:
-    DAA                                             ; BCD correction
     LD          (FOOD_INV),A                        ; Store updated food inventory count
     LD          HL,(REST_FOOD_COUNTER)              ; Load food statistics counter (BCD)
     LD          A,D                                 ; Load food quantity added
     ADD         A,L                                 ; Add to low byte of counter
-    ; DAA                                             ; BCD correction for addition
     LD          L,A                                 ; Store updated low byte
     LD          A,H                                 ; Load high byte of counter
     ADC         A,0x0                               ; Add carry from previous addition
-    DAA                                             ; BCD correction for addition
     LD          H,A                                 ; Store updated high byte
     LD          (REST_FOOD_COUNTER),HL              ; Save updated food statistics counter
 
@@ -2178,7 +2174,6 @@ PICK_UP_ARROWS:
     CP          MAX_ARROWS                          ; Compare to MAX_ARROWS
     JP          NC,ADD_ARROWS_TO_INV                ; If more than MAX_ARROWS, jump ahead
     ADD         A,D                                 ; Add arrow quantity from D
-    ; DAA                                             ; BCD correction
     CP          MAX_ARROWS                          ; Compare to MAX_ARROWS
     JP          C,ADD_ARROWS_TO_INV                 ; If less than MAX_ARROWS, add arrows to inventory
     LD          A,MAX_ARROWS                        ; Load max arrow count ($64 BCD)
@@ -5171,8 +5166,8 @@ USE_BOW_XBOW:
     LD          A,(ARROW_INV)                       ; Load arrow inventory count
     SUB         0x1                                 ; Decrement by 1
     JP          C,NO_ACTION_TAKEN                   ; If < 0 (no arrows), no action
-    DAA                                             ; BCD Correction
     LD          (ARROW_INV),A                       ; Store decremented arrow count
+    CALL        REFRESH_FOOD_ARROW                  ; Refresh food arrow graph
     CALL        CHK_ITEM_BREAK                      ; Check if bow/crossbow breaks
     POP         BC                                  ; Restore BC (item level)
     JP          NC,BOW_XBOW_NO_BREAK                ; If no break, continue
@@ -8319,6 +8314,7 @@ HEAL_PLAYER_SPRT_HEALTH:
     DAA                                             ; Decimal adjust for BCD
     LD          (PLAYER_SPRT_HEALTH),A              ; Store updated spiritual health
     CALL        REDRAW_STATS                        ; Update stats display
+    CALL        REFRESH_FOOD_ARROW                  ; Update graph
     JP          CHK_NEEDS_HEALING                   ; Check if more healing needed
 ;==============================================================================
 ; KEY_COMPARE - Scan keyboard matrix and dispatch to action handlers
