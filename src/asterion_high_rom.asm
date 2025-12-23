@@ -605,10 +605,19 @@ FIX_RH_COLORS:
     PUSH        AF                                  ; Preserve registers during color fix
     PUSH        BC
     PUSH        HL
+
+; Clear Chars
+    LD          A,' '                               ; Set RH item area to SPACE fill
+    LD          BC,RECT(4,4)                        ; 4x4 rectangle (RH item viewport)
+    LD          HL,CHRRAM_RIGHT_HAND_VP_IDX         ; Chara RAM base for RH item block
+    CALL        FILL_CHRCOL_RECT                    ; Clear/neutralize RH item colors
+    
+; Fix Colors
     LD          A,COLOR(DKGRY,BLK)                  ; Set RH item area to dark gray on black
     LD          BC,RECT(4,4)                        ; 4x4 rectangle (RH item viewport)
-    LD          HL,COLRAM_RH_ITEM_IDX               ; Color RAM base for RH item block
+    LD          HL,COLRAM_RIGHT_HAND_VP_IDX         ; Color RAM base for RH item block
     CALL        FILL_CHRCOL_RECT                    ; Clear/neutralize RH item colors
+
     POP         HL
     POP         BC
     POP         AF
