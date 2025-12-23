@@ -2120,6 +2120,10 @@ PICK_UP_FOOD:
     LD          D,A                                 ; Store reduced quantity back to D
     JP          PICK_UP_FOOD                        ; Try again with reduced quantity
 STORE_FOOD_NO_OVERFLOW:
+    CP          MAX_FOOD                            ; Compare to MAX_FOOD
+    JP          C,BELOW_MAX_FOOD                    ; Below MAX_FOOD level
+    LD          A,MAX_FOOD                          ; Set A to food max
+BELOW_MAX_FOOD:
     LD          (FOOD_INV),A                        ; Store updated food inventory count
     LD          HL,(REST_FOOD_COUNTER)              ; Load food statistics counter (BCD)
     LD          A,D                                 ; Load food quantity added
