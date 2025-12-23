@@ -5,8 +5,8 @@ ROM_CONST_19 EQU $1208
 ROM_CONST_FF EQU $2613
 
 MAX_HEALTH EQU $99                  ; BCD !
-MAX_FOOD EQU $99                    ; BCD !
-MAX_ARROWS EQU $64                  ; BCD !
+MAX_FOOD EQU $80                    ; Not BCD - 128
+MAX_ARROWS EQU $80                  ; Not BCD - 128
 
 
 ; CHRRAM - Character RAM

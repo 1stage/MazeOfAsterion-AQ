@@ -2116,7 +2116,7 @@ CHECK_FOOD_ARROWS:
 ;==============================================================================
 PICK_UP_FOOD:
     LD          A,(FOOD_INV)                        ; Load current food inventory count
-    DAA                                             ; BCD correct
+    ; DAA                                             ; BCD correct
     CP          MAX_FOOD                            ; Compare to MAX_FOOD
     JP          NC,STORE_FOOD_NO_OVERFLOW           ; If already at max, jump ahead
     ADD         A,D                                 ; Add food quantity from D
@@ -2133,7 +2133,7 @@ STORE_FOOD_NO_OVERFLOW:
     LD          HL,(REST_FOOD_COUNTER)              ; Load food statistics counter (BCD)
     LD          A,D                                 ; Load food quantity added
     ADD         A,L                                 ; Add to low byte of counter
-    DAA                                             ; BCD correction for addition
+    ; DAA                                             ; BCD correction for addition
     LD          L,A                                 ; Store updated low byte
     LD          A,H                                 ; Load high byte of counter
     ADC         A,0x0                               ; Add carry from previous addition
@@ -2169,7 +2169,7 @@ PICK_UP_ARROWS:
     CP          MAX_ARROWS                          ; Compare to MAX_ARROWS
     JP          NC,ADD_ARROWS_TO_INV                ; If more than MAX_ARROWS, jump ahead
     ADD         A,D                                 ; Add arrow quantity from D
-    DAA                                             ; BCD correction
+    ; DAA                                             ; BCD correction
     CP          MAX_ARROWS                          ; Compare to MAX_ARROWS
     JP          C,ADD_ARROWS_TO_INV                 ; If less than MAX_ARROWS, add arrows to inventory
     LD          A,MAX_ARROWS                        ; Load max arrow count ($64 BCD)
@@ -8494,7 +8494,6 @@ KEY_COL_7:
 ;==============================================================================
 MAX_HEALTH_ARROWS_FOOD:
     LD          HL,PLAYER_PHYS_HEALTH               ; HL = start of health stats block
-    ; LD          A,$99                               ; A = 99 (max BCD value for stats)
     LD          A,MAX_HEALTH                        ; Get from MAX_HEALTH constant (99)
     LD          (HL),A                              ; Store 99 in PLAYER_PHYS_HEALTH (current)
     INC         HL                                  ; Advance to PLAYER_PHYS_HEALTH+1 (current high)
@@ -8507,12 +8506,15 @@ MAX_HEALTH_ARROWS_FOOD:
     LD          (HL),A                              ; Store 99 in PLAYER_SPRT_HEALTH (current)
     INC         HL                                  ; Advance to PLAYER_SPRT_HEALTH_MAX
     LD          (HL),A                              ; Store 99 in PLAYER_SPRT_HEALTH_MAX
-    ; LD          HL,FOOD_INV                         ; HL = food inventory address
-    ; LD          (HL),A                              ; Store 99 in FOOD_INV
-    ; INC         HL                                  ; Advance to ARROW_INV
-    ; LD          (HL),A                              ; Store 99 in ARROW_INV
+    LD          A,MAX_FOOD                          ; Load MAX_FOOD
+    LD          HL,FOOD_INV                         ; HL = food inventory address
+    LD          (HL),A                              ; Store max food in FOOD_INV
+    INC         HL                                  ; Advance to ARROW_INV
+    LD          A,MAX_ARROWS                        ; Load MAX_ARROWS
+    LD          (HL),A                              ; Store max arrows in ARROW_INV
     CALL        PLAY_POWER_UP_SOUND                 ; Play ascending tone sequence
     CALL        REDRAW_STATS                        ; Update stats panel display
+    CALL        REFRESH_FOOD_ARROW                  ; Refresh Arrow & Food graph
     JP          INPUT_DEBOUNCE                      ; Return to input loop
 
 ;==============================================================================
