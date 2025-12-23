@@ -217,7 +217,7 @@ BLANK_SCRN:
     LD          A,$14                               ; A = 14 (starting food/arrows BCD)
     LD          (FOOD_INV),A                        ; Initialize food inventory
     LD          (ARROW_INV),A                       ; Initialize arrow inventory
-    CALL        REFRESH_FOOD_ARROW                  ; Refresh arrow and food graphs
+    CALL        REFRESH_FOOD_ARROWS                 ; Refresh arrow and food graphs
 
     LD          B,COLOR(RED,BLK)                    ; B = red on black (left hand item color)
     LD          HL,CHRRAM_LEFT_HAND_VP_DRAW_IDX     ; HL = left hand viewport draw position
@@ -2150,7 +2150,7 @@ STORE_FOOD_NO_OVERFLOW:
     LD          H,A                                 ; Store updated high byte
     LD          (REST_FOOD_COUNTER),HL              ; Save updated food statistics counter
 
-    CALL        REFRESH_FOOD_ARROW                  ; Redraw food & arrows graphic
+    CALL        REDRAW_FOOD_GRAPH                   ; Redraw food inv graphic
 
     RET                                             ; Return to caller
 
@@ -2184,6 +2184,7 @@ PICK_UP_ARROWS:
 
 ADD_ARROWS_TO_INV:
     LD          (ARROW_INV),A                       ; Store updated arrow inventory count
+    CALL        REDRAW_ARROWS_GRAPH                 ; Refresh arrows graphic
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 CHECK_MAPS:
     CP          RED_MAP_ITEM                        ; Compare to RED MAP (item code $6C)
@@ -5172,7 +5173,7 @@ USE_BOW_XBOW:
     SUB         0x1                                 ; Decrement by 1
     JP          C,NO_ACTION_TAKEN                   ; If < 0 (no arrows), no action
     LD          (ARROW_INV),A                       ; Store decremented arrow count
-    CALL        REFRESH_FOOD_ARROW                  ; Refresh food arrow graph
+    CALL        REDRAW_ARROWS_GRAPH                 ; Redraw arrows inv graphic
     CALL        CHK_ITEM_BREAK                      ; Check if bow/crossbow breaks
     POP         BC                                  ; Restore BC (item level)
     JP          NC,BOW_XBOW_NO_BREAK                ; If no break, continue
@@ -8319,7 +8320,7 @@ HEAL_PLAYER_SPRT_HEALTH:
     DAA                                             ; Decimal adjust for BCD
     LD          (PLAYER_SPRT_HEALTH),A              ; Store updated spiritual health
     CALL        REDRAW_STATS                        ; Update stats display
-    CALL        REFRESH_FOOD_ARROW                  ; Update graph
+    CALL        REDRAW_FOOD_GRAPH                   ; Redraw food inv graphic
     JP          CHK_NEEDS_HEALING                   ; Check if more healing needed
 ;==============================================================================
 ; KEY_COMPARE - Scan keyboard matrix and dispatch to action handlers
@@ -8524,7 +8525,7 @@ MAX_HEALTH_ARROWS_FOOD:
     LD          (HL),A                              ; Store max arrows in ARROW_INV
     CALL        PLAY_POWER_UP_SOUND                 ; Play ascending tone sequence
     CALL        REDRAW_STATS                        ; Update stats panel display
-    CALL        REFRESH_FOOD_ARROW                  ; Refresh Arrow & Food graph
+    CALL        REFRESH_FOOD_ARROWS                 ; Refresh Arrow & Food graph
     JP          INPUT_DEBOUNCE                      ; Return to input loop
 
 ;==============================================================================
@@ -8609,3 +8610,23 @@ CHK_ITEM_RH_NEW:
     LD          B,0                                 ; BC = $0094
     JP          CHK_ITEM                            ; Check and draw RH sprite
 
+BCD2HEX:
+    PUSH        BC                                  ; Save register
+    LD          B,A                                 ; Store original BCD in B
+    AND         $F0                                 ; Isolate tens digit (high nibble)
+    RRCA                                            ; Shift right 4 times to get 0-9 value
+    RRCA
+    RRCA
+    RRCA
+    LD          C, A                                ; C = tens digit
+    ADD         A, A                                ; A = tens * 2
+    ADD         A, A                                ; A = tens * 4
+    ADD         A, C                                ; A = tens * 5
+    ADD         A, A                                ; A = tens * 10
+    LD          C, A                                ; C = tens * 10
+    LD          A, B                                ; Recover original BCD
+    AND         $0F                                 ; Isolate units digit (low nibble)
+    ADD         A, C                                ; Add tens*10 to units
+    POP         BC                                  ; Restore register
+    RET
+    
