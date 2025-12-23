@@ -460,26 +460,6 @@ CANNOT_JUMP_BACK:
     JP          Z,WAIT_FOR_INPUT                    ; If not in combat, wait for next input
     JP          INIT_MELEE_ANIM                     ; If in combat, re-enter melee
 
-; DO_COUNT_FOOD:
-;     LD          A,(FOOD_INV)
-; COUNT_INV:
-;     LD          D,A
-;     INC         D
-;     XOR         A
-; PLAY_INV_COUNT_BLIPS:
-;     DEC         D
-;     JP          Z,INPUT_DEBOUNCE
-;     EX          AF,AF'
-;     LD          BC,ROM_CONST_FF_ALT
-;     CALL        SLEEP								;  byte SLEEP
-;     EX          AF,AF'
-;     OUT         (SPEAKER),A
-;     DEC         A
-;     JP          PLAY_INV_COUNT_BLIPS
-; DO_COUNT_ARROWS:
-;     LD          A,(ARROW_INV)
-;     JP          COUNT_INV
-
 ;==============================================================================
 ; NO_ACTION_TAKEN
 ;==============================================================================
@@ -8429,7 +8409,6 @@ KEY_COL_4:
     CP          $f7                                 ; Test row 3 "V"
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $ef                                 ; Test row 4 "C"
-    ; JP          Z,DO_COUNT_ARROWS
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore (was count arrows)
     CP          $df                                 ; Test row 5 "F"
     JP          Z,DO_REST                           ; If pressed, rest
@@ -8447,7 +8426,6 @@ KEY_COL_5:
     CP          $ef                                 ; Test row 4 "D"
     JP          Z,DO_USE_LADDER                     ; If pressed, use ladder
     CP          $df                                 ; Test row 5 "X"
-    ; JP          Z,DO_COUNT_FOOD
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore (was count food)
 
 KEY_COL_6:
