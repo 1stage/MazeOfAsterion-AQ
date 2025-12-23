@@ -8302,6 +8302,7 @@ HEAL_PLAYER_PHYS_HEALTH:
     CALL        ADD_BCD_HL_DE                       ; Add 1 to health (BCD)
     LD          (PLAYER_PHYS_HEALTH),HL             ; Store updated health
     CALL        REDRAW_STATS                        ; Update stats display
+    CALL        REDRAW_FOOD_GRAPH                   ; Redraw food inv graphic
     LD          A,(PLAYER_SPRT_HEALTH_MAX)          ; Load max spiritual health
     LD          C,A                                 ; Store in C for comparison
     LD          A,(PLAYER_SPRT_HEALTH)              ; Load current spiritual health
