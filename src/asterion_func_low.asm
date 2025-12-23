@@ -4871,5 +4871,117 @@ PLAY_POWER_UP_SOUND:
 
 ; REFRESH_ARROWS_HEALTH
 
-REFRESH_ARROWS_HEALTH:
+; CHRRAM_ARROWS_ICON EQU $32C9
+; CHRRAM_FOOD_ICON EQU $32CA
+; CHRRAM_ARROWS_HI_IDX EQU $32F1
+; CHRRAM_FOOD_HI_IDX EQU $32F2
+; CHRRAM_ARROWS_LO_IDX EQU $3319
+; CHRRAM_FOOD_LO_IDX EQU $3320
+
+REFRESH_FOOD_ARROW:
+    LD          HL,CHRRAM_ARROW_ICON                ; Arrow icon location
+    LD          BC,$400                             ; COLRAM Offset
+    LD          DE,40                               ; Row stride
+    LD          A,8                                 ; Arrow AQUASCII
+    LD          (HL),A                              ; Update Arrow Icon CHRRAM
+    ADD         HL, BC                              ; Jump to COLRAM
+    LD          A,COLOR(DKMAG,BLK)                  ; DKMAG on BLK
+    LD          (HL),A                              ; Update Arrow Icon COLRAM
+    INC         HL                                  ; Move Ahead
+    LD          A,COLOR(DKGRN,BLK)                  ; DKGRN on BLK
+    LD          (HL),A                              ; Update Food Icon COLRAM
+    SBC         HL,BC                               ; Jump back to CHRRAM
+    LD          A,'#'                               ; Health AQUASCII
+    LD          (HL),A                              ; Update Food Icon CHRRAM
+    DEC         HL                                  ; Back to CHRRAM_ARROW_ICON
+    ADD         HL,DE                               ; Down one row to CHRRAM_ARROW_HI_IDX
+    ADD         HL,BC                               ; Jump to COLRAM_ARROW_HI_IDX
+    LD          A,COLOR(DKMAG,DKBLU)                ; DKMAG on DKBLU
+    LD          (HL),A                              ; Colorize it
+    ADD         HL,DE                               ; Down one row to COLRAM_ARROW_LO_IDX
+    LD          (HL),A                              ; Colorize it
+    INC         HL                                  ; Go to COLRAM_FOOD_LO_IDX
+    LD          A,COLOR(DKGRN,DKBLU)                ; DKGRN on DKBLU
+    LD          (HL),A                              ; Colorize it
+    SBC         HL,DE                               ; Up one row to COLRAM_FOOD_HI_IDX
+    LD          (HL),A                              ; Colorize it
+
+REDRAW_FOOD_GRAPH:
+    LD          A,(FOOD_INV)                        ; Get current food values
+    CALL        BCD2HEX                             ; Turn A from BCD to HEX
+    PUSH        AF                                  ; Save hex value of Food
+    CP          $00                                 ; Compare to no food
+    JP          Z,REDRAW_ARROWS_GRAPH               ; If ZERO, jump to arrows part
+    CP          65                                  ; Compare to hi/lo boundary
+    JP          C,DRAW_FOOD_LO                      ; If 64 or less, do the lower graph
+    
+DRAW_FOOD_HI:
+    LD          HL,VERTICAL_BAR_METER               ; Set starting index of bar characters, 0
+    ADD         A,7                                 ; Normalize up to 8's level
+    SBC         A,64                                ; Reduce hi to lo
+    SRL         A
+    SRL         A
+    SRL         A                                   ; Divide by 8
+    LD          B,$0                                ; Clear B...
+    LD          C,A                                 ; ...and load A into C for BC
+    ADD         HL,BC                               ; Offset to get correct "bar" character
+    LD          A,(HL)                              ; Save it into A
+    LD          HL,CHRRAM_FOOD_HI_IDX               ; Reset to CHRRAM_FOOD_HI_IDX
+    LD          (HL),A                              ; Write A to it
+    ADD         HL,DE                               ; Down one row
+    LD          A,(VERTICAL_BAR_METER + 8)          ; Get "full" char for lower bars
+    LD          (HL),A                              ; Write A to it
+    JP          REDRAW_ARROWS_GRAPH                 ; Jump ahead
+
+DRAW_FOOD_LO:
+    POP         AF                                  ; Restore HEX food value (will be 64 or less)
+    LD          HL,VERTICAL_BAR_METER               ; Set starting index of bar characters, 0)
+    ADD         A,7                                 ; Normalize up to 8's level
+    SRL         A
+    SRL         A
+    SRL         A                                   ; Divide by 8
+    LD          B,$0                                ; Clear B...
+    LD          C,A                                 ; ...and load A into C for BC
+    ADD         HL,BC                               ; Offset to get correct "bar" character
+    LD          A,(HL)                              ; Save it into A
+    LD          HL,CHRRAM_FOOD_LO_IDX               ; Move down to CHRRAM_FOOD_LO_IDX
+    LD          (HL),A                              ; Write A to it
+    SBC         HL,DE                               ; Up one row
+    LD          A,(VERTICAL_BAR_METER)              ; Get "empty" char for upper bars
+    LD          (HL),A                              ; Write A to it
+
+REDRAW_ARROWS_GRAPH:
+
+    RET
+
+VERTICAL_BAR_METER:
+    db          32                                  ; 0 meter
+    db          144                                 ; 1 meter
+    db          136                                 ; 2 meter
+    db          240                                 ; 3 meter
+    db          31                                  ; 4 meter
+    db          252                                 ; 5 meter
+    db          137                                 ; 6 meter
+    db          128                                 ; 7 meter
+    db          127                                 ; 8 meter
+    
+BCD2HEX:
+    PUSH        BC                                  ; Save register
+    LD          B,A                                 ; Store original BCD in B
+    AND         $F0                                 ; Isolate tens digit (high nibble)
+    RRCA                                            ; Shift right 4 times to get 0-9 value
+    RRCA
+    RRCA
+    RRCA
+    LD          C, A                                ; C = tens digit
+    ADD         A, A                                ; A = tens * 2
+    ADD         A, A                                ; A = tens * 4
+    ADD         A, C                                ; A = tens * 5
+    ADD         A, A                                ; A = tens * 10
+    LD          C, A                                ; C = tens * 10
+    LD          A, B                                ; Recover original BCD
+    AND         $0F                                 ; Isolate units digit (low nibble)
+    ADD         A, C                                ; Add tens*10 to units
+    POP         BC                                  ; Restore register
+    RET
     

@@ -217,6 +217,8 @@ BLANK_SCRN:
     LD          A,$14                               ; A = 14 (starting food/arrows BCD)
     LD          (FOOD_INV),A                        ; Initialize food inventory
     LD          (ARROW_INV),A                       ; Initialize arrow inventory
+    CALL        REFRESH_FOOD_ARROW                  ; Refresh arrow and food graphs
+
     LD          B,COLOR(RED,BLK)                    ; B = red on black (left hand item color)
     LD          HL,CHRRAM_LEFT_HAND_VP_DRAW_IDX     ; HL = left hand viewport draw position
     LD          DE,BOW                              ; DE = BOW graphics pointer
@@ -2094,7 +2096,7 @@ CHECK_FOOD_ARROWS:
 ; PICK_UP_FOOD - Add food to player inventory with overflow handling
 ;==============================================================================
 ; Adds the quantity in D register to the food inventory count. Handles BCD
-; overflow (max $99) by recursively reducing the amount added until it fits.
+; overflow (max 99) by recursively reducing the amount added until it fits.
 ; Also updates a cumulative food statistics counter using BCD arithmetic.
 ;
 ; Registers:
@@ -2114,6 +2116,9 @@ CHECK_FOOD_ARROWS:
 ;==============================================================================
 PICK_UP_FOOD:
     LD          A,(FOOD_INV)                        ; Load current food inventory count
+    DAA                                             ; BCD correct
+    CP          MAX_FOOD                            ; Compare to MAX_FOOD
+    JP          NC,STORE_FOOD_NO_OVERFLOW           ; If already at max, jump ahead
     ADD         A,D                                 ; Add food quantity from D
     JP          NC,STORE_FOOD_NO_OVERFLOW           ; If no carry (no overflow), store result
     INC         A                                   ; Increment A (handle overflow)
@@ -2123,6 +2128,7 @@ PICK_UP_FOOD:
     LD          D,A                                 ; Store reduced quantity back to D
     JP          PICK_UP_FOOD                        ; Try again with reduced quantity
 STORE_FOOD_NO_OVERFLOW:
+    DAA                                             ; BCD correction
     LD          (FOOD_INV),A                        ; Store updated food inventory count
     LD          HL,(REST_FOOD_COUNTER)              ; Load food statistics counter (BCD)
     LD          A,D                                 ; Load food quantity added
@@ -2134,14 +2140,17 @@ STORE_FOOD_NO_OVERFLOW:
     DAA                                             ; BCD correction for addition
     LD          H,A                                 ; Store updated high byte
     LD          (REST_FOOD_COUNTER),HL              ; Save updated food statistics counter
+
+    CALL        REFRESH_FOOD_ARROW                  ; Redraw food & arrows graphic
+
     RET                                             ; Return to caller
 
 ;==============================================================================
 ; PICK_UP_ARROWS - Add arrows to player inventory with max cap
 ;==============================================================================
 ; Adds the quantity in D register to the arrow inventory count. Enforces a
-; maximum arrow count of 50 ($32 BCD). If the addition would exceed 50,
-; clamps the result to exactly 50.
+; maximum arrow count of 64. If the addition would exceed 64,
+; clamps the result to exactly 64.
 ;
 ; Registers:
 ; --- Start ---
@@ -2157,10 +2166,14 @@ STORE_FOOD_NO_OVERFLOW:
 ;==============================================================================
 PICK_UP_ARROWS:
     LD          A,(ARROW_INV)                       ; Load current arrow inventory count
+    CP          MAX_ARROWS                          ; Compare to MAX_ARROWS
+    JP          NC,ADD_ARROWS_TO_INV                ; If more than MAX_ARROWS, jump ahead
     ADD         A,D                                 ; Add arrow quantity from D
-    CP          $33                                 ; Compare to max arrows + 1 (51 decimal)
-    JP          C,ADD_ARROWS_TO_INV                 ; If < 51, add arrows to inventory
-    LD          A,$32                               ; Load max arrow count (50 decimal)
+    DAA                                             ; BCD correction
+    CP          MAX_ARROWS                          ; Compare to MAX_ARROWS
+    JP          C,ADD_ARROWS_TO_INV                 ; If less than MAX_ARROWS, add arrows to inventory
+    LD          A,MAX_ARROWS                        ; Load max arrow count ($64 BCD)
+
 ADD_ARROWS_TO_INV:
     LD          (ARROW_INV),A                       ; Store updated arrow inventory count
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
@@ -5149,6 +5162,7 @@ USE_BOW_XBOW:
     LD          A,(ARROW_INV)                       ; Load arrow inventory count
     SUB         0x1                                 ; Decrement by 1
     JP          C,NO_ACTION_TAKEN                   ; If < 0 (no arrows), no action
+    DAA                                             ; BCD Correction
     LD          (ARROW_INV),A                       ; Store decremented arrow count
     CALL        CHK_ITEM_BREAK                      ; Check if bow/crossbow breaks
     POP         BC                                  ; Restore BC (item level)
@@ -8480,7 +8494,8 @@ KEY_COL_7:
 ;==============================================================================
 MAX_HEALTH_ARROWS_FOOD:
     LD          HL,PLAYER_PHYS_HEALTH               ; HL = start of health stats block
-    LD          A,$99                               ; A = 99 (max BCD value for stats)
+    ; LD          A,$99                               ; A = 99 (max BCD value for stats)
+    LD          A,MAX_HEALTH                        ; Get from MAX_HEALTH constant (99)
     LD          (HL),A                              ; Store 99 in PLAYER_PHYS_HEALTH (current)
     INC         HL                                  ; Advance to PLAYER_PHYS_HEALTH+1 (current high)
     LD          (HL),A                              ; Store 99 in PLAYER_PHYS_HEALTH high byte
@@ -8492,10 +8507,10 @@ MAX_HEALTH_ARROWS_FOOD:
     LD          (HL),A                              ; Store 99 in PLAYER_SPRT_HEALTH (current)
     INC         HL                                  ; Advance to PLAYER_SPRT_HEALTH_MAX
     LD          (HL),A                              ; Store 99 in PLAYER_SPRT_HEALTH_MAX
-    LD          HL,FOOD_INV                         ; HL = food inventory address
-    LD          (HL),A                              ; Store 99 in FOOD_INV
-    INC         HL                                  ; Advance to ARROW_INV
-    LD          (HL),A                              ; Store 99 in ARROW_INV
+    ; LD          HL,FOOD_INV                         ; HL = food inventory address
+    ; LD          (HL),A                              ; Store 99 in FOOD_INV
+    ; INC         HL                                  ; Advance to ARROW_INV
+    ; LD          (HL),A                              ; Store 99 in ARROW_INV
     CALL        PLAY_POWER_UP_SOUND                 ; Play ascending tone sequence
     CALL        REDRAW_STATS                        ; Update stats panel display
     JP          INPUT_DEBOUNCE                      ; Return to input loop
