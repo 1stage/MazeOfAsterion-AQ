@@ -602,6 +602,11 @@ ITEM_POOFS_RH:
     CALL        PLAY_POOF_ANIM                      ; Execute poof animation frames
 
 FIX_RH_COLORS:
+    CALL        CLEAR_RIGHT_HAND_GFX                ; Clear graphics in right hand
+    SCF                                             ; Keep carry set indicating break
+    RET
+
+CLEAR_RIGHT_HAND_GFX:
     PUSH        AF                                  ; Preserve registers during color fix
     PUSH        BC
     PUSH        HL
@@ -621,7 +626,6 @@ FIX_RH_COLORS:
     POP         HL
     POP         BC
     POP         AF
-    SCF                                             ; Keep carry set indicating break
     RET
 
 ;==============================================================================
@@ -4214,6 +4218,7 @@ CLEAR_RIGHT_HAND:                                   ; Clear right-hand item and 
                                                     ; Draws "poof" animation in right-hand area
     LD          A,$fe                               ; Load empty item marker ($FE)
     LD          (RIGHT_HAND_ITEM),A                 ; Store to right-hand slot (clear item)
+    CALL        CLEAR_RIGHT_HAND_GFX                ; Clear right hand graphics
     LD          DE,POOF_6                           ; Point to poof graphics ("    ", $01)
     LD          HL,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to right-hand graphics location
     LD          B,$d0                               ; Load color attribute ($D0)
