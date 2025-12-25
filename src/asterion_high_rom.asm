@@ -680,7 +680,7 @@ ADVANCE_RH_ANIM_FRAME:
 ; Registers: HL/BC/DE used for copy; A for state updates
 ; Memory Modified: ITEM_MOVE_CHR_BUFFER, WEAPON_SPRITE_CHRRAM_ADDR_HI, ITEM_ANIM_TIMER_COPY
 ; Calls: COPY_GFX_2_BUFFER, CHK_ITEM
-;==============================================================================
+.;==============================================================================
 COPY_RH_ITEM_FRAME_GFX:
     LD          BC,$c8                              ; Frame addressing delta (200 bytes)
     XOR         A                                   ; Clear A for SBC
