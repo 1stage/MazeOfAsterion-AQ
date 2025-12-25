@@ -748,7 +748,7 @@ COPY_ITEM_GFX_TO_CHRRAM:
 ITEM_COMBAT_DISPATCH:
     CALL        COPY_ITEM_GFX_TO_CHRRAM             ; Copy RH item gfx into CHRRAM
     LD          A,$32                               ; Monster weapon CHRRAM row base
-    LD          (CHRRAM_SPRITE_ADDR_LO),A           ; Store status into PCHRRAM_SPRITE_ADDR_LO
+    LD          (CHRRAM_SPRITE_ADDR_LO),A           ; Store status into CHRRAM_SPRITE_ADDR_LO
     LD          (SCREENSAVER_STATE),A               ; Store status into SCREENSAVER_STATE
     LD          A,(WEAPON_SPRT)                     ; Load spiritual/physical weapon flag
     LD          E,A                                 ; Move flag into E for math
@@ -2883,7 +2883,7 @@ TIMER_UPDATED_CHECK_INPUT:
     CP          $32                                 ; Is state equal to $32? (branch set)
     JP          Z,IDLE_SCREENSAVER_CHK              ; Yes → handle screensaver/idle branch
     LD          A,(KEYBOARD_SCAN_FLAG)              ; Load animation state byte AE
-    CP          $31                                 ; Compare with $31
+    CP          $31                                 ; Player not pressing Key 1 (attacking)
     JP          NZ,MONSTER_ANIM_TICK                ; If not $31 → check monster/melee tick
     LD          HL,MASTER_TICK_TIMER                ; HL points to master tick counter
     LD          A,(ITEM_ANIM_TIMER_COPY)            ; A = last processed item-anim tick
@@ -2908,9 +2908,9 @@ MONSTER_ANIM_TICK:
     JP          WAIT_FOR_INPUT                      ; Back to main loop
 
 ;-------------------------------------------------------------------------------
-; Monster/melee animation (UI already up-to-date or not needed)
+; Monster melee (no player)
 ;-------------------------------------------------------------------------------
-MELEE_ANIM_ONLY:
+MELEE_MONSTER_ONLY:
     LD          HL,MASTER_TICK_TIMER                ; HL points to master tick counter
     LD          A,(MONSTER_ANIM_TIMER_COPY)         ; A = last processed monster-anim tick
     CP          (HL)                                ; Has MASTER_TICK_TIMER advanced for monster anim?
@@ -2924,8 +2924,8 @@ MELEE_ANIM_ONLY:
 ;-------------------------------------------------------------------------------
 IDLE_SCREENSAVER_CHK:
     LD          A,(KEYBOARD_SCAN_FLAG)              ; Read secondary state AE
-    CP          $31                                 ; If not $31, use simpler melee branch
-    JP          NZ,MELEE_ANIM_ONLY                  ; → Skip UI updates, just animate melee
+    CP          $31                                 ; If player hasn't pressed Key 1 (attack), monster only
+    JP          NZ,MELEE_MONSTER_ONLY               ; Only Monster is attacking
     CALL        UPDATE_SCR_SAVER_TIMER              ; Bump inactivity/screensaver counters
     LD          A,(COMBAT_BUSY_FLAG)                ; Is combat currently running?
     AND         A                                   ; Set flags from A
