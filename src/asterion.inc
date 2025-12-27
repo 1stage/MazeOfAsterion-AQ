@@ -305,23 +305,25 @@ LEFT_HAND_ITEM EQU $3a7b
 INV_ITEM_SLOT_1 EQU $3a7c 
 INV_ITEM_SLOT_2 EQU $3a7d 
 INV_ITEM_SLOT_3 EQU $3a7e 
+
+; ---- OLD MELEE ANIMATION VARIABLE ----
 PLAYER_WEAPON_SPRITE EQU $3a82
 ; Encoded player weapon sprite: (item_type << 2) | level
 PLAYER_WEAPON_CHRRAM_PTR EQU $3a83
 ; 16-bit pointer to character RAM for item animation draw
-PLAYER_ANIM_LOOP_COUNT EQU $3a85
+PLAYER_ANIM_LOOP_COUNT EQU $3a85    ; 4, 3, 2, 1 -       Changes 27 times per melee round
 ; 16-bit animation loop counter (decrements each frame)
-PLAYER_ANIM_STATE EQU $3a87
+PLAYER_ANIM_STATE EQU $3a87         ; 4, 3, 2, 1 -       Changes 7  times per melee round
 ; Item animation state/phase counter
 PLAYER_MELEE_RANDOMIZER EQU $3a88 
 PLAYER_TIMER_COMPARE EQU $3a89
 ; Cached timer value for item animation sync
 MONSTER_WEAPON_SPRITE EQU $3a8a
 ; Monster weapon sprite ID (determines which weapon is animated and damage target)
-MONSTER_ANIM_STATE EQU $3a8b 
+MONSTER_ANIM_STATE EQU $3a8b        ; 3, 2, 1 -          Changes 23 times per melee round
 MONSTER_TIMER_COMPARE EQU $3a8c
 ; Cached timer value for monster animation sync 
-MONSTER_ANIM_LOOP_COUNT EQU $3a8d
+MONSTER_ANIM_LOOP_COUNT EQU $3a8d   ; 6, 5, 4, 3, 2, 1 - Changes 9  times per melee round
 MONSTER_WEAPON_CHRRAM_PTR EQU $3a8f
 RND_SEED_LFSR EQU $3a91
 PLAYER_PHYS_HEALTH EQU $3a93 
@@ -356,6 +358,29 @@ PITCH_UP_BOOL EQU $3ab5
 SOUND_REPEAT_COUNT EQU $3ab8 
 GAME_BOOLEANS EQU $3ab9 
 NEXT_BLINK_CHECK EQU $3aba 
+
+; ---- NEW MELEE ANIMATION VARIABLES ----
+PLAYER_WEAPON_SPRITE_NEW EQU $3ac2
+; Encoded player weapon sprite: (item_type << 2) | level
+PLAYER_WEAPON_CHRRAM_PTR_NEW EQU $3ac3
+; 16-bit pointer to character RAM for item animation draw
+PLAYER_ANIM_LOOP_COUNT_NEW EQU $3ac5    ; 4, 3, 2, 1 -       Changes 27 times per melee round
+; 16-bit animation loop counter (decrements each frame)
+PLAYER_ANIM_STATE_NEW EQU $3ac7         ; 4, 3, 2, 1 -       Changes 7  times per melee round
+; Item animation state/phase counter
+PLAYER_MELEE_RANDOMIZER_NEW EQU $3ac8 
+PLAYER_TIMER_COMPARE_NEW EQU $3ac9
+; Cached timer value for item animation sync
+MONSTER_WEAPON_SPRITE_NEW EQU $3aca
+; Monster weapon sprite ID (determines which weapon is animated and damage target)
+MONSTER_ANIM_STATE_NEW EQU $3acb        ; 3, 2, 1 -          Changes 23 times per melee round
+MONSTER_TIMER_COMPARE_NEW EQU $3acc
+; Cached timer value for monster animation sync 
+MONSTER_ANIM_LOOP_COUNT_NEW EQU $3acd   ; 6, 5, 4, 3, 2, 1 - Changes 9  times per melee round
+MONSTER_WEAPON_CHRRAM_PTR_NEW EQU $3acf
+
+
+
 TEMP_MAP EQU $3b00 
 ;BYTE_ram_3ffd EQU $3ffd
 ;LAB_ram_efef EQU $efef
