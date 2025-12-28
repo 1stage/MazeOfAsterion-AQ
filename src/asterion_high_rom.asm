@@ -429,7 +429,7 @@ DO_JUMP_BACK:
     AND         A                                   ; Test zero
     JP          Z,UPDATE_VIEWPORT                   ; If not in combat, just redraw
     CALL        CLEAR_MONSTER_STATS                 ; Clear combat UI/state
-    JP          INIT_MELEE_ANIM                     ; Re-enter combat animation
+    JP          INIT_MN_MELEE_ANIM                  ; Re-enter combat animation
 
 ;==============================================================================
 ; CANNOT_JUMP_BACK
@@ -458,7 +458,7 @@ CANNOT_JUMP_BACK:
     LD          A,(COMBAT_BUSY_FLAG)                ; Check combat state
     AND         A                                   ; Test if in combat
     JP          Z,WAIT_FOR_INPUT                    ; If not in combat, wait for next input
-    JP          INIT_MELEE_ANIM                     ; If in combat, re-enter melee
+    JP          INIT_MN_MELEE_ANIM                  ; If in combat, re-enter melee
 
 ;==============================================================================
 ; NO_ACTION_TAKEN
@@ -648,16 +648,16 @@ RESET_PLAYER_ANIM_STATE:
     LD          (PLAYER_ANIM_STATE),A               ; Write back state
     LD          (PLAYER_ANIM_LOOP_COUNT),HL         ; Write back loop counters
     LD          HL,(PLAYER_WEAPON_CHRRAM_PTR)       ; Load CHRRAM pointer for frame
-    LD          BC,$29                              ; Row stride 41
+    LD          BC,41                               ; Row stride 41
     XOR         A                                   ; Clear A for SBC
-    SBC         HL,BC                               ; Move pointer backwards by $29
+    SBC         HL,BC                               ; Move pointer backwards by 41 (UL)
     LD          (PLAYER_WEAPON_CHRRAM_PTR),HL       ; Save updated pointer
     JP          DRAW_PLAYER_WEAPON_FRAME            ; Continue to graphics copy/update
 
 ADVANCE_PLAYER_WEAPON_FRAME:
     LD          (PLAYER_ANIM_STATE),A               ; Persist new animation state
     LD          HL,(PLAYER_WEAPON_CHRRAM_PTR)       ; Load CHRRAM pointer
-    DEC         HL                                  ; Move to previous byte
+;    DEC         HL                                  ; Move to previous byte   **** CHANGE ME ****
     LD          (PLAYER_WEAPON_CHRRAM_PTR),HL       ; Save updated pointer
 
 ;==============================================================================
@@ -672,16 +672,27 @@ ADVANCE_PLAYER_WEAPON_FRAME:
 ; Calls: COPY_GFX_2_BUFFER, CHK_ITEM
 ;==============================================================================
 DRAW_PLAYER_WEAPON_FRAME:
-    LD          BC,$c8                              ; Frame addressing delta (200 bytes)
-    XOR         A                                   ; Clear A for SBC
-    SBC         HL,BC                               ; HL = HL - $c8
+    LD          BC,200                              ; BC = 200 (40 * 5), offset for start of ITEM graphics
+    XOR         A                                   ; A = 0 (clear for subtraction)
+    SBC         HL,BC                               ; HL = HL - 200 (40 * 5)
     PUSH        HL                                  ; Save source pointer
-    ADD         HL,BC                               ; HL = HL + $c8 (restore for copy base)
+
+    ; SBC         HL,BC                               ; HL = HL - 200 (40 * 5)
+    ; **** CHANGE ME ****
+    ; Adjusted to match DRAW_MONSTER_WEAPON_FRAME
+    
+    ADD         HL,BC                               ; HL = HL + 200 (40 * 5)
     LD          DE,PL_BG_CHRRAM_BUFFER              ; Destination buffer for movement CHR
     CALL        COPY_GFX_2_BUFFER                   ; Copy frame graphics to buffer
 
-    POP         HL                                  ; Restore source pointer
-    LD          C,L                                 ; Save low byte of pointer into C
+    ; POP         HL                                  ; Restore source pointer
+    ; LD          C,L                                 ; Save low byte of pointer into C
+    ; **** CHANGE ME **** 
+    ; Adjusted to match DRAW_MONSTER_WEAPON_FRAME
+
+    POP         BC                                  ; BC = adjusted screen address (from stack)
+    LD          B,0x0                               ; B = 0 (clear high byte for CHK_ITEM parameter)
+
     LD          A,(PL_WPN_CHRRAM_LO)                ; Load PL_WPN_CHRRAM_LO byte
     LD          (PL_WPN_CHRRAM_HI),A                ; Update PL_WPN_CHRRAM_HI from PL_WPN_CHRRAM_LO
     LD          A,(PLAYER_WEAPON_SPRITE)            ; Load item sprite index
@@ -1030,11 +1041,6 @@ ITEM_USED_UP:
 CLEAR_MONSTER_STATS:
     XOR         A                                   ; A=0
     LD          (COMBAT_BUSY_FLAG),A                ; Clear combat busy flag
-    ; LD          BC,$403                             ; BC = width/height for fill rect
-    ; LD          HL,CHRRAM_LEVEL_IDX                 ; HL = CHRRAM start index
-    ; LD          A,$20                               ; A = fill color/code
-    ; JP          FILL_CHRCOL_RECT                    ; Fill screen region to clear stats
-    
     LD          BC,RECT(14,2)                       ; 14 x 2 rectangle
     LD          HL,CHRRAM_MONSTER_STATS_IDX         ; HL = Monster stats CHRRAM
     LD          A,$20                               ; A = fill color/code
@@ -1100,7 +1106,7 @@ EXPAND_STAT_THRESHOLDS:
 ; --- In Process ---
 ;   A  = Animation state values, flags, and temporary calculations
 ;   HL = Position frame counters and screen position offsets
-;   BC = Position delta for weapon movement ($29 = 41 bytes)
+;   BC = Position delta for weapon movement : 39 bytes (was 41)
 ;   DE = Buffer address (MONSTER_BG_SAVE_BUFFER) for background save
 ; ---  End  ---
 ;   All registers modified by called functions
@@ -1128,7 +1134,8 @@ RESET_MONSTER_ANIM_STATE:
     LD          (MONSTER_ANIM_STATE),A              ; Store new state
     LD          (MONSTER_ANIM_LOOP_COUNT),HL        ; Save updated frame counter
     LD          HL,(MONSTER_WEAPON_CHRRAM_PTR)      ; Load current weapon screen position
-    LD          BC,$29                              ; Row stride 41
+;    LD          BC,41                              ; Row stride 41
+    LD          BC,39                               ; Row stride 39      **** CHANGE ME ****
     ADD         HL,BC                               ; Advance weapon position by 41 bytes
     LD          (MONSTER_WEAPON_CHRRAM_PTR),HL      ; Store new weapon position
     JP          DRAW_MONSTER_WEAPON_FRAME           ; Draw weapon at new position
@@ -1136,7 +1143,7 @@ RESET_MONSTER_ANIM_STATE:
 ADVANCE_MONSTER_WEAPON_FRAME:
     LD          (MONSTER_ANIM_STATE),A              ; Store current state (decremented)
     LD          HL,(MONSTER_WEAPON_CHRRAM_PTR)      ; Load current weapon screen position
-    INC         HL                                  ; Move weapon forward by 1 byte
+;    INC         HL                                  ; Move weapon forward by 1 byte    **** CHANGE ME ****
     LD          (MONSTER_WEAPON_CHRRAM_PTR),HL      ; Store new position
 
 ;==============================================================================
@@ -1150,7 +1157,7 @@ ADVANCE_MONSTER_WEAPON_FRAME:
 ; --- Start ---
 ;   HL = Screen position offset
 ; --- In Process ---
-;   BC = $C8 (offset adjustment) then 0
+;   BC = 20 (40 * 5) offset for start of ITEM graphics
 ;   A  = Various temp values and flags
 ;   DE = Buffer address (MONSTER_BG_SAVE_BUFFER)
 ; ---  End  ---
@@ -1160,9 +1167,9 @@ ADVANCE_MONSTER_WEAPON_FRAME:
 ; Calls: COPY_GFX_2_BUFFER, CHK_ITEM
 ;==============================================================================
 DRAW_MONSTER_WEAPON_FRAME:
-    LD          BC,$c8                              ; BC = 200 (screen offset adjustment)
+    LD          BC,200                              ; BC = 200 (40 * 5), offset for start of ITEM graphics
     XOR         A                                   ; A = 0 (clear for subtraction)
-    SBC         HL,BC                               ; HL = HL - $c8
+    SBC         HL,BC                               ; HL = HL - 200 (40 * 5)
     PUSH        HL                                  ; Save adjusted screen address
     ADD         HL,BC                               ; Restore original position offset
     LD          DE,MN_BG_CHRRAM_BUFFER              ; DE = background buffer address
@@ -4140,7 +4147,7 @@ PROCESS_POTION_UPDATES:
     CALL        REDRAW_STATS                        ; Update health display on screen
     LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
     AND         A                                   ; Test if zero (not in combat)
-    JP          NZ,INIT_MELEE_ANIM                  ; If in combat, init animation
+    JP          NZ,INIT_MN_MELEE_ANIM               ; If in combat, init animation
     JP          INPUT_DEBOUNCE                      ; Otherwise, return to input loop
 
 ;==============================================================================
@@ -4956,7 +4963,7 @@ ENCODE_PLACE_ITEM:
     LD          (BC),A                              ; Store item code at map position
     LD          A,(COMBAT_BUSY_FLAG)                ; Check combat state
     AND         A                                   ; Test if in combat
-    JP          NZ,INIT_MELEE_ANIM                  ; If in combat, init animation
+    JP          NZ,INIT_MN_MELEE_ANIM               ; If in combat, init animation
     JP          UPDATE_VIEWPORT                     ; Otherwise update viewport
 
 ;==============================================================================
@@ -5166,7 +5173,7 @@ USE_BOW_XBOW:
 ;==============================================================================
 BOW_XBOW_NO_BREAK:
     LD          D,0x5                               ; D = 5 (bow/arrow animation type)
-    JP          SETUP_ITEM_ANIM                     ; Jump to setup animation
+    JP          SETUP_PL_ANIM                       ; Jump to setup animation
 
 ;==============================================================================
 ; CHECK_IF_SCROLL_STAFF - Route to scroll/staff handler if type matches
@@ -5232,7 +5239,7 @@ USE_SCROLL_STAFF:
 ;==============================================================================
 SCROLL_STAFF_NO_BREAK:
     LD          D,0x9                               ; D = 9 (fireball animation type)
-    JP          SETUP_ITEM_ANIM                     ; Jump to setup animation
+    JP          SETUP_PL_ANIM                       ; Jump to setup animation
 
 ;==============================================================================
 ; CHECK_OTHERS - Route staff/crossbow/melee/special items
@@ -5269,7 +5276,7 @@ CHECK_OTHERS:
     CALL        SWAP_TO_ALT_REGS                    ; Swap to alternate registers
 
 ;==============================================================================
-; SETUP_ITEM_ANIM - Setup item animation and initialize combat
+; SETUP_PL_ANIM - Setup player animation and initialize combat
 ;==============================================================================
 ; Common entry point for weapon usage. Sets up item animation parameters
 ; and initializes monster combat sequence.
@@ -5284,16 +5291,15 @@ CHECK_OTHERS:
 ; Memory Modified: Animation state variables
 ; Calls: SETUP_ITEM_ANIMATION, INIT_MONSTER_COMBAT (jump)
 ;==============================================================================
-SETUP_ITEM_ANIM:
-    CALL        SETUP_ITEM_ANIMATION                ; Setup item animation parameters
-    ; CALL        SETUP_ITEM_ANIMATION_NEW                ; Setup item animation parameters **** CHANGE ME ****
+SETUP_PL_ANIM:
+    CALL        INIT_PL_MELEE_ANIM                  ; Setup item animation parameters
     JP          INIT_MONSTER_COMBAT                 ; Initialize monster combat
 
 CLEAR_RIGHT_ITEM_AND_SETUP_ANIM:
     CALL        SWAP_TO_ALT_REGS                    ; Swap to alternate register set
 
 ;==============================================================================
-; SETUP_ITEM_ANIMATION - Configure item sprite animation parameters
+; INIT_PL_MELEE_ANIM - Configure player sprite animation parameters
 ;==============================================================================
 ; Initializes all animation state variables for weapon/item usage animation.
 ; Calculates sprite index from item type and level, sets loop count, and
@@ -5317,18 +5323,19 @@ CLEAR_RIGHT_ITEM_AND_SETUP_ANIM:
 ; Memory Modified: ITEM_ANIM_STATE, ITEM_SPRITE_INDEX, ITEM_ANIM_LOOP_COUNT, ITEM_ANIM_CHRRAM_PTR, SCREENSAVER_STATE
 ; Calls: COPY_RH_ITEM_FRAME_GFX (jump)
 ;==============================================================================
-SETUP_ITEM_ANIMATION:
+INIT_PL_MELEE_ANIM:
     LD          A,0x3                               ; A = 3 (animation state)
-    LD          (PLAYER_ANIM_STATE),A                 ; Store animation state
+    LD          (PLAYER_ANIM_STATE),A               ; Store animation state
     LD          A,D                                 ; A = item type
     SLA         A                                   ; Shift left (multiply by 2)
     SLA         A                                   ; Shift left again (multiply by 4)
     OR          B                                   ; OR with item level (bits 0-1)
     LD          (PLAYER_WEAPON_SPRITE),A            ; Store sprite index (type*4 + level)
     LD          HL,$203                             ; HL = $203 (loop count)
-    LD          (PLAYER_ANIM_LOOP_COUNT),HL           ; Store animation loop count
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics area
-    LD          (PLAYER_WEAPON_CHRRAM_PTR),HL           ; Store graphics pointer
+    LD          (PLAYER_ANIM_LOOP_COUNT),HL         ; Store animation loop count
+;    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics area
+    LD          HL,CHRRAM_VP_PL_WEAPON_START_IDX    ; Point to new right-hand graphics area   **** CHANGE ME ****
+    LD          (PLAYER_WEAPON_CHRRAM_PTR),HL       ; Store graphics pointer
     LD          A,L                                 ; A = low byte of CHRRAM pointer
     LD          (SCREENSAVER_STATE),A               ; Store to SCREENSAVER_STATE
     JP          DRAW_PLAYER_WEAPON_FRAME            ; Copy frame graphics and return
@@ -5401,7 +5408,6 @@ USE_LADDER_DOOR_ESCAPE:
     XOR         A                                   ; A = 0 (clear flags)
     LD          (COMBAT_BUSY_FLAG),A                ; Clear combat busy flag
     CALL        CLEAR_RIGHT_ITEM_AND_SETUP_ANIM     ; Setup animation for item
-    ; CALL        CLEAR_RIGHT_ITEM_AND_SETUP_ANIM_NEW     ; Setup animation for item  **** CHANGE ME ****
     JP          WAIT_FOR_INPUT                      ; Return to input wait
 
 ;==============================================================================
@@ -5438,7 +5444,7 @@ USE_LADDER_DOOR_ESCAPE:
 INIT_MONSTER_COMBAT:
     LD          A,(COMBAT_BUSY_FLAG)                ; Check if already in combat
     AND         A                                   ; Test combat flag
-    JP          NZ,INIT_MELEE_ANIM                  ; If in combat, init animation
+    JP          NZ,INIT_MN_MELEE_ANIM               ; If in combat, init animation
     INC         A                                   ; A = 1
     LD          (COMBAT_BUSY_FLAG),A                ; Set combat flag (block movement)
     LD          A,(ITEM_S1)                         ; Load monster code at position S1
@@ -5636,12 +5642,13 @@ SEED_MONSTER_HP_AND_ATTACK:
     CALL        CALC_WEAPON_VALUE                   ; Calculate monster attack value
     LD          (WEAPON_VALUE_HOLDER),A             ; Store attack value
     CALL        REDRAW_MONSTER_HEALTH               ; Update monster health display
-INIT_MELEE_ANIM:
+INIT_MN_MELEE_ANIM:
     LD          A,0x3                               ; A = 3 (melee animation state)
-    LD          (MONSTER_ANIM_STATE),A                ; Store animation state
+    LD          (MONSTER_ANIM_STATE),A              ; Store animation state
     LD          HL,$206                             ; HL = $206 (position count)
     LD          (MONSTER_ANIM_LOOP_COUNT),HL        ; Store position count
-    LD          HL,$31ea                            ; HL = $31EA (position offset)
+;    LD          HL,CHRRAM_MONSTER_WEAPON_GFX_IDX    ; HL = CHRRAM_MONSTER_WEAPON_GFX_IDX
+    LD          HL,CHRRAM_VP_MN_WEAPON_START_IDX    ; Point to new monster graphics area **** CHANGE ME ****
     LD          (MONSTER_WEAPON_CHRRAM_PTR),HL      ; Store position offset
     LD          A,L                                 ; A = low byte ($EA)
     LD          (KEYBOARD_SCAN_FLAG),A              ; Store to KEYBOARD_SCAN_FLAG
@@ -8587,336 +8594,3 @@ BCD2HEX:
     ADD         A, C                                ; Add tens*10 to units
     POP         BC                                  ; Restore register
     RET
-
-; NEW MELEE ANIMATION STUFF
-
-;==============================================================================
-; TIMER_UPDATED_CHECK_INPUT_NEW - Timer-driven item/combat animation + AI checks
-;==============================================================================
-;   - Routes control to item animation or melee/monster animation based on
-;     timer snapshots and state bytes (SCREENSAVER_STATE/KEYBOARD_SCAN_FLAG)
-;   - Updates screensaver timer and may trigger simple AI when idle
-;   - Falls back to WAIT_FOR_INPUT when no animation tick is due
-; Registers:
-; --- Start ---
-;   None (uses memory-mapped flags and timers)
-; --- In Process ---
-;   A  = State/flag bytes, comparisons, randomness
-;   B  = Loop/selector for direction cases (4 -> back/left/right/forward)
-;   HL = Points to MASTER_TICK_TIMER or item lists (ITEM_S1/ITEM_SR1)
-; ---  End  ---
-;   Jumps to WAIT_FOR_INPUT or into AI branch (RANDOM_ACTION_HANDLER)
-;
-TIMER_UPDATED_CHECK_INPUT_NEW:
-    LD          A,(SCREENSAVER_STATE)               ; Load animation state byte AD
-    CP          $32                                 ; Is state equal to $32? (branch set)
-    JP          Z,IDLE_SCREENSAVER_CHK              ; Yes → handle screensaver/idle branch
-    LD          A,(KEYBOARD_SCAN_FLAG)              ; Load animation state byte AE
-    CP          $31                                 ; Player not pressing Key 1 (attacking)
-    JP          NZ,MONSTER_PLAYER_ANIM_TICK_NEW     ; If player not pressing Key 1, let monster attack
-
-PLAYER_ANIM_TICK_NEW:
-    LD          HL,MASTER_TICK_TIMER                ; HL points to master tick counter
-    LD          A,(PLAYER_TIMER_COMPARE_NEW)        ; A = last processed player anim tick
-    CP          (HL)                                ; Has MASTER_TICK_TIMER advanced since last player tick?
-    JP          NZ,WAIT_FOR_INPUT                   ; No → nothing to animate this frame
-    CALL        COPY_PL_BUFF_TO_SCRN_NEW            ; Restore background under plater weapon sprite
-    CALL        PLAYER_ANIM_ADVANCE_NEW             ; Advance player weapon animation frame
-    JP          WAIT_FOR_INPUT                      ; Return to main input loop
-
-MONSTER_PLAYER_ANIM_TICK_NEW:
-    LD          HL,MASTER_TICK_TIMER                ; HL points to master tick counter
-    LD          A,(MONSTER_TIMER_COMPARE_NEW)       ; A = last processed monster anim tick
-    CP          (HL)                                ; Has MASTER_TICK_TIMER advanced for monster anim?
-    JP          NZ,WAIT_FOR_INPUT                   ; No → skip animation this frame
-    CALL        COPY_MN_BUFF_TO_SCRN_NEW            ; Restore background under monster weapon sprite
-    CALL        COPY_PL_BUFF_TO_SCRN_NEW            ; Restore background under plater weapon sprite
-    CALL        PLAYER_ANIM_ADVANCE_NEW             ; Redraw any UI impacted by anim state
-    CALL        MONSTER_ANIM_ADVANCE_NEW            ; Advance monster weapon animation frame
-    JP          WAIT_FOR_INPUT                      ; Back to main loop
-
-MONSTER_ANIM_TICK_NEW:
-    LD          HL,MASTER_TICK_TIMER                ; HL points to master tick counter
-    LD          A,(MONSTER_TIMER_COMPARE_NEW)       ; A = last processed monster-anim tick
-    CP          (HL)                                ; Has MASTER_TICK_TIMER advanced for monster anim?
-    JP          NZ,WAIT_FOR_INPUT                   ; No → skip animation this frame
-    CALL        COPY_MN_BUFF_TO_SCRN_NEW            ; Restore background under melee sprites
-    CALL        MONSTER_ANIM_ADVANCE_NEW            ; Advance monster weapon animation frame
-    JP          WAIT_FOR_INPUT                      ; Back to main loop
-
-;==============================================================================
-; PLAYER_ANIM_ADVANCE_NEW — Advance Player Weapon Animation Loop
-;==============================================================================
-; Advances the right-hand item animation, manages loop counters, updates the
-; CHRRAM pointer for sprite frames, and copies character graphics into a
-; movement buffer. Also updates monster frame state and caches a timer copy.
-;
-; Registers:
-; --- Start ---
-;   A = ITEM_ANIM_STATE
-;   HL = ITEM_ANIM_LOOP_COUNT
-; --- In Process ---
-;   HL = CHRRAM pointer arithmetic; BC used as delta ($29/$c8)
-;   DE = ITEM_MOVE_CHR_BUFFER
-;   A = PL_WPN_CHRRAM_ADDR_HI, ITEM_SPRITE_INDEX, MASTER_TICK_TIMER
-; ---  End  ---
-;   State/loop/pointers updated; flags used by SBC/ADD operations
-;
-; Memory Modified: ITEM_ANIM_STATE, ITEM_ANIM_LOOP_COUNT, ITEM_ANIM_CHRRAM_PTR,
-;                  ITEM_MOVE_CHR_BUFFER, WEAPON_SPRITE_CHRRAM_ADDR_HI, ITEM_ANIM_TIMER_COPY
-; Calls: SOUND_05, COPY_GFX_2_BUFFER, CHK_ITEM, ADVANCE_RH_ANIM_FRAME, COPY_RH_ITEM_FRAME_GFX
-;==============================================================================
-PLAYER_ANIM_ADVANCE_NEW:
-    CALL        SOUND_05                            ; Play animation sound 05
-    LD          A,(PLAYER_ANIM_STATE_NEW)           ; Load item animation state
-    LD          HL,(PLAYER_ANIM_LOOP_COUNT_NEW)     ; Load loop counter (HL)
-    DEC         A                                   ; Decrement state
-    JP          NZ,ADVANCE_PLAYER_WEAPON_FRAME_NEW  ; If still non-zero, branch to frame step
-    DEC         L                                   ; Decrement inner loop count
-    JP          NZ,RESET_PLAYER_ANIM_STATE_NEW      ; If not zero, refresh state and continue
-    DEC         H                                   ; Decrement outer loop count
-    JP          Z,FINISH_APPLY_MONSTER_DAMAGE       ; If zero, animation complete
-    LD          A,$31                               ; Player weapon CHRRAM high byte
-    LD          (PL_WPN_CHRRAM_LO),A                ; Store into CPL_WPN_CHRRAM_LO
-    LD          L,0x4                               ; Reset inner loop count to 4
-RESET_PLAYER_ANIM_STATE_NEW:
-    LD          A,0x4                               ; Set player animation state to 4
-    LD          (PLAYER_ANIM_STATE_NEW),A           ; Write back state
-    LD          (PLAYER_ANIM_LOOP_COUNT_NEW),HL     ; Write back loop counters
-    LD          HL,(PLAYER_WEAPON_CHRRAM_PTR_NEW)   ; Load CHRRAM pointer for frame
-    LD          BC,$29                              ; Row stride 41
-    XOR         A                                   ; Clear A for SBC
-    SBC         HL,BC                               ; Move pointer backwards by $29
-    LD          (PLAYER_WEAPON_CHRRAM_PTR_NEW),HL   ; Save updated pointer
-    JP          DRAW_PLAYER_WEAPON_FRAME_NEW        ; Continue to graphics copy/update
-
-ADVANCE_PLAYER_WEAPON_FRAME_NEW:
-    LD          (PLAYER_ANIM_STATE),A               ; Persist new animation state
-    LD          HL,(PLAYER_WEAPON_CHRRAM_PTR_NEW)   ; Load CHRRAM pointer
-    DEC         HL                                  ; Move to previous byte
-    LD          (PLAYER_WEAPON_CHRRAM_PTR_NEW),HL   ; Save updated pointer
-
-;==============================================================================
-; DRAW_PLAYER_WEAPON_FRAME_NEW — Draw Player's Weapon Sprite Frame
-;==============================================================================
-; Copies character graphics for the current item frame into the movement
-; buffer, updates weapon sprite CHRRAM address high byte (WEAPON_SPRITE_CHRRAM_ADDR_HI), runs item check logic, and
-; caches the item animation timer value.
-;
-; Registers: HL/BC/DE used for copy; A for state updates
-; Memory Modified: ITEM_MOVE_CHR_BUFFER, WEAPON_SPRITE_CHRRAM_ADDR_HI, ITEM_ANIM_TIMER_COPY
-; Calls: COPY_GFX_2_BUFFER, CHK_ITEM
-;==============================================================================
-DRAW_PLAYER_WEAPON_FRAME_NEW:
-    LD          BC,$c8                              ; Frame addressing delta (200 bytes)
-    XOR         A                                   ; Clear A for SBC
-    SBC         HL,BC                               ; HL = HL - $c8
-    PUSH        HL                                  ; Save source pointer
-    ADD         HL,BC                               ; HL = HL + $c8 (restore for copy base)
-    LD          DE,PL_BG_CHRRAM_BUFFER              ; Destination buffer for movement CHR
-    CALL        COPY_GFX_2_BUFFER                   ; Copy frame graphics to buffer
-
-    POP         HL                                  ; Restore source pointer
-    LD          C,L                                 ; Save low byte of pointer into C
-    LD          A,(PL_WPN_CHRRAM_LO)                ; Load PL_WPN_CHRRAM_LO byte
-    LD          (PL_WPN_CHRRAM_HI),A                ; Update PL_WPN_CHRRAM_HI from PL_WPN_CHRRAM_LO
-    LD          A,(PLAYER_WEAPON_SPRITE_NEW)        ; Load item sprite index
-    CALL        CHK_ITEM                            ; Draw player weapon sprite (first of two draws this tick)
-
-    LD          A,$32                               ; Monster weapon CHRRAM row base
-    LD          (PL_WPN_CHRRAM_HI),A                ; Update PL_WPN_CHRRAM_HI to $32
-    LD          A,(MASTER_TICK_TIMER)               ; Load timer A
-    ADD         A,$ff                               ; Decrement by 1
-    LD          (PLAYER_TIMER_COMPARE_NEW),A        ; Cache copy for animation timing
-    RET                                             ; Return to animation loop
-
-;==============================================================================
-; MONSTER_ANIM_ADVANCE_NEW - Advance Monster Weapon Animation Loop
-;==============================================================================
-; Advances the monster weapon animation by one frame, managing state machine,
-; position counters, and triggers weapon sprite drawing. Called once per frame,
-; this is NOT an internal loop but a single animation step.
-;
-; Animation States (MELEE_ANIM_STATE):
-;   1 = Monster attacking (weapon flying from center to down-right)
-;   3 = Player attacking (weapon flying from down-right to center)
-;
-; Registers:
-; --- Start ---
-;   (Reads from memory: MELEE_ANIM_STATE, MONSTER_ATT_POS_COUNT, WEAPON_SPRITE_POS_OFFSET)
-; --- In Process ---
-;   A  = Animation state values, flags, and temporary calculations
-;   HL = Position frame counters and screen position offsets
-;   BC = Position delta for weapon movement ($29 = 41 bytes)
-;   DE = Buffer address (MONSTER_BG_SAVE_BUFFER) for background save
-; ---  End  ---
-;   All registers modified by called functions
-;   Animation state, position, and timer updated in memory
-;
-; Memory Modified: MELEE_ANIM_STATE, MONSTER_ATT_POS_COUNT, WEAPON_SPRITE_POS_OFFSET,
-;                  WEAPON_SPRITE_CHRRAM_ADDR_HI, MONSTER_ANIM_TIMER_COPY, MONSTER_BG_SAVE_BUFFER (buffer)
-; Calls: SOUND_05, DRAW_MONSTER_WEAPON_FRAME, COPY_GFX_2_BUFFER, CHK_ITEM
-;==============================================================================
-MONSTER_ANIM_ADVANCE_NEW:
-    CALL        SOUND_05                            ; Play attack sound blip
-    LD          A,(MONSTER_ANIM_STATE_NEW)          ; Load current animation state (1 or 3)
-    LD          HL,(MONSTER_ANIM_LOOP_COUNT_NEW)    ; Load position frame counter
-    DEC         A                                   ; Decrement state: 1→0 or 3→2
-    JP          NZ,ADVANCE_MONSTER_WEAPON_FRAME_NEW ; If state≠1, jump to increment position
-    DEC         L                                   ; State=1: decrement low byte of counter
-    JP          NZ,RESET_MONSTER_ANIM_STATE_NEW     ; If L≠0, continue animation
-    DEC         H                                   ; L reached 0: decrement high byte
-    JP          Z,FINISH_APPLY_PLAYER_DAMAGE        ; If both bytes=0, animation done, apply damage
-    LD          A,$32                               ; Monster weapon CHRRAM high byte
-    LD          (MN_WPN_CHRRAM_HI),A                ; Store high byte for melee weapon positioning
-    LD          L,0x2                               ; Reset low counter to 2
-RESET_MONSTER_ANIM_STATE_NEW:
-    LD          A,0x3                               ; Set monster animation state to 3
-    LD          (MONSTER_ANIM_STATE_NEW),A          ; Store new state
-    LD          (MONSTER_ANIM_LOOP_COUNT_NEW),HL    ; Save updated frame counter
-    LD          HL,(MONSTER_WEAPON_CHRRAM_PTR_NEW)  ; Load current weapon screen position
-    LD          BC,$29                              ; Row stride 41
-    ADD         HL,BC                               ; Advance weapon position by 41 bytes
-    LD          (MONSTER_WEAPON_CHRRAM_PTR_NEW),HL  ; Store new weapon position
-    JP          DRAW_MONSTER_WEAPON_FRAME_NEW       ; Draw weapon at new position
-
-ADVANCE_MONSTER_WEAPON_FRAME_NEW:
-    LD          (MONSTER_ANIM_STATE_NEW),A          ; Store current state (decremented)
-    LD          HL,(MONSTER_WEAPON_CHRRAM_PTR_NEW)  ; Load current weapon screen position
-    INC         HL                                  ; Move weapon forward by 1 byte
-    LD          (MONSTER_WEAPON_CHRRAM_PTR_NEW),HL  ; Store new position
-
-;==============================================================================
-; DRAW_MONSTER_WEAPON_FRAME_NEW
-;==============================================================================
-; Draws the monster weapon sprite at the current animation position. Saves the screen
-; background to a buffer before drawing, allowing the weapon to be erased later
-; by restoring the saved background.
-;
-; Registers:
-; --- Start ---
-;   HL = Screen position offset
-; --- In Process ---
-;   BC = $C8 (offset adjustment) then 0
-;   A  = Various temp values and flags
-;   DE = Buffer address (MONSTER_BG_SAVE_BUFFER)
-; ---  End  ---
-;   All registers modified
-;
-; Memory Modified: MONSTER_BG_SAVE_BUFFER, WEAPON_SPRITE_CHRRAM_ADDR_HI, MONSTER_ANIM_TIMER_COPY
-; Calls: COPY_GFX_2_BUFFER, CHK_ITEM
-;==============================================================================
-DRAW_MONSTER_WEAPON_FRAME_NEW:
-    LD          BC,$c8                              ; BC = 200 (screen offset adjustment)
-    XOR         A                                   ; A = 0 (clear for subtraction)
-    SBC         HL,BC                               ; HL = HL - $c8
-    PUSH        HL                                  ; Save adjusted screen address
-    ADD         HL,BC                               ; Restore original position offset
-    LD          DE,MN_BG_CHRRAM_BUFFER              ; DE = background buffer address
-    CALL        COPY_GFX_2_BUFFER                   ; Save 4x4 screen area to buffer
-
-    POP         BC                                  ; BC = adjusted screen address (from stack)
-    LD          B,0x0                               ; B = 0 (clear high byte for CHK_ITEM parameter)
-    LD          A,(MN_WPN_CHRRAM_HI)                ; Load monster weapon CHRRAM high byte
-    LD          (PL_WPN_CHRRAM_HI),A                ; Store as sprite address high byte
-    LD          A,(MONSTER_WEAPON_SPRITE)           ; Load weapon sprite ID
-    CALL        CHK_ITEM                            ; Draw melee weapon sprite (second draw this tick)
-
-    LD          A,$32                               ; Reset to default CHRRAM row
-    LD          (PL_WPN_CHRRAM_HI),A                ; Store as sprite address high byte
-    LD          A,(MASTER_TICK_TIMER)               ; Load system timer
-    ADD         A,$ff                               ; Decrement by 1
-    LD          (MONSTER_TIMER_COMPARE_NEW),A       ; Store updated animation timer
-    RET                                             ; Return to animation loop
-
-;==============================================================================
-; COPY_MN_BUFF_TO_SCRN_NEW
-;==============================================================================
-; Restores the screen background from buffer, erasing the weapon sprite.
-; Called to clear the weapon from its previous position before drawing at
-; the next position, or after animation completes.
-;
-; Registers:
-; --- Start ---
-;   (None)
-; --- In Process ---
-;   HL = Buffer address (MONSTER_BG_SAVE_BUFFER)
-;   DE = Screen position from MONSTER_ATT_POS_OFFSET
-; ---  End  ---
-;   Modified by COPY_GFX_FROM_BUFFER
-;
-; Memory Modified: None
-; Calls: COPY_GFX_FROM_BUFFER
-;==============================================================================
-COPY_MN_BUFF_TO_SCRN_NEW:
-    LD          DE,(MONSTER_WEAPON_CHRRAM_PTR_NEW)  ; DE = screen position where weapon is drawn
-    LD          HL,MN_BG_CHRRAM_BUFFER              ; HL = buffer with saved background
-    JP          COPY_GFX_FROM_BUFFER                ; Restore background, erasing the melee sprite only (RH item not erased here)
-
-;==============================================================================
-; COPY_PL_BUFF_TO_SCRN_NEW  
-;==============================================================================
-; Copy 4x4 item graphic from `ITEM_MOVE_CHR_BUFFER` into CHRRAM at
-; `(ITEM_ANIM_CHRRAM_PTR)`. Used to finalize the RH item animation frame.
-;
-; Registers:
-; --- Start ---
-;   DE = dest CHRRAM ptr, HL = src buffer
-; --- In Process ---
-;   A/B/C used by copy helper; DE/HL advanced
-; ---  End  ---
-;   DE/HL at post-copy positions
-;   F  = per last operation
-;
-; Memory Modified: CHRRAM at `(ITEM_ANIM_CHRRAM_PTR)`
-; Calls: COPY_GFX_FROM_BUFFER
-;==============================================================================
-COPY_PL_BUFF_TO_SCRN_NEW:
-    LD          DE,(PLAYER_WEAPON_CHRRAM_PTR_NEW)   ; DE = screen position where weapon is drawn
-    LD          HL,PL_BG_CHRRAM_BUFFER              ; HL = buffer with saved background
-    JP          COPY_GFX_FROM_BUFFER                ; Copy buffer graphics to CHRRAM at DE
-
-CLEAR_RIGHT_ITEM_AND_SETUP_ANIM_NEW:
-    CALL        SWAP_TO_ALT_REGS                    ; Swap to alternate register set
-
-;==============================================================================
-; SETUP_ITEM_ANIMATION_NEW - Configure item sprite animation parameters
-;==============================================================================
-; Initializes all animation state variables for weapon/item usage animation.
-; Calculates sprite index from item type and level, sets loop count, and
-; configures graphics memory pointers.
-;
-; Sprite Index Calculation: (Type * 4) + Level
-; - Types: 5=arrow, 6=sword, 7=axe, 8=mace, 9=fireball, etc.
-; - Levels: 0-3
-; - Result: Sprite frames 0-63
-;
-; Registers:
-; --- Start ---
-;   D  = Item type
-;   B  = Item level
-; --- In Process ---
-;   A  = State value, sprite calculation
-;   HL = Loop count, graphics pointer
-; ---  End  ---
-;   Jumps to COPY_RH_ITEM_FRAME_GFX
-;
-; Memory Modified: ITEM_ANIM_STATE, ITEM_SPRITE_INDEX, ITEM_ANIM_LOOP_COUNT, ITEM_ANIM_CHRRAM_PTR, SCREENSAVER_STATE
-; Calls: COPY_RH_ITEM_FRAME_GFX (jump)
-;==============================================================================
-SETUP_ITEM_ANIMATION_NEW:
-    LD          A,0x3                               ; A = 3 (animation state)
-    LD          (PLAYER_ANIM_STATE_NEW),A           ; Store animation state
-    LD          A,D                                 ; A = item type
-    SLA         A                                   ; Shift left (multiply by 2)
-    SLA         A                                   ; Shift left again (multiply by 4)
-    OR          B                                   ; OR with item level (bits 0-1)
-    LD          (PLAYER_WEAPON_SPRITE_NEW),A        ; Store sprite index (type*4 + level)
-    LD          HL,$203                             ; HL = $203 (loop count)
-    LD          (PLAYER_ANIM_LOOP_COUNT_NEW),HL     ; Store animation loop count
-    LD          HL,CHRRAM_RIGHT_HD_GFX_IDX          ; Point to right-hand graphics area
-    LD          (PLAYER_WEAPON_CHRRAM_PTR_NEW),HL   ; Store graphics pointer
-    LD          A,L                                 ; A = low byte of CHRRAM pointer
-    LD          (SCREENSAVER_STATE),A               ; Store to SCREENSAVER_STATE
-    JP          DRAW_PLAYER_WEAPON_FRAME_NEW        ; Copy frame graphics and return
-

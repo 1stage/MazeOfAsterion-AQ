@@ -3926,7 +3926,7 @@ USE_MAP:
     JP          Z,NO_ACTION_TAKEN                   ; If not owned, exit without action
     LD          A,(MAP_INV_SLOT)                    ; Load map quality level (0-4)
     AND         A                                   ; Test if zero (no map)
-    JP          Z,INIT_MELEE_ANIM                   ; If no map slot, exit to melee animation
+    JP          Z,INIT_MN_MELEE_ANIM                ; If no map slot, exit to melee animation
     EXX								                ; Swap to alternate register set
 
     ; LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high

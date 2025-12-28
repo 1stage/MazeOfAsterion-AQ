@@ -67,8 +67,11 @@ CHRRAM_FL22_WALL_IDX EQU $31b8
 ; CHRRAM_POINTER_IDX EQU $31d8 
 CHRRAM_PACK_IDX EQU $31d0
 CHRRAM_YOU_DIED_IDX EQU $31e7
+CHRRAM_MONSTER_WEAPON_GFX_IDX EQU $31ea
 CHRRAM_DELAY_CONST EQU $3200
 ; DAT_ram_3230 EQU $3230
+
+CHRRAM_VP_MN_WEAPON_START_IDX EQU $3212
 CHRRAM_MONSTER_POOF_IDX EQU $323b
 ; CHRRAM_INV_5_IDX EQU $324c
 CHRRAM_INV_5_IDX EQU $3226
@@ -109,10 +112,9 @@ CHRRAM_INV_3_IDX EQU $331c
 CHRRAM_VP_LH_GAP_IDX EQU $3325          ; POKE 13093,32 : POKE 14117,15
 CHRRAM_VP_MID_BOTTOM_IDX EQU $3326
 CHRRAM_VP_RH_GAP_IDX EQU $3332
-
+CHRRAM_VP_PL_WEAPON_START_IDX EQU $3333
 CHRRAM_LEFT_HD_GFX_IDX EQU $3339
 CHRRAM_INV_1_IDX EQU $333A
-; CHRRAM_LEVEL_IDX EQU $333d
 CHRRAM_RIGHT_HD_GFX_IDX EQU $3343      ; Original 4x4 index
 CHRRAM_AUTHORS_IDX EQU $3348
 
@@ -358,29 +360,6 @@ PITCH_UP_BOOL EQU $3ab5
 SOUND_REPEAT_COUNT EQU $3ab8 
 GAME_BOOLEANS EQU $3ab9 
 NEXT_BLINK_CHECK EQU $3aba 
-
-; ---- NEW MELEE ANIMATION VARIABLES ----
-PLAYER_WEAPON_SPRITE_NEW EQU $3ac2
-; Encoded player weapon sprite: (item_type << 2) | level
-PLAYER_WEAPON_CHRRAM_PTR_NEW EQU $3ac3
-; 16-bit pointer to character RAM for item animation draw
-PLAYER_ANIM_LOOP_COUNT_NEW EQU $3ac5    ; 4, 3, 2, 1 -       Changes 27 times per melee round
-; 16-bit animation loop counter (decrements each frame)
-PLAYER_ANIM_STATE_NEW EQU $3ac7         ; 4, 3, 2, 1 -       Changes 7  times per melee round
-; Item animation state/phase counter
-PLAYER_MELEE_RANDOMIZER_NEW EQU $3ac8 
-PLAYER_TIMER_COMPARE_NEW EQU $3ac9
-; Cached timer value for item animation sync
-MONSTER_WEAPON_SPRITE_NEW EQU $3aca
-; Monster weapon sprite ID (determines which weapon is animated and damage target)
-MONSTER_ANIM_STATE_NEW EQU $3acb        ; 3, 2, 1 -          Changes 23 times per melee round
-MONSTER_TIMER_COMPARE_NEW EQU $3acc
-; Cached timer value for monster animation sync 
-MONSTER_ANIM_LOOP_COUNT_NEW EQU $3acd   ; 6, 5, 4, 3, 2, 1 - Changes 9  times per melee round
-MONSTER_WEAPON_CHRRAM_PTR_NEW EQU $3acf
-
-
-
 TEMP_MAP EQU $3b00 
 ;BYTE_ram_3ffd EQU $3ffd
 ;LAB_ram_efef EQU $efef
@@ -607,12 +586,14 @@ WHT_CHAOS_POTION_ITEM   EQU $73
 ; Skeleton - Common undead enemy
 SKELETON_BASE_DMG       EQU $08                     ; OG: Base damage: 7 (BCD)
 SKELETON_BASE_HP        EQU MONSTER_HP(1, 3)        ; OG: 3 SPRT, 4 PHYS
-SKELETON_WEAPON_SPRITE  EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
+; SKELETON_WEAPON_SPRITE  EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
+SKELETON_WEAPON_SPRITE  EQU RED_ARROW_LEFT_ITEM     ; Physical attack
 
 ; Snake - Fast physical attacker
 SNAKE_BASE_DMG          EQU $05                     ; OG: Base damage: 3 (BCD)
 SNAKE_BASE_HP           EQU MONSTER_HP(0, 3)        ; OG: 1 SPRT, 1 PHYS
-SNAKE_WEAPON_SPRITE     EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
+; SNAKE_WEAPON_SPRITE     EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
+SNAKE_WEAPON_SPRITE     EQU RED_ARROW_LEFT_ITEM     ; Physical attack
 
 ; Spider - Weak but numerous
 SPIDER_BASE_DMG         EQU $04                     ; OG: Base damage: 4 (BCD)
@@ -622,7 +603,8 @@ SPIDER_WEAPON_SPRITE    EQU RED_SPIDER_WEB_ITEM     ; Physical attack
 ; Mimic - Disguised chest enemy
 MIMIC_BASE_DMG          EQU $06                     ; OG: Base damage: 5 (BCD)
 MIMIC_BASE_HP           EQU MONSTER_HP(1, 3)        ; OG: 2 SPRT, 3 PHYS
-MIMIC_WEAPON_SPRITE     EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
+; MIMIC_WEAPON_SPRITE     EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
+MIMIC_WEAPON_SPRITE     EQU RED_ARROW_LEFT_ITEM     ; Physical attack
 
 ; Malocchio - Evil eye creature
 MALOCCHIO_BASE_DMG      EQU $07                     ; OG: Base damage: 3 (BCD)
@@ -637,7 +619,8 @@ DRAGON_WEAPON_SPRITE    EQU RED_FIREBALL_ITEM       ; Spiritual attack
 ; Mummy - Slow but tough
 MUMMY_BASE_DMG          EQU $09                     ; OG: Base damage: 6 (BCD)
 MUMMY_BASE_HP           EQU MONSTER_HP(2, 4)        ; OG: 2 SPRT, 4 PHYS
-MUMMY_WEAPON_SPRITE     EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
+; MUMMY_WEAPON_SPRITE     EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
+MUMMY_WEAPON_SPRITE     EQU RED_ARROW_LEFT_ITEM     ; Physical attack
 
 ; Necromancer - Magical enemy
 NECROMANCER_BASE_DMG    EQU $11                     ; OG: Base damage: 13 (BCD)
@@ -647,7 +630,8 @@ NECROMANCER_WEAPON_SPRITE EQU RED_FIREBALL_ITEM     ; Spiritual attack
 ; Gryphon - Flying beast
 GRYPHON_BASE_DMG        EQU $12                     ; OG: Base damage: 4 (BCD)
 GRYPHON_BASE_HP         EQU MONSTER_HP(2, 5)        ; OG: 4 SPRT, 5 PHYS
-GRYPHON_WEAPON_SPRITE   EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
+; GRYPHON_WEAPON_SPRITE   EQU RED_ARROW_RIGHT_ITEM    ; Physical attack
+GRYPHON_WEAPON_SPRITE   EQU RED_ARROW_LEFT_ITEM     ; Physical attack
 
 ; Minotaur - Boss monster
 ; Note: Weapon sprite selected dynamically based on player survivability
