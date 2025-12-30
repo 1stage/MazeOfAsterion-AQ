@@ -656,9 +656,10 @@ RESET_PLAYER_ANIM_STATE:
 
 ADVANCE_PLAYER_WEAPON_FRAME:
     LD          (PLAYER_ANIM_STATE),A               ; Persist new animation state
-    LD          HL,(PLAYER_WEAPON_CHRRAM_PTR)       ; Load CHRRAM pointer
+;    LD          HL,(PLAYER_WEAPON_CHRRAM_PTR)       ; Load CHRRAM pointer
 ;    DEC         HL                                  ; Move to previous byte   **** CHANGE ME ****
-    LD          (PLAYER_WEAPON_CHRRAM_PTR),HL       ; Save updated pointer
+;    LD          (PLAYER_WEAPON_CHRRAM_PTR),HL       ; Save updated pointer
+    JP          SKIP_PLAYER_WEAPON_FRAME            ; Jump past DRAW FRAME section
 
 ;==============================================================================
 ; DRAW_PLAYER_WEAPON_FRAME — Draw Player's Weapon Sprite Frame
@@ -680,7 +681,7 @@ DRAW_PLAYER_WEAPON_FRAME:
     ; SBC         HL,BC                               ; HL = HL - 200 (40 * 5)
     ; **** CHANGE ME ****
     ; Adjusted to match DRAW_MONSTER_WEAPON_FRAME
-    
+
     ADD         HL,BC                               ; HL = HL + 200 (40 * 5)
     LD          DE,PL_BG_CHRRAM_BUFFER              ; Destination buffer for movement CHR
     CALL        COPY_GFX_2_BUFFER                   ; Copy frame graphics to buffer
@@ -698,6 +699,7 @@ DRAW_PLAYER_WEAPON_FRAME:
     LD          A,(PLAYER_WEAPON_SPRITE)            ; Load item sprite index
     CALL        CHK_ITEM                            ; Draw player weapon sprite (first of two draws this tick)
 
+SKIP_PLAYER_WEAPON_FRAME:
     LD          A,$32                               ; Monster weapon CHRRAM row base
     LD          (PL_WPN_CHRRAM_HI),A                ; Update PL_WPN_CHRRAM_HI to $32
     LD          A,(MASTER_TICK_TIMER)               ; Load timer A
@@ -1129,8 +1131,10 @@ MONSTER_ANIM_ADVANCE:
     LD          A,$32                               ; Monster weapon CHRRAM high byte
     LD          (MN_WPN_CHRRAM_HI),A                ; Store high byte for melee weapon positioning
     LD          L,0x2                               ; Reset low counter to 2
+
 RESET_MONSTER_ANIM_STATE:
     LD          A,0x3                               ; Set monster animation state to 3
+
     LD          (MONSTER_ANIM_STATE),A              ; Store new state
     LD          (MONSTER_ANIM_LOOP_COUNT),HL        ; Save updated frame counter
     LD          HL,(MONSTER_WEAPON_CHRRAM_PTR)      ; Load current weapon screen position
@@ -1142,9 +1146,10 @@ RESET_MONSTER_ANIM_STATE:
 
 ADVANCE_MONSTER_WEAPON_FRAME:
     LD          (MONSTER_ANIM_STATE),A              ; Store current state (decremented)
-    LD          HL,(MONSTER_WEAPON_CHRRAM_PTR)      ; Load current weapon screen position
+;    LD          HL,(MONSTER_WEAPON_CHRRAM_PTR)      ; Load current weapon screen position
 ;    INC         HL                                  ; Move weapon forward by 1 byte    **** CHANGE ME ****
-    LD          (MONSTER_WEAPON_CHRRAM_PTR),HL      ; Store new position
+;    LD          (MONSTER_WEAPON_CHRRAM_PTR),HL      ; Store new position
+    JP          SKIP_MONSTER_WEAPON_FRAME           ; Jump past DRAW FRAME section
 
 ;==============================================================================
 ; DRAW_MONSTER_WEAPON_FRAME
@@ -1182,6 +1187,7 @@ DRAW_MONSTER_WEAPON_FRAME:
     LD          A,(MONSTER_WEAPON_SPRITE)           ; Load weapon sprite ID
     CALL        CHK_ITEM                            ; Draw melee weapon sprite (second draw this tick)
 
+SKIP_MONSTER_WEAPON_FRAME:
     LD          A,$32                               ; Reset to default CHRRAM row
     LD          (PL_WPN_CHRRAM_HI),A                ; Store as sprite address high byte
     LD          A,(MASTER_TICK_TIMER)               ; Load system timer
