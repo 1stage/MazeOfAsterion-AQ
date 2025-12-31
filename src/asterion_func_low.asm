@@ -2788,6 +2788,12 @@ DECREASE_PITCH:
     ADD         HL,DE                               ; Add pitch step (decrease freq)
     JP          PLAY_PITCH_CHANGE                   ; Continue with new pitch
 
+; Preamble to HC_JOY_INPUT_COMPARE to handle in-melee only commands
+CHK_MONSTER_MELEE_STATE:
+    LD          A,(MONSTER_MELEE_STATE)             ; Load MONSTER_MELEE_STATE
+    CP          $31                                 ; Compare to "between attacks" mode
+    JP          NZ,WAIT_FOR_INPUT                   ; If not in "between attacks" mode, wait for input
+
 ;==============================================================================
 ; HC_JOY_INPUT_COMPARE
 ;==============================================================================
@@ -2818,9 +2824,6 @@ DECREASE_PITCH:
 ; Calls: Jumps to various action routines or continues to game logic
 ;==============================================================================
 HC_JOY_INPUT_COMPARE:
-    LD          A,(KEYBOARD_SCAN_FLAG)              ; Load input mode flag
-    CP          $31                                 ; Compare to "1" (handcontroller mode)
-    JP          NZ,WAIT_FOR_INPUT                   ; If not HC mode, wait for input
     LD          HL,(HC_INPUT_HOLDER)                ; Load joystick input values
     LD          A,$f3                               ; Compare to JOY disc UUL
     CP          L                                   ; Check L register
@@ -3869,7 +3872,7 @@ DRAW_WALL_FL2:
 ;==============================================================================
 FIX_ICON_COLORS:
     LD          HL,COLRAM_LEVEL_IDX_L               ; Point to level indicator color area
-    LD          A,(MULTIPURPOSE_BYTE)               ; Load multipurpose byte value
+    LD          A,(DIFFICULTY_LEVEL)                ; Load DIFFICULTY_LEVEL
     ADD         A,A                                 ; Double the value
     SUB         0x1                                 ; Subtract 1
     LD          (HL),A                              ; Set level indicator color

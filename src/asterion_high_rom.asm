@@ -635,13 +635,13 @@ PLAYER_ANIM_ADVANCE:
     LD          A,(PLAYER_ANIM_STATE)               ; Load item animation state
     LD          HL,(PLAYER_ANIM_LOOP_COUNT)         ; Load loop counter (HL)
     DEC         A                                   ; Decrement state
-    JP          NZ,ADVANCE_PLAYER_WEAPON_FRAME      ; If still non-zero, branch to frame step
+    JP          NZ,SKIP_PLAYER_WEAPON_FRAME         ; If still non-zero, branch to frame step
     DEC         L                                   ; Decrement inner loop count
     JP          NZ,RESET_PLAYER_ANIM_STATE          ; If not zero, refresh state and continue
     DEC         H                                   ; Decrement outer loop count
     JP          Z,FINISH_APPLY_MONSTER_DAMAGE       ; If zero, animation complete
     LD          A,$31                               ; Player weapon CHRRAM high byte
-    LD          (PL_WPN_CHRRAM_LO),A                ; Store into CPL_WPN_CHRRAM_LO
+    LD          (PL_WPN_CHRRAM_HI),A                ; Store into CPL_WPN_CHRRAM_LO
     LD          L,0x4                               ; Reset inner loop count to 4
 RESET_PLAYER_ANIM_STATE:
     LD          A,0x4                               ; Set player animation state to 4
@@ -649,17 +649,17 @@ RESET_PLAYER_ANIM_STATE:
     LD          (PLAYER_ANIM_LOOP_COUNT),HL         ; Write back loop counters
     LD          HL,(PLAYER_WEAPON_CHRRAM_PTR)       ; Load CHRRAM pointer for frame
     LD          BC,41                               ; Row stride 41
-    XOR         A                                   ; Clear A for SBC
+    XOR         A                                   ; Clear Flags for SBC
     SBC         HL,BC                               ; Move pointer backwards by 41 (UL)
     LD          (PLAYER_WEAPON_CHRRAM_PTR),HL       ; Save updated pointer
     JP          DRAW_PLAYER_WEAPON_FRAME            ; Continue to graphics copy/update
 
-ADVANCE_PLAYER_WEAPON_FRAME:
+SKIP_PLAYER_WEAPON_FRAME:
     LD          (PLAYER_ANIM_STATE),A               ; Persist new animation state
 ;    LD          HL,(PLAYER_WEAPON_CHRRAM_PTR)       ; Load CHRRAM pointer
 ;    DEC         HL                                  ; Move to previous byte   **** CHANGE ME ****
 ;    LD          (PLAYER_WEAPON_CHRRAM_PTR),HL       ; Save updated pointer
-    JP          SKIP_PLAYER_WEAPON_FRAME            ; Jump past DRAW FRAME section
+    JP          ADVANCE_PLAYER_WEAPON_FRAME         ; Jump past DRAW FRAME section
 
 ;==============================================================================
 ; DRAW_PLAYER_WEAPON_FRAME — Draw Player's Weapon Sprite Frame
@@ -694,14 +694,14 @@ DRAW_PLAYER_WEAPON_FRAME:
     POP         BC                                  ; BC = adjusted screen address (from stack)
     LD          B,0x0                               ; B = 0 (clear high byte for CHK_ITEM parameter)
 
-    LD          A,(PL_WPN_CHRRAM_LO)                ; Load PL_WPN_CHRRAM_LO byte
-    LD          (PL_WPN_CHRRAM_HI),A                ; Update PL_WPN_CHRRAM_HI from PL_WPN_CHRRAM_LO
+    LD          A,(PL_WPN_CHRRAM_HI)                ; Load PL_WPN_CHRRAM_HI byte
+    LD          (ITEM_CHRRAM_HI),A                  ; Update ITEM_CHRRAM_HI from PL_WPN_CHRRAM_HI
     LD          A,(PLAYER_WEAPON_SPRITE)            ; Load item sprite index
     CALL        CHK_ITEM                            ; Draw player weapon sprite (first of two draws this tick)
 
-SKIP_PLAYER_WEAPON_FRAME:
-    LD          A,$32                               ; Monster weapon CHRRAM row base
-    LD          (PL_WPN_CHRRAM_HI),A                ; Update PL_WPN_CHRRAM_HI to $32
+ADVANCE_PLAYER_WEAPON_FRAME:
+    LD          A,$32                               ; Player weapon CHRRAM row base
+    LD          (ITEM_CHRRAM_HI),A                  ; Update ITEM_CHRRAM_HI
     LD          A,(MASTER_TICK_TIMER)               ; Load timer A
     ADD         A,$ff                               ; Decrement by 1
     LD          (PLAYER_TIMER_COMPARE),A            ; Cache copy for animation timing
@@ -753,14 +753,14 @@ COPY_PL_BUFF_TO_SCRN:
 FINISH_APPLY_MONSTER_DAMAGE:
     CALL        COPY_PL_BUFF_TO_SCRN                ; Copy RH item gfx into CHRRAM
     LD          A,$32                               ; Monster weapon CHRRAM row base
-    LD          (PL_WPN_CHRRAM_LO),A                ; Store status into CHRRAM_SPRITE_ADDR_LO
-    LD          (SCREENSAVER_STATE),A               ; Store status into SCREENSAVER_STATE
-    LD          A,(WEAPON_SPRT)                     ; Load spiritual/physical weapon flag
+    LD          (PL_WPN_CHRRAM_HI),A                ; Store status into PL_WPN_CHRRAM_HI
+    LD          (PLAYER_MELEE_STATE),A              ; Store status into PLAYER_MELEE_STATE
+    LD          A,(WEAPON_SPRT)                     ; Load weapon SPRT value
     LD          E,A                                 ; Move flag into E for math
     LD          D,0x0                               ; Clear D to form DE
     CP          0x0                                 ; Compare: physical (0) vs spiritual (≠0)
     JP          NZ,CALC_SPRT_DAMAGE                 ; If spiritual, branch to spiritual path
-    LD          DE,(WEAPON_PHYS)                    ; Load physical weapon damage pair
+    LD          DE,(WEAPON_PHYS)                    ; Load weapon PHYS value
     EXX                                             ; Switch to alt regs for item setup
     CALL        NEW_RIGHT_HAND_ITEM                 ; Finalize right-hand item state
     EXX                                             ; Restore primary regs
@@ -1123,7 +1123,7 @@ MONSTER_ANIM_ADVANCE:
     LD          A,(MONSTER_ANIM_STATE)              ; Load current animation state (1 or 3)
     LD          HL,(MONSTER_ANIM_LOOP_COUNT)        ; Load position frame counter
     DEC         A                                   ; Decrement state: 1→0 or 3→2
-    JP          NZ,ADVANCE_MONSTER_WEAPON_FRAME     ; If state≠1, jump to increment position
+    JP          NZ,SKIP_MONSTER_WEAPON_FRAME        ; If state≠1, jump to increment position
     DEC         L                                   ; State=1: decrement low byte of counter
     JP          NZ,RESET_MONSTER_ANIM_STATE         ; If L≠0, continue animation
     DEC         H                                   ; L reached 0: decrement high byte
@@ -1140,16 +1140,16 @@ RESET_MONSTER_ANIM_STATE:
     LD          HL,(MONSTER_WEAPON_CHRRAM_PTR)      ; Load current weapon screen position
 ;    LD          BC,41                              ; Row stride 41
     LD          BC,39                               ; Row stride 39      **** CHANGE ME ****
-    ADD         HL,BC                               ; Advance weapon position by 41 bytes
+    ADD         HL,BC                               ; Advance weapon position by 39 bytes
     LD          (MONSTER_WEAPON_CHRRAM_PTR),HL      ; Store new weapon position
     JP          DRAW_MONSTER_WEAPON_FRAME           ; Draw weapon at new position
 
-ADVANCE_MONSTER_WEAPON_FRAME:
+SKIP_MONSTER_WEAPON_FRAME:
     LD          (MONSTER_ANIM_STATE),A              ; Store current state (decremented)
 ;    LD          HL,(MONSTER_WEAPON_CHRRAM_PTR)      ; Load current weapon screen position
 ;    INC         HL                                  ; Move weapon forward by 1 byte    **** CHANGE ME ****
 ;    LD          (MONSTER_WEAPON_CHRRAM_PTR),HL      ; Store new position
-    JP          SKIP_MONSTER_WEAPON_FRAME           ; Jump past DRAW FRAME section
+    JP          ADVANCE_MONSTER_WEAPON_FRAME        ; Advance monster weapon screen position
 
 ;==============================================================================
 ; DRAW_MONSTER_WEAPON_FRAME
@@ -1180,16 +1180,17 @@ DRAW_MONSTER_WEAPON_FRAME:
     LD          DE,MN_BG_CHRRAM_BUFFER              ; DE = background buffer address
     CALL        COPY_GFX_2_BUFFER                   ; Save 4x4 screen area to buffer
 
-    POP         BC                                  ; BC = adjusted screen address (from stack)
+    POP         BC                                  ; BC = saved MONSTER CHRRAM address (from stack)
     LD          B,0x0                               ; B = 0 (clear high byte for CHK_ITEM parameter)
     LD          A,(MN_WPN_CHRRAM_HI)                ; Load monster weapon CHRRAM high byte
-    LD          (PL_WPN_CHRRAM_HI),A                ; Store as sprite address high byte
+    LD          (ITEM_CHRRAM_HI),A                  ; Store as sprite address high byte
     LD          A,(MONSTER_WEAPON_SPRITE)           ; Load weapon sprite ID
     CALL        CHK_ITEM                            ; Draw melee weapon sprite (second draw this tick)
 
-SKIP_MONSTER_WEAPON_FRAME:
+ADVANCE_MONSTER_WEAPON_FRAME:
     LD          A,$32                               ; Reset to default CHRRAM row
-    LD          (PL_WPN_CHRRAM_HI),A                ; Store as sprite address high byte
+;    LD          A,(MN_WPN_CHRRAM_HI)                ; Load monster weapon CHRRAM high byte **** CHANGE ME ****
+    LD          (ITEM_CHRRAM_HI),A                  ; Store as sprite address high byte
     LD          A,(MASTER_TICK_TIMER)               ; Load system timer
     ADD         A,$ff                               ; Decrement by 1
     LD          (MONSTER_TIMER_COMPARE),A           ; Store updated animation timer
@@ -1245,8 +1246,8 @@ FINISH_APPLY_PLAYER_DAMAGE:
     CALL        COPY_MN_BUFF_TO_SCRN                ; Restore background, erase weapon sprite
     LD          A,$31                               ; Player weapon CHRRAM high byte
     LD          (MN_WPN_CHRRAM_HI),A                ; Store high byte (also signals damage calc phase)
-    LD          (KEYBOARD_SCAN_FLAG),A              ; Store flag copy
-    LD          A,(MULTIPURPOSE_BYTE)               ; Load number of damage iterations
+    LD          (MONSTER_MELEE_STATE),A             ; Store MONSTER_MELEE_STATE
+    LD          A,(DIFFICULTY_LEVEL)                ; Load DIFFICULTY_LEVEL
     LD          B,A                                 ; B = iteration counter
     LD          H,0x0                               ; H = 0 (high byte of damage accumulator)
     LD          A,(WEAPON_VALUE_HOLDER)             ; Load base weapon damage value
@@ -2884,10 +2885,10 @@ REVERSE_ROTATE_LOOP:
 ;   Jumps to WAIT_FOR_INPUT or into AI branch (RANDOM_ACTION_HANDLER)
 ;
 TIMER_UPDATED_CHECK_INPUT:
-    LD          A,(SCREENSAVER_STATE)               ; Load animation state byte AD
+    LD          A,(PLAYER_MELEE_STATE)              ; Load player melee state
     CP          $32                                 ; Is state equal to $32? (branch set)
     JP          Z,IDLE_SCREENSAVER_CHK              ; Yes → handle screensaver/idle branch
-    LD          A,(KEYBOARD_SCAN_FLAG)              ; Load animation state byte AE
+    LD          A,(MONSTER_MELEE_STATE)             ; Load MONSTER_MELEE_STATE
     CP          $31                                 ; Player not pressing Key 1 (attacking)
     JP          NZ,MONSTER_PLAYER_ANIM_TICK         ; If not $31 → check monster/melee tick
 
@@ -2924,7 +2925,7 @@ MONSTER_ANIM_TICK:
 ; Idle branch when SCREENSAVER_STATE == $32 (screensaver timer + conditional AI)
 ;-------------------------------------------------------------------------------
 IDLE_SCREENSAVER_CHK:
-    LD          A,(KEYBOARD_SCAN_FLAG)              ; Read secondary state AE
+    LD          A,(MONSTER_MELEE_STATE)             ; Load MONSTER_MELEE_STATE
     CP          $31                                 ; If player hasn't pressed Key 1 (attack), monster only
     JP          NZ,MONSTER_ANIM_TICK                ; Only Monster is attacking
     CALL        UPDATE_SCR_SAVER_TIMER              ; Bump inactivity/screensaver counters
@@ -3118,12 +3119,14 @@ ENABLE_JOY_04:
     DEC         C                                   ; C = $F6 (HC data port)
     IN          A,(C)                               ; Read HC input data (additional buttons)
     LD          (HL),A                              ; Store second byte to buffer
-    LD          A,(MULTIPURPOSE_BYTE)               ; Load previous input state
-    AND         A                                   ; Test if zero (no previous input)
-    JP          NZ,HC_JOY_INPUT_COMPARE             ; If not zero, compare with new input
-    LD          A,(DUNGEON_LEVEL)                   ; Load current dungeon level
-    AND         A                                   ; Test if zero (on title screen)
-    JP          NZ,GAMEINIT                         ; If in dungeon, initialize game
+
+    LD          A,(DIFFICULTY_LEVEL)                ; Load DIFFICULTY_LEVEL
+    AND         A                                   ; Clear C and N flags
+    JP          NZ,CHK_MONSTER_MELEE_STATE          ; If player is not dead, check melee state and then inputs
+    LD          A,(DUNGEON_LEVEL)                   ; Load DUNGEON_LEVEL (BCD!)
+    AND         A                                   ; Clear C and N flags
+    JP          NZ,GAMEINIT                         ; If not in Main Menu, initialize game
+
     LD          A,(HL)                              ; Load second HC input byte
     INC         A                                   ; Increment (test if $FF: no input)
     JP          Z,TITLE_CHK_FOR_HC_INPUT            ; If $FF, check first byte instead
@@ -3233,7 +3236,7 @@ HANDLE_KEYBOARD_INPUT:
     LD          D,0x8                               ; Set counter to 8 (8 columns to scan)
 
 ;==============================================================================
-; SELECT_DIFFICULTY_LOOP - Scan keyboard and select difficulty level
+; KBD_LEVEL_SELECT_LOOP - Scan keyboard and select difficulty level
 ;==============================================================================
 ; Scans all 8 keyboard columns and stores results in buffer, then checks for
 ; specific key presses to set game difficulty (1-3) or default (4). Handles
@@ -3262,20 +3265,22 @@ HANDLE_KEYBOARD_INPUT:
 ; Memory Modified: KEY_INPUT_COL0..7, MULTIPURPOSE_BYTE, GAME_BOOLEANS
 ; Calls: BLANK_SCRN, GAMEINIT, SHOW_AUTHOR (jumps)
 ;==============================================================================
-SELECT_DIFFICULTY_LOOP:
+KBD_LEVEL_SELECT_LOOP:
     IN          A,(C)                               ; Read current keyboard column
     LD          (HL),A                              ; Store column data to buffer
 
     INC         L                                   ; Advance to next buffer position
     RLC         B                                   ; Rotate column mask left (next column)
     DEC         D                                   ; Decrement column counter
-    JP          NZ,SELECT_DIFFICULTY_LOOP           ; Loop if more columns to scan
-    LD          A,(MULTIPURPOSE_BYTE)               ; Load previous input state
-    AND         A                                   ; Test if zero (no previous input)
-    JP          NZ,KEY_COMPARE                      ; If not zero, compare with new input
-    LD          A,(DUNGEON_LEVEL)                   ; Load current dungeon level
-    AND         A                                   ; Test if zero (on title screen)
-    JP          NZ,GAMEINIT                         ; If in dungeon, initialize game
+    JP          NZ,KBD_LEVEL_SELECT_LOOP            ; Loop if more columns to scan
+
+    LD          A,(DIFFICULTY_LEVEL)                ; Load DIFFICULTY_LEVEL
+    AND         A                                   ; Clear C and N flags
+    JP          NZ,KEY_COMPARE                      ; If player is not dead, read new input
+    LD          A,(DUNGEON_LEVEL)                   ; Load DUNGEON_LEVEL (BCD!)
+    AND         A                                   ; Clear C and N flags
+    JP          NZ,GAMEINIT                         ; If not in Main Menu, initialize game
+
     LD          A,(KEY_INPUT_COL6)                  ; Load column 6 key data
     CP          $fe                                 ; Compare to key 3 value ($FE)
     JP          Z,SET_DIFFICULTY_1                  ; If key 3, set difficulty 1
@@ -3290,7 +3295,7 @@ SELECT_DIFFICULTY_LOOP:
 SET_DIFFICULTY_4:
     LD          A,0x4                               ; Set difficulty to 4 (hardest)
 GOTO_GAME_START:
-    LD          (MULTIPURPOSE_BYTE),A               ; Store difficulty level
+    LD          (DIFFICULTY_LEVEL),A                ; Store DIFFICULTY_LEVEL
     LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
     SET         0x0,A                               ; Set bit 0 (game start flag)
     LD          (GAME_BOOLEANS),A                   ; Store updated flags
@@ -3363,7 +3368,7 @@ ITEM_NOT_RD_YL:
     LD          E,(HL)                              ; Load graphics pointer low byte
     INC         HL                                  ; Point to high byte
     LD          D,(HL)                              ; Load graphics pointer high byte
-    LD          A,(PL_WPN_CHRRAM_HI)                ; Load sprite CHRRAM address high byte
+    LD          A,(ITEM_CHRRAM_HI)                  ; Load sprite CHRRAM address high byte
     LD          H,A                                 ; Store in H register for GFX_DRAW
 
     LD          L,C                                 ; Store C in L
@@ -4684,7 +4689,7 @@ PLAYER_DIES:
     CALL        FILL_CHRCOL_RECT                    ; Fill viewport with black
     LD          HL,CHRRAM_YOU_DIED_IDX              ; Point to "YOU DIED" screen position
     LD          DE,YOU_DIED_TXT                     ; Point to "YOU DIED" text data
-    LD          A,(MULTIPURPOSE_BYTE)               ; Load input state
+    LD          A,(DIFFICULTY_LEVEL)                ; Load DIFFICULTY_LEVEL
     LD          (COMBAT_BUSY_FLAG),A                ; Store to combat flag
     RLCA                                            ; Rotate left 4 times
     RLCA                                            ; to move high nibble
@@ -4696,10 +4701,10 @@ PLAYER_DIES:
     LD          (PLAYER_PHYS_HEALTH),HL             ; Set physical health to 0
     XOR         A                                   ; A = 0
     LD          (PLAYER_SPRT_HEALTH),A              ; Set spiritual health to 0
-    LD          (MULTIPURPOSE_BYTE),A               ; Clear input holder
+    LD          (DIFFICULTY_LEVEL),A                ; Clear DIFFICULTY_LEVEL
     CALL        REDRAW_STATS                        ; Update stats display
     LD          A,$32                               ; Value $32
-    LD          (SCREENSAVER_STATE),A               ; Store to SCREENSAVER_STATE
+    LD          (PLAYER_MELEE_STATE),A              ; Store to PLAYER_MELEE_STATE
     CALL        PLAY_PITCH_DOWN_SLOW                ; Play slow pitch-down sound
     CALL        SLEEP_ZERO                          ; Wait/delay function
     JP          SCREEN_SAVER_FULL_SCREEN            ; Jump to screen saver
@@ -5343,7 +5348,7 @@ INIT_PL_MELEE_ANIM:
     LD          HL,CHRRAM_VP_PL_WEAPON_START_IDX    ; Point to new right-hand graphics area   **** CHANGE ME ****
     LD          (PLAYER_WEAPON_CHRRAM_PTR),HL       ; Store graphics pointer
     LD          A,L                                 ; A = low byte of CHRRAM pointer
-    LD          (SCREENSAVER_STATE),A               ; Store to SCREENSAVER_STATE
+    LD          (PLAYER_MELEE_STATE),A              ; Store to PLAYER_MELEE_STATE
     JP          DRAW_PLAYER_WEAPON_FRAME            ; Copy frame graphics and return
 
 ;==============================================================================
@@ -5462,7 +5467,7 @@ INIT_MONSTER_COMBAT:
     RL          B                                   ; Rotate left again (B now has level 0-3)
     EX          AF,AF'                              ; Save AF (monster type) to alternate
     XOR         A                                   ; A = 0
-    LD          HL,DUNGEON_LEVEL                    ; Point to dungeon level (BCD)
+    LD          HL,DUNGEON_LEVEL                    ; Point to DUNGEON_LEVEL address
     RLD                                             ; Rotate left digit (get low nibble)
     LD          D,A                                 ; D = low nibble of level
     SRL         A                                   ; Shift right
@@ -5648,6 +5653,8 @@ SEED_MONSTER_HP_AND_ATTACK:
     CALL        CALC_WEAPON_VALUE                   ; Calculate monster attack value
     LD          (WEAPON_VALUE_HOLDER),A             ; Store attack value
     CALL        REDRAW_MONSTER_HEALTH               ; Update monster health display
+    JP          INIT_MN_MELEE_ANIM                  ; Added for relocatability code
+
 INIT_MN_MELEE_ANIM:
     LD          A,0x3                               ; A = 3 (melee animation state)
     LD          (MONSTER_ANIM_STATE),A              ; Store animation state
@@ -5657,9 +5664,10 @@ INIT_MN_MELEE_ANIM:
     LD          HL,CHRRAM_VP_MN_WEAPON_START_IDX    ; Point to new monster graphics area **** CHANGE ME ****
     LD          (MONSTER_WEAPON_CHRRAM_PTR),HL      ; Store position offset
     LD          A,L                                 ; A = low byte ($EA)
-    LD          (KEYBOARD_SCAN_FLAG),A              ; Store to KEYBOARD_SCAN_FLAG
+    LD          (MONSTER_MELEE_STATE),A             ; Store to MONSTER_MELEE_STATE
     CALL        DRAW_MONSTER_WEAPON_FRAME           ; Draw weapon frame for initial melee state
     JP          WAIT_FOR_INPUT                      ; Return to input wait
+
 REDRAW_MONSTER_HEALTH:
     LD          DE,CHRRAM_MONSTER_PHYS              ; Point to monster physical health display
     LD          HL,CURR_MONSTER_PHYS                ; Point to current monster physical HP
@@ -5858,9 +5866,9 @@ RESET_MAP:
 ;==============================================================================
 INC_DUNGEON_LEVEL:
     LD          DE,$3002                            ; DE = display address for level
-    LD          HL,DUNGEON_LEVEL                    ; Point to current dungeon level (BCD)
+    LD          HL,DUNGEON_LEVEL                    ; Point to DUNGEON_LEVEL address
     LD          A,0x1                               ; A = 1 (increment value)
-    ADD         A,(HL)                              ; Add 1 to dungeon level
+    ADD         A,(HL)                              ; Add 1 to DUNGEON_LEVEL (BCD!)
     DAA                                             ; Decimal adjust (BCD correction)
     JP          C,DRAW_99_LOOP_NOTICE               ; If overflow (>99), show loop notice
 
@@ -5949,7 +5957,7 @@ LEVEL_99_NOTICE_DELAY:
     EXX                                             ; Switch back to main registers
     DJNZ        LEVEL_99_NOTICE_DELAY               ; Loop 30 times for delay
     LD          A,CHAR_BOTTOM_LINE                  ; A = bottom line character
-    LD          HL,DUNGEON_LEVEL                    ; Point to dungeon level
+    LD          HL,DUNGEON_LEVEL                    ; Point to DUNGEON_LEVEL address
     LD          DE,CHHRAM_LVL_IDX                   ; Point to level display address
     JP          STORE_LEVEL_AND_REDRAW              ; Jump to update level display
 ;==============================================================================
@@ -6329,7 +6337,7 @@ START_ITEM_TABLE:
 								                    ; (always 1st item after offset)
 
     INC         L                                   ; Move to first item slot (after ladder)
-    LD          A,(MULTIPURPOSE_BYTE)               ; Get input value for calculation
+    LD          A,(DIFFICULTY_LEVEL)                ; Load DIFFICULTY_LEVEL
     LD          B,A                                 ; Use as loop counter
     LD          A,0x2                               ; Start with base value 2
     JP          BCD_DOUBLE_ENTRY                    ; Jump into BCD multiplication loop
@@ -6339,7 +6347,7 @@ BCD_DOUBLE_LOOP:
 BCD_DOUBLE_ENTRY:
     DJNZ        BCD_DOUBLE_LOOP                     ; Loop B times (2^B in BCD)
     LD          C,A                                 ; Save calculated threshold in C
-    LD          A,(DUNGEON_LEVEL)                   ; Get current dungeon level
+    LD          A,(DUNGEON_LEVEL)                   ; Load DUNGEON_LEVEL (BCD!)
     CP          C                                   ; Compare level to threshold
     JP          C,SET_ITEM_LIMIT                    ; Skip item generation if level < threshold
 
@@ -6368,9 +6376,9 @@ GENERATE_RANDOM_ITEM:
     JP          Z,GENERATE_RANDOM_ITEM              ; If $FF, retry (avoid terminator)
     DEC         A                                   ; Restore original value
     EX          AF,AF'                              ; Save position to alternate AF
-    LD          A,(DUNGEON_LEVEL)                   ; Load dungeon level
-    AND         A                                   ; Test if level 0
-    JP          NZ,CHECK_ITEM_POSITION              ; If not level 0, skip restrictions
+    LD          A,(DUNGEON_LEVEL)                   ; Load DUNGEON_LEVEL (BCD!)
+    AND         A                                   ; Clear C and N flags
+    JP          NZ,CHECK_ITEM_POSITION              ; If not in Main Menu, check item position
     EX          AF,AF'                              ; Restore position from alternate
     CP          0x1                                 ; Compare to position 1
     JP          Z,GENERATE_RANDOM_ITEM              ; If position 1, retry (reserved)
@@ -6402,7 +6410,7 @@ ITEM_WEAPONS:
     JP          NZ,ITEM_SPECIALS                    ; If not 1, check next category
     LD          C,0x5                               ; Category 1: C = 5 (range 0-4)
     LD          D,0x6                               ; D = 6 (base offset for bows/scrolls)
-    LD          A,(DUNGEON_LEVEL)                   ; Load dungeon level
+    LD          A,(DUNGEON_LEVEL)                   ; Load DUNGEON_LEVEL (BCD!)
     CP          0x6                                 ; Compare to level 6
     JP          C,GEN_ITEM_TYPE                     ; If < 6, use range 0-4
     LD          C,0x7                               ; If >= 6, C = 7 (range 0-6)
@@ -6416,7 +6424,7 @@ ITEM_SPECIALS:
 ITEM_MONSTERS:
     LD          D,$1e                               ; Category 3 (monsters): D = $1E (base offset)
     LD          C,0x5                               ; C = 5 (range 0-4, monsters $1E-$22)
-    LD          A,(DUNGEON_LEVEL)                   ; Load dungeon level
+    LD          A,(DUNGEON_LEVEL)                   ; Load DUNGEON_LEVEL (BCD!)
     CP          0x6                                 ; Compare to level 6
     JP          C,GEN_ITEM_TYPE                     ; If < 6, use range 0-4
     LD          C,0x7                               ; If >= 6, C = 7 (range 0-6, adds $23-$24)
@@ -6432,7 +6440,7 @@ GEN_ITEM_TYPE_LOOP:
     ADD         A,C                                 ; Add back to get final offset
     ADD         A,D                                 ; Add base offset (item type)
     LD          C,A                                 ; C = item type code
-    LD          A,(DUNGEON_LEVEL)                   ; Load dungeon level (BCD)
+    LD          A,(DUNGEON_LEVEL)                   ; Load DUNGEON_LEVEL (BCD!)
     INC         A                                   ; Increment level
     INC         A                                   ; Increment again (level + 2)
     SRL         A                                   ; Shift right (divide by 2)
@@ -8199,14 +8207,14 @@ MINOTAUR_DEAD:
     AND         0x3                                 ; Mask to 0-3
     ADD         A,0xa                               ; Add 10 (result: 10-13)
     LD          B,A                                 ; Store in B (unused?)
-    LD          A,(MULTIPURPOSE_BYTE)               ; Load input holder value
+    LD          A,(DIFFICULTY_LEVEL)                ; Load DIFFICULTY_LEVEL
     RLCA                                            ; Rotate left 4 times
     RLCA                                            ; (shift upper nibble to lower)
     RLCA
     RLCA
     LD          B,A                                 ; Store rotated value in B
     XOR         A                                   ; Clear A (A = 0)
-    LD          (MULTIPURPOSE_BYTE),A               ; Clear input holder
+    LD          (DIFFICULTY_LEVEL),A                ; Clear DIFFICULTY_LEVEL
     LD          DE,MINOTAUR                         ; DE = Minotaur sprite data
     LD          HL,CHRRAM_MINOTAUR_IDX              ; HL = screen position for Minotaur
     CALL        GFX_DRAW                            ; Draw Minotaur sprite
@@ -8326,7 +8334,7 @@ HEAL_PLAYER_SPRT_HEALTH:
 ; Calls: Various action handlers (DO_*, USE_*, etc.)
 ;==============================================================================
 KEY_COMPARE:
-    LD          A,(KEYBOARD_SCAN_FLAG)              ; Load keyboard scan flag
+    LD          A,(MONSTER_MELEE_STATE)             ; Load MONSTER_MELEE_STATE
     CP          $31                                 ; Compare to "1" (key pressed?)
     JP          NZ,WAIT_FOR_INPUT                   ; If no key, wait for input
 KEY_COL_0:

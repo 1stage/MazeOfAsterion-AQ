@@ -280,16 +280,16 @@ DOOR_ANIM_GFX_DATA EQU $3a58
 DIR_FACING_HI EQU $3a60 
 DIR_FACING_LO EQU $3a61 
 DIR_FACING_SHORT EQU $3a62 
-PL_WPN_CHRRAM_HI EQU $3a63
-PL_WPN_CHRRAM_LO EQU $3a64
-SCREENSAVER_STATE EQU $3a65
-KEYBOARD_SCAN_FLAG EQU $3a66 
+ITEM_CHRRAM_HI EQU $3a63
+PL_WPN_CHRRAM_HI EQU $3a64
+PLAYER_MELEE_STATE EQU $3a65
+MONSTER_MELEE_STATE EQU $3a66 
 MN_WPN_CHRRAM_HI EQU $3a67 
-DUNGEON_LEVEL EQU $3a68 
+DUNGEON_LEVEL EQU $3a68             ; BCD!
 MASTER_TICK_TIMER EQU $3a69 
 SECONDARY_TIMER EQU $3a6a
 INACTIVITY_TIMER EQU $3a6b
-MULTIPURPOSE_BYTE EQU $3a6c 
+DIFFICULTY_LEVEL EQU $3a6c          ; 0 = in Main Menu/Player Dead ; 1 - 4 difficulty level
 SHIELD_PHYS EQU $3a71 
 SHIELD_SPRT EQU $3a73 
 ARMOR_INV_SLOT EQU $3a74 
@@ -312,7 +312,7 @@ INV_ITEM_SLOT_3 EQU $3a7e
 PLAYER_WEAPON_SPRITE EQU $3a82
 ; Encoded player weapon sprite: (item_type << 2) | level
 PLAYER_WEAPON_CHRRAM_PTR EQU $3a83
-; 16-bit pointer to character RAM for item animation draw
+; 16bit current screen address (UL of 4x4 block) index for Player weapon sprite
 PLAYER_ANIM_LOOP_COUNT EQU $3a85    ; 4, 3, 2, 1 -       Changes 27 times per melee round
 ; 16-bit animation loop counter (decrements each frame)
 PLAYER_ANIM_STATE EQU $3a87         ; 4, 3, 2, 1 -       Changes 7  times per melee round
@@ -327,6 +327,7 @@ MONSTER_TIMER_COMPARE EQU $3a8c
 ; Cached timer value for monster animation sync 
 MONSTER_ANIM_LOOP_COUNT EQU $3a8d   ; 6, 5, 4, 3, 2, 1 - Changes 9  times per melee round
 MONSTER_WEAPON_CHRRAM_PTR EQU $3a8f
+; 16bit current screen address (UL of 4x4 block) index for Monster weapon sprite
 RND_SEED_LFSR EQU $3a91
 PLAYER_PHYS_HEALTH EQU $3a93 
 PLAYER_PHYS_HEALTH_MAX EQU $3a95 
