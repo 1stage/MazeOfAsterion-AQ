@@ -24,6 +24,7 @@
 ;
 GAMEINIT:
     LD          SP,$3fff                            ; Reset stack pointer (top of BANK0 RAM)
+RESET_POST_SP:
     CALL        WIPE_VARIABLE_SPACE                 ; Clear variable region; HL now at start of init block ($3A62)
     LD          (HL),0x2                            ; Store constant 02 at $3A62 (game/state flag)
     INC         L                                   ; Advance to $3A63
@@ -2909,9 +2910,9 @@ MONSTER_PLAYER_ANIM_TICK:
     CALL        COPY_MN_BUFF_TO_SCRN                ; Restore background under monster weapon sprite
     CALL        COPY_PL_BUFF_TO_SCRN                ; Restore background under plater weapon sprite
     CALL        PLAYER_ANIM_ADVANCE                 ; Redraw any UI impacted by anim state
-    CALL        FIX_MELEE_GLITCH_START
+    CALL        FIX_MELEE_GLITCH_BEGIN              ; Back up the pack area chars and cols
     CALL        MONSTER_ANIM_ADVANCE                ; Advance monster weapon animation frame
-    CALL        FIX_MELEE_GLITCH_END
+    CALL        FIX_MELEE_GLITCH_END                ; Restore the pack area chars and cols
     JP          WAIT_FOR_INPUT                      ; Back to main loop
 
 MONSTER_ANIM_TICK:
@@ -2920,9 +2921,9 @@ MONSTER_ANIM_TICK:
     CP          (HL)                                ; Has MASTER_TICK_TIMER advanced for monster anim?
     JP          NZ,WAIT_FOR_INPUT                   ; No → skip animation this frame
     CALL        COPY_MN_BUFF_TO_SCRN                ; Restore background under melee sprites
-    CALL        FIX_MELEE_GLITCH_START
+    CALL        FIX_MELEE_GLITCH_BEGIN              ; Back up the pack area chars and cols
     CALL        MONSTER_ANIM_ADVANCE                ; Advance monster weapon animation frame
-    CALL        FIX_MELEE_GLITCH_END
+    CALL        FIX_MELEE_GLITCH_END                ; Restore the pack area chars and cols
     JP          WAIT_FOR_INPUT                      ; Back to main loop
 
 ;-------------------------------------------------------------------------------
@@ -8202,28 +8203,37 @@ UPDATE_SCR_SAVER_TIMER:
 MINOTAUR_DEAD:
     CALL        DRAW_BKGD                           ; Draw background
     LD          HL,CHRRAM_END_TEXT_IDX              ; HL = first text data address
-    LD          DE,THE_END_PART_A                   ; DE = screen position for "THE END" part A
+    ; LD          DE,THE_END_PART_A                   ; DE = screen position for "THE END" part A
+    LD          DE,END_PORTAL_TEXT                  ; DE = screen position for END_PORTAL_TEXT
     LD          B,$10                               ; B = color (RED on BLACK)
-    CALL        GFX_DRAW                            ; Draw first part of text
-    LD          HL,CHRRAM_END_TEXT_P2_IDX           ; HL = second text data address
-    CALL        GFX_DRAW                            ; Draw second part of text
-    CALL        MAKE_RANDOM_BYTE                    ; Get random byte in A
-    AND         0x3                                 ; Mask to 0-3
-    ADD         A,0xa                               ; Add 10 (result: 10-13)
-    LD          B,A                                 ; Store in B (unused?)
-    LD          A,(DIFFICULTY_LEVEL)                ; Load DIFFICULTY_LEVEL
-    RLCA                                            ; Rotate left 4 times
-    RLCA                                            ; (shift upper nibble to lower)
-    RLCA
-    RLCA
-    LD          B,A                                 ; Store rotated value in B
-    XOR         A                                   ; Clear A (A = 0)
-    LD          (DIFFICULTY_LEVEL),A                ; Clear DIFFICULTY_LEVEL
-    LD          DE,MINOTAUR                         ; DE = Minotaur sprite data
-    LD          HL,CHRRAM_MINOTAUR_IDX              ; HL = screen position for Minotaur
-    CALL        GFX_DRAW                            ; Draw Minotaur sprite
+    CALL        GFX_DRAW                            ; Draw END_PORTAL_TEXT
+
+    ; LD          HL,CHRRAM_END_TEXT_P2_IDX           ; HL = second text data address
+    ; CALL        GFX_DRAW                            ; Draw second part of text
+    ; CALL        MAKE_RANDOM_BYTE                    ; Get random byte in A
+    ; AND         0x3                                 ; Mask to 0-3
+    ; ADD         A,0xa                               ; Add 10 (result: 10-13)
+    ; LD          B,A                                 ; Store in B (unused?)
+    ; LD          A,(DIFFICULTY_LEVEL)                ; Load DIFFICULTY_LEVEL
+    ; RLCA                                            ; Rotate left 4 times
+    ; RLCA                                            ; (shift upper nibble to lower)
+    ; RLCA
+    ; RLCA
+    ; LD          B,A                                 ; Store rotated value in B
+
+    LD          A,0                                   ; Clear A (A = 0)
+    LD          (DIFFICULTY_LEVEL),A                  ; Clear DIFFICULTY_LEVEL
+
+    ; LD          DE,MINOTAUR                         ; DE = Minotaur sprite data
+    ; LD          HL,CHRRAM_MINOTAUR_IDX              ; HL = screen position for Minotaur
+
+    LD          B,COLOR(WHT,BLK)                    ; Portal color is WHT
+    LD          DE,END_PORTAL                       ; DE = END_PORTAL sprite data
+    LD          HL,CHRRAM_END_PORTAL_IDX            ; HL = END_PORTAL screen position
+    CALL        GFX_DRAW                            ; Draw END_PORTAL sprite
     CALL        TOTAL_HEAL                          ; Fully heal player
     CALL        REDRAW_STATS                        ; Update stats display
+
     LD          B,0x2                               ; B = 2 (sound loop count, was 6)
 MINOTAUR_DEAD_SOUND_LOOP:
     EXX                                             ; Switch to alternate register set
@@ -8231,7 +8241,27 @@ MINOTAUR_DEAD_SOUND_LOOP:
     CALL        END_OF_GAME_SOUND                   ; Play end game sound
     EXX                                             ; Switch back to main registers
     DJNZ        MINOTAUR_DEAD_SOUND_LOOP            ; Loop B times
+
+END_PORTAL_FLICKER_SETUP:
+    LD          B,COLOR(WHT,BLK)                    ; Portal color is WHT
+END_PORTAL_FLICKER_LOOP:
+    PUSH        B                                   ; Save B
+    LD          DE,END_PORTAL                       ; DE = END_PORTAL sprite data
+    LD          HL,CHRRAM_END_PORTAL_IDX            ; HL = END_PORTAL screen position
+    CALL        GFX_DRAW                            ; Draw END_PORTAL sprite
+    
+    POP         B                                   ; Restore B
+    DEC         B                                   ; Decrement B
+    LD          A,B                                 ; Load B into A for Z check
+    JP          NZ,END_PORTAL_FLICKER_LOOP
+
+    LD          B,COLOR(WHT,BLK)                    ; Portal color is WHT
+    LD          DE,END_PORTAL                       ; DE = END_PORTAL sprite data
+    LD          HL,CHRRAM_END_PORTAL_IDX            ; HL = END_PORTAL screen position
+    CALL        GFX_DRAW                            ; Draw END_PORTAL sprite
+
     JP          SCREEN_SAVER_FULL_SCREEN            ; Jump to screen saver
+
 ;==============================================================================
 ; DO_REST - Rest to recover health by consuming food
 ;==============================================================================
@@ -8613,26 +8643,47 @@ BCD2HEX:
     POP         BC                                  ; Restore register
     RET
 
-FIX_MELEE_GLITCH_START:
-    PUSH        HL
-    LD          HL,CHRRAM_MELEE_GLITCH_A
-    LD          DE,MELEE_GLITCH_A_CHR_BUFF
-    CALL        COPY_GFX_2_BUFFER
+;==============================================================================
+; FIX_MELEE_GLITCH_BEGIN & END
+;==============================================================================
+; Fixes a visual glitch in the MONSTER's weapon animation where a remnant
+; of their weapon sprite gets drawn above the pack area. This copies the
+; CHRRAM and COLRAM data from those locations to a buffer, then restores them
+; after the routine is complete.
+;
+; Registers:
+; --- Start ---
+;   HL = Saved offset for monster weapon.
+; --- In Process ---
+;   HL = Screen address from which we are copying
+;   DE = Buffer address to which we are copying
+; ---  End  ---
+;   HL = Restored offset for monster weapon.
+;
+; Memory Modified: Screen memory at top of pack area
+; Calls: COPY_GFX_2_BUFFER, COPY_GFX_FROM_BUFFER
+;==============================================================================
 
-    LD          HL,CHRRAM_MELEE_GLITCH_B
-    LD          DE,MELEE_GLITCH_B_CHR_BUFF   
-    CALL        COPY_GFX_2_BUFFER
-    POP         HL
+FIX_MELEE_GLITCH_BEGIN:
+    PUSH        HL                                  ; Save HL
+    LD          HL,CHRRAM_MELEE_GLITCH_A            ; Set CHRRAM_MELEE_GLITCH_A source location
+    LD          DE,MELEE_GLITCH_A_CHR_BUFF          ; Set MELEE_GLITCH_A_CHR_BUFF destination location
+    CALL        COPY_GFX_2_BUFFER                   ; Copy screen to buffer
+
+    LD          HL,CHRRAM_MELEE_GLITCH_B            ; Set CHRRAM_MELEE_GLITCH_B source location
+    LD          DE,MELEE_GLITCH_B_CHR_BUFF          ; Set MELEE_GLITCH_B_CHR_BUFF desitnation location
+    CALL        COPY_GFX_2_BUFFER                   ; Copy screen to buffer
+    POP         HL                                  ; Restore HL
     RET                                             ; Done
 
 FIX_MELEE_GLITCH_END:
-    PUSH        HL
-    LD          HL,MELEE_GLITCH_A_CHR_BUFF
-    LD          DE,CHRRAM_MELEE_GLITCH_A
-    CALL        COPY_GFX_FROM_BUFFER
+    PUSH        HL                                  ; Save HL
+    LD          HL,MELEE_GLITCH_A_CHR_BUFF          ; Set MELEE_GLITCH_A_CHR_BUFF source location
+    LD          DE,CHRRAM_MELEE_GLITCH_A            ; Set CHRRAM_MELEE_GLITCH_A destination location
+    CALL        COPY_GFX_FROM_BUFFER                ; Copy buffer to screen
 
-    LD          HL,MELEE_GLITCH_B_CHR_BUFF
-    LD          DE,CHRRAM_MELEE_GLITCH_B
-    CALL        COPY_GFX_FROM_BUFFER
-    POP         HL
+    LD          HL,MELEE_GLITCH_B_CHR_BUFF          ; Set MELEE_GLITCH_B_CHR_BUFF source location
+    LD          DE,CHRRAM_MELEE_GLITCH_B            ; Set CHRRAM_MELEE_GLITCH_B destination location
+    CALL        COPY_GFX_FROM_BUFFER                ; Copy buffer to screen
+    POP         HL                                  ; Restore HL
     RET                                             ; Done
