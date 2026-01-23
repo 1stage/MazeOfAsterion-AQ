@@ -668,7 +668,7 @@ DRAW_WALL_F2_EMPTY:
     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK (empty/dark)
 
 ;==============================================================================
-; UPDATE_F0_ITEM
+; WIPE_ITEM_4X4
 ;==============================================================================
 ; Generic utility for filling 4x4 color rectangle. Reused by multiple routines
 ; for item/wall updates at F0 distance.
@@ -685,7 +685,7 @@ DRAW_WALL_F2_EMPTY:
 ; Memory Modified: 4x4 color rectangle at HL
 ; Calls: Jumps to FILL_CHRCOL_RECT
 ;==============================================================================
-UPDATE_S0_ITEM:
+WIPE_ITEM_4X4:
     LD          BC,RECT(4,4)                        ; 4 x 4 rectangle
     JP          FILL_CHRCOL_RECT                    ; Fill area with color in A
 
@@ -2788,6 +2788,12 @@ DECREASE_PITCH:
     ADD         HL,DE                               ; Add pitch step (decrease freq)
     JP          PLAY_PITCH_CHANGE                   ; Continue with new pitch
 
+; Preamble to HC_JOY_INPUT_COMPARE to handle in-melee only commands
+CHK_MONSTER_MELEE_STATE:
+    LD          A,(MONSTER_MELEE_STATE)             ; Load MONSTER_MELEE_STATE
+    CP          $31                                 ; Compare to "between attacks" mode
+    JP          NZ,WAIT_FOR_INPUT                   ; If not in "between attacks" mode, wait for input
+
 ;==============================================================================
 ; HC_JOY_INPUT_COMPARE
 ;==============================================================================
@@ -2818,9 +2824,6 @@ DECREASE_PITCH:
 ; Calls: Jumps to various action routines or continues to game logic
 ;==============================================================================
 HC_JOY_INPUT_COMPARE:
-    LD          A,(KEYBOARD_SCAN_FLAG)              ; Load input mode flag
-    CP          $31                                 ; Compare to "1" (handcontroller mode)
-    JP          NZ,WAIT_FOR_INPUT                   ; If not HC mode, wait for input
     LD          HL,(HC_INPUT_HOLDER)                ; Load joystick input values
     LD          A,$f3                               ; Compare to JOY disc UUL
     CP          L                                   ; Check L register
@@ -3700,12 +3703,46 @@ DRAW_COMPASS:
     PUSH        BC                                  ; Save BC register
     PUSH        HL                                  ; Save HL register
     PUSH        DE                                  ; Save DE register
-    LD          B,$b0                               ; Set color to DKBLU on BLK
+    LD          B,COLOR(DKCYN,BLK)                  ; Set color to DKCYN on BLK
     LD          HL,CHRRAM_COMPASS_IDX               ; Point to compass position
     LD          DE,COMPASS                          ; = $D7,"n",$C9,$01
     CALL        GFX_DRAW                            ; Draw compass graphic
-    LD          HL,COLRAM_COMPASS_IDX               ; Point to compass color area
-    LD          (HL),$10                            ; Set compass color
+    LD          HL,COLRAM_POINTER_IDX               ; Compass pointer color area
+    LD          (HL),$10                            ; Set compass pointer color
+    POP         DE                                  ; Restore DE register
+    POP         HL                                  ; Restore HL register
+    POP         BC                                  ; Restore BC register
+    POP         AF                                  ; Restore AF register
+    RET                                             ; Return to caller
+
+;==============================================================================
+; DRAW_PACK_BKGD
+;==============================================================================
+; Draws background of player's backpack on screen with DKBLU color.
+;
+; Registers:
+; --- Start ---
+;   AF, BC, HL, DE = pushed to stack
+; --- In Process ---
+;   B  = $B0 (DKBLU on BLK color)
+;   HL = CHRRAM_PACK_IDX, then COLRAM_PACK_IDX
+;   DE = Pack graphics data
+; ---  End  ---
+;   All registers restored
+;
+; Memory Modified: CHRRAM at CHRRAM_PACK_IDX
+; Calls: GFX_DRAW
+;==============================================================================
+
+DRAW_PACK_BKGD:
+    PUSH        AF                                  ; Save AF register (DKBLU on BLK)
+    PUSH        BC                                  ; Save BC register
+    PUSH        HL                                  ; Save HL register
+    PUSH        DE                                  ; Save DE register
+    LD          B,COLOR(DKBLU,BLK)                  ; Set color to DKBLU on BLK
+    LD          HL,CHRRAM_PACK_IDX                  ; Point to pack position
+    LD          DE,PACK_BKGD                        ; GFX for pack
+    CALL        GFX_DRAW                            ; Draw pack graphic
     POP         DE                                  ; Restore DE register
     POP         HL                                  ; Restore HL register
     POP         BC                                  ; Restore BC register
@@ -3835,7 +3872,7 @@ DRAW_WALL_FL2:
 ;==============================================================================
 FIX_ICON_COLORS:
     LD          HL,COLRAM_LEVEL_IDX_L               ; Point to level indicator color area
-    LD          A,(MULTIPURPOSE_BYTE)               ; Load multipurpose byte value
+    LD          A,(DIFFICULTY_LEVEL)                ; Load DIFFICULTY_LEVEL
     ADD         A,A                                 ; Double the value
     SUB         0x1                                 ; Subtract 1
     LD          (HL),A                              ; Set level indicator color
@@ -3892,17 +3929,29 @@ USE_MAP:
     JP          Z,NO_ACTION_TAKEN                   ; If not owned, exit without action
     LD          A,(MAP_INV_SLOT)                    ; Load map quality level (0-4)
     AND         A                                   ; Test if zero (no map)
-    JP          Z,INIT_MELEE_ANIM                   ; If no map slot, exit to melee animation
+    JP          Z,INIT_MN_MELEE_ANIM                ; If no map slot, exit to melee animation
     EXX								                ; Swap to alternate register set
 
-    LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high
+    ; LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high
+    LD          BC,RECT(24,19)                      ; Set dimensions: 24 wide x 19 high
     LD          HL,CHRRAM_VIEWPORT_IDX              ; Point to viewport character RAM
     LD          A,$20                               ; Load SPACE character ($20)
     CALL        FILL_CHRCOL_RECT                    ; Clear viewport with spaces
+
+    LD          BC,RECT(12,5)                       ; Set dimensions: 12 wide x 5 high
+    LD          HL,CHRRAM_VP_MID_BOTTOM_IDX         ; Point to viewport middle bottom character RAM
+    CALL        FILL_CHRCOL_RECT                    ; Clear viewport with spaces
+
     CALL        SOUND_03                            ; Play map open sound
-    LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high
+
+    ; LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high
+    LD          BC,RECT(24,19)                      ; Set dimensions: 24 wide x 24 high
     LD          HL,COLRAM_VIEWPORT_IDX              ; Point to viewport color RAM
     LD          A,COLOR(DKBLU,BLK)                  ; Set color: dark blue on black
+    CALL        FILL_CHRCOL_RECT                    ; Fill viewport with map background color
+
+    LD          BC,RECT(12,5)                       ; Set dimensions: 12 wide x 5 high
+    LD          HL,COLRAM_VP_MID_BOTTOM_IDX         ; Point to viewport middle bottom color RAM
     CALL        FILL_CHRCOL_RECT                    ; Fill viewport with map background color
 
     EXX								                ; Swap back to main register set
@@ -4717,6 +4766,43 @@ RHA_REDRAW:
     JP          INPUT_DEBOUNCE                      ; Return to input loop
 
 ;==============================================================================
+; VP_LH_GAP_REDRAW - Redraw Viewport Left Hand Filler
+;==============================================================================
+; Draws the ornaments to the right of the left hand item in the viewport
+;
+;==============================================================================
+VP_LH_GAP_REDRAW:
+    ; LD          BC,$0028
+    ; LD          HL,COLRAM_VP_LH_GAP_IDX
+    ; LD          A,COLOR(BLK,DKGRY)
+    ; LD          (HL),A
+    ; ADD         HL,BC
+    ; LD          (HL),A
+    ; ADD         HL,BC
+    ; LD          (HL),A
+    ; ADD         HL,BC
+    ; LD          (HL),A
+    ; ADD         HL,BC
+    ; LD          (HL),A
+
+    LD          DE,VP_LH_GAP                        ; DE = viewport left hand gap graphic
+    LD          HL,CHRRAM_VP_LH_GAP_IDX             ; HL = Viewport Left hand gap index
+    LD          B,COLOR(DKGRY,BLK)                  ; BLK on DKGRY
+    JP          GFX_DRAW                            ; Draw filler
+
+;==============================================================================
+; VP_RH_GAP_REDRAW - Redraw Viewport Right Hand Filler
+;==============================================================================
+; Draws the ornaments to the right of the right hand item in the viewport
+;
+;==============================================================================
+VP_RH_GAP_REDRAW:
+    LD          DE,VP_RH_GAP                        ; DE = viewport left hand gap graphic
+    LD          HL,CHRRAM_VP_RH_GAP_IDX             ; HL = Viewport Left hand gap index
+    LD          B,COLOR(DKGRY,BLK)                  ; DKGRY on BLK
+    JP          GFX_DRAW                            ; Draw filler
+
+;==============================================================================
 ; PLAY_TELEPORT_SOUND - Play descending teleport sound effect
 ;==============================================================================
 ; Plays a four-tone descending sound sequence to indicate teleportation.
@@ -4785,3 +4871,152 @@ PLAY_POWER_UP_SOUND:
     LD          DE,$60                              ; DE = pitch/frequency (long final tone)
     CALL        PLAY_SOUND_LOOP                     ; Play fourth tone (extended)
     RET                                             ; Return to caller
+
+;==============================================================================
+; REFRESH_FOOD_ARROWS - Redraw Food and Arrows Graphics
+;==============================================================================
+; Triggered after either food or arrows inventories have been altered,
+; this function redraws the graphic representation of food and arrows
+; in a vertical bar graph form.
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = Accumulator; inventory values
+;   HL = Screen Location for updates; index for VERTICAL_BAR_METER character
+;   BC = CHRRAM/COLRAM offset; offset for generating VERTICAL_BAR_METER character
+;   All registers modified by PLAY_SOUND_LOOP
+; ---  End  ---
+;   All registers modified
+;
+; Memory Modified: ???
+; Calls: ???
+;==============================================================================
+
+REFRESH_FOOD_ARROWS:
+    CALL        REDRAW_FOOD_BKGD                    ; Redraw the food base graphics and colors
+    CALL        REDRAW_FOOD_GRAPH                   ; Update the food graph
+    CALL        REDRAW_ARROWS_BKGD                  ; Redraw the arrows base graphics and colors
+    CALL        REDRAW_ARROWS_GRAPH                 ; Update the arrows graph
+    RET                                             ; Return
+
+REDRAW_FOOD_BKGD:
+    LD          HL,CHRRAM_FOOD_ICON                 ; Food icon location
+    LD          BC,$400                             ; COLRAM Offset
+    LD          DE,40                               ; Row stride
+    LD          A,'#'                               ; Food '#' AQUASCII
+    LD          (HL),A                              ; Update food Icon CHRRAM
+    ADD         HL,BC                               ; Jump to COLRAM
+    LD          A,COLOR(DKMAG,BLK)                  ; DKMAG on BLK
+    LD          (HL),A                              ; Update food Icon COLRAM
+    ADD         HL,DE                               ; One row down in COLRAM
+    LD          A,COLOR(DKMAG,DKBLU)                ; DKMAG on DKBLU
+    LD          (HL),A                              ; Update Food HI value in COLRAM
+    ADD         HL,DE                               ; One row down in COLRAM
+    LD          (HL),A                              ; Update Food LO value in COLRAM
+    RET                                             ; Done
+
+REDRAW_ARROWS_BKGD:
+    LD          HL,CHRRAM_ARROWS_ICON               ; Arrows icon location
+    LD          BC,$400                             ; COLRAM Offset
+    LD          DE,40                               ; Row stride
+    LD          A,8                                 ; Arrow char in AQUASCII
+    LD          (HL),A                              ; Update Arrows Icon CHRRAM
+    ADD         HL,BC                               ; Jump to COLRAM
+    LD          A,COLOR(DKGRN,BLK)                  ; DKGRN on BLK
+    LD          (HL),A                              ; Update Arrows Icon COLRAM
+    ADD         HL,DE                               ; One row down in COLRAM
+    LD          A,COLOR(DKGRN,DKBLU)                ; DKGRN on DKBLU
+    LD          (HL),A                              ; Update Arrows HI value in COLRAM
+    ADD         HL,DE                               ; One row down in COLRAM
+    LD          (HL),A                              ; Update Arrows LO value in COLRAM
+    RET                                             ; Done
+
+REDRAW_FOOD_GRAPH:
+    LD          A,(FOOD_INV)                        ; Get current food values
+    CP          $00                                 ; Compare to no food
+    RET         Z                                   ; If ZERO, return
+    LD          HL,CHRRAM_FOOD_HI_IDX               ; Set HL to Food HI index
+    JP          REDRAW_INV_GRAPH                    ; Handle redraw of food inv graph
+
+REDRAW_ARROWS_GRAPH:
+    LD          A,(ARROW_INV)                       ; Get current arrows values
+    CP          $00                                 ; Compare to no arrows
+    RET         Z                                   ; If ZERO, return
+    LD          HL,CHRRAM_ARROWS_HI_IDX             ; Set HL to Arrows HI index
+    JP          REDRAW_INV_GRAPH                    ; Handle redraw of arrows inv graph
+
+;==============================================================================
+; REDRAW_INV_GRAPH - Redraw Food or Arrows Graphics
+;==============================================================================
+; Redraw an individual inventory using a vertical bar, values 0 - 128 ($00 - $80).
+;
+; Registers:
+; --- Start ---
+;   A  = Item inventory value
+;   HL = CHRRAM HI value index
+; --- In Process ---
+;   A  = Accumulator; inventory values
+;   HL = Screen Location for updates; index for VERTICAL_BAR_METER character
+;   BC = CHRRAM/COLRAM offset; offset for generating VERTICAL_BAR_METER character
+; ---  End  ---
+;   All registers modified
+;
+; Memory Modified: CHRRAM INV HI and LO blocks
+;==============================================================================
+
+REDRAW_INV_GRAPH:
+    PUSH        HL                                  ; Save the CHRRAM INV HI location
+    LD          DE,40                               ; Row stride
+    CP          $00                                 ; Compare to no arrows
+    RET         Z                                   ; If ZERO, return
+    CP          65                                  ; Compare to hi/lo boundary
+    JP          C,DRAW_INV_LO                       ; If 64 or less, do the lower graph
+    
+DRAW_INV_HI:
+    LD          HL,VERTICAL_BAR_METER               ; Set starting index of bar characters, 0
+    ADD         A,7                                 ; Normalize up to 8's level
+    SBC         A,64                                ; Reduce hi to lo
+    SRL         A
+    SRL         A
+    SRL         A                                   ; Divide by 8
+    LD          B,$0                                ; Clear B...
+    LD          C,A                                 ; ...and load A into C for BC
+    ADD         HL,BC                               ; Offset to get correct "bar" character
+    LD          A,(HL)                              ; Save it into A
+    POP         HL                                  ; Restore the CHRRAM INV HI location
+    LD          (HL),A                              ; Write A to it
+    ADD         HL,DE                               ; Down one row
+    LD          A,(VERTICAL_BAR_METER + 8)          ; Get "full" char for lower bars
+    LD          (HL),A                              ; Write A to it
+    RET                                             ; Done
+DRAW_INV_LO:
+    LD          HL,VERTICAL_BAR_METER               ; Set starting index of bar characters, 0)
+    ADD         A,7                                 ; Normalize up to 8's level
+    SRL         A
+    SRL         A
+    SRL         A                                   ; Divide by 8
+    LD          B,$0                                ; Clear B...
+    LD          C,A                                 ; ...and load A into C for BC
+    ADD         HL,BC                               ; Offset to get correct "bar" character
+    LD          A,(HL)                              ; Save it into A
+    POP         HL                                  ; Restore the CHRRAM INV HI location
+    ADD         HL,DE                               ; Down one row
+    LD          (HL),A                              ; Write A to it
+    SBC         HL,DE                               ; Up one row
+    LD          A,(VERTICAL_BAR_METER)              ; Get "empty" char for upper bars
+    LD          (HL),A                              ; Write A to it
+    RET                                             ; Done
+
+VERTICAL_BAR_METER:
+    db          32                                  ; 0 meter
+    db          144                                 ; 1 meter
+    db          136                                 ; 2 meter
+    db          240                                 ; 3 meter
+    db          31                                  ; 4 meter
+    db          252                                 ; 5 meter
+    db          137                                 ; 6 meter
+    db          128                                 ; 7 meter
+    db          127                                 ; 8 meter
+    

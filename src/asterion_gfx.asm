@@ -65,7 +65,8 @@ BUCKLER_T:
 ; The RING is an enchantment item that increases protection. Once picked up they are worn immediately and cannot be removed. They are not kept in inventory. If another RING of greater level it is picked up and worn, and the old RING disappears.
 ;
 RING:
-    db          $01,$01,$01,$01,$01,$01,$01
+    db          $01,$01,$01,$01,$01
+    db          $01,$01
     db          $00,"o",$FF
 RING_S:
     db          $01,$01,$01
@@ -84,7 +85,8 @@ RING_T:
 ; The HELMET is an enchantment item that increases protection. Once picked up they are worn immediately and cannot be removed. They are not kept in inventory. If another HELMET of greater level it is picked up and worn, and the old HELMET disappears.
 ;
 HELMET:
-    db          $01,$01,$01,$01,$01,$01
+    db          $01,$01,$01,$01,$01
+    db          $01
     db          $00,$C0,$C1,$01
     db          $00,$BF,$EF,$FF
 HELMET_S:
@@ -150,7 +152,8 @@ PAVISE_T:
 ; The ARROW_FLYING_RIGHT is the object used in animation when a MONSTER performs a PHYSICAL attack on the PLAYER. Note that this item/object does not appear in the maze and cannot be picked up.
 ;
 ARROW_FLYING_RIGHT:
-    db          $01,$01,$01,$01,$01,$01
+    db          $01,$01,$01,$01,$01
+    db          $01
     db          $AC,$9A,$FF
 
 ; =================================
@@ -167,8 +170,8 @@ BOW:
     db          $01,$01,$01,$01,$01
     db          $D7,$AC,$A3,$8E,$01
     db          $D6,$00,$CA,$01
-    db          $B5,$CA,$01
-    db          $9F,$00,$FF
+    db          $98,$CA,$01
+    db          $9F,$FF
 BOW_S:
     db          $01,$01
     db          $D7,$AC,$C9,$01
@@ -340,7 +343,8 @@ SPIDER_WEB:
 ; The ARROW_FLYING_LEFTT is the object used in animation when the PLAYER performs a PHYSICAL attack on a MONSTER. Note that this item/object does not appear in the maze and cannot be picked up. 
 ;
 ARROW_FLYING_LEFT:
-    db          $01,$01,$01,$01,$01,$01
+    db          $01,$01,$01,$01,$01
+    db          $01
     db          $9B,$AC,$FF
 
 ; =================================
@@ -419,7 +423,8 @@ FOOD_T:
 ; The QUIVER is an ITEM that can be picked up and added to the PLAYER's arrows, a separate inventory. Picking QUIVER up causes it to disappear.
 ;
 QUIVER:
-    db          $01,$01,$01,$01,$01,$01
+    db          $01,$01,$01,$01,$01
+    db          $01
     db          $7F,$7F,$A0,$D7,$A0,$06,$01
     db          $A2,$AC,$B2,$E9,$01
     db          $00,$00,$A2,$A1,$FF
@@ -465,7 +470,8 @@ LOCKED_CHEST:
 ; The KEY is an ITEM that can be picked up or used to unlock/open a LOCKED_CHEST of similar or lesser level when the LOCKED_CHEST is on the ground in front of the PLAYER. When used it disappears.
 ;
 KEY:
-    db          $01,$01,$01,$01,$01,$01
+    db          $01,$01,$01,$01,$01
+    db          $01
     db          $90,$90,$B8,$C9,$01
     db          $10,$A0,$80,$A0,$A9,$D9,$FF
 KEY_S:
@@ -509,7 +515,8 @@ AMULET_T:
 ; The CHALICE is a TREASURE item that increases the PLAYER's score. When picked up it disappears. Note in future versions of this game, the score will be removed, and picking up an CHALICE will perform other functions.
 ;
 CHALICE:
-    db          $01,$01,$01,$01,$01,$01
+    db          $01,$01,$01,$01,$01
+    db          $01
     db          $A0,$C3,$A0,$89,$97,$01
     db          $00,$9F,$01
     db          $E0,$0E,$B0,$FF
@@ -978,3 +985,51 @@ SOUTH_TXT:
 EAST_TXT:
     db          $06,$FF
 
+VP_LH_GAP:
+    db          $A0,127,$01
+    db          195,$01
+    db          181,$01
+    db          195,$01
+    db          127,$FF
+
+VP_RH_GAP:
+    db          $A0,127,$01
+    db          $A0,151,$01
+    db          181,$01
+    db          151,$01
+    db          $A0,127,$FF
+
+PACK_BKGD:
+    db          0,0,0,144,136,240,240,31,31,31,240,240,136,144,$01
+    db          0,248,$A0,31,252,137,128,128,0,0,0,128,128,137,252,31,$A0,244,$02,$03,27,$01
+    db          $04,234,29,$01
+    db          18,$01
+    db          18,$01
+    db          18,$01
+    db          18,$01
+    db          18,$01
+    db          18,$01
+    db          18,$01
+    db          18,$01
+    db          18,$01
+    db          234,28,$01
+    db          0,171,31,136,144,0,0,0,0,0,0,0,144,136,31,167,$FF
+
+END_PORTAL_TEXT:
+    db          "  Asterion the Minotaur ",$01
+    db          "is dead. A portal opens,",$01
+    db          "allowing you to exit the",$01
+    db          "Maze to the world above.",$01,$01
+    db          "  PRESS ANY KEY TO EXIT ",$FF
+    
+END_PORTAL:
+    db          $04,$04,$04,$04
+    db          208,208,208,208,$01
+    db          $02,208,209,209,209,209,208,$01
+    db          $02,$02,208,209,127,127,127,127,209,208,$01
+    db          $02,$02,208,209,127,127,127,127,209,208,$01
+    db          $02,$02,208,209,127,127,127,127,209,208,$01
+    db          $02,$02,208,209,127,127,127,127,209,208,$01
+    db          $02,$02,208,209,127,127,127,127,209,208,$01
+    db          $02,$02,208,209,127,127,127,127,209,208,$FF
+    
