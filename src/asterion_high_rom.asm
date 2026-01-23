@@ -2909,7 +2909,9 @@ MONSTER_PLAYER_ANIM_TICK:
     CALL        COPY_MN_BUFF_TO_SCRN                ; Restore background under monster weapon sprite
     CALL        COPY_PL_BUFF_TO_SCRN                ; Restore background under plater weapon sprite
     CALL        PLAYER_ANIM_ADVANCE                 ; Redraw any UI impacted by anim state
+    CALL        FIX_MELEE_GLITCH_START
     CALL        MONSTER_ANIM_ADVANCE                ; Advance monster weapon animation frame
+    CALL        FIX_MELEE_GLITCH_END
     JP          WAIT_FOR_INPUT                      ; Back to main loop
 
 MONSTER_ANIM_TICK:
@@ -2918,7 +2920,9 @@ MONSTER_ANIM_TICK:
     CP          (HL)                                ; Has MASTER_TICK_TIMER advanced for monster anim?
     JP          NZ,WAIT_FOR_INPUT                   ; No → skip animation this frame
     CALL        COPY_MN_BUFF_TO_SCRN                ; Restore background under melee sprites
+    CALL        FIX_MELEE_GLITCH_START
     CALL        MONSTER_ANIM_ADVANCE                ; Advance monster weapon animation frame
+    CALL        FIX_MELEE_GLITCH_END
     JP          WAIT_FOR_INPUT                      ; Back to main loop
 
 ;-------------------------------------------------------------------------------
@@ -8608,3 +8612,27 @@ BCD2HEX:
     ADD         A, C                                ; Add tens*10 to units
     POP         BC                                  ; Restore register
     RET
+
+FIX_MELEE_GLITCH_START:
+    PUSH        HL
+    LD          HL,CHRRAM_MELEE_GLITCH_A
+    LD          DE,MELEE_GLITCH_A_CHR_BUFF
+    CALL        COPY_GFX_2_BUFFER
+
+    LD          HL,CHRRAM_MELEE_GLITCH_B
+    LD          DE,MELEE_GLITCH_B_CHR_BUFF   
+    CALL        COPY_GFX_2_BUFFER
+    POP         HL
+    RET                                             ; Done
+
+FIX_MELEE_GLITCH_END:
+    PUSH        HL
+    LD          HL,MELEE_GLITCH_A_CHR_BUFF
+    LD          DE,CHRRAM_MELEE_GLITCH_A
+    CALL        COPY_GFX_FROM_BUFFER
+
+    LD          HL,MELEE_GLITCH_B_CHR_BUFF
+    LD          DE,CHRRAM_MELEE_GLITCH_B
+    CALL        COPY_GFX_FROM_BUFFER
+    POP         HL
+    RET                                             ; Done
