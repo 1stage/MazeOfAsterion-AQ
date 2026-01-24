@@ -216,6 +216,7 @@ COLRAM_L1_DOOR_PATTERN_IDX EQU $35ba
 COLRAM_FL2_A EQU $35bc			    ; FL2 left half
 COLRAM_FL2_B EQU $35be			    ; FL2 right half
 COLRAM_F2_FL2_GAP EQU $35c0			; Gap between F2 and FL2 (drawn when L2 absent)
+COLRAM_END_PORTAL EQU $35c0			; For 8x8 color background
 COLRAM_F2_WALL_IDX EQU $35c2
 COLRAM_F1_DOOR_IDX EQU $35c2
 COLRAM_F2_FR2_GAP EQU $35c6			; Gap between F2 and FR2 (drawn when R2 absent)

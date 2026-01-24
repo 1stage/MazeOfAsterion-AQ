@@ -8203,30 +8203,11 @@ UPDATE_SCR_SAVER_TIMER:
 MINOTAUR_DEAD:
     CALL        DRAW_BKGD                           ; Draw background
     LD          HL,CHRRAM_END_TEXT_IDX              ; HL = first text data address
-    ; LD          DE,THE_END_PART_A                   ; DE = screen position for "THE END" part A
     LD          DE,END_PORTAL_TEXT                  ; DE = screen position for END_PORTAL_TEXT
     LD          B,$10                               ; B = color (RED on BLACK)
     CALL        GFX_DRAW                            ; Draw END_PORTAL_TEXT
-
-    ; LD          HL,CHRRAM_END_TEXT_P2_IDX           ; HL = second text data address
-    ; CALL        GFX_DRAW                            ; Draw second part of text
-    ; CALL        MAKE_RANDOM_BYTE                    ; Get random byte in A
-    ; AND         0x3                                 ; Mask to 0-3
-    ; ADD         A,0xa                               ; Add 10 (result: 10-13)
-    ; LD          B,A                                 ; Store in B (unused?)
-    ; LD          A,(DIFFICULTY_LEVEL)                ; Load DIFFICULTY_LEVEL
-    ; RLCA                                            ; Rotate left 4 times
-    ; RLCA                                            ; (shift upper nibble to lower)
-    ; RLCA
-    ; RLCA
-    ; LD          B,A                                 ; Store rotated value in B
-
-    LD          A,0                                   ; Clear A (A = 0)
-    LD          (DIFFICULTY_LEVEL),A                  ; Clear DIFFICULTY_LEVEL
-
-    ; LD          DE,MINOTAUR                         ; DE = Minotaur sprite data
-    ; LD          HL,CHRRAM_MINOTAUR_IDX              ; HL = screen position for Minotaur
-
+    LD          A,0                                 ; Clear A (A = 0)
+    LD          (DIFFICULTY_LEVEL),A                ; Clear DIFFICULTY_LEVEL
     LD          B,COLOR(WHT,BLK)                    ; Portal color is WHT
     LD          DE,END_PORTAL                       ; DE = END_PORTAL sprite data
     LD          HL,CHRRAM_END_PORTAL_IDX            ; HL = END_PORTAL screen position
@@ -8237,30 +8218,31 @@ MINOTAUR_DEAD:
     LD          B,0x2                               ; B = 2 (sound loop count, was 6)
 MINOTAUR_DEAD_SOUND_LOOP:
     EXX                                             ; Switch to alternate register set
+    CALL        END_PORTAL_FLICKER                  ; Display and flicker portal
     CALL        PLAY_MONSTER_GROWL                  ; Play monster growl sound
-    CALL        END_OF_GAME_SOUND                   ; Play end game sound
     EXX                                             ; Switch back to main registers
     DJNZ        MINOTAUR_DEAD_SOUND_LOOP            ; Loop B times
+    CALL        END_OF_GAME_SOUND                   ; Play end game sound
 
-END_PORTAL_FLICKER_SETUP:
-    LD          B,COLOR(WHT,BLK)                    ; Portal color is WHT
+    JP          INPUT_DEBOUNCE                      ; Jump to wait for key
+END_PORTAL_FLICKER:
+    LD          B,COLOR(WHT,BLK)                    ; WHT on BLK starting color
 END_PORTAL_FLICKER_LOOP:
-    PUSH        B                                   ; Save B
     LD          DE,END_PORTAL                       ; DE = END_PORTAL sprite data
     LD          HL,CHRRAM_END_PORTAL_IDX            ; HL = END_PORTAL screen position
     CALL        GFX_DRAW                            ; Draw END_PORTAL sprite
-    
-    POP         B                                   ; Restore B
-    DEC         B                                   ; Decrement B
-    LD          A,B                                 ; Load B into A for Z check
-    JP          NZ,END_PORTAL_FLICKER_LOOP
+    DJNZ        END_PORTAL_FLICKER_LOOP             ; Loop until B is depleted
+END_PORTAL_FINISH:
+    LD          A,COLOR(WHT,BLK)                    ; WHT on BLK
+    LD          HL,COLRAM_END_PORTAL                ; COLRAM background for portal graphic
+    LD          BC,RECT(8,8)                        ; 8 x 8 rectangle
+    CALL        FILL_CHRCOL_RECT                    ; Draw the background colors
 
-    LD          B,COLOR(WHT,BLK)                    ; Portal color is WHT
+    LD          B,COLOR(WHT,BLK)                    ; WHT on BLK
     LD          DE,END_PORTAL                       ; DE = END_PORTAL sprite data
     LD          HL,CHRRAM_END_PORTAL_IDX            ; HL = END_PORTAL screen position
     CALL        GFX_DRAW                            ; Draw END_PORTAL sprite
-
-    JP          SCREEN_SAVER_FULL_SCREEN            ; Jump to screen saver
+    RET                                             ; Done
 
 ;==============================================================================
 ; DO_REST - Rest to recover health by consuming food
@@ -8391,8 +8373,11 @@ KEY_COL_1:
     LD          A,(HL)                              ; A = key column 1 state
     CP          $fe                                 ; Test row 0 "-"
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+; For testing only !!!
     CP          $fd                                 ; Test row 1 "/"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    JP          Z,MINOTAUR_DEAD                     ; If pressed, ignore
+
     CP          $fb                                 ; Test row 2 "0"
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $f7                                 ; Test row 3 "P"
