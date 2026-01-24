@@ -3964,7 +3964,7 @@ USE_MAP:
     DEC         B                                   ; Test for level 2 (yellow map)
     JP          Z,DRAW_YELLOW_MAP                   ; Draw walls, player, and ladder
     DEC         B                                   ; Test for level 3 (magenta map)
-    JP          Z,DRAW_PURPLE_MAP                   ; Draw walls, player, ladder, and monsters
+    JP          Z,DRAW_MAGENTA_MAP                  ; Draw walls, player, ladder, and monsters
 
 ;==============================================================================
 ; DRAW_WHITE_MAP
@@ -3987,6 +3987,7 @@ USE_MAP:
 ; Calls: MAP_ITEM_MONSTER, UPDATE_ITEM_CELLS
 ;==============================================================================
 DRAW_WHITE_MAP:
+    CALL        DRAW_WHT_MAP_LEGEND                 ; Draw the WHITE map legend
     LD          HL,$74                              ; Set item range lower bound ($74..$78)
     CALL        MAP_ITEM_MONSTER                    ; Prepare list pointer (BC = MAP_LADDER_OFFSET)
 
@@ -4010,7 +4011,7 @@ DRAW_WHITE_MAP:
 ; Calls: UPDATE_COLRAM_FROM_OFFSET, FIND_NEXT_ITEM_MONSTER_LOOP, DRAW_PURPLE_MAP
 ;==============================================================================
 UPDATE_ITEM_CELLS:
-    JP          Z,DRAW_PURPLE_MAP                   ; If end of list, proceed to monster coloring
+    JP          Z,DRAW_MAGENTA_MAP                  ; If end of list, proceed to monster coloring
     LD          A,(BC)                              ; Load item position offset
     INC         C                                   ; Advance pointer to item code
     INC         C                                   ; Skip past item code byte
@@ -4022,7 +4023,7 @@ UPDATE_ITEM_CELLS:
     JP          UPDATE_ITEM_CELLS                   ; Repeat until list exhausted
 
 ;==============================================================================
-; DRAW_PURPLE_MAP
+; DRAW_MAGENTA_MAP
 ;==============================================================================
 ; Draws a level-3 quality map showing walls, player position, ladder, and
 ; monster locations. Iterates through the monster list and marks each monster
@@ -4042,7 +4043,8 @@ UPDATE_ITEM_CELLS:
 ; Memory Modified: COLRAM_VIEWPORT_IDX (monster positions)
 ; Calls: MAP_ITEM_MONSTER, UPDATE_COLRAM_FROM_OFFSET, FIND_NEXT_ITEM_MONSTER_LOOP
 ;==============================================================================
-DRAW_PURPLE_MAP:
+DRAW_MAGENTA_MAP:
+    CALL        DRAW_MAG_MAP_LEGEND                 ; Draw the MAGENTA map legend
     LD          HL,$78a8                            ; Set item range for monsters ($78 to $a8)
     CALL        MAP_ITEM_MONSTER                    ; Initialize monster search (BC = MAP_LADDER_OFFSET)
 UPDATE_MONSTER_CELLS_LOOP:
@@ -4077,6 +4079,7 @@ UPDATE_MONSTER_CELLS_LOOP:
 ; Calls: UPDATE_COLRAM_FROM_OFFSET, DRAW_RED_MAP
 ;==============================================================================
 DRAW_YELLOW_MAP:
+    CALL        DRAW_YEL_MAP_LEGEND                 ; Draw the YELLOW map legend
     LD          D,COLOR(DKBLU,MAG)                  ; Set ladder cell color: dark blue on magenta
     LD          A,(ITEM_HOLDER)                     ; Load ladder position offset
     CALL        UPDATE_COLRAM_FROM_OFFSET           ; Update color at ladder position
@@ -4186,6 +4189,7 @@ SET_MINIMAP_PLAYER_LOC:
     LD          A,(PLAYER_MAP_POS)                  ; Load player position offset
     LD          D,COLOR(DKBLU,WHT)                  ; Set player cell color: dark blue on white
     CALL        UPDATE_COLRAM_FROM_OFFSET           ; Mark player position on map
+    CALL        DRAW_RED_MAP_LEGEND                 ; Draw the RED map legend components (PLAYER & WALLS)
     CALL        WAIT_A_TICK                         ; Wait for display stability
 
 READ_KEY:
@@ -4211,6 +4215,64 @@ DISABLE_HC:
     INC         A                                   ; Test for $FF (no input)
     JP          NZ,READ_KEY                         ; If input detected, keep waiting
     JP          UPDATE_VIEWPORT                     ; Close map and return to normal viewport
+
+DRAW_RED_MAP_LEGEND:
+    LD          B,COLOR(GRY,BLK)                    ; GRY on BLK
+    LD          HL,CHRRAM_MAP_LGD_PLAYER            ; Draw at MAP LEGEND PLAYER index
+    LD          DE,MAP_LEGEND_PLAYER                ; Draw MAP LEGEND PLAYER text
+    CALL        GFX_DRAW
+
+    LD          B,COLOR(WHT,BLK)                    ; WHY on BLK
+    LD          HL,CHRRAM_MAP_LGD_PLAYER + $400     ; COLRAM for PLAYER square
+    LD          (HL),B                              ;
+
+    LD          B,COLOR(GRY,BLK)                    ; GRY on BLK
+    LD          HL,CHRRAM_MAP_LGD_WALLS             ; Draw at MAP LEGEND WALLS index
+    LD          DE,MAP_LEGEND_WALLS                 ; Draw MAP LEGEND WALLS text
+    CALL        GFX_DRAW
+
+    LD          B,COLOR(DKBLU,BLK)                  ; DKBLU on BLK
+    LD          HL,CHRRAM_MAP_LGD_WALLS + $400      ; COLRAM for WALLS square
+    LD          (HL),B                              ;
+
+    RET                                             ; Done
+
+DRAW_YEL_MAP_LEGEND:
+    LD          B,COLOR(GRY,BLK)                    ; GRY on BLK
+    LD          HL,CHRRAM_MAP_LGD_LADDER            ; Draw at MAP LEGEND LADDER index
+    LD          DE,MAP_LEGEND_LADDER                ; Draw MAP LEGEND LADDER text
+    CALL        GFX_DRAW
+
+    LD          B,COLOR(MAG,BLK)                    ; MAG on BLK
+    LD          HL,CHRRAM_MAP_LGD_LADDER + $400     ; COLRAM for LADDER square
+    LD          (HL),B                              ;
+
+    RET                                             ; Done
+
+DRAW_MAG_MAP_LEGEND:
+    LD          B,COLOR(GRY,BLK)                    ; GRY on BLK
+    LD          HL,CHRRAM_MAP_LGD_MONSTERS          ; Draw at MAP LEGEND MONSTERS index
+    LD          DE,MAP_LEGEND_MONSTERS              ; Draw MAP LEGEND MONSTERS text
+    CALL        GFX_DRAW
+
+    LD          B,COLOR(RED,BLK)                    ; RED on BLK
+    LD          HL,CHRRAM_MAP_LGD_MONSTERS + $400   ; COLRAM for MONSTERS square
+    LD          (HL),B                              ;
+
+    RET                                             ; Done
+
+DRAW_WHT_MAP_LEGEND:
+    LD          B,COLOR(GRY,BLK)                    ; GRY on BLK
+    LD          HL,CHRRAM_MAP_LGD_ITEMS             ; Draw at MAP LEGEND ITEMS index
+    LD          DE,MAP_LEGEND_ITEMS                 ; Draw MAP LEGEND ITEMS text
+    CALL        GFX_DRAW
+
+    LD          B,COLOR(CYN,BLK)                    ; CYN on BLK
+    LD          HL,CHRRAM_MAP_LGD_ITEMS + $400      ; COLRAM for ITEMS square
+    LD          (HL),B                              ;
+
+    RET                                             ; Done
+
 
 ;==============================================================================
 ; MAP_ITEM_MONSTER

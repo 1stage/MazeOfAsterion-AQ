@@ -1033,3 +1033,13 @@ END_PORTAL:
     db          $02,$02,208,209,127,127,127,127,209,208,$01
     db          $02,$02,208,209,127,127,127,127,209,208,$FF
     
+MAP_LEGEND_WALLS:
+    db          196,$00,"walls",$FF
+MAP_LEGEND_PLAYER:
+    db          196,$00,"player",$FF
+MAP_LEGEND_LADDER:
+    db          196,$00,"ladder",$FF
+MAP_LEGEND_MONSTERS:
+    db          196,$00,"monsters",$FF
+MAP_LEGEND_ITEMS:
+    db          196,$00,"items",$FF
