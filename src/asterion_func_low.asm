@@ -3661,9 +3661,10 @@ DRAW_ICON_BAR:
     LD          (HL),$93                            ; Monster CHR
     INC         HL                                  ; Move to next position
     INC         HL                                  ; Move to next position
-    LD          (HL),$85                            ; Right side halftone CHR
     INC         HL                                  ; Move to next position
+    LD          (HL),220                            ; Left side of KEY
     INC         HL                                  ; Move to next position
+    LD          (HL),5                              ; Right side of KEY
     INC         HL                                  ; Move to next position
     INC         HL                                  ; Map CHR position
     LD          (HL),$d1                            ; Map CHR
@@ -3892,12 +3893,6 @@ ICON_GREY_FILL_LOOP:
     RET                                             ; Return to caller
 
 ;==============================================================================
-;==============================================================================
-;  ROUTINES MOVED FROM asterion_high_rom.asm FOR ROM BALANCING
-;==============================================================================
-;==============================================================================
-
-;==============================================================================
 ; USE_MAP
 ;==============================================================================
 ; Displays the dungeon mini-map overlay when the player uses the map item.
@@ -3932,7 +3927,6 @@ USE_MAP:
     JP          Z,INIT_MN_MELEE_ANIM                ; If no map slot, exit to melee animation
     EXX								                ; Swap to alternate register set
 
-    ; LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high
     LD          BC,RECT(24,19)                      ; Set dimensions: 24 wide x 19 high
     LD          HL,CHRRAM_VIEWPORT_IDX              ; Point to viewport character RAM
     LD          A,$20                               ; Load SPACE character ($20)
@@ -3944,7 +3938,6 @@ USE_MAP:
 
     CALL        SOUND_03                            ; Play map open sound
 
-    ; LD          BC,RECT(24,24)                      ; Set dimensions: 24 wide x 24 high
     LD          BC,RECT(24,19)                      ; Set dimensions: 24 wide x 24 high
     LD          HL,COLRAM_VIEWPORT_IDX              ; Point to viewport color RAM
     LD          A,COLOR(DKBLU,BLK)                  ; Set color: dark blue on black

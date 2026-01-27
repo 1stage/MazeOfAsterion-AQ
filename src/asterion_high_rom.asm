@@ -2208,13 +2208,13 @@ CHECK_AMULETS:
 
 CHECK_KEYS:
     CP          RED_KEY_ITEM                        ; Compare to RED KEY (item code $58)
-    JP          Z,PICK_UP_NON_TREASURE              ; Handle key pickup
+    JP          Z,PROCESS_KEY                       ; Handle key pickup
     CP          YEL_KEY_ITEM                        ; Compare to YEL KEY (item code $59)
-    JP          Z,PICK_UP_NON_TREASURE              ; Handle key pickup
+    JP          Z,PROCESS_KEY                       ; Handle key pickup
     CP          MAG_KEY_ITEM                        ; Compare to MAG KEY (item code $5A)
-    JP          Z,PICK_UP_NON_TREASURE              ; Handle key pickup
+    JP          Z,PROCESS_KEY                       ; Handle key pickup
     CP          WHT_KEY_ITEM                        ; Compare to WHT KEY (item code $5B)
-    JP          Z,PICK_UP_NON_TREASURE              ; Handle key pickup
+    JP          Z,PROCESS_KEY                       ; Handle key pickup
 
 HANDLE_NON_TREASURES:
     JP          C,PICK_UP_NON_TREASURE              ; If < $5C, handle as non-treasure item
@@ -2230,10 +2230,35 @@ PROCESS_MAP:
     POP         AF                                  ; Restore A (map item code)
     CALL        PICK_UP_S0_ITEM                     ; Remove map from floor, level (0-3) in D
     LD          A,D                                 ; Get map level from D register
+
+    LD          HL,MAP_INV_SLOT                     ; Get MAP_INV_SLOT address
+    CP          (HL)                                ; Compare to current value
+    JP          C,INPUT_DEBOUNCE                    ; If less than current value, exit (technically <= due to 0-3 value range)
+
     INC         A                                   ; Convert to 1-4 range for USE_MAP checks
-    LD          (MAP_INV_SLOT),A                    ; Store map level (1=RED, 2=YEL, 3=MAG, 4=WHT)
+    LD          (HL),A                              ; Store map level (1=RED, 2=YEL, 3=MAG, 4=WHT)
     CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color RAM value
     LD          (COLRAM_MAP_IDX),A                  ; Store color value for map display
+    JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
+
+PROCESS_KEY:
+    PUSH        AF                                  ; Save A (key item code)
+    LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
+    SET         0x3,A                               ; Set bit 3 (key acquired flag)
+    LD          (GAME_BOOLEANS),A                   ; Store updated boolean flags
+    POP         AF                                  ; Restore A (key item code)
+    CALL        PICK_UP_S0_ITEM                     ; Remove key from floor, level (0-3) in D
+    LD          A,D                                 ; Get key level from D register
+
+    LD          HL,KEY_INV_SLOT                     ; Get KEY_INV_SLOT address
+    CP          (HL)                                ; Compare to current value
+    JP          C,INPUT_DEBOUNCE                    ; If less than current value, exit (technically <= due to 0-3 value range)
+
+    INC         A                                   ; Convert to 1-4 range for USE_KEY checks
+    LD          (KEY_INV_SLOT),A                    ; Store key level (1=RED, 2=YEL, 3=MAG, 4=WHT)
+    CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color RAM value
+    LD          (COLRAM_KEY_IDX),A                  ; Store color value for key display left
+    LD          (COLRAM_KEY_IDX + 1),A              ; Store color value for key display right
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 
 PROCESS_AMULET:
@@ -2310,44 +2335,6 @@ PICK_UP_NON_TREASURE:
 
     CALL        NEW_RIGHT_HAND_ITEM                 ; Recalculate weapon stats for new right-hand item
     JP          INPUT_DEBOUNCE                      ; Wait for input debounce then return to main loop
-
-; PICK_UP_NON_TREASURE_OLD:
-;     LD          HL,RIGHT_HAND_ITEM                  ; Point to current right-hand item
-;     LD          A,(HL)                              ; Load current right-hand item code
-;     LD          (ITEM_S0),A                         ; Store it as new floor item at S0 position
-;     CALL        SWAP_BYTES_AT_HL_BC                 ; Swap RIGHT_HAND_ITEM with floor item (BC=floor item ptr)
-;     LD          HL,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to right-hand graphics in CHRRAM
-;     LD          DE,ITEM_MOVE_CHR_BUFFER             ; Point to temporary graphics buffer
-;     CALL        COPY_GFX_2_BUFFER                   ; Copy right-hand graphics to temp buffer (4x4 chars)
-;     LD          HL,CHRRAM_S0_ITEM_IDX               ; Point to S0 floor item graphics in CHRRAM
-;     LD          DE,CHRRAM_RIGHT_HAND_VP_IDX         ; Point to right-hand graphics position
-;     CALL        COPY_GFX_SCRN_2_SCRN                ; Copy F0 item graphics to right-hand position
-;     LD          HL,ITEM_MOVE_CHR_BUFFER             ; Point to temporary buffer (old right-hand graphics)
-;     LD          DE,CHRRAM_S0_ITEM_IDX               ; Point to S0 floor item graphics position
-;     CALL        COPY_GFX_FROM_BUFFER                ; Copy temp buffer to F0 position (complete swap)
-
-;     LD          HL,COLRAM_S0_ITEM_IDX               ; Point to S0 item color attributes in COLRAM
-;     LD          DE,TWOCOLOR(NOCLR,DKGRY,DKGRY,NOCLR)  ; NOCLR, DKGRY, DKGRY, NOCLR
-;                                                     ;   D  = Target BG color: 
-;                                                     ;       $0 in upper nybble, BG in lower nybble
-;                                                     ;   E  = Comparison FG color: 
-;                                                     ;       FG in upper nybble, $0 in lower nybble
-;     LD          C,COLOR(BLK,DKGRY)                  ; C  = Target FG color for reversed colors that match E: 
-;                                                     ;       FG in upper nybble, $0 in lower nybble
-;     CALL        RECOLOR_ITEM                        ; Recolor F0 item area (4x4 cells)
-
-;     LD          HL,COLRAM_RH_ITEM_IDX               ; Point to right-hand item color attributes
-;     LD          DE,TWOCOLOR(NOCLR,BLK,DKGRY,NOCLR)  ; NOCLR, BLK, DKGRY, NOCLR
-;                                                     ;   D  = Target BG color: 
-;                                                     ;       $0 in upper nybble, BG in lower nybble
-;                                                     ;   E  = Comparison FG color: 
-;                                                     ;       FG in upper nybble, $0 in lower nybble
-;     LD          C,COLOR(DKGRY,NOCLR)                ; C  = Target FG color for reversed colors that match E: 
-;                                                     ;       FG in upper nybble, $0 in lower nybble
-;     CALL        RECOLOR_ITEM                        ; Clear right-hand item area to floor color
-
-;     CALL        NEW_RIGHT_HAND_ITEM                 ; Recalculate weapon stats for new right-hand item
-;     JP          INPUT_DEBOUNCE                      ; Wait for input debounce then return to main loop
 
 ;==============================================================================
 ; RECOLOR_ITEM
@@ -4101,9 +4088,9 @@ DO_USE_ATTACK:
     RL          B                                   ; Rotate carry into B bit 0
                                                     ; (move bits 0 & 1 from A to B)
     RL          B                                   ; Rotate B left (B now has level 0-3)
-    CP          $16                                 ; Compare to KEY item type
-                                                    ; ($58-$5B after 2 SRL = $16)
-    JP          Z,DO_USE_KEY                        ; If key, jump to key handler
+    ; CP          $16                                 ; Compare to KEY item type
+    ;                                                 ; ($58-$5B after 2 SRL = $16)
+    ; JP          Z,DO_USE_KEY                        ; If key, jump to key handler
     CP          $19                                 ; Compare to PHYS POTION
                                                     ; ($64-$67 after 2 SRL = $19)
     JP          Z,DO_USE_PHYS_POTION                ; If phys potion, jump to handler
@@ -4791,29 +4778,29 @@ DO_USE_SPRT_POTION:
     JP          PROCESS_POTION_UPDATES              ; Continue with potion processing
 
 ;==============================================================================
-; DO_USE_KEY - Use key to unlock door and generate treasure
+; USE_KEY - Use key to unlock door and generate treasure
 ;==============================================================================
-; Handles key item usage on doors. Validates key level against door level,
-; then generates random treasure item to replace the door on the map.
+; Handles key item usage on locked chests. Validates key level against chest level,
+; then generates random treasure item to replace the chest on the map.
 ;
 ; Door Code Validation:
-; - Extract door type and level from ITEM_S0
-; - Must be door type ($14 base code)
-; - Key level must be >= door level
+; - Extract chest type and level from ITEM_S0
+; - Must be chest type ($14 base code)
+; - Key level must be >= chest level
 ;
 ; Treasure Generation:
 ; - Uses R register for randomness
 ; - Generates item code from range $1D-$23 (plus adjustments)
-; - Special case: Level 4 doors give chaos potion instead of key
-; - Level adjustment algorithm for lower-level doors
+; - Special case: Level 4 chests give chaos potion instead of key
+; - Level adjustment algorithm for lower-level chests
 ;
 ; Registers:
 ; --- Start ---
-;   B  = Key level
+;   B   = Key level
 ; --- In Process ---
-;   A  = Door code, type, level calculations, random values, final item code
-;   BC = Item map address (from ITEM_MAP_CHECK)
-;   C  = Door level, loop counter
+;   A   = Chest code, type, level calculations, random values, final item code
+;   BC  = Item map address (from ITEM_MAP_CHECK)
+;   C   = Chest level, loop counter
 ;   AF' = Item code (saved during map lookup)
 ; ---  End  ---
 ;   Jumps to INIT_MELEE_ANIM or UPDATE_VIEWPORT (does not return)
@@ -4821,7 +4808,16 @@ DO_USE_SPRT_POTION:
 ; Memory Modified: Map item at PLAYER_MAP_POS
 ; Calls: NO_ACTION_TAKEN (if invalid), UPDATE_SCR_SAVER_TIMER, ITEM_MAP_CHECK, INIT_MELEE_ANIM or UPDATE_VIEWPORT (jumps)
 ;==============================================================================
-DO_USE_KEY:
+
+USE_KEY:
+    LD          A,(GAME_BOOLEANS)                   ; Load game state flags
+    BIT         0x3,A                               ; Check bit 3 (key owned flag)
+    JP          Z,NO_ACTION_TAKEN                   ; If not owned, exit without action
+    LD          A,(KEY_INV_SLOT)                    ; Load key level (0-4)
+    LD          B,A                                 ; Save key level to B
+    AND         A                                   ; Test if zero (no map)
+    JP          Z,INIT_MN_MELEE_ANIM                ; If no key slot, exit to melee animation
+
     LD          A,(ITEM_S0)                         ; Load sprite at current position (S0)
     LD          C,0x0                               ; Initialize C = 0
     SRL         A                                   ; Shift right 1 bit
@@ -4829,29 +4825,32 @@ DO_USE_KEY:
     SRL         A                                   ; Shift right again (total 2 bits)
     RL          C                                   ; Rotate left through C
     RL          C                                   ; Rotate left again (extract level)
-    CP          $14                                 ; Compare to $14 (door base code)
-    JP          NZ,NO_ACTION_TAKEN                  ; If not a door, no action
+    CP          $14                                 ; Compare to $14 (chest base code)
+    JP          NZ,NO_ACTION_TAKEN                  ; If not a chest, no action
+
+    DEC         B
+
     LD          A,B                                 ; A = key level (from item)
-    CP          C                                   ; Compare key level to door level
-    JP          C,NO_ACTION_TAKEN                   ; If key < door level, can't unlock
-    LD          A,C                                 ; A = door level
-    LD          B,A                                 ; B = door level
+    CP          C                                   ; Compare key level to chest level
+    JP          C,NO_ACTION_TAKEN                   ; If key < chest level, can't unlock
+    LD          A,C                                 ; A = chest level
+    LD          B,A                                 ; B = chest level
     AND         A                                   ; Test if zero (lowest level)
     JP          Z,GEN_RANDOM_ITEM                   ; If level 0, skip loop
     CALL        UPDATE_SCR_SAVER_TIMER              ; Reset screen saver timer
-    INC         C                                   ; C = door level + 1
+    INC         C                                   ; C = chest level + 1
 
 ;==============================================================================
 ; NORM_LEVEL_LOOP - Level adjustment normalization loop
 ;==============================================================================
-; Repeatedly subtracts (door_level + 1) from door level until underflow,
+; Repeatedly subtracts (chest_level + 1) from chest level until underflow,
 ; then adds back to get normalized remainder. Part of treasure item level
-; calculation for unlocked doors.
+; calculation for unlocked chests.
 ;
 ; Registers:
 ; --- Start ---
-;   A  = Door level
-;   C  = Door level + 1
+;   A  = Chest level
+;   C  = Chest level + 1
 ; --- In Process ---
 ;   A  = Iteratively reduced
 ; ---  End  ---
@@ -4882,8 +4881,8 @@ NORM_LEVEL_LOOP:
 ;
 ; Registers:
 ; --- Start ---
-;   B  = Door level
-;   C  = Door level data
+;   B  = Chest level
+;   C  = Chest level data
 ; --- In Process ---
 ;   A  = R register, masked, normalized
 ; ---  End  ---
@@ -8413,7 +8412,7 @@ KEY_COL_3:
     CP          $fb                                 ; Test row 2 "7"
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $f7                                 ; Test row 3 "U"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    JP          Z,USE_KEY                           ; If pressed, use key
     CP          $ef                                 ; Test row 4 "H"
     JP          Z,DO_OPEN_CLOSE                     ; If pressed, open/close door
     CP          $df                                 ; Test row 5 "B"
