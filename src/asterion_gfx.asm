@@ -961,14 +961,6 @@ LEVEL_99_LOOP:
     db          "so we will put you back",$01
     db          "into a new floor #90.",$FF
 
-; THE END
-;   The end of game text is displayed when you defeat the MINOTAUR.
-;
-THE_END_PART_A:
-    db          " Asterion, the minotaur ",$FF
-THE_END_PART_B:
-    db          " is dead. ",$FF
-
 ; YOU_DIED
 ;   The end of game text is displayed when the PLAYER dies.
 ;

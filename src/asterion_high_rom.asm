@@ -5961,10 +5961,11 @@ LEVEL_99_NOTICE_DELAY:
     CALL        SLEEP_ZERO                          ; Delay/wait function
     EXX                                             ; Switch back to main registers
     DJNZ        LEVEL_99_NOTICE_DELAY               ; Loop 30 times for delay
-    LD          A,CHAR_BOTTOM_LINE                  ; A = bottom line character
+    LD          A,$90                               ; A = Loop back to Level 90 ($90 BCD)
     LD          HL,DUNGEON_LEVEL                    ; Point to DUNGEON_LEVEL address
     LD          DE,CHHRAM_LVL_IDX                   ; Point to level display address
     JP          STORE_LEVEL_AND_REDRAW              ; Jump to update level display
+
 ;==============================================================================
 ; RECALC_AND_REDRAW_BCD - Convert BCD value to ASCII and render on screen
 ;==============================================================================
@@ -8375,8 +8376,9 @@ KEY_COL_1:
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
 ; For testing only !!!
     CP          $fd                                 ; Test row 1 "/"
+
     ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    JP          Z,MINOTAUR_DEAD                     ; If pressed, ignore
+    JP          Z,DRAW_99_LOOP_NOTICE               ; If pressed, do ***DEBUG*** action
 
     CP          $fb                                 ; Test row 2 "0"
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore

@@ -4997,15 +4997,11 @@ REDRAW_ARROWS_BKGD:
 
 REDRAW_FOOD_GRAPH:
     LD          A,(FOOD_INV)                        ; Get current food values
-    CP          $00                                 ; Compare to no food
-    RET         Z                                   ; If ZERO, return
     LD          HL,CHRRAM_FOOD_HI_IDX               ; Set HL to Food HI index
     JP          REDRAW_INV_GRAPH                    ; Handle redraw of food inv graph
 
 REDRAW_ARROWS_GRAPH:
     LD          A,(ARROW_INV)                       ; Get current arrows values
-    CP          $00                                 ; Compare to no arrows
-    RET         Z                                   ; If ZERO, return
     LD          HL,CHRRAM_ARROWS_HI_IDX             ; Set HL to Arrows HI index
     JP          REDRAW_INV_GRAPH                    ; Handle redraw of arrows inv graph
 
@@ -5031,13 +5027,14 @@ REDRAW_ARROWS_GRAPH:
 REDRAW_INV_GRAPH:
     PUSH        HL                                  ; Save the CHRRAM INV HI location
     LD          DE,40                               ; Row stride
-    CP          $00                                 ; Compare to no arrows
-    RET         Z                                   ; If ZERO, return
+    LD          (HL),32                             ; Fill upper meter with SPACE char
+    ADD         HL,DE                               ; Down one row
+    LD          (HL),32                             ; Fill lower meter with SPACE char
     CP          65                                  ; Compare to hi/lo boundary
     JP          C,DRAW_INV_LO                       ; If 64 or less, do the lower graph
     
 DRAW_INV_HI:
-    LD          HL,VERTICAL_BAR_METER               ; Set starting index of bar characters, 0
+    LD          HL,VERTICAL_BAR_METER               ; Set screen index of bar characters, 0
     ADD         A,7                                 ; Normalize up to 8's level
     SBC         A,64                                ; Reduce hi to lo
     SRL         A
