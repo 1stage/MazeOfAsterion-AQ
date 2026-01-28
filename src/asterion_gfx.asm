@@ -1035,3 +1035,24 @@ MAP_LEGEND_MONSTERS:
     db          196,$00,"monsters",$FF
 MAP_LEGEND_ITEMS:
     db          196,$00,"items",$FF
+
+PLAYER_DIES_TEXT:
+    db          "     You have died.     ",$FF
+PLAYER_SKELETON_TEXT:
+    db          " The azure stone of the ",$01
+    db          " maze absorbs your body ",$01
+    db          "   and reanimates the   ",$01
+    db          "   bones as a servant   ",$01
+    db          "      of Asterion...    ",$01,$01
+    db          "  PRESS ANY KEY TO EXIT ",$FF
+
+PLAYER_AS_SKELETON:
+    db          $04,$04,$04,$04
+    db          190,189,$00,$00,8,$01
+    db          239,$A0,140,$A0,$00,$00,214,$01
+    db          $02,224,190,176,$00,$00,35,$01
+    db          $02,168,187,182,172,227,35,$01
+    db          $02,162,182,162,166,161,214,$01
+    db          $02,170,190,228,176,$00,214,$01
+    db          233,$00,234,$00,214,$01
+    db          $02,187,228,181,226,228,214,$FF
