@@ -5949,7 +5949,7 @@ DRAW_99_LOOP_NOTICE:
     LD          B,COLOR(GRY,BLK)
     CALL        GFX_DRAW
 
-    LD          B,$1e                               ; B = 30 (delay loop count)
+    LD          B,15                                ; B = 15 (delay loop count)
 
 ;==============================================================================
 ; LEVEL_99_NOTICE_DELAY - Delay loop for level 99 notice display
