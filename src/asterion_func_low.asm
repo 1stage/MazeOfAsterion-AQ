@@ -676,7 +676,7 @@ DRAW_WALL_F2_EMPTY:
 ; Registers:
 ; --- Start ---
 ;   HL = position
-;   A  = color
+;   A  = character/color
 ; --- In Process ---
 ;   BC = RECT(4,4)
 ; ---  End  ---
@@ -2977,14 +2977,14 @@ DO_HC_SHIFT_ACTIONS:
     JP          Z,DO_USE_LADDER                     ; Use ladder if matched
     LD          A,$7b                               ; Compare to JOY K2
     CP          L                                   ; Check L register
-    JP          Z,NO_ACTION_TAKEN                   ; No action for K2 in shift mode
+    JP          Z,USE_KEY                           ; Use key if matched
     CP          H                                   ; Check H register
-    JP          Z,NO_ACTION_TAKEN                   ; No action for K2 in shift mode
+    JP          Z,USE_KEY                           ; Use key if matched
     LD          A,$5f                               ; Compare to JOY K3
     CP          L                                   ; Check L register
-    JP          Z,NO_ACTION_TAKEN                   ; No action for K3 in shift mode
+    JP          Z,USE_MAP                           ; Use map if matched
     CP          H                                   ; Check H register
-    JP          Z,NO_ACTION_TAKEN                   ; No action for K3 in shift mode
+    JP          Z,USE_MAP                           ; Use map if matched
     LD          A,$7d                               ; Compare to JOY K5
     CP          L                                   ; Check L register
     JP          Z,DO_SWAP_HANDS                     ; Swap hands if matched
@@ -2995,6 +2995,7 @@ DO_HC_SHIFT_ACTIONS:
     JP          Z,DO_REST                           ; Rest if matched
     CP          H                                   ; Check H register
     JP          Z,DO_REST                           ; Rest if matched
+; Chorded HC commands using K4/Shift
     LD          A,$cc                               ; Compare to K4 + DR chord
     CP          L                                   ; Check L register
     JP          Z,MAX_HEALTH_ARROWS_FOOD            ; Max stats if matched
@@ -3002,6 +3003,8 @@ DO_HC_SHIFT_ACTIONS:
     JP          Z,MAX_HEALTH_ARROWS_FOOD            ; Max stats if matched
     LD          A,$c6                               ; Compare to K4 + DL chord
     CP          L                                   ; Check L register
+    JP          Z,DO_TELEPORT                       ; Teleport if matched
+    CP          H                                   ; Check H register
     JP          Z,DO_TELEPORT                       ; Teleport if matched
     JP          NO_ACTION_TAKEN                     ; No action matched
 
@@ -3846,32 +3849,7 @@ DRAW_WALL_FL2:
     LD          A,COLOR(BLK,DKGRY)                  ; BLK on DKGRY (wall color)
     JP          DRAW_CHRCOLS                        ; Fill right wall
 
-;==============================================================================
-; FIX_ICON_COLORS
-;==============================================================================
-; Sets icon bar colors based on MULTIPURPOSE_BYTE value. Updates level indicator
-; colors (4 positions) and fills remaining icon area with WHT on BLK.
-;
-; Color Calculation:
-; - Level indicator color = (MULTIPURPOSE_BYTE * 2) - 1
-; - Remaining icons = $F0 (WHT on BLK) for 19 positions
-;
-; Registers:
-; --- Start ---
-;   None specific
-; --- In Process ---
-;   HL = COLRAM_LEVEL_IDX_L, COLRAM_SHIFT_MODE_IDX
-;   A  = calculated color value, then $F0
-;   BC = $1300 (B=19 loop counter, C=0)
-; ---  End  ---
-;   HL = end of icon color area
-;   B  = 0
-;   A  = $F0
-;
-; Memory Modified: COLRAM icon bar area (level indicator + 19 icon positions)
-; Calls: None
-;==============================================================================
-FIX_ICON_COLORS:
+COLOR_LEVEL_INDICATOR:
     LD          HL,COLRAM_LEVEL_IDX_L               ; Point to level indicator color area
     LD          A,(DIFFICULTY_LEVEL)                ; Load DIFFICULTY_LEVEL
     ADD         A,A                                 ; Double the value
@@ -3883,12 +3861,35 @@ FIX_ICON_COLORS:
     LD          (HL),A                              ; Set level indicator color
     INC         L                                   ; Move to next position
     LD          (HL),A                              ; Set level indicator color
+    RET
+
+;==============================================================================
+; INIT_ICONS
+;==============================================================================
+; Initiates icon row 
+;
+; Registers:
+; --- Start ---
+;   None specific
+; --- In Process ---
+;   HL = COLRAM_SHIFT_MODE_IDX
+;   A  = $F0 (DKGRY on BLK)
+;   BC = $1300 (B=19 loop counter, C=0)
+; ---  End  ---
+;   HL = end of icon color area
+;   B  = 0
+;   A  = $F0
+;
+; Memory Modified: COLRAM icon bar area (19 icon positions)
+; Calls: None
+;==============================================================================
+INIT_ICONS:
     LD          HL,COLRAM_SHIFT_MODE_IDX            ; Point to shift mode color area
     LD          BC,$1300                            ; Set B=19, C=0
     DEC         HL                                  ; Move back one position
 ICON_GREY_FILL_LOOP:
     INC         HL                                  ; Move to next position
-    LD          (HL),$f0                            ; Set color to WHT on BLK
+    LD          (HL),COLOR(DKGRY,BLK)               ; DKGRY on BLK
     DJNZ        ICON_GREY_FILL_LOOP                 ; Repeat B times
     RET                                             ; Return to caller
 

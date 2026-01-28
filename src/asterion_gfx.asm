@@ -955,17 +955,11 @@ AUTHORS:
 ; LEVEL_99_LOOP
 ;   The level 99 overflow text is shown when the player completes maze level 99 without killing the MINOTAUR. Their level is set back to 90, and they continue playing.
 ;
-LEVEL_99_LOOP:
-    db          "Looks like this dungeon",$01
-    db          "is too small for you",$01
-    db          "so we will put you back",$01
-    db          "into a new floor #90.",$FF
-
-; YOU_DIED
-;   The end of game text is displayed when the PLAYER dies.
-;
-YOU_DIED_TXT:
-    DB         $7F,$A0,"You died ",$FF
+; LEVEL_99_LOOP:
+;     db          "Looks like this dungeon",$01
+;     db          "is too small for you",$01
+;     db          "so we will put you back",$01
+;     db          "into a new floor #90.",$FF
 
 ; Characters for the pointer on the COMPASS
 WEST_TXT:
@@ -1056,3 +1050,14 @@ PLAYER_AS_SKELETON:
     db          $02,170,190,228,176,$00,214,$01
     db          233,$00,234,$00,214,$01
     db          $02,187,228,181,226,228,214,$FF
+
+LEVEL_99_START_TEXT:
+    db          "Well, aren't you clever?",$FF
+LEVEL_99_DETAIL_TEXT:
+    db          "Your talent has exceeded",$01
+    db          "the bounds of this maze.",$01
+    db          "    But you shall not   ",$01
+    db          "    escape so easily!   ",$01,$01
+    db          "      PREPARE TO BE     ",$01
+    db          "       TELEPORTED...    ",$FF
+

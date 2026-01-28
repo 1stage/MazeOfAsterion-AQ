@@ -224,7 +224,8 @@ BLANK_SCRN:
     LD          HL,CHRRAM_LEFT_HAND_VP_DRAW_IDX     ; HL = left hand viewport draw position
     LD          DE,BOW                              ; DE = BOW graphics pointer
     CALL        DRAW_LEFT_HAND_AREA                 ; Clear area and draw BOW
-    CALL        FIX_ICON_COLORS                     ; Normalize icon colors post-draw
+    CALL        INIT_ICONS                          ; Setup icons
+    CALL        COLOR_LEVEL_INDICATOR               ; Color the level indicator
     CALL        DRAW_COMPASS                        ; Draw initial compass
     CALL        DRAW_PACK_BKGD                      ; Draw pack background
     DEC         A                                   ; A = 13 (used in shield calc temp)
@@ -4691,7 +4692,6 @@ PLAYER_DIES:
     CALL        GFX_DRAW
 
     LD          HL,CHRRAM_FINAL_SKELETON_IDX
-    ; LD          DE,SKELETON
     LD          DE,PLAYER_AS_SKELETON
     LD          B,COLOR(GRY,BLK)
     CALL        GFX_DRAW
@@ -5867,7 +5867,7 @@ RESET_MAP:
 ; --- In Process ---
 ;   A  = Increment value (1), new level, then display characters
 ;   HL = DUNGEON_LEVEL pointer
-;   DE = Display address ($3002), then text pointers
+;   DE = Display address (CHRRAM_LEVEL_IND_TENS), then text pointers
 ;   B  = BCD byte count (1), color values, delay counter
 ; ---  End  ---
 ;   All registers modified by display routines
@@ -5876,7 +5876,7 @@ RESET_MAP:
 ; Calls: RECALC_AND_REDRAW_BCD, REDRAW_START, REDRAW_VIEWPORT, DRAW_BKGD, GFX_DRAW, SLEEP_ZERO
 ;==============================================================================
 INC_DUNGEON_LEVEL:
-    LD          DE,$3002                            ; DE = display address for level
+    LD          DE,CHRRAM_LEVEL_IND_TENS            ; DE = display address for level
     LD          HL,DUNGEON_LEVEL                    ; Point to DUNGEON_LEVEL address
     LD          A,0x1                               ; A = 1 (increment value)
     ADD         A,(HL)                              ; Add 1 to DUNGEON_LEVEL (BCD!)
@@ -5934,11 +5934,21 @@ STORE_LEVEL_AND_REDRAW:
 ; Calls: DRAW_BKGD, GFX_DRAW, SLEEP_ZERO (via EXX alternate set)
 ;==============================================================================
 DRAW_99_LOOP_NOTICE:
-    CALL        DRAW_BKGD                           ; Draw background
-    LD          HL,CHRRAM_LVL99_TEXT_IDX            ; Point to screen position
-    LD          DE,LEVEL_99_LOOP                    ; Point to "Looks like this dungeon..." text
-    LD          B,$f0                               ; B = color (white on black)
-    CALL        GFX_DRAW                            ; Draw notice text
+    LD          HL,COLRAM_VIEWPORT_IDX              ; Point to viewport color RAM
+    LD          BC,RECT(24,24)                      ; 24x24 rectangle size
+    LD          A,COLOR(BLK,BLK)                    ; Black on black color
+    CALL        FILL_CHRCOL_RECT                    ; Fill viewport with black
+
+    LD          HL,CHRRAM_END_TEXT_IDX              ; Point to END_TEXT_IDX
+    LD          DE,LEVEL_99_START_TEXT              ; Point to LEVEL_99_START_TEXT data
+    LD          B,COLOR(YEL,BLK)                    ; YEL on BLK
+    CALL        GFX_DRAW                            ; Draw level 99 text
+
+    LD          HL,CHRRAM_PLAYER_SKELETON_TEXT
+    LD          DE,LEVEL_99_DETAIL_TEXT
+    LD          B,COLOR(GRY,BLK)
+    CALL        GFX_DRAW
+
     LD          B,$1e                               ; B = 30 (delay loop count)
 
 ;==============================================================================
@@ -5969,7 +5979,8 @@ LEVEL_99_NOTICE_DELAY:
     DJNZ        LEVEL_99_NOTICE_DELAY               ; Loop 30 times for delay
     LD          A,$90                               ; A = Loop back to Level 90 ($90 BCD)
     LD          HL,DUNGEON_LEVEL                    ; Point to DUNGEON_LEVEL address
-    LD          DE,CHHRAM_LVL_IDX                   ; Point to level display address
+    ; LD          DE,CHHRAM_LVL_IDX                   ; Point to level display address
+    LD          DE,CHRRAM_LEVEL_IND_TENS            ; Point to level display address
     JP          STORE_LEVEL_AND_REDRAW              ; Jump to update level display
 
 ;==============================================================================
@@ -5987,7 +5998,7 @@ LEVEL_99_NOTICE_DELAY:
 ;   B  = Byte count
 ; --- In Process ---
 ;   A  = BCD bytes, nibble extractions, ASCII conversions
-;   DE = Temp buffer $3a50, then reverts to screen dest
+;   DE = Temp buffer BCD_CONVERSION_TEMP, then reverts to screen dest
 ;   HL = Screen write pointer (from original DE)
 ;   B  = Character count for display loop
 ;   AF'= Character count storage
@@ -5996,12 +6007,12 @@ LEVEL_99_NOTICE_DELAY:
 ;   A  = Last digit character written
 ;   F  = Flags from final store
 ;
-; Memory Modified: $3a50 temp buffer, CHRRAM at original DE
+; Memory Modified: BCD_CONVERSION_TEMP, CHRRAM at original DE
 ; Calls: None
 ;==============================================================================
 RECALC_AND_REDRAW_BCD:
     PUSH        DE                                  ; Save DE (display address)
-    LD          DE,$3a50                            ; DE = temp buffer for BCD conversion
+    LD          DE,BCD_CONVERSION_TEMP              ; DE = temp buffer for BCD conversion
     LD          A,B                                 ; A = byte count
     SLA         A                                   ; Shift left (multiply by 2)
     DEC         A                                   ; Decrement (2*B - 1)
@@ -6011,7 +6022,7 @@ RECALC_AND_REDRAW_BCD:
 ; BCD_TO_ASCII_LOOP - Convert BCD bytes to ASCII digits
 ;==============================================================================
 ; Converts each BCD byte into two ASCII characters (tens and ones) and stores
-; them in the temp buffer at $3a50. Processes from low to high byte, storing
+; them in BCD_CONVERSION_TEMP. Processes from low to high byte, storing
 ; digits in reverse order (right-to-left) for later display reversal.
 ;
 ; Registers:
@@ -6029,7 +6040,7 @@ RECALC_AND_REDRAW_BCD:
 ;   DE = Past last ASCII character
 ;   B  = 0
 ;
-; Memory Modified: Temp buffer at $3a50
+; Memory Modified: BCD_CONVERSION_TEMP
 ; Calls: None
 ;==============================================================================
 BCD_TO_ASCII_LOOP:
@@ -8482,7 +8493,6 @@ KEY_COL_7:
     CP          $f7                                 ; Test row 3 "Q"
     JP          Z,MAX_HEALTH_ARROWS_FOOD            ; If pressed, max stats (cheat?)
     CP          $ef                                 ; Test row 4 "SHFT"
-    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     JP          Z,TOGGLE_SHIFT_MODE                 ; If pressed, toggle SHIFT mode
     CP          $df                                 ; Test row 5 "CTRL"
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
@@ -8760,26 +8770,27 @@ VERTICAL_BAR_METER:
     db          137                                 ; 6 meter
     db          128                                 ; 7 meter
     db          127                                 ; 8 meter
-    
-BCD2HEX:
-    PUSH        BC                                  ; Save register
-    LD          B,A                                 ; Store original BCD in B
-    AND         $F0                                 ; Isolate tens digit (high nibble)
-    RRCA                                            ; Shift right 4 times to get 0-9 value
-    RRCA
-    RRCA
-    RRCA
-    LD          C, A                                ; C = tens digit
-    ADD         A, A                                ; A = tens * 2
-    ADD         A, A                                ; A = tens * 4
-    ADD         A, C                                ; A = tens * 5
-    ADD         A, A                                ; A = tens * 10
-    LD          C, A                                ; C = tens * 10
-    LD          A, B                                ; Recover original BCD
-    AND         $0F                                 ; Isolate units digit (low nibble)
-    ADD         A, C                                ; Add tens*10 to units
-    POP         BC                                  ; Restore register
-    RET
+
+; Unused BCD to HEX conversion routine
+; BCD2HEX:
+;     PUSH        BC                                  ; Save register
+;     LD          B,A                                 ; Store original BCD in B
+;     AND         $F0                                 ; Isolate tens digit (high nibble)
+;     RRCA                                            ; Shift right 4 times to get 0-9 value
+;     RRCA
+;     RRCA
+;     RRCA
+;     LD          C, A                                ; C = tens digit
+;     ADD         A, A                                ; A = tens * 2
+;     ADD         A, A                                ; A = tens * 4
+;     ADD         A, C                                ; A = tens * 5
+;     ADD         A, A                                ; A = tens * 10
+;     LD          C, A                                ; C = tens * 10
+;     LD          A, B                                ; Recover original BCD
+;     AND         $0F                                 ; Isolate units digit (low nibble)
+;     ADD         A, C                                ; Add tens*10 to units
+;     POP         BC                                  ; Restore register
+;     RET
 
 ;==============================================================================
 ; FIX_MELEE_GLITCH_BEGIN & END
