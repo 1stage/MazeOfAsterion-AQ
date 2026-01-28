@@ -5935,7 +5935,7 @@ STORE_LEVEL_AND_REDRAW:
 ;==============================================================================
 DRAW_99_LOOP_NOTICE:
     LD          HL,COLRAM_VIEWPORT_IDX              ; Point to viewport color RAM
-    LD          BC,RECT(24,24)                      ; 24x24 rectangle size
+    LD          BC,RECT(24,19)                      ; 24x19 rectangle size
     LD          A,COLOR(BLK,BLK)                    ; Black on black color
     CALL        FILL_CHRCOL_RECT                    ; Fill viewport with black
 

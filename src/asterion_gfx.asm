@@ -1052,8 +1052,10 @@ PLAYER_AS_SKELETON:
     db          $02,187,228,181,226,228,214,$FF
 
 LEVEL_99_START_TEXT:
+    db          $01,$01
     db          "Well, aren't you clever?",$FF
 LEVEL_99_DETAIL_TEXT:
+    db          $01,$01
     db          "Your talent has exceeded",$01
     db          "the bounds of this maze.",$01
     db          "    But you shall not   ",$01
