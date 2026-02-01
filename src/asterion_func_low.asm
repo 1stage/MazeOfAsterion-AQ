@@ -4693,6 +4693,30 @@ COPY_GFX_SCRN_2_SCRN_MEMCHK:
     JP          COPY_GFX_SCRN_2_SCRN                ; Recursive call to copy corresponding COLRAM areas
 
 ;==============================================================================
+; RHA_REDRAW - Redraw Ring/Helmet/Armor icons and return to input
+;==============================================================================
+; Updates the color attributes for all three equipment icons (Ring, Helmet,
+; Armor) based on their current inventory levels, then returns to the input
+; debounce loop. Typically called after equipment changes.
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A = Modified by CHECK_* routines
+; ---  End  ---
+;   Control transfers to INPUT_DEBOUNCE (no return)
+;
+; Memory Modified: COLRAM_RING_IDX, COLRAM_HELMET_IDX, COLRAM_ARMOR_IDX
+; Calls: CHECK_RING, CHECK_HELMET, CHECK_ARMOR, INPUT_DEBOUNCE
+;==============================================================================
+RHA_REDRAW:
+    CALL        CHECK_RING                          ; Update ring icon color
+    CALL        CHECK_HELMET                        ; Update helmet icon color
+    CALL        CHECK_ARMOR                         ; Update armor icon color
+    JP          INPUT_DEBOUNCE                      ; Return to input loop
+
+;==============================================================================
 ; CHECK_RING - Update ring icon color based on inventory level
 ;==============================================================================
 ; Reads the ring inventory slot level, converts it to a color value using
@@ -4775,51 +4799,29 @@ CHECK_ARMOR:
 ;==============================================================================
 ; Converts an equipment level (0-3) to a COLRAM color attribute value using
 ; the formula: ((level * 2) - 1) * 16. This maps levels to color palette
-; indices: 0→-16 (wraps), 1→16, 2→48, 3→80.
+; indices: 0→$F0 (wraps from -16), 1→$10, 2→$30, 3→$50. Uses RRCA rotation
+; to efficiently shift the value into the upper nybble (multiply by 16).
 ;
 ; Registers:
 ; --- Start ---
 ;   A = Level (0-3)
 ; --- In Process ---
-;   A = Intermediate calculations
+;   A = Intermediate calculations, rotated values
 ; ---  End  ---
-;   A = Color value (palette index * 16)
+;   A = Color value (palette index * 16, lower nybble cleared)
 ;
 ; Memory Modified: None
 ; Calls: None
 ;==============================================================================
 LEVEL_TO_COLRAM_FIX:
     ADD         A,A                                 ; A = level * 2
-    SUB         0x1                                 ; A = (level * 2) - 1
-    SLA         A                                   ; A = ((level * 2) - 1) * 2
-    SLA         A                                   ; A = ((level * 2) - 1) * 4
-    SLA         A                                   ; A = ((level * 2) - 1) * 8
-    SLA         A                                   ; A = ((level * 2) - 1) * 16
+    DEC         A                                   ; A = (level * 2) - 1
+    RRCA                                            ; Rotate right (shift to upper nybble)
+    RRCA                                            ; Rotate right
+    RRCA                                            ; Rotate right
+    RRCA                                            ; Rotate right (total: * 16)
+    AND         $F0                                 ; Mask lower nybble (clean result)
     RET                                             ; Return color value in A
-
-;==============================================================================
-; RHA_REDRAW - Redraw Ring/Helmet/Armor icons and return to input
-;==============================================================================
-; Updates the color attributes for all three equipment icons (Ring, Helmet,
-; Armor) based on their current inventory levels, then returns to the input
-; debounce loop. Typically called after equipment changes.
-;
-; Registers:
-; --- Start ---
-;   None
-; --- In Process ---
-;   A = Modified by CHECK_* routines
-; ---  End  ---
-;   Control transfers to INPUT_DEBOUNCE (no return)
-;
-; Memory Modified: COLRAM_RING_IDX, COLRAM_HELMET_IDX, COLRAM_ARMOR_IDX
-; Calls: CHECK_RING, CHECK_HELMET, CHECK_ARMOR, INPUT_DEBOUNCE
-;==============================================================================
-RHA_REDRAW:
-    CALL        CHECK_RING                          ; Update ring icon color
-    CALL        CHECK_HELMET                        ; Update helmet icon color
-    CALL        CHECK_ARMOR                         ; Update armor icon color
-    JP          INPUT_DEBOUNCE                      ; Return to input loop
 
 ;==============================================================================
 ; VP_LH_GAP_REDRAW - Redraw Viewport Left Hand Filler
