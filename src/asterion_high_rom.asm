@@ -503,23 +503,36 @@ NO_ACTION_TAKEN:
 ; Memory Modified: None
 ; Calls: PLAY_SOUND_LOOP, WAIT_FOR_INPUT
 ;
+;==============================================================================
+; PLAY_FOOTSTEP
+;==============================================================================
+; Plays a footstep sound based on checkerboard pattern of player position.
+; Determines "odd" vs "even" square by XORing bit 0 (X coord LSB) with bit 4
+; (Y coord LSB) of the map position byte. Odd squares play HI pip, even
+; squares play LO pip, creating an alternating audio pattern as player moves.
+;
+; Position encoding: Low nybble = X coordinate, High nybble = Y coordinate
+; Checkerboard logic: (X[0] XOR Y[0]) determines square parity
+;
+; Registers:
+; --- Start ---
+;   A  = Player map position (YYYYXXXX format)
+; --- In Process ---
+;   B  = Saved position value
+;   A  = Isolated bit 4, then XOR result, then final parity
+; ---  End  ---
+;   Jumps to PLAY_INPUT_PIP_HI or PLAY_INPUT_PIP_LO (does not return here)
+;
+; Memory Modified: None directly (pip routines modify timers)
+; Calls: PLAY_INPUT_PIP_HI or PLAY_INPUT_PIP_LO (via JP)
+;==============================================================================
 PLAY_FOOTSTEP:
-    BIT         0x0,A                               ; Low nybble check
-    JP          Z,EVEN_LOW                          ; If low is even, jump ahead
-    BIT         0x4,A                               ; Low is odd, do high nybble check
-    JP          Z,ODD_STEP                          ; If high is even, do odd step
-    JP          EVEN_STEP                           ; Low and high are odd, do even step
-
-EVEN_LOW:
-    BIT         0x4,A                               ; High nybble check
-    JP          Z,EVEN_STEP                         ; High is even, do even step
-
-ODD_STEP:
-    CALL        PLAY_INPUT_PIP_HI                   ; Odd steps play HI pip
-    RET
-EVEN_STEP:
-    CALL        PLAY_INPUT_PIP_LO                   ; Even steps play LO pip
-    RET
+    LD          B,A                                 ; Save position in B
+    AND         $10                                 ; Isolate bit 4 (Y coordinate LSB)
+    XOR         B                                   ; XOR with full position (brings bit 0 into result)
+    AND         $01                                 ; Isolate final parity bit (0=even, 1=odd)
+    JP          NZ,PLAY_INPUT_PIP_HI                ; Odd square → play HI pip
+    JP          PLAY_INPUT_PIP_LO                   ; Even square → play LO pip
 
 ;==============================================================================
 ; PLAY_SOUND_LOOP

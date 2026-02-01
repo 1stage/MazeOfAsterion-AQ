@@ -4828,19 +4828,6 @@ RHA_REDRAW:
 ;
 ;==============================================================================
 VP_LH_GAP_REDRAW:
-    ; LD          BC,$0028
-    ; LD          HL,COLRAM_VP_LH_GAP_IDX
-    ; LD          A,COLOR(BLK,DKGRY)
-    ; LD          (HL),A
-    ; ADD         HL,BC
-    ; LD          (HL),A
-    ; ADD         HL,BC
-    ; LD          (HL),A
-    ; ADD         HL,BC
-    ; LD          (HL),A
-    ; ADD         HL,BC
-    ; LD          (HL),A
-
     LD          DE,VP_LH_GAP                        ; DE = viewport left hand gap graphic
     LD          HL,CHRRAM_VP_LH_GAP_IDX             ; HL = Viewport Left hand gap index
     LD          B,COLOR(DKGRY,BLK)                  ; BLK on DKGRY
