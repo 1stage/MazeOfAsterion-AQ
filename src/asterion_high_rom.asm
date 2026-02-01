@@ -505,24 +505,20 @@ NO_ACTION_TAKEN:
 ;
 PLAY_FOOTSTEP:
     BIT         0x0,A                               ; Low nybble check
-    JP          Z,EVEN_LOW                          ; If Low is even, jump ahead
-    BIT         0x4,A                               ; Low is odd, do Hi nybble check
-    JP          Z,ODD_STEP                          ; If Hi is even, do odd step
-    JP          EVEN_STEP                           ; Low and Hi are odd, do even step
+    JP          Z,EVEN_LOW                          ; If low is even, jump ahead
+    BIT         0x4,A                               ; Low is odd, do high nybble check
+    JP          Z,ODD_STEP                          ; If high is even, do odd step
+    JP          EVEN_STEP                           ; Low and high are odd, do even step
 
 EVEN_LOW:
-    BIT         0x4,A                               ; Hi nybble check
-    JP          Z,EVEN_STEP                         ; Hi is even, do even step
+    BIT         0x4,A                               ; High nybble check
+    JP          Z,EVEN_STEP                         ; High is even, do even step
 
 ODD_STEP:
-    LD          BC,$250
-    LD          DE,$40
-    CALL        PLAY_INPUT_PIP_HI
+    CALL        PLAY_INPUT_PIP_HI                   ; Odd steps play HI pip
     RET
 EVEN_STEP:
-    LD          BC,$375
-    LD          DE,$30
-    CALL        PLAY_INPUT_PIP_LO
+    CALL        PLAY_INPUT_PIP_LO                   ; Even steps play LO pip
     RET
 
 ;==============================================================================
@@ -3204,7 +3200,7 @@ TITLE_CHK_FOR_HC_INPUT:
 ;==============================================================================
 ; PLAY_INPUT_PIP_MID , HI , & LO - Play short pip sounds
 ;==============================================================================
-; Plays a brief high or lo pip sound effect, typically used for negative
+; Plays a brief mid, high, or lo pip sound effect, typically used for negative
 ; feedback or denial actions. Resets all timers and outputs a series of tones
 ; to the speaker port to create an audible "beep" effect.
 ;
@@ -3224,44 +3220,56 @@ TITLE_CHK_FOR_HC_INPUT:
 ; Calls: SLEEP
 ;==============================================================================
 PLAY_INPUT_PIP_MID:
-    XOR         A                                   ; Clear A (A = 0)
-    LD          (MASTER_TICK_TIMER),A               ; Reset MASTER_TICK_TIMER
-    LD          (SECONDARY_TIMER),A                 ; Reset SECONDARY_TIMER
-    LD          (INACTIVITY_TIMER),A                ; Reset INACTIVITY_TIMER
-    OUT         (SPEAKER),A                         ; Output 0 to speaker (low tone)
-    LD          BC,$f0                              ; Load delay count ($F0)
-    CALL        SLEEP                               ; Delay for BC cycles
-    INC         A                                   ; Increment A (A = 1)
-    OUT         (SPEAKER),A                         ; Output 1 to speaker (high tone)
-    LD          BC,$4c0                             ; Load delay count ($4C0)
-    CALL        SLEEP                               ; Delay for BC cycles
-    RET                                             ; Return to caller
+    LD          DE,$f0                              ; Load first delay ($F0 - mid pitch)
+    LD          HL,$4c0                             ; Load second delay ($4C0 - mid pitch)
+    JP          PLAY_INPUT_PIP                      ; Jump to common routine
 
 PLAY_INPUT_PIP_HI:
-    XOR         A                                   ; Clear A (A = 0)
-    LD          (MASTER_TICK_TIMER),A               ; Reset MASTER_TICK_TIMER
-    LD          (SECONDARY_TIMER),A                 ; Reset SECONDARY_TIMER
-    LD          (INACTIVITY_TIMER),A                ; Reset INACTIVITY_TIMER
-    OUT         (SPEAKER),A                         ; Output 0 to speaker (low tone)
-    LD          BC,$C0                              ; Load delay count ($C0 - 0.8x for higher pitch)
-    CALL        SLEEP                               ; Delay for BC cycles
-    INC         A                                   ; Increment A (A = 1)
-    OUT         (SPEAKER),A                         ; Output 1 to speaker (high tone)
-    LD          BC,$3D0                             ; Load delay count ($3D0 - 0.8x for higher pitch)
-    CALL        SLEEP                               ; Delay for BC cycles
-    RET                                             ; Return to caller
+    LD          DE,$C0                              ; Load first delay ($C0 - 0.8x for higher pitch)
+    LD          HL,$3D0                             ; Load second delay ($3D0 - 0.8x for higher pitch)
+    JP          PLAY_INPUT_PIP                      ; Jump to common routine
 
 PLAY_INPUT_PIP_LO:
+    LD          DE,$12C                             ; Load first delay ($12C - 1.25x for lower pitch)
+    LD          HL,$5F0                             ; Load second delay ($5F0 - 1.25x for lower pitch)
+    ; Fall through to PLAY_INPUT_PIP_COMMON
+
+;==============================================================================
+; PLAY_INPUT_PIP - Common pip sound routine
+;==============================================================================
+; Plays a brief pip sound effect with configurable delays for pitch control.
+; Called by PLAY_INPUT_PIP_HI/MID/LO after they set up delay parameters.
+;
+; Registers:
+; --- Start ---
+;   DE = First delay value (controls initial tone duration)
+;   HL = Second delay value (controls main tone duration)
+; --- In Process ---
+;   A  = 0, then speaker values
+;   BC = SLEEP parameter (copied from DE, then HL)
+; ---  End  ---
+;   A  = Last speaker output (1)
+;   BC = Last delay value
+;   DE = Preserved first delay
+;   HL = Preserved second delay
+;   Timers reset
+;
+; Memory Modified: MASTER_TICK_TIMER, SECONDARY_TIMER, INACTIVITY_TIMER
+; Calls: SLEEP
+;==============================================================================
+PLAY_INPUT_PIP:
     XOR         A                                   ; Clear A (A = 0)
     LD          (MASTER_TICK_TIMER),A               ; Reset MASTER_TICK_TIMER
     LD          (SECONDARY_TIMER),A                 ; Reset SECONDARY_TIMER
     LD          (INACTIVITY_TIMER),A                ; Reset INACTIVITY_TIMER
     OUT         (SPEAKER),A                         ; Output 0 to speaker (low tone)
-    LD          BC,$12C                             ; Load delay count ($12C - 1.25x for lower pitch)
+    PUSH        HL                                  ; Preserve HL (second delay)
+    LD          B,D                                 ; Copy DE to BC for SLEEP
+    LD          C,E                                 ; BC = first delay value
     CALL        SLEEP                               ; Delay for BC cycles
     INC         A                                   ; Increment A (A = 1)
     OUT         (SPEAKER),A                         ; Output 1 to speaker (high tone)
-    LD          BC,$5F0                             ; Load delay count ($5F0 - 1.25x for lower pitch)
+    POP         BC                                  ; Restore second delay to BC
     CALL        SLEEP                               ; Delay for BC cycles
     RET                                             ; Return to caller
 
