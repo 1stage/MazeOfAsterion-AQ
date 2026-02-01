@@ -392,6 +392,7 @@ FW_WALLS_CLEAR_CHK_MONSTER:
     LD          (PLAYER_PREV_MAP_LOC),A             ; Save previous position for backtrack
     ADD         A,B                                 ; Add direction offset to position
     LD          (PLAYER_MAP_POS),A                  ; Store new player position
+    CALL        PLAY_FOOTSTEP                       ; Play hi/lo pip sound for walking
     JP          UPDATE_VIEWPORT                     ; Redraw viewport at new position
 
 ;==============================================================================
@@ -487,6 +488,42 @@ NO_ACTION_TAKEN:
     CALL        PLAY_SOUND_LOOP                     ; Play the blocked action sound
     JP          WAIT_FOR_INPUT                      ; Return to input polling loop
 
+;==============================================================================
+; PLAY_SOUND_LOOP
+;==============================================================================
+;
+; Registers:
+; --- Start ---
+;   A  = PLAYER_MAP_POS
+; --- In Process ---
+;   All registers modified by PLAY_SOUND_LOOP
+; ---  End  ---
+;   Control passes to WAIT_FOR_INPUT
+;
+; Memory Modified: None
+; Calls: PLAY_SOUND_LOOP, WAIT_FOR_INPUT
+;
+PLAY_FOOTSTEP:
+    BIT         0x0,A                               ; Low nybble check
+    JP          Z,EVEN_LOW                          ; If Low is even, jump ahead
+    BIT         0x4,A                               ; Low is odd, do Hi nybble check
+    JP          Z,ODD_STEP                          ; If Hi is even, do odd step
+    JP          EVEN_STEP                           ; Low and Hi are odd, do even step
+
+EVEN_LOW:
+    BIT         0x4,A                               ; Hi nybble check
+    JP          Z,EVEN_STEP                         ; Hi is even, do even step
+
+ODD_STEP:
+    LD          BC,$250
+    LD          DE,$40
+    CALL        PLAY_SOUND_LOOP
+    RET
+EVEN_STEP:
+    LD          BC,$375
+    LD          DE,$30
+    CALL        PLAY_SOUND_LOOP
+    RET
 
 ;==============================================================================
 ; PLAY_SOUND_LOOP
@@ -3096,7 +3133,7 @@ POLL_INPUT:
     INC         A                                   ; $FF means no input
     JP          Z,WAIT_FOR_INPUT                    ; No input anywhere → continue loop
 HANDLE_HC_INPUT:
-    CALL        PLAY_DESCENDING_SOUND               ; Acknowledge HC input with tone
+    CALL        PLAY_INPUT_PIP_HI                   ; Acknowledge HC input with tone
     LD          HL,HC_INPUT_HOLDER                  ; Point to HC input storage buffer
 DISABLE_JOY_04:
     LD          C,$f7                               ; HC control port ($F7)
@@ -3165,19 +3202,9 @@ TITLE_CHK_FOR_HC_INPUT:
     JP          HC_LEVEL_SELECT_LOOP                ; Jump to check difficulty selection
 
 ;==============================================================================
-; PLAY_DESCENDING_SOUND - Short two-step speaker chirp
+; PLAY_INPUT_PIP_HI & LO - Play short pip sound
 ;==============================================================================
-;   - Outputs 0 then 1 to `SPEAKER` with timed delays to create a simple
-;     descending/acknowledgement tone; also resets timers A/B/C
-; Registers:
-;   A  = Output value to speaker
-;   BC = Sleep delay parameter
-;
-
-;==============================================================================
-; PLAY_DESCENDING_SOUND - Play short descending tone sequence
-;==============================================================================
-; Plays a brief descending pitch sound effect, typically used for negative
+; Plays a brief high or lo pip sound effect, typically used for negative
 ; feedback or denial actions. Resets all timers and outputs a series of tones
 ; to the speaker port to create an audible "beep" effect.
 ;
@@ -3196,7 +3223,21 @@ TITLE_CHK_FOR_HC_INPUT:
 ; Memory Modified: MASTER_TICK_TIMER, SECONDARY_TIMER, INACTIVITY_TIMER
 ; Calls: SLEEP
 ;==============================================================================
-PLAY_DESCENDING_SOUND:
+PLAY_INPUT_PIP_HI:
+    XOR         A                                   ; Clear A (A = 0)
+    LD          (MASTER_TICK_TIMER),A               ; Reset MASTER_TICK_TIMER
+    LD          (SECONDARY_TIMER),A                 ; Reset SECONDARY_TIMER
+    LD          (INACTIVITY_TIMER),A                ; Reset INACTIVITY_TIMER
+    OUT         (SPEAKER),A                         ; Output 0 to speaker (low tone)
+    LD          BC,$f0                              ; Load delay count ($F0)
+    CALL        SLEEP                               ; Delay for BC cycles
+    INC         A                                   ; Increment A (A = 1)
+    OUT         (SPEAKER),A                         ; Output 1 to speaker (high tone)
+    LD          BC,$4c0                             ; Load delay count ($4C0)
+    CALL        SLEEP                               ; Delay for BC cycles
+    RET                                             ; Return to caller
+
+PLAY_INPUT_PIP_LO:
     XOR         A                                   ; Clear A (A = 0)
     LD          (MASTER_TICK_TIMER),A               ; Reset MASTER_TICK_TIMER
     LD          (SECONDARY_TIMER),A                 ; Reset SECONDARY_TIMER
@@ -3224,7 +3265,7 @@ PLAY_DESCENDING_SOUND:
 ;   A  = Input value and comparisons
 ;
 HANDLE_KEYBOARD_INPUT:
-    CALL        PLAY_DESCENDING_SOUND               ; Acknowledge key press with sound
+    CALL        PLAY_INPUT_PIP_HI                   ; Acknowledge key press with pip sound
     LD          HL,KEY_INPUT_COL0                   ; Point to key input buffer start
     LD          BC,0xfeff                           ; C=$FF (port), B=$FE (column 0 mask)
     LD          D,0x8                               ; Set counter to 8 (8 columns to scan)
@@ -3851,11 +3892,6 @@ DOOR_CLOSE_ANIM_LOOP:
     DJNZ        DOOR_CLOSE_ANIM_LOOP                ; Loop until all 12 rows done
     CALL        CLEAR_MONSTER_STATS                 ; Clear monster statistics
     JP          WAIT_FOR_INPUT                      ; Return to main input loop
-
-;   UNREACHABLE CODE - Dead code after unconditional jump
-;   Appears to be orphaned delay routine, never executed
-;    LD          BC,$1600                           ; Load delay count ($1600 = 5632)
-;    JP          SLEEP                              ; Jump to SLEEP routine
 
 ;==============================================================================
 ; DO_TURN_LEFT - Rotate player facing 90 degrees counterclockwise
@@ -8370,7 +8406,7 @@ HEAL_PLAYER_SPRT_HEALTH:
 ;==============================================================================
 KEY_COMPARE:
     LD          A,(MONSTER_MELEE_STATE)             ; Load MONSTER_MELEE_STATE
-    CP          $31                                 ; Compare to "1" (key pressed?)
+    CP          $31                                 ; Check for if in battle
     JP          NZ,WAIT_FOR_INPUT                   ; If no key, wait for input
 KEY_COL_0:
     LD          HL,KEY_INPUT_COL0                   ; HL = keyboard column 0 address
