@@ -2082,6 +2082,9 @@ NOT_HELMET:
     INC         D                                   ; Increment D (new item tier/level)
     CP          D                                   ; Compare current item to new item
     JP          NC,INPUT_DEBOUNCE                   ; If current >= new, don't swap (keep better)
+
+    CALL        PLAY_POWER_UP_SOUND                 ; Upgrading! Play powerup sound.
+
     EX          AF,AF'                              ; Save A and flags (old item code)
     LD          A,D                                 ; Load new item code
     LD          (HL),A                              ; Store new item in inventory slot

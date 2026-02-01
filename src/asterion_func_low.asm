@@ -4834,6 +4834,10 @@ PLAY_TELEPORT_SOUND:
 ; Calls: PLAY_SOUND_LOOP (4 times)
 ;==============================================================================
 PLAY_POWER_UP_SOUND:
+    PUSH        BC                                  ; Save BC
+    PUSH        DE                                  ; Save DE
+    PUSH        HL                                  ; Save HL
+    PUSH        AF                                  ; Save AF
     LD          BC,$220                             ; BC = duration for first tone
     LD          DE,$18                              ; DE = pitch/frequency (short)
     CALL        PLAY_SOUND_LOOP                     ; Play first tone
@@ -4846,4 +4850,8 @@ PLAY_POWER_UP_SOUND:
     LD          BC,$1c0                             ; BC = duration for fourth tone
     LD          DE,$60                              ; DE = pitch/frequency (long final tone)
     CALL        PLAY_SOUND_LOOP                     ; Play fourth tone (extended)
+    POP         AF                                  ; Restore AF
+    POP         HL                                  ; Restore HL
+    POP         DE                                  ; Restore DE
+    POP         BC                                  ; Restore BC
     RET                                             ; Return to caller
