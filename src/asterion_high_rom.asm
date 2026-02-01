@@ -517,12 +517,12 @@ EVEN_LOW:
 ODD_STEP:
     LD          BC,$250
     LD          DE,$40
-    CALL        PLAY_SOUND_LOOP
+    CALL        PLAY_INPUT_PIP_HI
     RET
 EVEN_STEP:
     LD          BC,$375
     LD          DE,$30
-    CALL        PLAY_SOUND_LOOP
+    CALL        PLAY_INPUT_PIP_LO
     RET
 
 ;==============================================================================
@@ -3133,7 +3133,7 @@ POLL_INPUT:
     INC         A                                   ; $FF means no input
     JP          Z,WAIT_FOR_INPUT                    ; No input anywhere → continue loop
 HANDLE_HC_INPUT:
-    CALL        PLAY_INPUT_PIP_HI                   ; Acknowledge HC input with tone
+    CALL        PLAY_INPUT_PIP_MID                  ; Acknowledge HC input with tone
     LD          HL,HC_INPUT_HOLDER                  ; Point to HC input storage buffer
 DISABLE_JOY_04:
     LD          C,$f7                               ; HC control port ($F7)
@@ -3202,7 +3202,7 @@ TITLE_CHK_FOR_HC_INPUT:
     JP          HC_LEVEL_SELECT_LOOP                ; Jump to check difficulty selection
 
 ;==============================================================================
-; PLAY_INPUT_PIP_HI & LO - Play short pip sound
+; PLAY_INPUT_PIP_MID , HI , & LO - Play short pip sounds
 ;==============================================================================
 ; Plays a brief high or lo pip sound effect, typically used for negative
 ; feedback or denial actions. Resets all timers and outputs a series of tones
@@ -3223,7 +3223,7 @@ TITLE_CHK_FOR_HC_INPUT:
 ; Memory Modified: MASTER_TICK_TIMER, SECONDARY_TIMER, INACTIVITY_TIMER
 ; Calls: SLEEP
 ;==============================================================================
-PLAY_INPUT_PIP_HI:
+PLAY_INPUT_PIP_MID:
     XOR         A                                   ; Clear A (A = 0)
     LD          (MASTER_TICK_TIMER),A               ; Reset MASTER_TICK_TIMER
     LD          (SECONDARY_TIMER),A                 ; Reset SECONDARY_TIMER
@@ -3237,17 +3237,31 @@ PLAY_INPUT_PIP_HI:
     CALL        SLEEP                               ; Delay for BC cycles
     RET                                             ; Return to caller
 
+PLAY_INPUT_PIP_HI:
+    XOR         A                                   ; Clear A (A = 0)
+    LD          (MASTER_TICK_TIMER),A               ; Reset MASTER_TICK_TIMER
+    LD          (SECONDARY_TIMER),A                 ; Reset SECONDARY_TIMER
+    LD          (INACTIVITY_TIMER),A                ; Reset INACTIVITY_TIMER
+    OUT         (SPEAKER),A                         ; Output 0 to speaker (low tone)
+    LD          BC,$C0                              ; Load delay count ($C0 - 0.8x for higher pitch)
+    CALL        SLEEP                               ; Delay for BC cycles
+    INC         A                                   ; Increment A (A = 1)
+    OUT         (SPEAKER),A                         ; Output 1 to speaker (high tone)
+    LD          BC,$3D0                             ; Load delay count ($3D0 - 0.8x for higher pitch)
+    CALL        SLEEP                               ; Delay for BC cycles
+    RET                                             ; Return to caller
+
 PLAY_INPUT_PIP_LO:
     XOR         A                                   ; Clear A (A = 0)
     LD          (MASTER_TICK_TIMER),A               ; Reset MASTER_TICK_TIMER
     LD          (SECONDARY_TIMER),A                 ; Reset SECONDARY_TIMER
     LD          (INACTIVITY_TIMER),A                ; Reset INACTIVITY_TIMER
     OUT         (SPEAKER),A                         ; Output 0 to speaker (low tone)
-    LD          BC,$f0                              ; Load delay count ($F0)
+    LD          BC,$12C                             ; Load delay count ($12C - 1.25x for lower pitch)
     CALL        SLEEP                               ; Delay for BC cycles
     INC         A                                   ; Increment A (A = 1)
     OUT         (SPEAKER),A                         ; Output 1 to speaker (high tone)
-    LD          BC,$4c0                             ; Load delay count ($4C0)
+    LD          BC,$5F0                             ; Load delay count ($5F0 - 1.25x for lower pitch)
     CALL        SLEEP                               ; Delay for BC cycles
     RET                                             ; Return to caller
 
@@ -3265,7 +3279,7 @@ PLAY_INPUT_PIP_LO:
 ;   A  = Input value and comparisons
 ;
 HANDLE_KEYBOARD_INPUT:
-    CALL        PLAY_INPUT_PIP_HI                   ; Acknowledge key press with pip sound
+    CALL        PLAY_INPUT_PIP_MID                  ; Acknowledge key press with pip sound
     LD          HL,KEY_INPUT_COL0                   ; Point to key input buffer start
     LD          BC,0xfeff                           ; C=$FF (port), B=$FE (column 0 mask)
     LD          D,0x8                               ; Set counter to 8 (8 columns to scan)
