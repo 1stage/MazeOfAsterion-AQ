@@ -1048,8 +1048,9 @@ CLEAR_MONSTER_STATS:
     LD          BC,RECT(14,2)                       ; 14 x 2 rectangle
     LD          HL,CHRRAM_MONSTER_STATS_IDX         ; HL = Monster stats CHRRAM
     LD          A,$20                               ; A = fill color/code
-    JP          FILL_CHRCOL_RECT                    ; Fill screen region to clear stats
- 
+    ; JP          FILL_CHRCOL_RECT                    ; Fill screen region to clear stats
+    CALL        FILL_CHRCOL_RECT                    ; Fill screen region to clear stats
+    RET
 ;==============================================================================
 ; EXPAND_STAT_THRESHOLDS  
 ;==============================================================================
@@ -8430,7 +8431,7 @@ KEY_COL_3:
     CP          $fb                                 ; Test row 2 "7"
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $f7                                 ; Test row 3 "U"
-    JP          Z,USE_KEY                           ; If pressed, use key
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $ef                                 ; Test row 4 "H"
     JP          Z,DO_OPEN_CLOSE                     ; If pressed, open/close door
     CP          $df                                 ; Test row 5 "B"
@@ -8441,13 +8442,13 @@ KEY_COL_4:
     CP          $fe                                 ; Test row 0 "6"
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $fd                                 ; Test row 1 "Y"
-    JP          Z,USE_MAP                           ; If pressed, use map
+    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $fb                                 ; Test row 2 "G"
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $f7                                 ; Test row 3 "V"
     JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $ef                                 ; Test row 4 "C"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore (was count arrows)
+    JP          Z,USE_MAP                           ; If pressed, use map
     CP          $df                                 ; Test row 5 "F"
     JP          Z,DO_REST                           ; If pressed, rest
 KEY_COL_5:
@@ -8464,7 +8465,7 @@ KEY_COL_5:
     CP          $ef                                 ; Test row 4 "D"
     JP          Z,DO_USE_LADDER                     ; If pressed, use ladder
     CP          $df                                 ; Test row 5 "X"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore (was count food)
+    JP          Z,USE_KEY                           ; If pressed, use key
 
 KEY_COL_6:
     INC         L                                   ; Move to column 6
@@ -8564,6 +8565,7 @@ MAX_HEALTH_ARROWS_FOOD:
 ; Calls: PLAY_TELEPORT_SOUND, UPDATE_VIEWPORT
 ;==============================================================================
 DO_TELEPORT:
+    CALL CLEAR_MONSTER_STATS                        ; Get out of combat.
     LD          A,(MAP_LADDER_OFFSET)               ; A = ladder position on map
     LD          (PLAYER_MAP_POS),A                  ; Set player position to ladder
     CALL        PLAY_TELEPORT_SOUND                 ; Play descending tone sequence
