@@ -2081,10 +2081,8 @@ NOT_HELMET:
     LD          A,(HL)                              ; Load current item code from inv slot
     INC         D                                   ; Increment D (new item tier/level)
     CP          D                                   ; Compare current item to new item
-    JP          NC,INPUT_DEBOUNCE                   ; If current >= new, don't swap (keep better)
-
+    JP          NC,ITEM_NOT_WORTHY                  ; If current >= new, don't swap (keep better)
     CALL        PLAY_POWER_UP_SOUND                 ; Upgrading! Play powerup sound.
-
     EX          AF,AF'                              ; Save A and flags (old item code)
     LD          A,D                                 ; Load new item code
     LD          (HL),A                              ; Store new item in inventory slot
@@ -2123,7 +2121,11 @@ UPDATE_SHIELD_STATS:
     LD          B,0x1                               ; 1 byte to display
     CALL        RECALC_AND_REDRAW_BCD               ; Recalculate and redraw SPRT stat
     JP          RHA_REDRAW                          ; Jump to redraw ring/helmet/armor
-                                                    ; (was JP AWAITING_INPUT at c3 9c ea)
+
+ITEM_NOT_WORTHY:
+    CALL        POOF_SOUND                          ; Not worth keeping sound
+    JP          INPUT_DEBOUNCE                      ; Done
+
 CHECK_CHEST_PICKUP:
     CALL        Z,VALIDATE_RH_ITEM_PRESENT          ; If Z flag set, call special handler
 CHECK_FOOD_ARROWS:
