@@ -2286,12 +2286,13 @@ PROCESS_MAP:
 
     LD          HL,MAP_INV_SLOT                     ; Get MAP_INV_SLOT address
     CP          (HL)                                ; Compare to current value
-    JP          C,INPUT_DEBOUNCE                    ; If less than current value, exit (technically <= due to 0-3 value range)
+    JP          C,ITEM_NOT_WORTHY                   ; If less than current value, exit (technically <= due to 0-3 value range)
 
     INC         A                                   ; Convert to 1-4 range for USE_MAP checks
     LD          (HL),A                              ; Store map level (1=RED, 2=YEL, 3=MAG, 4=WHT)
     CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color RAM value
     LD          (COLRAM_MAP_IDX),A                  ; Store color value for map display
+    CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 
 PROCESS_KEY:
@@ -2305,13 +2306,14 @@ PROCESS_KEY:
 
     LD          HL,KEY_INV_SLOT                     ; Get KEY_INV_SLOT address
     CP          (HL)                                ; Compare to current value
-    JP          C,INPUT_DEBOUNCE                    ; If less than current value, exit (technically <= due to 0-3 value range)
+    JP          C,ITEM_NOT_WORTHY                   ; If less than current value, exit (technically <= due to 0-3 value range)
 
     INC         A                                   ; Convert to 1-4 range for USE_KEY checks
     LD          (KEY_INV_SLOT),A                    ; Store key level (1=RED, 2=YEL, 3=MAG, 4=WHT)
     CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color RAM value
     LD          (COLRAM_KEY_IDX),A                  ; Store color value for key display left
     LD          (COLRAM_KEY_IDX + 1),A              ; Store color value for key display right
+    CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 
 PROCESS_AMULET:
