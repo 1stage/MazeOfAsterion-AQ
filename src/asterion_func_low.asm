@@ -4697,102 +4697,33 @@ COPY_GFX_SCRN_2_SCRN_MEMCHK:
 ;==============================================================================
 ; Updates the color attributes for all three equipment icons (Ring, Helmet,
 ; Armor) based on their current inventory levels, then returns to the input
-; debounce loop. Typically called after equipment changes.
+; debounce loop. Inlines all color updates for efficiency, eliminating the
+; overhead of separate subroutine calls and unnecessary register preservation.
+; Typically called after equipment changes.
 ;
 ; Registers:
 ; --- Start ---
 ;   None
 ; --- In Process ---
-;   A = Modified by CHECK_* routines
+;   A = Equipment levels, then color values from LEVEL_TO_COLRAM_FIX
 ; ---  End  ---
+;   A = Last color value (armor color)
 ;   Control transfers to INPUT_DEBOUNCE (no return)
 ;
 ; Memory Modified: COLRAM_RING_IDX, COLRAM_HELMET_IDX, COLRAM_ARMOR_IDX
-; Calls: CHECK_RING, CHECK_HELMET, CHECK_ARMOR, INPUT_DEBOUNCE
+; Calls: LEVEL_TO_COLRAM_FIX (3 times), INPUT_DEBOUNCE
 ;==============================================================================
 RHA_REDRAW:
-    CALL        CHECK_RING                          ; Update ring icon color
-    CALL        CHECK_HELMET                        ; Update helmet icon color
-    CALL        CHECK_ARMOR                         ; Update armor icon color
+    LD          A,(RING_INV_SLOT)                   ; Load ring level (0-3)
+    CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color value
+    LD          (COLRAM_RING_IDX),A                 ; Update ring icon color in COLRAM
+    LD          A,(HELMET_INV_SLOT)                 ; Load helmet level (0-3)
+    CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color value
+    LD          (COLRAM_HELMET_IDX),A               ; Update helmet icon color in COLRAM
+    LD          A,(ARMOR_INV_SLOT)                  ; Load armor level (0-3)
+    CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color value
+    LD          (COLRAM_ARMOR_IDX),A                ; Update armor icon color in COLRAM
     JP          INPUT_DEBOUNCE                      ; Return to input loop
-
-;==============================================================================
-; CHECK_RING - Update ring icon color based on inventory level
-;==============================================================================
-; Reads the ring inventory slot level, converts it to a color value using
-; LEVEL_TO_COLRAM_FIX, and updates the ring icon color in COLRAM. Preserves
-; the A register across the operation.
-;
-; Registers:
-; --- Start ---
-;   A = Preserved (pushed/popped)
-; --- In Process ---
-;   A = RING_INV_SLOT value, then color value from LEVEL_TO_COLRAM_FIX
-; ---  End  ---
-;   A = Original value (restored)
-;
-; Memory Modified: COLRAM_RING_IDX
-; Calls: LEVEL_TO_COLRAM_FIX
-;==============================================================================
-CHECK_RING:
-    PUSH        AF                                  ; Preserve A register
-    LD          A,(RING_INV_SLOT)                   ; A = ring level (0-3)
-    CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color value
-    LD          (COLRAM_RING_IDX),A                 ; Update ring icon color
-    POP         AF                                  ; Restore A register
-    RET                                             ; Return to caller
-
-;==============================================================================
-; CHECK_HELMET - Update helmet icon color based on inventory level
-;==============================================================================
-; Reads the helmet inventory slot level, converts it to a color value using
-; LEVEL_TO_COLRAM_FIX, and updates the helmet icon color in COLRAM. Preserves
-; the A register across the operation. Mirrors CHECK_RING logic for helmet.
-;
-; Registers:
-; --- Start ---
-;   A = Preserved (pushed/popped)
-; --- In Process ---
-;   A = HELMET_INV_SLOT value, then color value from LEVEL_TO_COLRAM_FIX
-; ---  End  ---
-;   A = Original value (restored)
-;
-; Memory Modified: COLRAM_HELMET_IDX
-; Calls: LEVEL_TO_COLRAM_FIX
-;==============================================================================
-CHECK_HELMET:
-    PUSH        AF                                  ; Preserve A register
-    LD          A,(HELMET_INV_SLOT)                 ; A = helmet level (0-3)
-    CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color value
-    LD          (COLRAM_HELMET_IDX),A               ; Update helmet icon color
-    POP         AF                                  ; Restore A register
-    RET                                             ; Return to caller
-
-;==============================================================================
-; CHECK_ARMOR - Update armor icon color based on inventory level
-;==============================================================================
-; Reads the armor inventory slot level, converts it to a color value using
-; LEVEL_TO_COLRAM_FIX, and updates the armor icon color in COLRAM. Preserves
-; the A register across the operation.
-;
-; Registers:
-; --- Start ---
-;   A = Preserved (pushed/popped)
-; --- In Process ---
-;   A = ARMOR_INV_SLOT value, then color value from LEVEL_TO_COLRAM_FIX
-; ---  End  ---
-;   A = Original value (restored)
-;
-; Memory Modified: COLRAM_ARMOR_IDX
-; Calls: LEVEL_TO_COLRAM_FIX
-;==============================================================================
-CHECK_ARMOR:
-    PUSH        AF                                  ; Preserve A register
-    LD          A,(ARMOR_INV_SLOT)                  ; A = armor level (0-3)
-    CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color value
-    LD          (COLRAM_ARMOR_IDX),A                ; Update armor icon color
-    POP         AF                                  ; Restore A register
-    RET                                             ; Return to caller
 
 ;==============================================================================
 ; LEVEL_TO_COLRAM_FIX - Convert equipment level to color attribute value
