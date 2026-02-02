@@ -67,29 +67,35 @@ RESET_ITEM_ANIM_VARS_LOOP:
 ;==============================================================================
 ; PSG_MIXER_RESET
 ;==============================================================================
-; Initialize PSG mixer and silence all channels
-;   - Selects AY/PSG register 7 (mixer control)
-;   - Writes mask $3F disabling tone + noise on A/B/C
+; Silence all PSG (AY-3-8910) channels via mixer register configuration.
+; Sets register 7 (mixer control) with all bits = 1, disabling tone and noise
+; outputs on all three channels (A, B, C).
+;
+; Register 7 Bit Layout (write $3F to disable all):
+;   Bit 0-2: Tone enable for channels A/B/C (0=on, 1=off)
+;   Bit 3-5: Noise enable for channels A/B/C (0=on, 1=off)
+;   Bit 6-7: I/O port direction (not used here)
 ;
 ; Registers:
 ; --- Start ---
-;   BC = $007F (port latch), A = $07 (register select)
+;   BC = $007F (PSG latch port), A = $07 (register select)
 ; --- In Process ---
-;   C transitions $7F -> $7E (data port), A = $3F (mixer mask)
+;   C transitions $7F -> $7E (PSG data port), A = $3F (disable all mixer)
 ; --- End ---
-;   All mixer outputs disabled (silenced)
+;   PSG register 7 = $3F (all channels silenced)
 ;   Falls through to COLRAM clear and title setup
 ;
-; Memory Modified: PSG registers via ports $7F/$7E
+; Memory Modified: PSG register 7 via ports $7F/$7E
 ; Calls: None (falls through to subsequent code)
 ;==============================================================================
 PSG_MIXER_RESET:
-    LD          BC,$7f                              ; Select PSG mixer register (B holds high port, C=$7F latch)
-    LD          A,0x7                               ; A = PSG register select value
-    OUT         (C),A                               ; Write select
-    DEC         C                                   ; C = $7E (data port)
-    LD          A,$3f                               ; A = PSG data (enable / volume mask)
-    OUT         (C),A                               ; Write PSG configuration
+    LD          BC,$7f                              ; BC = PSG ports ($7F latch, $7E data)
+    LD          A,0x7                               ; A = register 7 (mixer control)
+    OUT         (C),A                               ; Write register select to $7F
+    DEC         C                                   ; C = $7E (data write port)
+    LD          A,$3f                               ; A = $3F (all bits=1 disables all channels)
+    OUT         (C),A                               ; Write $3F to register 7, silencing PSG
+
     LD          B,0x6                               ; B = color fill value for COLRAM (palette constant)
 
 ;==============================================================================
@@ -2231,23 +2237,20 @@ ADD_ARROWS_TO_INV:
     CALL        REDRAW_ARROWS_GRAPH                 ; Refresh arrows graphic
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 CHECK_MAPS:
-    CP          RED_MAP_ITEM                        ; Compare to RED MAP (item code $6C)
-    JP          Z,PROCESS_MAP                       ; If red map, process map pickup
-    CP          YEL_MAP_ITEM                        ; Compare to YELLOW MAP (item code $6D)
-    JP          Z,PROCESS_MAP                       ; If yellow map, process map pickup
-    CP          MAG_MAP_ITEM                        ; Compare to MAGENTA MAP (item code $6E)
-    JP          Z,PROCESS_MAP                       ; If magenta map, process map pickup
-    CP          WHT_MAP_ITEM                        ; Compare to WHITE MAP (item code $6F)
-    JP          Z,PROCESS_MAP                       ; If white map, process map pickup
+    CP          RED_MAP_ITEM                        ; Is it >= $6C (RED_MAP)?
+    JP          C,CHECK_CHALICES                    ; If < $6C, not a map, skip to chalices
+    CP          WHT_MAP_ITEM+1                      ; Is it < $70 (one past WHT_MAP)?
+    JP          NC,CHECK_CHALICES                   ; If >= $70, not a map, skip to chalices
+    JP          PROCESS_MAP                         ; In range $6C-$6F, process as map
 CHECK_CHALICES:
-    CP          RED_CHALICE_ITEM                    ; Compare to RED CHALICE (item code $5C)
-    JP          Z,PROCESS_CHALICE                   ; TO BE UPDATED, for now handle as usual
-    CP          YEL_CHALICE_ITEM                    ; Compare to YEL CHALICE (item code $5D)
-    JP          Z,PROCESS_CHALICE                   ; TO BE UPDATED, for now handle as usual
-    CP          MAG_CHALICE_ITEM                    ; Compare to MAG CHALICE (item code $5E)
-    JP          Z,PROCESS_CHALICE                   ; TO BE UPDATED, for now handle as usual
-    CP          WHT_CHALICE_ITEM                    ; Compare to WHT CHALICE (item code $5F)
-    JP          Z,PROCESS_CHALICE                   ; TO BE UPDATED, for now handle as usual
+    CP          RED_CHALICE_ITEM                    ; Compare to RED CHALICE (item code $60)
+    JP          Z,PROCESS_RED_CHALICE               ; Make all doors visible on level
+    CP          YEL_CHALICE_ITEM                    ; Compare to YEL CHALICE (item code $61)
+    JP          Z,PROCESS_YEL_CHALICE               ; Enable Teleport to Ladder option
+    CP          MAG_CHALICE_ITEM                    ; Compare to MAG CHALICE (item code $62)
+    JP          Z,PROCESS_RED_CHALICE               ; TO BE UPDATED, for now handle as usual
+    CP          WHT_CHALICE_ITEM                    ; Compare to WHT CHALICE (item code $63)
+    JP          Z,PROCESS_RED_CHALICE               ; TO BE UPDATED, for now handle as usual
 
 CHECK_AMULETS:
     CP          RED_AMULET_ITEM                     ; Compare to RED AMULET (item code $54)
@@ -2261,13 +2264,10 @@ CHECK_AMULETS:
 
 CHECK_KEYS:
     CP          RED_KEY_ITEM                        ; Compare to RED KEY (item code $58)
-    JP          Z,PROCESS_KEY                       ; Handle key pickup
-    CP          YEL_KEY_ITEM                        ; Compare to YEL KEY (item code $59)
-    JP          Z,PROCESS_KEY                       ; Handle key pickup
-    CP          MAG_KEY_ITEM                        ; Compare to MAG KEY (item code $5A)
-    JP          Z,PROCESS_KEY                       ; Handle key pickup
-    CP          WHT_KEY_ITEM                        ; Compare to WHT KEY (item code $5B)
-    JP          Z,PROCESS_KEY                       ; Handle key pickup
+    JP          C,HANDLE_NON_TREASURES              ; If < $58, not a key
+    CP          WHT_KEY_ITEM+1                      ; Compare to $5C (one past WHT KEY)
+    JP          NC,HANDLE_NON_TREASURES             ; If >= $5C, not a key
+    JP          PROCESS_KEY                         ; Item is in key range $58-$5B
 
 HANDLE_NON_TREASURES:
     JP          C,PICK_UP_NON_TREASURE              ; If < $5C, handle as non-treasure item
@@ -2323,11 +2323,63 @@ PROCESS_AMULET:
 
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 
-PROCESS_CHALICE:
-    CALL        PICK_UP_S0_ITEM                     ; Remove chalice from floor
+;==============================================================================
+; PROCESS_RED_CHALICE - Make all doors visible for this level
+;==============================================================================
+PROCESS_RED_CHALICE:
+    CALL        PICK_UP_S0_ITEM                     ; Remove red chalice from floor
+    
+    ; Clear all hidden door flags (bits 0 and 5) in 256-byte map space
+    LD          HL,MAPSPACE_WALLS                   ; HL = Start of map space ($3800)
+    LD          B,0                                 ; B = 0 (256 iteration counter in B)
+    
+REVEAL_DOORS_LOOP:
+    LD          A,(HL)                              ; Load map byte
+    LD          C,A                                 ; Preserve original map byte
 
-; Now, do something interesting with the chalice here...
+    ; Upper nybble (N/S walls): only clear bit 5 when upper nybble != %0010
+    LD          A,C                                 ; A = map byte
+    AND         %11110000                           ; Isolate upper nybble
+    CP          %00100000                           ; Upper nybble == %0010?
+    JR          Z,SKIP_UPPER_CLEAR                  ; Yes, leave upper nybble as-is
+    LD          A,C                                 ; Restore map byte
+    AND         %11011111                           ; Clear bit 5 (upper nybble hidden door flag)
+    LD          C,A                                 ; Save updated byte
 
+SKIP_UPPER_CLEAR:
+    ; Lower nybble (W/E walls): only clear bit 0 when lower nybble != %0001
+    LD          A,C                                 ; A = map byte
+    AND         %00001111                           ; Isolate lower nybble
+    CP          %00000001                           ; Lower nybble == %0001?
+    JR          Z,SKIP_LOWER_CLEAR                  ; Yes, leave lower nybble as-is
+    LD          A,C                                 ; Restore map byte
+    AND         %11111110                           ; Clear bit 0 (lower nybble hidden door flag)
+    LD          C,A                                 ; Save updated byte
+
+SKIP_LOWER_CLEAR:
+    LD          A,C                                 ; A = final map byte
+    LD          (HL),A                              ; Store modified byte
+    INC         HL                                  ; Move to next byte
+    DJNZ        REVEAL_DOORS_LOOP                   ; Decrement B and loop if not zero
+    
+    CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
+    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
+    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
+    JP          UPDATE_VIEWPORT                     ; Jump to input debounce routine
+
+;==============================================================================
+; PROCESS_YEL_CHALICE - Activate Teleport to Ladder option for this level
+;==============================================================================
+PROCESS_YEL_CHALICE:
+    CALL        PICK_UP_S0_ITEM                     ; Remove red chalice from floor
+    LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
+    BIT         0x4,A                               ; Check bit 4 (teleport flag)
+    JP          NZ,ITEM_NOT_WORTHY                  ; Exit if Teleport already enabled
+    SET         0x4,A                               ; Otherwise set Teleport flag
+    LD          (GAME_BOOLEANS),A                   ; Store updated boolean flags
+    LD          A,COLOR(MAG,BLK)                    ; Color Ladder Teleport icon
+    LD          (COLRAM_LADDER_IDX),A               ; Store color value for key display left
+    CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 
 ;==============================================================================
@@ -2880,17 +2932,17 @@ CHECK_INPUT_DURING_SCREEN_SAVER:
     IN          A,(C)                               ; Read keyboard row
     INC         A                                   ; Test for $FF (no key pressed)
     JP          NZ,EXIT_SCREENSAVER                 ; If key pressed, exit screensaver
-    LD          C,$f7                               ; C = handcontroller port 1
+    LD          C,PSG_REGS                          ; C = PSG_REGS
     LD          A,0xf                               ; A = port enable mask
     OUT         (C),A                               ; Enable handcontroller port
-    DEC         C                                   ; C = $F6 (data port)
+    DEC         C                                   ; C = PSG_DATA
     IN          A,(C)                               ; Read handcontroller state
     INC         A                                   ; Test for $FF (no input)
     JP          NZ,EXIT_SCREENSAVER                 ; If input detected, exit screensaver
-    INC         C                                   ; C = $F7 (control port)
+    INC         C                                   ; C = PSG_REGS
     LD          A,0xe                               ; A = disable mask
     OUT         (C),A                               ; Disable handcontroller port
-    DEC         C                                   ; C = $F6 (data port)
+    DEC         C                                   ; C = PSG_DATA
     IN          A,(C)                               ; Read again
     INC         A                                   ; Test for input
     JP          Z,CHECK_INPUT_DURING_SCREEN_SAVER   ; If no input, continue screensaver
@@ -3141,10 +3193,10 @@ POLL_INPUT:
     IN          A,(C)                               ; Read HC state
     INC         A                                   ; Test for $FF (no input)
     JP          NZ,HANDLE_HC_INPUT                  ; If input present, go HC handling
-    INC         C                                   ; C = $F7
+    INC         C                                   ; C = PSG_REGS
     LD          A,0xe                               ; A = disable mask
     OUT         (C),A                               ; Disable HC port
-    DEC         C                                   ; C = $F6
+    DEC         C                                   ; C = PSG_DATA
     IN          A,(C)                               ; Read again (stabilize)
     INC         A                                   ; $FF means no input
     JP          Z,WAIT_FOR_INPUT                    ; No input anywhere → continue loop
@@ -3152,18 +3204,18 @@ HANDLE_HC_INPUT:
     CALL        PLAY_INPUT_PIP_MID                  ; Acknowledge HC input with tone
     LD          HL,HC_INPUT_HOLDER                  ; Point to HC input storage buffer
 DISABLE_JOY_04:
-    LD          C,$f7                               ; HC control port ($F7)
+    LD          C,$f7                               ; C = PSG_REGS
     LD          A,0xf                               ; Command: disable joystick 4
     OUT         (C),A                               ; Send command to control port
-    DEC         C                                   ; C = $F6 (HC data port)
+    DEC         C                                   ; C = PSG_DATA
     IN          A,(C)                               ; Read HC input data (buttons 1-4)
     LD          (HL),A                              ; Store first byte to buffer
     INC         HL                                  ; Point to next buffer byte
-    INC         C                                   ; C = $F7 (HC control port)
+    INC         C                                   ; C = PSG_REGS
 ENABLE_JOY_04:
     LD          A,0xe                               ; Command: enable joystick 4
     OUT         (C),A                               ; Send command to control port
-    DEC         C                                   ; C = $F6 (HC data port)
+    DEC         C                                   ; C = PSG_DATA
     IN          A,(C)                               ; Read HC input data (additional buttons)
     LD          (HL),A                              ; Store second byte to buffer
 
@@ -5906,7 +5958,7 @@ DO_USE_LADDER:
     JP          RESET_SHIFT_MODE                    ; Reset shift mode and return
 
 ;==============================================================================
-; RESET_MAP - Clear map ownership when descending to new level
+; RESET_MAP - Clear map and teleport ownership when descending to new level
 ;==============================================================================
 ; Resets all map-related state when player uses ladder to descend. Clears
 ; the "have map" flag in GAME_BOOLEANS, resets MAP_INV_SLOT to zero, and
@@ -5925,12 +5977,13 @@ DO_USE_LADDER:
 ;==============================================================================
 RESET_MAP:
     LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
-    RES         0x2,A                               ; Clear bit 2 (map owned flag)
+    AND         %11101011                           ; Clear bits 2 and 4
     LD          (GAME_BOOLEANS),A                   ; Store updated boolean flags
     XOR         A                                   ; A = 0
     LD          (MAP_INV_SLOT),A                    ; Clear map inventory slot
     LD          A,COLOR(DKGRY,BLK)                  ; Load default map icon color
     LD          (COLRAM_MAP_IDX),A                  ; Reset map icon to dark grey
+    LD          (COLRAM_LADDER_IDX),A               ; Reset ladder icon to dark grey
     RET                                             ; Return to caller
 
 ;==============================================================================
@@ -8453,14 +8506,14 @@ KEY_COMPARE:
 KEY_COL_0:
     LD          HL,KEY_INPUT_COL0                   ; HL = keyboard column 0 address
     LD          A,(HL)                              ; A = key column 0 state
-    CP          $fe                                 ; Test row 0 "="
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    CP          $fd                                 ; Test row 1 "BKSP"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    CP          $fb                                 ; Test row 2 ":"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    CP          $f7                                 ; Test row 3 "RET"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fe                                 ; Test row 0 "="
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fd                                 ; Test row 1 "BKSP"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fb                                 ; Test row 2 ":"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $f7                                 ; Test row 3 "RET"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $ef                                 ; Test row 4 ";"
     JP          Z,DO_GLANCE_RIGHT                   ; If pressed, glance right
     CP          $df                                 ; Test row 5 "."
@@ -8468,18 +8521,14 @@ KEY_COL_0:
 KEY_COL_1:
     INC         L                                   ; Move to column 1
     LD          A,(HL)                              ; A = key column 1 state
-    CP          $fe                                 ; Test row 0 "-"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-; For testing only !!!
-    CP          $fd                                 ; Test row 1 "/"
-
+    ; CP          $fe                                 ; Test row 0 "-"
     ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    JP          Z,DRAW_99_LOOP_NOTICE               ; If pressed, do ***DEBUG*** action
-
-    CP          $fb                                 ; Test row 2 "0"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    CP          $f7                                 ; Test row 3 "P"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fd                                 ; Test row 1 "/"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fb                                 ; Test row 2 "0"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $f7                                 ; Test row 3 "P"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $ef                                 ; Test row 4 "L"
     JP          Z,DO_MOVE_FW_CHK_WALLS              ; If pressed, move forward
     CP          $df                                 ; Test row 5 ","
@@ -8487,10 +8536,10 @@ KEY_COL_1:
 KEY_COL_2:
     INC         L                                   ; Move to column 2
     LD          A,(HL)                              ; A = key column 2 state
-    CP          $fe                                 ; Test row 0 "9"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    CP          $fd                                 ; Test row 1 "O"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fe                                 ; Test row 0 "9"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fd                                 ; Test row 1 "O"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $fb                                 ; Test row 2 "K"
     JP          Z,DO_MOVE_FW_CHK_WALLS              ; If pressed, move forward
     CP          $f7                                 ; Test row 3 "M"
@@ -8502,29 +8551,29 @@ KEY_COL_2:
 KEY_COL_3:
     INC         L                                   ; Move to column 3
     LD          A,(HL)                              ; A = key column 3 state
-    CP          $fe                                 ; Test row 0 "8"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    CP          $fd                                 ; Test row 1 "I"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    CP          $fb                                 ; Test row 2 "7"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    CP          $f7                                 ; Test row 3 "U"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fe                                 ; Test row 0 "8"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fd                                 ; Test row 1 "I"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fb                                 ; Test row 2 "7"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $f7                                 ; Test row 3 "U"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $ef                                 ; Test row 4 "H"
     JP          Z,DO_OPEN_CLOSE                     ; If pressed, open/close door
-    CP          $df                                 ; Test row 5 "B"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $df                                 ; Test row 5 "B"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
 KEY_COL_4:
     INC         L                                   ; Move to column 4
     LD          A,(HL)                              ; A = key column 4 state
-    CP          $fe                                 ; Test row 0 "6"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    CP          $fd                                 ; Test row 1 "Y"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    CP          $fb                                 ; Test row 2 "G"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    CP          $f7                                 ; Test row 3 "V"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fe                                 ; Test row 0 "6"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fd                                 ; Test row 1 "Y"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fb                                 ; Test row 2 "G"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $f7                                 ; Test row 3 "V"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $ef                                 ; Test row 4 "C"
     JP          Z,USE_MAP                           ; If pressed, use map
     CP          $df                                 ; Test row 5 "F"
@@ -8532,12 +8581,12 @@ KEY_COL_4:
 KEY_COL_5:
     INC         L                                   ; Move to column 5
     LD          A,(HL)                              ; A = key column 5 state
-    CP          $fe                                 ; Test row 0 "5"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fe                                 ; Test row 0 "5"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $fd                                 ; Test row 1 "T"
     JP          Z,DO_TELEPORT                       ; If pressed, teleport
-    CP          $fb                                 ; Test row 2 "4"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fb                                 ; Test row 2 "4"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $f7                                 ; Test row 3 "R"
     JP          Z,DO_SWAP_PACK                      ; If pressed, swap pack
     CP          $ef                                 ; Test row 4 "D"
@@ -8548,33 +8597,33 @@ KEY_COL_5:
 KEY_COL_6:
     INC         L                                   ; Move to column 6
     LD          A,(HL)                              ; A = key column 6 state
-    CP          $fe                                 ; Test row 0 "3"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fe                                 ; Test row 0 "3"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $fd                                 ; Test row 1 "E"
     JP          Z,DO_SWAP_HANDS                     ; If pressed, swap hands
     CP          $fb                                 ; Test row 2 "S"
     JP          Z,DO_ROTATE_PACK                    ; If pressed, rotate pack
     CP          $f7                                 ; Test row 3 "Z"
     JP          Z,WIPE_WALLS                        ; If pressed, wipe walls (debug?)
-    CP          $ef                                 ; Test row 4 "SPC"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    CP          $df                                 ; Test row 5 "A"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $ef                                 ; Test row 4 "SPC"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $df                                 ; Test row 5 "A"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
 KEY_COL_7:
     INC         L                                   ; Move to column 7
     LD          A,(HL)                              ; A = key column 7 state
-    CP          $fe                                 ; Test row 0 "2"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fe                                 ; Test row 0 "2"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $fd                                 ; Test row 1 "W"
     JP          Z,DO_PICK_UP                        ; If pressed, pick up item
-    CP          $fb                                 ; Test row 2 "1"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $fb                                 ; Test row 2 "1"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $f7                                 ; Test row 3 "Q"
     JP          Z,MAX_HEALTH_ARROWS_FOOD            ; If pressed, max stats (cheat?)
     CP          $ef                                 ; Test row 4 "SHFT"
     JP          Z,TOGGLE_SHIFT_MODE                 ; If pressed, toggle SHIFT mode
-    CP          $df                                 ; Test row 5 "CTRL"
-    JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
+    ; CP          $df                                 ; Test row 5 "CTRL"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     JP          NO_ACTION_TAKEN                     ; No valid key, ignore
 
 ;==============================================================================
@@ -8599,8 +8648,9 @@ KEY_COL_7:
 ; Calls: PLAY_POWER_UP_SOUND, REDRAW_STATS, INPUT_DEBOUNCE
 ;==============================================================================
 MAX_HEALTH_ARROWS_FOOD:
-    LD          HL,PLAYER_PHYS_HEALTH               ; HL = start of health stats block
     LD          A,MAX_HEALTH                        ; Get from MAX_HEALTH constant (99)
+UPDATE_HEALTH_ARROWS_FOOD:
+    LD          HL,PLAYER_PHYS_HEALTH               ; HL = start of health stats block
     LD          (HL),A                              ; Store 99 in PLAYER_PHYS_HEALTH (current)
     INC         HL                                  ; Advance to PLAYER_PHYS_HEALTH+1 (current high)
     LD          (HL),A                              ; Store 99 in PLAYER_PHYS_HEALTH high byte
@@ -8643,7 +8693,10 @@ MAX_HEALTH_ARROWS_FOOD:
 ; Calls: PLAY_TELEPORT_SOUND, UPDATE_VIEWPORT
 ;==============================================================================
 DO_TELEPORT:
-    CALL CLEAR_MONSTER_STATS                        ; Get out of combat.
+    LD          A,(GAME_BOOLEANS)                   ; Get game booleans
+    BIT         0x4,A                               ; Check Teleport flag
+    JP          Z,NO_ACTION_TAKEN                   ; Exit if Teleport isn't active
+    CALL        CLEAR_MONSTER_STATS                 ; Get out of combat.
     LD          A,(MAP_LADDER_OFFSET)               ; A = ladder position on map
     LD          (PLAYER_MAP_POS),A                  ; Set player position to ladder
     CALL        PLAY_TELEPORT_SOUND                 ; Play descending tone sequence
