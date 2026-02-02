@@ -4307,16 +4307,16 @@ UPDATE_MAP:
 YEL_AMULET_CHK:
     DEC         B                                   ; Decrement B (test if zero)
     JP          NZ,MAG_AMULET_CHK                   ; If not zero, check for magenta amulet
-    LD          HL,KEY_INV_SLOT                     ; Set HL up for MAP_INV_SLOT access
+    LD          HL,KEY_INV_SLOT                     ; Set HL up for KEY_INV_SLOT access
     LD          A,(GAME_BOOLEANS)                   ; Get game booleans
-    BIT         0x3,A                               ; Check HAVE MAP boolean
-    JP          NZ,UPGRADE_EXISTING_KEY             ; Already have a map, jump to upgrade
-    SET         0x3,A                               ; Set HAVE MAP
+    BIT         0x3,A                               ; Check HAVE KEY boolean
+    JP          NZ,UPGRADE_EXISTING_KEY             ; Already have a key, jump to upgrade
+    SET         0x3,A                               ; Set HAVE KEY
     LD          (GAME_BOOLEANS),A                   ; Save to GAME BOOLEANS
-    LD          A,0x1                               ; Set map to base level
-    JP          UPDATE_KEY                          ; Do map updates
+    LD          A,0x1                               ; Set key to base level
+    JP          UPDATE_KEY                          ; Do key updates
 UPGRADE_EXISTING_KEY:
-    LD          A,(HL)                              ; Get current map level
+    LD          A,(HL)                              ; Get current key level
     INC         A                                   ; Increment A...
     CP          $05                                 ; Check to see if it's top level
     JP          NC,NO_ACTION_TAKEN                  ; If so, do nothing
@@ -4328,17 +4328,48 @@ UPDATE_KEY:
     CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
     CALL        CLEAR_RIGHT_HAND                    ; Clear the right hand item
     JP          INPUT_DEBOUNCE                      ; Done
-    CALL        CLEAR_RIGHT_HAND                    ; Clear the right hand item
-    JP          INPUT_DEBOUNCE                      ; Done
 
 MAG_AMULET_CHK:
     DEC         B                                   ; Decrement B (test if zero)
     JP          NZ,WHT_AMULET_CHK                   ; If not zero, check for white amulet
+
+; Update S0 item, if there is one
+
     CALL        CLEAR_RIGHT_HAND                    ; Clear the right hand item
-    JP          INPUT_DEBOUNCE                      ; Done
+    JP          RHA_REDRAW                          ; Done
 
 WHT_AMULET_CHK:
-    JP          CLEAR_RIGHT_HAND                    ; Done *** DEBUG ME! ***
+    LD          A,$00                               ; Set A to 0
+    LD          (WHT_AMULET_UPGRADES_CHK),A         ; Clear WHT_AMULET_UPGRADES_CHK
+    LD          HL,ARMOR_INV_SLOT                   ; Set HL up for ARMOR_INV_SLOT access
+    LD          A,(HL)                              ; Get ARMOR level
+    CP          $04                                 ; Compare to top level
+    JP          NC,CHECK_HELMET                     ; If already top step ARMOR, check HELMET
+    INC         A                                   ; Otherwise, increment A
+    LD          (HL),A                              ; ...and save it to ARMOR_INV_SLOT
+    LD          (WHT_AMULET_UPGRADES_CHK),A         ; Set WHT_AMULET_UPGRADES_CHK
+CHECK_HELMET:
+    INC         HL                                  ; Increment to HELMET_INV_SLOT
+    LD          A,(HL)                              ; Get HELMET level
+    CP          $04                                 ; Compare to top level
+    JP          NC,CHECK_RING                       ; If already top step HELMENT, check RING
+    INC         A                                   ; Otherwide, increment A
+    LD          (HL),A                              ; ...and save it to HELMET_INV_SLOT
+    LD          (WHT_AMULET_UPGRADES_CHK),A         ; Set WHT_AMULET_UPGRADES_CHK
+CHECK_RING:
+    INC         HL                                  ; Increment to RING_INV_SLOT
+    LD          A,(HL)                              ; Get RING level
+    CP          $04                                 ; Compare to top level
+    JP          NC,DO_RHA_UPDATE                    ; If already top step RING, update RHA
+    INC         A                                   ; Otherwide, increment A
+    LD          (HL),A                              ; ...and save it to RING_INV_SLOT
+    LD          (WHT_AMULET_UPGRADES_CHK),A         ; Set WHT_AMULET_UPGRADES_CHK
+DO_RHA_UPDATE:
+    LD          A,(WHT_AMULET_UPGRADES_CHK)         ; Get the WHT_AMULET_UPGRADES_CHK value
+    JP          Z,NO_ACTION_TAKEN                   ; If no upgrades, exit
+    CALL        PLAY_POWER_UP_SOUND                 ;
+    CALL        CLEAR_RIGHT_HAND                    ; Clear the right hand item
+    JP          RHA_REDRAW                          ; Done
 
 ;==============================================================================
 ; DO_USE_CHAOS_POTION - Process chaos (large) potion with random effects
