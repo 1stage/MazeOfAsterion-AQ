@@ -4817,3 +4817,91 @@ PLAY_POWER_UP_SOUND:
     POP         BC                                  ; Restore BC
     RET                                             ; Return to caller
 
+;==============================================================================
+; WHITE_NOISE_BURST
+;==============================================================================
+; Setup routine for white noise burst with default parameters. Configures
+; outer and inner loop counts for standard "whoosh" effect duration and pitch,
+; then calls PLAY_WHITE_NOISE_BURST. Preserves AF and BC on entry/exit.
+;
+; Default Parameters:
+;   B = 128 (outer loop - burst duration in 32-toggle blocks)
+;   C = 32  (inner loop - toggle rate per block)
+;
+; Registers:
+; --- Start ---
+;   AF, BC = Preserved internally
+; --- In Process ---
+;   A = repeat count (setup)
+;   B = outer loop count (loaded into B register)
+;   C = inner loop count (loaded into C register)
+; ---  End  ---
+;   AF, BC = Restored to entry state
+;   Speaker output: burst of white noise completed
+;
+; Memory Modified: SOUND_REPEAT_COUNT
+; Calls: PLAY_WHITE_NOISE_BURST
+;==============================================================================
+WHITE_NOISE_BURST:
+    PUSH        AF                                  ; Preserve AF (caller's flags and accumulator)
+    PUSH        BC                                  ; Preserve BC (caller's register pair)
+    LD          A,0x7                               ; Load repeat count
+    LD          (SOUND_REPEAT_COUNT),A              ; Store repeat count
+    LD          B,0x80                              ; B = 128 (outer loop - burst duration)
+    LD          C,0x20                              ; C = 32 (inner loop - toggle rate)
+    CALL        PLAY_WHITE_NOISE_BURST              ; Call white noise routine
+    POP         BC                                  ; Restore BC
+    POP         AF                                  ; Restore AF
+    RET                                             ; Return to caller
+
+;==============================================================================
+; PLAY_WHITE_NOISE_BURST
+;==============================================================================
+; Plays a quick burst of white noise effect with pseudo-random variation.
+; Generates rapid speaker toggles using R register for entropy to create a
+; chaotic "whoosh" or "zap" sound suitable for arrows, weapons, or item
+; disappearance effects. Outer and inner loop counts determine duration/pitch.
+;
+; Parameters (passed in registers):
+;   B = Outer loop counter (burst duration: number of toggle blocks)
+;   C = Inner loop counter (toggle rate: number of toggles per block)
+;   (Use SETUP_WHITE_NOISE_BURST for default standard values, or load custom B/C)
+;
+; Algorithm:
+;   1. Load R register (pseudo-random value) for entropy
+;   2. Output R value to speaker (bit 0 drives speaker)
+;   3. Rotate R value right (RRA) for next pseudo-random bit pattern
+;   4. Repeat C times (inner loop) for chaotic frequency
+;   5. Reload R and repeat B times (outer loop) for burst duration
+;   6. Chaotic bit patterns from R rotation create white noise effect
+;
+; Registers:
+; --- Start ---
+;   B = Outer loop count (consumed by routine)
+;   C = Inner loop count (consumed by routine)
+;   AF = Caller's responsibility to preserve
+; --- In Process ---
+;   A  = R register (pseudo-random), rotated bits for speaker output
+;   E  = Inner loop counter (working copy of C)
+;   B  = Outer loop counter (decremented to zero)
+; ---  End  ---
+;   B = 0, E = 0 (loop counters exhausted)
+;   Speaker has been toggled (original B × C) times total with varying bit patterns
+;
+; Memory Modified: None
+; Calls: None (leaf function)
+;==============================================================================
+PLAY_WHITE_NOISE_BURST:
+    NOP
+NOISE_OUTER_LOOP:
+    LD          E,C                                 ; E = inner loop count (copy of C)
+    LD          A,R                                 ; Load R register (refresh counter - pseudo-random)
+NOISE_TOGGLE_LOOP:
+    OUT         (SPEAKER),A                         ; Output to speaker (bit 0 drives speaker output)
+    RRA                                             ; Rotate A right through carry (shift to next pseudo-random bit)
+    DEC         E                                   ; Decrement inner loop counter
+    JP          NZ,NOISE_TOGGLE_LOOP                ; Repeat inner loop if not zero
+    DEC         B                                   ; Decrement outer loop counter
+    JP          NZ,NOISE_OUTER_LOOP                 ; Repeat outer loop if not zero
+    RET                                             ; Return to caller
+    
