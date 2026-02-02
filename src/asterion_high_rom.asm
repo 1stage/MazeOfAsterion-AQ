@@ -4307,6 +4307,27 @@ UPDATE_MAP:
 YEL_AMULET_CHK:
     DEC         B                                   ; Decrement B (test if zero)
     JP          NZ,MAG_AMULET_CHK                   ; If not zero, check for magenta amulet
+    LD          HL,KEY_INV_SLOT                     ; Set HL up for MAP_INV_SLOT access
+    LD          A,(GAME_BOOLEANS)                   ; Get game booleans
+    BIT         0x3,A                               ; Check HAVE MAP boolean
+    JP          NZ,UPGRADE_EXISTING_KEY             ; Already have a map, jump to upgrade
+    SET         0x3,A                               ; Set HAVE MAP
+    LD          (GAME_BOOLEANS),A                   ; Save to GAME BOOLEANS
+    LD          A,0x1                               ; Set map to base level
+    JP          UPDATE_KEY                          ; Do map updates
+UPGRADE_EXISTING_KEY:
+    LD          A,(HL)                              ; Get current map level
+    INC         A                                   ; Increment A...
+    CP          $05                                 ; Check to see if it's top level
+    JP          NC,NO_ACTION_TAKEN                  ; If so, do nothing
+UPDATE_KEY:
+    LD          (HL),A                              ; Otherwise, update MAP_INV_SLOT
+    CALL        LEVEL_TO_COLRAM_FIX                 ; Get correct color into A
+    LD          (COLRAM_KEY_IDX),A                  ; Store color value for key (left) display
+    LD          (COLRAM_KEY_IDX+1),A                ; Store color value for key (right) display
+    CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
+    CALL        CLEAR_RIGHT_HAND                    ; Clear the right hand item
+    JP          INPUT_DEBOUNCE                      ; Done
     CALL        CLEAR_RIGHT_HAND                    ; Clear the right hand item
     JP          INPUT_DEBOUNCE                      ; Done
 
