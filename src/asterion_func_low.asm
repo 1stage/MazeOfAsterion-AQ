@@ -3752,43 +3752,6 @@ DRAW_PACK_BKGD:
     RET                                             ; Return to caller
 
 ;==============================================================================
-; WIPE_WALLS
-;==============================================================================
-; Clears wall data area ($3800) by writing zeros to 256 bytes, then updates
-; viewport display and debounces input.
-;
-; Registers:
-; --- Start ---
-;   AF, BC, HL = pushed to stack
-; --- In Process ---
-;   HL = $3800, incremented to $3900
-;   BC = 0 (B used as loop counter: 256 iterations)
-;   A  = 0
-; ---  End  ---
-;   AF, BC, HL = restored
-;   Jumps to INPUT_DEBOUNCE
-;
-; Memory Modified: $3800-$38FF (256 bytes)
-; Calls: UPDATE_VIEWPORT, INPUT_DEBOUNCE (jump)
-;==============================================================================
-WIPE_WALLS:
-    PUSH        AF                                  ; Save AF register
-    PUSH        BC                                  ; Save BC register
-    PUSH        HL                                  ; Save HL register
-    LD          HL,$3800                            ; Point to wall data area
-    LD          BC,0x0                              ; Set BC to 0 (B=0, C=0)
-    LD          A,0x0                               ; Load value 0
-WIPE_WALLS_LOOP:
-    LD          (HL),A                              ; Clear byte at HL
-    INC         HL                                  ; Move to next byte
-    DJNZ        WIPE_WALLS_LOOP                     ; Repeat B times (256 iterations)
-    POP         HL                                  ; Restore HL register
-    POP         BC                                  ; Restore BC register
-    POP         AF                                  ; Restore AF register
-    CALL        UPDATE_VIEWPORT                     ; Update viewport display
-    JP          INPUT_DEBOUNCE                      ; Debounce input
-
-;==============================================================================
 ; DRAW_WALL_FL22_EMPTY
 ;==============================================================================
 ; Draws empty FL22 (front-left level 2-2) area - black 4x4 rectangle for

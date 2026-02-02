@@ -106,7 +106,7 @@ if ($runs.Count -gt 0) {
         $runTotal += $run.Length
     }
     Write-Host "  ---------------------------" -ForegroundColor Green
-    Write-Host "  TOTAL: $runTotal bytes" -ForegroundColor Green
+    Write-Host "            TOTAL: $runTotal bytes" -ForegroundColor Green
 } else {
     Write-Host "No contiguous free runs > 4 bytes found." -ForegroundColor Yellow
 }

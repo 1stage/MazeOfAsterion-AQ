@@ -2248,7 +2248,7 @@ CHECK_CHALICES:
     CP          YEL_CHALICE_ITEM                    ; Compare to YEL CHALICE (item code $61)
     JP          Z,PROCESS_YEL_CHALICE               ; Enable Teleport to Ladder option
     CP          MAG_CHALICE_ITEM                    ; Compare to MAG CHALICE (item code $62)
-    JP          Z,PROCESS_RED_CHALICE               ; TO BE UPDATED, for now handle as usual
+    JP          Z,PROCESS_MAG_CHALICE               ; Wipe all walls on this level
     CP          WHT_CHALICE_ITEM                    ; Compare to WHT CHALICE (item code $63)
     JP          Z,PROCESS_RED_CHALICE               ; TO BE UPDATED, for now handle as usual
 
@@ -2283,11 +2283,9 @@ PROCESS_MAP:
     POP         AF                                  ; Restore A (map item code)
     CALL        PICK_UP_S0_ITEM                     ; Remove map from floor, level (0-3) in D
     LD          A,D                                 ; Get map level from D register
-
     LD          HL,MAP_INV_SLOT                     ; Get MAP_INV_SLOT address
     CP          (HL)                                ; Compare to current value
     JP          C,ITEM_NOT_WORTHY                   ; If less than current value, exit (technically <= due to 0-3 value range)
-
     INC         A                                   ; Convert to 1-4 range for USE_MAP checks
     LD          (HL),A                              ; Store map level (1=RED, 2=YEL, 3=MAG, 4=WHT)
     CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color RAM value
@@ -2303,11 +2301,9 @@ PROCESS_KEY:
     POP         AF                                  ; Restore A (key item code)
     CALL        PICK_UP_S0_ITEM                     ; Remove key from floor, level (0-3) in D
     LD          A,D                                 ; Get key level from D register
-
     LD          HL,KEY_INV_SLOT                     ; Get KEY_INV_SLOT address
     CP          (HL)                                ; Compare to current value
     JP          C,ITEM_NOT_WORTHY                   ; If less than current value, exit (technically <= due to 0-3 value range)
-
     INC         A                                   ; Convert to 1-4 range for USE_KEY checks
     LD          (KEY_INV_SLOT),A                    ; Store key level (1=RED, 2=YEL, 3=MAG, 4=WHT)
     CALL        LEVEL_TO_COLRAM_FIX                 ; Convert level to color RAM value
@@ -2328,15 +2324,12 @@ PROCESS_AMULET:
 ;==============================================================================
 PROCESS_RED_CHALICE:
     CALL        PICK_UP_S0_ITEM                     ; Remove red chalice from floor
-    
     ; Clear all hidden door flags (bits 0 and 5) in 256-byte map space
     LD          HL,MAPSPACE_WALLS                   ; HL = Start of map space ($3800)
     LD          B,0                                 ; B = 0 (256 iteration counter in B)
-    
 REVEAL_DOORS_LOOP:
     LD          A,(HL)                              ; Load map byte
     LD          C,A                                 ; Preserve original map byte
-
     ; Upper nybble (N/S walls): only clear bit 5 when upper nybble != %0010
     LD          A,C                                 ; A = map byte
     AND         %11110000                           ; Isolate upper nybble
@@ -2345,7 +2338,6 @@ REVEAL_DOORS_LOOP:
     LD          A,C                                 ; Restore map byte
     AND         %11011111                           ; Clear bit 5 (upper nybble hidden door flag)
     LD          C,A                                 ; Save updated byte
-
 SKIP_UPPER_CLEAR:
     ; Lower nybble (W/E walls): only clear bit 0 when lower nybble != %0001
     LD          A,C                                 ; A = map byte
@@ -2355,13 +2347,11 @@ SKIP_UPPER_CLEAR:
     LD          A,C                                 ; Restore map byte
     AND         %11111110                           ; Clear bit 0 (lower nybble hidden door flag)
     LD          C,A                                 ; Save updated byte
-
 SKIP_LOWER_CLEAR:
     LD          A,C                                 ; A = final map byte
     LD          (HL),A                              ; Store modified byte
     INC         HL                                  ; Move to next byte
     DJNZ        REVEAL_DOORS_LOOP                   ; Decrement B and loop if not zero
-    
     CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
     CALL        WHITE_NOISE_BURST                   ; Play disappear sound
     CALL        WHITE_NOISE_BURST                   ; Play disappear sound
@@ -2371,7 +2361,7 @@ SKIP_LOWER_CLEAR:
 ; PROCESS_YEL_CHALICE - Activate Teleport to Ladder option for this level
 ;==============================================================================
 PROCESS_YEL_CHALICE:
-    CALL        PICK_UP_S0_ITEM                     ; Remove red chalice from floor
+    CALL        PICK_UP_S0_ITEM                     ; Remove yellow chalice from floor
     LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
     BIT         0x4,A                               ; Check bit 4 (teleport flag)
     JP          NZ,ITEM_NOT_WORTHY                  ; Exit if Teleport already enabled
@@ -2381,6 +2371,40 @@ PROCESS_YEL_CHALICE:
     LD          (COLRAM_LADDER_IDX),A               ; Store color value for key display left
     CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
+
+;==============================================================================
+; PROCESS_MAG_CHALICE - Remove all walls for this level
+;==============================================================================
+PROCESS_MAG_CHALICE:
+    CALL        PICK_UP_S0_ITEM                     ; Remove magenta chalice from floor
+
+WIPE_WALLS:
+    LD          HL,MAPSPACE_WALLS                   ; Point to wall data area
+    LD          BC,0x0                              ; Set BC to 0 (B=0, C=0)
+    LD          A,0x0                               ; Load value 0
+WIPE_WALLS_LOOP:
+    LD          (HL),A                              ; Clear byte at HL
+    INC         HL                                  ; Move to next byte
+    DJNZ        WIPE_WALLS_LOOP                     ; Repeat B times (256 iterations)
+    CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
+    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
+    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
+    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
+    JP          UPDATE_VIEWPORT                     ; Jump to Update viewport display
+
+;==============================================================================
+; PROCESS_WHT_CHALICE - Remove all monsters for this level
+;==============================================================================
+PROCESS_WHT_CHALICE:
+    CALL        PICK_UP_S0_ITEM                     ; Remove white chalice from floor
+
+
+
+    CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
+    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
+    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
+    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
+    JP          UPDATE_VIEWPORT                     ; Jump to Update viewport display
 
 ;==============================================================================
 ; PICK_UP_NON_TREASURE
@@ -8603,8 +8627,8 @@ KEY_COL_6:
     JP          Z,DO_SWAP_HANDS                     ; If pressed, swap hands
     CP          $fb                                 ; Test row 2 "S"
     JP          Z,DO_ROTATE_PACK                    ; If pressed, rotate pack
-    CP          $f7                                 ; Test row 3 "Z"
-    JP          Z,WIPE_WALLS                        ; If pressed, wipe walls (debug?)
+    ; CP          $f7                                 ; Test row 3 "Z"
+    ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     ; CP          $ef                                 ; Test row 4 "SPC"
     ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     ; CP          $df                                 ; Test row 5 "A"
