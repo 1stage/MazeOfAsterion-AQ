@@ -4250,15 +4250,74 @@ DO_USE_ATTACK:
     RL          B                                   ; Rotate carry into B bit 0
                                                     ; (move bits 0 & 1 from A to B)
     RL          B                                   ; Rotate B left (B now has level 0-3)
-    CP          $19                                 ; Compare to PHYS POTION
-                                                    ; ($64-$67 after 2 SRL = $19)
+    CP          AMULET_ITEM_CP                      ; Compare to AMULET
+    JP          Z,RED_AMULET_CHK                    ; If amulet, jump to handler
+    CP          WARRIOR_POTION_ITEM_CP              ; Compare to WARRIOR POTION
     JP          Z,DO_USE_PHYS_POTION                ; If phys potion, jump to handler
-    CP          $1a                                 ; Compare to SPRT POTION
-                                                    ; ($68-$6B after 2 SRL = $1A)
+    CP          MAGE_POTION_ITEM_CP                 ; Compare to MAGE POTION
     JP          Z,DO_USE_SPRT_POTION                ; If sprt potion, jump to handler
-    CP          $1c                                 ; Compare to CHAOS POTION
-                                                    ; ($70-$73 after 2 SRL = $1C)
-    JP          NZ,USE_SOMETHING_ELSE               ; If not chaos potion, check other items
+    CP          CHAOS_POTION_ITEM_CP                ; Compare to CHAOS POTION
+    JP          Z,DO_USE_CHAOS_POTION               ; If chaos potion, jump to handler
+
+    JP          USE_SOMETHING_ELSE                  ; Fallthrough for other items
+
+;==============================================================================
+; RED_AMULET_CHK - Process amulet
+;==============================================================================
+; Handles amulet enchantment. Routes to color-specific effects:
+; -     Red (level 0): Upgrade MAP (or add RED MAP)
+; -  Yellow (level 1): Upgrade KEY (or add RED KEY)
+; - Magenta (level 2): Upgrade S0 item
+; -   White (level 3): Upgrade RHA and Left Hand Item
+;
+; Registers:
+; --- Start ---
+;   B  = Amulet level
+; --- In Process ---
+;   A,BC,DE,HL = various values
+; ---  End  ---
+;   Varies by called routine
+;
+;==============================================================================
+RED_AMULET_CHK:
+    INC         B                                   ; Increment B
+    DEC         B                                   ; Decrement B (test if zero)
+    JP          NZ,YEL_AMULET_CHK                   ; If not zero, check for yellow amulet
+    LD          HL,MAP_INV_SLOT                     ; Set HL up for MAP_INV_SLOT access
+    LD          A,(GAME_BOOLEANS)                   ; Get game booleans
+    BIT         0x2,A                               ; Check HAVE MAP boolean
+    JP          NZ,UPGRADE_EXISTING_MAP             ; Already have a map, jump to upgrade
+    SET         0x2,A                               ; Set HAVE MAP
+    LD          (GAME_BOOLEANS),A                   ; Save to GAME BOOLEANS
+    LD          A,0x1                               ; Set map to base level
+    JP          UPDATE_MAP                          ; Do map updates
+UPGRADE_EXISTING_MAP:
+    LD          A,(HL)                              ; Get current map level
+    INC         A                                   ; Increment A...
+    CP          $05                                 ; Check to see if it's top level
+    JP          NC,ITEM_NOT_WORTHY                  ; If so, do nothing
+UPDATE_MAP:
+    LD          (HL),A                              ; Otherwise, update MAP_INV_SLOT
+    CALL        LEVEL_TO_COLRAM_FIX                 ; Get correct color into A
+    LD          (COLRAM_MAP_IDX),A                  ; Store color value for map display
+    CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
+    CALL        CLEAR_RIGHT_HAND                    ; Clear the right hand item
+    JP          INPUT_DEBOUNCE                      ; Done
+
+YEL_AMULET_CHK:
+    DEC         B                                   ; Decrement B (test if zero)
+    JP          NZ,MAG_AMULET_CHK                   ; If not zero, check for magenta amulet
+    CALL        CLEAR_RIGHT_HAND                    ; Clear the right hand item
+    JP          INPUT_DEBOUNCE                      ; Done
+
+MAG_AMULET_CHK:
+    DEC         B                                   ; Decrement B (test if zero)
+    JP          NZ,WHT_AMULET_CHK                   ; If not zero, check for white amulet
+    CALL        CLEAR_RIGHT_HAND                    ; Clear the right hand item
+    JP          INPUT_DEBOUNCE                      ; Done
+
+WHT_AMULET_CHK:
+    JP          CLEAR_RIGHT_HAND                    ; Done *** DEBUG ME! ***
 
 ;==============================================================================
 ; DO_USE_CHAOS_POTION - Process chaos (large) potion with random effects
@@ -4394,23 +4453,6 @@ TOTAL_HEAL:
     LD          A,(PLAYER_SPRT_HEALTH_MAX)          ; Load max spiritual health
     LD          (PLAYER_SPRT_HEALTH),A              ; Store to current spiritual health (full heal)
     RET                                             ; Return to caller
-
-;==============================================================================
-; REDRAW_STATS_OLD
-;==============================================================================
-; DEPRECATED FUNCTION (Replaced by REDRAW_STATS)
-; This routine has been replaced with the REDRAW_STATS function. It is
-; preserved here for reference but should not be called in new code.
-;==============================================================================
-;REDRAW_STATS_OLD:
-;    LD          HL,PLAYER_PHYS_HEALTH               ; Point to current physical health
-;    LD          DE,CHRRAM_PHYS_HEALTH_1000          ; Point to screen location for phys health
-;    LD          B,0x2                               ; 2 bytes (BCD format)
-;    CALL        RECALC_AND_REDRAW_BCD               ; Recalculate and redraw physical health
-;    LD          HL,PLAYER_SPRT_HEALTH               ; Point to current spiritual health
-;    LD          DE,CHRRAM_SPRT_HEALTH_10            ; Point to screen location for sprt health
-;    LD          B,0x1                               ; 1 byte (BCD format)
-;    JP          RECALC_AND_REDRAW_BCD               ; Recalculate and redraw spiritual health
 
 ;==============================================================================
 ; YEL_CHAOS_CHK - Process yellow large potion (+10 phys health)
