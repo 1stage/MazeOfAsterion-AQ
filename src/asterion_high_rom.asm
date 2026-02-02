@@ -2250,17 +2250,14 @@ CHECK_CHALICES:
     CP          MAG_CHALICE_ITEM                    ; Compare to MAG CHALICE (item code $62)
     JP          Z,PROCESS_MAG_CHALICE               ; Wipe all walls on this level
     CP          WHT_CHALICE_ITEM                    ; Compare to WHT CHALICE (item code $63)
-    JP          Z,PROCESS_RED_CHALICE               ; TO BE UPDATED, for now handle as usual
+    JP          Z,PROCESS_WHT_CHALICE               ; Remove all monsters on this level
 
 CHECK_AMULETS:
-    CP          RED_AMULET_ITEM                     ; Compare to RED AMULET (item code $54)
-    JP          Z,PROCESS_AMULET                    ; TO BE UPDATED, for now handle as usual
-    CP          YEL_AMULET_ITEM                     ; Compare to YEL AMULET (item code $55)
-    JP          Z,PROCESS_AMULET                    ; TO BE UPDATED, for now handle as usual
-    CP          MAG_AMULET_ITEM                     ; Compare to MAG AMULET (item code $56)
-    JP          Z,PROCESS_AMULET                    ; TO BE UPDATED, for now handle as usual
-    CP          WHT_AMULET_ITEM                     ; Compare to WHT AMULET (item code $57)
-    JP          Z,PROCESS_AMULET                    ; TO BE UPDATED, for now handle as usual
+    CP          RED_AMULET_ITEM                     ; Compare to RED KEY (item code $5C)
+    JP          C,CHECK_KEYS                        ; If < $5C, not an amulet
+    CP          WHT_AMULET_ITEM+1                   ; Compare to $60 (one past WHT AMULET)
+    JP          NC,CHECK_KEYS                       ; If >= $60, not an amulet
+    JP          PICK_UP_NON_TREASURE                ; Pick up amulet (for later use)
 
 CHECK_KEYS:
     CP          RED_KEY_ITEM                        ; Compare to RED KEY (item code $58)
@@ -2310,13 +2307,6 @@ PROCESS_KEY:
     LD          (COLRAM_KEY_IDX),A                  ; Store color value for key display left
     LD          (COLRAM_KEY_IDX + 1),A              ; Store color value for key display right
     CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
-    JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
-
-PROCESS_AMULET:
-    CALL        PICK_UP_S0_ITEM                     ; Remove amulet from floor
-
-; Now, do something interesting with the amulet here...
-
     JP          INPUT_DEBOUNCE                      ; Jump to input debounce routine
 
 ;==============================================================================
@@ -2393,14 +2383,30 @@ WIPE_WALLS_LOOP:
     JP          UPDATE_VIEWPORT                     ; Jump to Update viewport display
 
 ;==============================================================================
-; PROCESS_WHT_CHALICE - Remove all monsters for this level
+; PROCESS_WHT_CHALICE - Remove all monsters from this level
 ;==============================================================================
 PROCESS_WHT_CHALICE:
     CALL        PICK_UP_S0_ITEM                     ; Remove white chalice from floor
-
-
-
+REMOVE_ALL_MONSTERS:
+    LD          HL, $3900                           ; Point to start of item/monster map
+MONSTER_LOOP:
+    INC         HL                                  ; Skip offset byte, point to item/monster
+    LD          A, (HL)                             ; Load item/monster value
+    CP          $FF                                 ; Check for end of list
+    JR          Z, MONSTERS_DONE                     ; If end, we're done
+    ; Check if this is a monster ($78-$8F range)
+    CP          $78                                 ; Check if >= $78
+    JR          C, NEXT_MONSTER                     ; If less, skip
+    CP          $90                                 ; Check if >= $90
+    JR          NC, NEXT_MONSTER                    ; If >= $90, skip (not a monster)
+    ; It's a monster, replace with blank ($FE)
+    LD          (HL), $FE                           ; Write $FE to replace monster
+NEXT_MONSTER:
+    INC         HL                                  ; Move to next pair's offset
+    JR          MONSTER_LOOP  
+MONSTERS_DONE:
     CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
+    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
     CALL        WHITE_NOISE_BURST                   ; Play disappear sound
     CALL        WHITE_NOISE_BURST                   ; Play disappear sound
     CALL        WHITE_NOISE_BURST                   ; Play disappear sound
@@ -4244,9 +4250,6 @@ DO_USE_ATTACK:
     RL          B                                   ; Rotate carry into B bit 0
                                                     ; (move bits 0 & 1 from A to B)
     RL          B                                   ; Rotate B left (B now has level 0-3)
-    ; CP          $16                                 ; Compare to KEY item type
-    ;                                                 ; ($58-$5B after 2 SRL = $16)
-    ; JP          Z,DO_USE_KEY                        ; If key, jump to key handler
     CP          $19                                 ; Compare to PHYS POTION
                                                     ; ($64-$67 after 2 SRL = $19)
     JP          Z,DO_USE_PHYS_POTION                ; If phys potion, jump to handler
