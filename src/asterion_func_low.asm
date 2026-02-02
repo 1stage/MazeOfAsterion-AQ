@@ -3655,14 +3655,12 @@ DRAW_ICON_BAR:
     LD          (HL),0x8                            ; Up arrow CHR
     INC         HL                                  ; Move to next position
     INC         HL                                  ; Move to next position
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Move to next position
+    INC         HL                                  ; Move to next position
     LD          (HL),$48                            ; Ladder (H) CHR
-    INC         HL                                  ; Move to next position
-    INC         HL                                  ; Move to next position
-    LD          (HL),$d3                            ; Item CHR
-    INC         HL                                  ; Move to next position
-    INC         HL                                  ; Move to next position
-    LD          (HL),$93                            ; Monster CHR
-    INC         HL                                  ; Move to next position
     INC         HL                                  ; Move to next position
     INC         HL                                  ; Move to next position
     LD          (HL),220                            ; Left side of KEY
