@@ -2388,6 +2388,7 @@ WIPE_WALLS_LOOP:
 ;==============================================================================
 PROCESS_WHT_CHALICE:
     CALL        PICK_UP_S0_ITEM                     ; Remove white chalice from floor
+    CALL        CLEAR_MONSTER_STATS                 ; Get out of combat mode.
 REMOVE_ALL_MONSTERS:
     LD          HL, $3900                           ; Point to start of item/monster map
 MONSTER_LOOP:
