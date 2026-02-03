@@ -4335,9 +4335,46 @@ MAG_AMULET_CHK:
     JP          NZ,WHT_AMULET_CHK                   ; If not zero, check for white amulet
 
 ; Update S0 weapon or shield, if there is one
-
+    LD          A,(ITEM_S0)                         ; Load item at player position (cache)
+    CP          $FE                                 ; Check if empty
+    JP          Z,WHT_AMULET_CHK                    ; If empty, check white amulet
+    CP          $34                                 ; Compare to $34 (past MAG_CROSSBOW_ITEM)
+    JP          NC,NO_ACTION_TAKEN                  ; If >= $34, not in upgradable range
+; Item is in range $00-$33, check if already at max level (white/level 3)
+    AND         $03                                 ; Mask lower 2 bits to get level (0-3)
+    CP          $03                                 ; Compare to $03 (WHT level, not upgradable)
+    JP          Z,NO_ACTION_TAKEN                   ; If at max level, exit
+; Item is upgradable - find it in ITEM_TABLE
+    LD          A,(PLAYER_MAP_POS)                  ; Load player position
+    LD          HL,ITEM_TABLE                       ; Point to start of item table
+SEARCH_ITEM_TABLE:
+    LD          B,(HL)                              ; Load map position from table
+    LD          A,B                                 ; Check if end marker first
+    CP          $FF                                 ; Is this the end marker?
+    JP          Z,NO_ACTION_TAKEN                   ; If end of table, not found
+    LD          A,(PLAYER_MAP_POS)                  ; Load player position
+    CP          B                                   ; Compare player pos to table entry
+    JP          Z,FOUND_POSITION                    ; If equal, found position
+    INC         HL                                  ; Skip item byte
+    INC         HL                                  ; Move to next position entry
+    JP          SEARCH_ITEM_TABLE                   ; Continue search
+FOUND_POSITION:
+    INC         HL                                  ; Move to item byte in table
+    LD          B,(HL)                              ; Load item from table
+    LD          A,(ITEM_S0)                         ; Load cached item
+    CP          B                                   ; Verify they match
+    JP          Z,ITEM_MATCH_FOUND                  ; If match, proceed to upgrade
+    
+    ; Item mismatch - continue searching
+    LD          A,(PLAYER_MAP_POS)                  ; Reload player position
+    INC         HL                                  ; Move past item byte to next position entry
+    JP          SEARCH_ITEM_TABLE                   ; Continue search
+    
+ITEM_MATCH_FOUND:
+    INC         (HL)                                ; Increment item in table
+    CALL        PLAY_POWER_UP_SOUND                 ; Play power up sound
     CALL        CLEAR_RIGHT_HAND                    ; Clear the right hand item
-    JP          INPUT_DEBOUNCE                      ; Done
+    JP          UPDATE_VIEWPORT                     ; Done
 
 WHT_AMULET_CHK:
 
