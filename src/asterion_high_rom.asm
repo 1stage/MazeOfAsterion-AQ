@@ -4360,10 +4360,55 @@ CHECK_RING:
     INC         HL                                  ; Increment to RING_INV_SLOT
     LD          A,(HL)                              ; Get RING level
     CP          $04                                 ; Compare to top level
-    JP          NC,DO_RHA_UPDATE                    ; If already top step RING, update RHA
+    JP          NC,CHECK_BUCKLER                    ; If already top step RING, check LEFT HAND
     INC         A                                   ; Otherwide, increment A
     LD          (HL),A                              ; ...and save it to RING_INV_SLOT
     LD          (WHT_AMULET_UPGRADES_CHK),A         ; Set WHT_AMULET_UPGRADES_CHK
+CHECK_BUCKLER:
+;     LD          HL,LEFT_HAND_ITEM                   ; Set HL up for LEFT_HAND_ITEM access
+;     LD          A,(HL)                              ; Get SHIELD item
+;     CP          $FE                                 ; Check for empty
+;     JP          Z,DO_RHA_UPDATE                     ; If empty, jump ahead to do updates
+;     CP          WHT_BUCKLER_ITEM                    ; See if it's a WHITE BUCKLER
+;     JP          Z,NEW_MAG_PAVISE                    ; If so, upgrade to MAG PAVISE
+;     JP          NC,CHECK_PAVISE                     ; If out of range, check pavise
+;     INC         A                                   ; Upgrade BUCKLER
+;     PUSH        AF                                  ; Save new BUCKLER value
+;     AND         %00000011                           ; Mask to Level only
+;     CALL        LEVEL_TO_COLRAM_FIX                 ; Level to Color
+;     LD          B,A                                 ; Save color to B
+;     LD          (WHT_AMULET_UPGRADES_CHK),A         ; Set WHT_AMULET_UPGRADES_CHK
+;     POP         AF                                  ; Restore new BUCKLER value
+;     LD          (HL),A                              ; ...and save to LEFT_HAND_ITEM
+;     LD          HL,CHRRAM_LEFT_HAND_VP_DRAW_IDX     ; Left hand area
+;     LD          DE,GFX_PTR_PAVISE                   ; Draw from PAVISE graphic
+;     CALL        DRAW_LEFT_HAND_AREA                 ; Draw it
+;     JP          DO_RHA_UPDATE                       
+; NEW_MAG_PAVISE:
+;     LD          A,MAG_PAVISE_ITEM                   ; Load MAG PAVISE into A
+;     LD          (WHT_AMULET_UPGRADES_CHK),A         ; Set WHT_AMULET_UPGRADES_CHK
+;     LD          B,COLOR(MAG,BLK)                    ; MAG on BLK
+;     LD          HL,CHRRAM_LEFT_HAND_VP_DRAW_IDX     ; Left hand area
+;     LD          DE,GFX_PTR_PAVISE                   ; Draw from PAVISE graphic
+;     CALL        DRAW_LEFT_HAND_AREA                 ; Draw it
+;     JP          DO_RHA_UPDATE                       ; Jump ahead
+; CHECK_PAVISE:
+;     CP          RED_PAVISE_ITEM                     ; Compare to RED PAVISE
+;     JP          C,DO_RHA_UPDATE                     ; Not a pavise
+;     CP          WHT_PAVISE_ITEM                     ; Compare to WHT PAVISE
+;     JP          NC,DO_RHA_UPDATE                    ; Not upgradable
+; UPDATE_PAVISE:
+;     INC         A                                   ; Upgrade PAVISE
+;     PUSH        AF                                  ; Save new PAVISE value
+;     AND         %00000011                           ; Mask to Level only
+;     CALL        LEVEL_TO_COLRAM_FIX                 ; Level to Color
+;     LD          B,A                                 ; Save color to B
+;     LD          (WHT_AMULET_UPGRADES_CHK),A         ; Set WHT_AMULET_UPGRADES_CHK
+;     POP         AF                                  ; Restor new PAVISE value
+;     LD          (HL),A                              ; ...and save to LEFT_HAND_ITEM
+;     LD          HL,CHRRAM_LEFT_HAND_VP_DRAW_IDX     ; Left hand area
+;     LD          DE,GFX_PTR_PAVISE                   ; Draw from PAVISE graphic
+;     CALL        DRAW_LEFT_HAND_AREA                 ; Draw it
 DO_RHA_UPDATE:
     LD          A,(WHT_AMULET_UPGRADES_CHK)         ; Get the WHT_AMULET_UPGRADES_CHK value
     JP          Z,NO_ACTION_TAKEN                   ; If no upgrades, exit
