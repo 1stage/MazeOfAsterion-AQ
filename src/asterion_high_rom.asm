@@ -4263,13 +4263,14 @@ DO_USE_ATTACK:
     JP          USE_SOMETHING_ELSE                  ; Fallthrough for other items
 
 ;==============================================================================
-; RED_AMULET_CHK - Process amulet
+; xxxx_AMULET_CHK - Process amulets
 ;==============================================================================
 ; Handles amulet enchantment. Routes to color-specific effects:
 ; -     Red (level 0): Upgrade MAP (or add RED MAP)
 ; -  Yellow (level 1): Upgrade KEY (or add RED KEY)
-; - Magenta (level 2): Upgrade S0 item
-; -   White (level 3): Upgrade RHA and Left Hand Item
+; - Magenta (level 2): Upgrade S0 armor and weapons
+; -   White (level 3): Upgrade any S0 item except for enchantments,
+;                      maps, and keys
 ;
 ; Registers:
 ; --- Start ---
@@ -4338,9 +4339,9 @@ MAG_AMULET_CHK:
     LD          A,(ITEM_S0)                         ; Load item at player position (cache)
     CP          $FE                                 ; Check if empty
     JP          Z,WHT_AMULET_CHK                    ; If empty, check white amulet
-    CP          $34                                 ; Compare to $34 (past MAG_CROSSBOW_ITEM)
+    CP          WHT_CROSSBOW_ITEM                   ; Compare to $33 (past WHT_CROSSBOW_ITEM)
     JP          NC,NO_ACTION_TAKEN                  ; If >= $34, not in upgradable range
-; Item is in range $00-$33, check if already at max level (white/level 3)
+; Item is in range $00-$32, check if already at max level (white/level 3)
     AND         $03                                 ; Mask lower 2 bits to get level (0-3)
     CP          $03                                 ; Compare to $03 (WHT level, not upgradable)
     JP          Z,NO_ACTION_TAKEN                   ; If at max level, exit
@@ -4377,11 +4378,62 @@ ITEM_MATCH_FOUND:
     JP          UPDATE_VIEWPORT                     ; Done
 
 WHT_AMULET_CHK:
-
-; Update any S0 item, if there is one
-
+    LD          A,(ITEM_S0)                         ; Load item at player position (cache)
+    CP          $FE                                 ; Check if empty
+    JP          Z,NO_ACTION_TAKEN                   ; If empty, exit
+    CP          $74                                 ; Compare to $74 (monsters/markers start)
+    JP          NC,NO_ACTION_TAKEN                  ; If >= $74, exit
+; Check range $34-$43
+    CP          RED_SPIDER_WEB_ITEM                 ; Compare to RED_SPIDER_WEB_ITEM ($34)
+    JP          C,CHECK_54_63                       ; If < $34, check next range
+    CP          RED_CHEST_ITEM                      ; Compare to RED_CHEST_ITEM ($44)
+    JP          C,NO_ACTION_TAKEN                   ; If in $34-$43, exit
+; Check range $54-$63
+CHECK_54_63:
+    CP          RED_SPARE_03_ITEM                   ; Compare to RED_SPARE_03_ITEM ($54)
+    JP          C,CHECK_6C_6F                       ; If < $54, check next range
+    CP          RED_WARRIOR_POTION_ITEM             ; Compare to RED_WARRIOR_POTION_ITEM ($64)
+    JP          C,NO_ACTION_TAKEN                   ; If in $54-$63, exit
+; Check range $6C-$6F
+CHECK_6C_6F:
+    CP          RED_MAP_ITEM                        ; Compare to RED_MAP_ITEM ($6C)
+    JP          C,CHECK_LEVEL                       ; If < $6C, check level
+    CP          RED_CHAOS_POTION_ITEM               ; Compare to RED_CHAOS_POTION_ITEM ($70)
+    JP          C,NO_ACTION_TAKEN                   ; If in $6C-$6F, exit
+CHECK_LEVEL:
+    AND         $03                                 ; Mask lower 2 bits to get level (0-3)
+    CP          $03                                 ; Compare to $03 (WHT level, not upgradable)
+    JP          Z,NO_ACTION_TAKEN                   ; If at max level, exit
+; Item is upgradable - find it in ITEM_TABLE (use WHT-specific search)
+    LD          A,(PLAYER_MAP_POS)                  ; Load player position
+    LD          HL,ITEM_TABLE                       ; Point to start of item table
+    JP          SEARCH_ITEM_TABLE_WHT               ; Jump to WHT search handler
+SEARCH_ITEM_TABLE_WHT:
+    LD          B,(HL)                              ; Load map position from table
+    LD          A,B                                 ; Check if end marker first
+    CP          $FF                                 ; Is this the end marker?
+    JP          Z,NO_ACTION_TAKEN                   ; If end of table, not found
+    LD          A,(PLAYER_MAP_POS)                  ; Load player position
+    CP          B                                   ; Compare player pos to table entry
+    JP          Z,FOUND_POSITION_WHT                ; If equal, found position
+    INC         HL                                  ; Skip item byte
+    INC         HL                                  ; Move to next position entry
+    JP          SEARCH_ITEM_TABLE_WHT               ; Continue search
+FOUND_POSITION_WHT:
+    INC         HL                                  ; Move to item byte in table
+    LD          B,(HL)                              ; Load item from table
+    LD          A,(ITEM_S0)                         ; Load cached item
+    CP          B                                   ; Verify they match
+    JP          Z,WHT_ITEM_MATCH_FOUND              ; If match, proceed to upgrade
+; Item mismatch - continue searching
+    LD          A,(PLAYER_MAP_POS)                  ; Reload player position
+    INC         HL                                  ; Move past item byte to next position entry
+    JP          SEARCH_ITEM_TABLE_WHT               ; Continue search
+WHT_ITEM_MATCH_FOUND:
+    INC         (HL)                                ; Increment item in table
+    CALL        PLAY_POWER_UP_SOUND                 ; Play power up sound
     CALL        CLEAR_RIGHT_HAND                    ; Clear the right hand item
-    JP          INPUT_DEBOUNCE                      ; Done
+    JP          UPDATE_VIEWPORT                     ; Done
 
 ;==============================================================================
 ; DO_USE_CHAOS_POTION - Process chaos (large) potion with random effects
