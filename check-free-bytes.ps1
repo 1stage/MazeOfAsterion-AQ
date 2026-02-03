@@ -72,7 +72,7 @@ while ($i -lt $end) {
             $i++
         }
         if ($runLength -gt 4) {
-            $runs += @{
+            $runs += [PSCustomObject]@{
                 Start = $runStart
                 Length = $runLength
                 End = $runStart + $runLength - 1

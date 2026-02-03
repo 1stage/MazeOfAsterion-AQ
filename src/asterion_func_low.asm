@@ -4904,4 +4904,131 @@ NOISE_TOGGLE_LOOP:
     DEC         B                                   ; Decrement outer loop counter
     JP          NZ,NOISE_OUTER_LOOP                 ; Repeat outer loop if not zero
     RET                                             ; Return to caller
-    
+
+;==============================================================================
+; PLAY_INPUT_PIP_MID , HI , & LO - Play short pip sounds
+;==============================================================================
+; Plays a brief mid, high, or lo pip sound effect, typically used for negative
+; feedback or denial actions. Resets all timers and outputs a series of tones
+; to the speaker port to create an audible "beep" effect.
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A  = 0, then speaker values
+;   BC = SLEEP parameter ($100 cycles)
+;   B  = Loop counter (6 iterations)
+; ---  End  ---
+;   A  = Last speaker output
+;   B  = 0 (exhausted counter)
+;   Timers reset
+;
+; Memory Modified: MASTER_TICK_TIMER, SECONDARY_TIMER, INACTIVITY_TIMER
+; Calls: SLEEP
+;==============================================================================
+PLAY_INPUT_PIP_MID:
+    LD          DE,$f0                              ; Load first delay ($F0 - mid pitch)
+    LD          HL,$4c0                             ; Load second delay ($4C0 - mid pitch)
+    JR          PLAY_INPUT_PIP                      ; Jump to common routine
+
+PLAY_INPUT_PIP_HI:
+    LD          DE,$C0                              ; Load first delay ($C0 - 0.8x for higher pitch)
+    LD          HL,$3D0                             ; Load second delay ($3D0 - 0.8x for higher pitch)
+    JR          PLAY_INPUT_PIP                      ; Jump to common routine
+
+PLAY_INPUT_PIP_LO:
+    LD          DE,$12C                             ; Load first delay ($12C - 1.25x for lower pitch)
+    LD          HL,$5F0                             ; Load second delay ($5F0 - 1.25x for lower pitch)
+    ; Fall through to PLAY_INPUT_PIP_COMMON
+
+;==============================================================================
+; PLAY_INPUT_PIP - Common pip sound routine
+;==============================================================================
+; Plays a brief pip sound effect with configurable delays for pitch control.
+; Called by PLAY_INPUT_PIP_HI/MID/LO after they set up delay parameters.
+;
+; Registers:
+; --- Start ---
+;   DE = First delay value (controls initial tone duration)
+;   HL = Second delay value (controls main tone duration)
+; --- In Process ---
+;   A  = 0, then speaker values
+;   BC = SLEEP parameter (copied from DE, then HL)
+; ---  End  ---
+;   A  = Last speaker output (1)
+;   BC = Last delay value
+;   DE = Preserved first delay
+;   HL = Preserved second delay
+;   Timers reset
+;
+; Memory Modified: MASTER_TICK_TIMER, SECONDARY_TIMER, INACTIVITY_TIMER
+; Calls: SLEEP
+;==============================================================================
+PLAY_INPUT_PIP:
+    XOR         A                                   ; Clear A (A = 0)
+    LD          (MASTER_TICK_TIMER),A               ; Reset MASTER_TICK_TIMER
+    LD          (SECONDARY_TIMER),A                 ; Reset SECONDARY_TIMER
+    LD          (INACTIVITY_TIMER),A                ; Reset INACTIVITY_TIMER
+    OUT         (SPEAKER),A                         ; Output 0 to speaker (low tone)
+    PUSH        HL                                  ; Preserve HL (second delay)
+    LD          B,D                                 ; Copy DE to BC for SLEEP
+    LD          C,E                                 ; BC = first delay value
+    CALL        SLEEP                               ; Delay for BC cycles
+    INC         A                                   ; Increment A (A = 1)
+    OUT         (SPEAKER),A                         ; Output 1 to speaker (high tone)
+    POP         BC                                  ; Restore second delay to BC
+    CALL        SLEEP                               ; Delay for BC cycles
+    RET                                             ; Return to caller
+
+;==============================================================================
+; SWAP_BYTES_AT_HL_BC - Swap byte values between two memory locations
+;==============================================================================
+; Swaps the byte value at (HL) with the byte value at (BC). Uses D register
+; as temporary storage. This is a utility routine called during inventory
+; rotation operations.
+;
+; Registers:
+; --- Start ---
+;   BC = Second location pointer
+;   HL = First location pointer
+; --- In Process ---
+;   A  = Value from (BC), then value from D
+;   D  = Temporary storage for value from (HL)
+; ---  End  ---
+;   A  = Original value from (HL)
+;   D  = Original value from (HL)
+;   BC = Unchanged (still points to second location)
+;   HL = Unchanged (still points to first location)
+;
+; Memory Modified: (HL) and (BC) - values swapped
+; Calls: None
+;==============================================================================
+SWAP_BYTES_AT_HL_BC:
+    LD          D,(HL)                              ; Load value from (HL) into D
+    LD          A,(BC)                              ; Load value from (BC) into A
+    LD          (HL),A                              ; Store A to (HL)
+    LD          A,D                                 ; Load saved (HL) value from D
+    LD          (BC),A                              ; Store to (BC)
+    RET                                             ; Return (values swapped)
+
+;==============================================================================
+; WAIT_A_TICK
+;==============================================================================
+; Brief pause function that creates a short delay by calling the SLEEP routine
+; with a predetermined cycle count. Used for timing control and input debouncing
+; throughout the game to prevent rapid-fire inputs and provide smooth pacing.
+;
+; Registers:
+; --- Start ---
+;   BC = Will be loaded with cycle count
+; --- End ---
+;   BC = $8600 (cycle count value)
+;   Other registers preserved by SLEEP function
+;
+; Memory Modified: None (SLEEP may modify internal timing variables)
+; Calls: SLEEP
+;==============================================================================
+WAIT_A_TICK:
+    LD          BC,$8600                            ; Load BC with 134 sleep cycles (0x86 = 134)
+    JP          SLEEP                               ; Jump to sleep routine: void SLEEP(short cycleCount)
