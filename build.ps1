@@ -154,6 +154,36 @@ $FileInfo = Get-Item (Join-Path $BuildFolder $OutputBin)
 $FileSizeKB = [math]::Round($FileInfo.Length / 1024, 2)
 Write-Status "Generated $OutputBin ($($FileInfo.Length) bytes / ${FileSizeKB}KB)" -Color $Green
 
+# Create 64KB ROM file (4 copies of asterion.bin)
+Write-Status "Creating 64KB ROM file..." -Color $Yellow
+
+try {
+    $SourceBinPath = Join-Path $BuildFolder $OutputBin
+    $Output64KPath = Join-Path $BuildFolder "asterion64.bin"
+    
+    # Read the source binary
+    $BinContent = [System.IO.File]::ReadAllBytes($SourceBinPath)
+    $BinSize = $BinContent.Length
+    
+    # Create array to hold 4 copies
+    $Rom64KB = New-Object byte[] (64 * 1024)
+    
+    # Copy the binary 4 times
+    for ($i = 0; $i -lt 4; $i++) {
+        $Offset = $i * $BinSize
+        [Array]::Copy($BinContent, 0, $Rom64KB, $Offset, $BinSize)
+    }
+    
+    # Write the 64KB ROM file
+    [System.IO.File]::WriteAllBytes($Output64KPath, $Rom64KB)
+    
+    $Rom64Size = (Get-Item $Output64KPath).Length
+    $Rom64SizeKB = [math]::Round($Rom64Size / 1024, 2)
+    Write-Status "Created asterion64.bin ($Rom64Size bytes / ${Rom64SizeKB}KB)" -Color $Green
+} catch {
+    Write-Status "Failed to create 64KB ROM: $_" -Color $Red
+}
+
 # Copy to AQPLUS_EMU_DISK directory and rename to .rom
 if ($AqplusEmuDisk -and (Test-Path $AqplusEmuDisk)) {
     Write-Status "Copying to AQPLUS_EMU_DISK directory..." -Color $Yellow
@@ -180,6 +210,12 @@ Write-Status "Build Summary:" -Color $Cyan
 Write-Status "  Source: $SourceFile" -Color "White"
 Write-Status "  Output: $BuildFolder\$OutputBin" -Color "White"
 Write-Status "  Size: $($FileInfo.Length) bytes (${FileSizeKB}KB)" -Color "White"
+
+if (Test-Path (Join-Path $BuildFolder "asterion64.bin")) {
+    $Rom64Info = Get-Item (Join-Path $BuildFolder "asterion64.bin")
+    $Rom64SizeKB = [math]::Round($Rom64Info.Length / 1024, 2)
+    Write-Status "  64KB ROM: $BuildFolder\asterion64.bin (${Rom64SizeKB}KB)" -Color "White"
+}
 
 if ($AqplusEmuDisk -and (Test-Path $AqplusEmuDisk)) {
     Write-Status "  Copied to: $AqplusEmuDisk\$OutputRom" -Color "White"
