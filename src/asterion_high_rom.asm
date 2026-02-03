@@ -2389,13 +2389,25 @@ WIPE_WALLS_LOOP:
 PROCESS_WHT_CHALICE:
     CALL        PICK_UP_S0_ITEM                     ; Remove white chalice from floor
     CALL        CLEAR_MONSTER_STATS                 ; Get out of combat mode.
+    CALL        REMOVE_ALL_MONSTERS                 ; Wipe all monsters
+    CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
+    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
+    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
+    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
+    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
+    JP          UPDATE_VIEWPORT                     ; Jump to Update viewport display
+
+;==============================================================================
+; REMOVE_ALL_MONSTERS - Stand alone routine to remove all monsters
+;==============================================================================
+
 REMOVE_ALL_MONSTERS:
     LD          HL, $3900                           ; Point to start of item/monster map
 MONSTER_LOOP:
     INC         HL                                  ; Skip offset byte, point to item/monster
     LD          A, (HL)                             ; Load item/monster value
     CP          $FF                                 ; Check for end of list
-    JR          Z, MONSTERS_DONE                     ; If end, we're done
+    RET         Z                                   ; If end, we're done
     ; Check if this is a monster ($78-$8F range)
     CP          $78                                 ; Check if >= $78
     JR          C, NEXT_MONSTER                     ; If less, skip
@@ -2406,13 +2418,6 @@ MONSTER_LOOP:
 NEXT_MONSTER:
     INC         HL                                  ; Move to next pair's offset
     JR          MONSTER_LOOP  
-MONSTERS_DONE:
-    CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
-    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
-    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
-    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
-    CALL        WHITE_NOISE_BURST                   ; Play disappear sound
-    JP          UPDATE_VIEWPORT                     ; Jump to Update viewport display
 
 ;==============================================================================
 ; PICK_UP_NON_TREASURE
@@ -4865,6 +4870,8 @@ REDUCE_HEALTH_SMALL:
 ; Calls: FILL_CHRCOL_RECT, GFX_DRAW, REDRAW_STATS, PLAY_PITCH_DOWN_SLOW, SLEEP_ZERO, SCREEN_SAVER_FULL_SCREEN (jump)
 ;==============================================================================
 PLAYER_DIES:
+    CALL        CLEAR_MONSTER_STATS                 ; Get out of combat.
+    CALL        REMOVE_ALL_MONSTERS                 ; Wipe all monsters
     LD          HL,COLRAM_VIEWPORT_IDX              ; Point to viewport color RAM
     LD          BC,RECT(24,24)                      ; 24x24 rectangle size
     LD          A,COLOR(BLK,BLK)                    ; Black on black color
@@ -4895,7 +4902,7 @@ PLAYER_DIES:
     LD          (PLAYER_MELEE_STATE),A              ; Store to PLAYER_MELEE_STATE
     CALL        PLAY_PITCH_DOWN_SLOW                ; Play slow pitch-down sound
     CALL        SLEEP_ZERO                          ; Wait/delay function
-    JP          SCREEN_SAVER_FULL_SCREEN            ; Jump to screen saver
+    JP          INPUT_DEBOUNCE                      ; Jump to wait for key
 
 ;==============================================================================
 ; DO_USE_PHYS_POTION - Consume small physical potion (visual color effect)
