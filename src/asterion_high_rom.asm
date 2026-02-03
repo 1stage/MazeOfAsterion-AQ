@@ -158,7 +158,15 @@ DRAW_TITLE:
     LD          HL,TITLE_SCREEN_COL                 ; HL = source color data
     LD          BC,1000                             ; Copy length = 1000 bytes
     LDIR								            ; Bulk copy colors
+    LD          DE,VERSION_TEXT                     ; DE = version text graphics
+    LD          HL,CHRRAM_VIEWPORT_IDX              ; HL = position to draw version
+    LD          B,COLOR(DKGRY,BLK)                  ; DKGRY on BLK
+    CALL        GFX_DRAW                            ; Draw stats text
     RET								                ; Return to caller
+
+VERSION_TEXT:
+    db          "v0.82a",$01
+    db          " TEST ",$FF
 
 ;==============================================================================
 ; BLANK_SCRN
@@ -8968,27 +8976,6 @@ VERTICAL_BAR_METER:
     db          137                                 ; 6 meter
     db          128                                 ; 7 meter
     db          127                                 ; 8 meter
-
-; Unused BCD to HEX conversion routine
-; BCD2HEX:
-;     PUSH        BC                                  ; Save register
-;     LD          B,A                                 ; Store original BCD in B
-;     AND         $F0                                 ; Isolate tens digit (high nibble)
-;     RRCA                                            ; Shift right 4 times to get 0-9 value
-;     RRCA
-;     RRCA
-;     RRCA
-;     LD          C, A                                ; C = tens digit
-;     ADD         A, A                                ; A = tens * 2
-;     ADD         A, A                                ; A = tens * 4
-;     ADD         A, C                                ; A = tens * 5
-;     ADD         A, A                                ; A = tens * 10
-;     LD          C, A                                ; C = tens * 10
-;     LD          A, B                                ; Recover original BCD
-;     AND         $0F                                 ; Isolate units digit (low nibble)
-;     ADD         A, C                                ; Add tens*10 to units
-;     POP         BC                                  ; Restore register
-;     RET
 
 ;==============================================================================
 ; FIX_MELEE_GLITCH_BEGIN & END

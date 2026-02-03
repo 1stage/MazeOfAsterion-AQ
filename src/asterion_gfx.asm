@@ -1062,4 +1062,3 @@ LEVEL_99_DETAIL_TEXT:
     db          "    escape so easily!   ",$01,$01
     db          "      PREPARE TO BE     ",$01
     db          "       TELEPORTED...    ",$FF
-
