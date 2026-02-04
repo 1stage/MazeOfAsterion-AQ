@@ -165,7 +165,7 @@ DRAW_TITLE:
     RET								                ; Return to caller
 
 VERSION_TEXT:
-    db          "v0.82a",$01
+    db          "v0.83a",$01
     db          " TEST ",$FF
 
 ;==============================================================================
@@ -4878,8 +4878,8 @@ REDUCE_HEALTH_SMALL:
 ; Calls: FILL_CHRCOL_RECT, GFX_DRAW, REDRAW_STATS, PLAY_PITCH_DOWN_SLOW, SLEEP_ZERO, SCREEN_SAVER_FULL_SCREEN (jump)
 ;==============================================================================
 PLAYER_DIES:
-    CALL        CLEAR_MONSTER_STATS                 ; Get out of combat.
-    CALL        REMOVE_ALL_MONSTERS                 ; Wipe all monsters
+    LD          A,$01                               ; Set A to 1
+    LD          (COMBAT_BUSY_FLAG),A                ; Maintain combat busy flag
     LD          HL,COLRAM_VIEWPORT_IDX              ; Point to viewport color RAM
     LD          BC,RECT(24,24)                      ; 24x24 rectangle size
     LD          A,COLOR(BLK,BLK)                    ; Black on black color
