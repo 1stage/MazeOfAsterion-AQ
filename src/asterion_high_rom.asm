@@ -165,7 +165,7 @@ DRAW_TITLE:
     RET								                ; Return to caller
 
 VERSION_TEXT:
-    db          "v0.83a",$01
+    db          "v0.83b",$01
     db          " TEST ",$FF
 
 ;==============================================================================
@@ -2921,7 +2921,7 @@ CHECK_INPUT_DURING_SCREEN_SAVER:
     JP          Z,SCREEN_SAVER_REDRAW_LOOP          ; If zero, restart rotation cycle
     LD          BC,$140                             ; BC = sleep duration parameter
     CALL        SLEEP                               ; Delay between animation frames
-    LD          BC,$ff                              ; BC = keyboard port
+    LD          BC,KEYBOARD                         ; BC = keyboard port
     IN          A,(C)                               ; Read keyboard row
     INC         A                                   ; Test for $FF (no key pressed)
     JP          NZ,EXIT_SCREENSAVER                 ; If key pressed, exit screensaver
@@ -3175,11 +3175,11 @@ CHK_FORWARD_COMBAT:
 ;   else falls back to `WAIT_FOR_INPUT`
 ;
 POLL_INPUT:
-    LD          BC,$ff                              ; BC = keyboard port
+    LD          BC,KEYBOARD                         ; BC = keyboard port
     IN          A,(C)                               ; Read keyboard row
     INC         A                                   ; Test for $FF (no key pressed)
     JP          NZ,HANDLE_KEYBOARD_INPUT            ; Key pressed → handle keyboard input
-    LD          C,$f7                               ; C = HC control port
+    LD          C,PSG_REGS                          ; C = HC control port
     LD          A,0xf                               ; A = enable mask
     OUT         (C),A                               ; Enable HC read
     DEC         C                                   ; C = $F6 (HC data)
@@ -3196,20 +3196,20 @@ POLL_INPUT:
 HANDLE_HC_INPUT:
     CALL        PLAY_INPUT_PIP_MID                  ; Acknowledge HC input with tone
     LD          HL,HC_INPUT_HOLDER                  ; Point to HC input storage buffer
-DISABLE_JOY_04:
-    LD          C,$f7                               ; C = PSG_REGS
-    LD          A,0xf                               ; Command: disable joystick 4
+READ_HC_1:
+    LD          C,PSG_REGS                          ; C = PSG_REGS
+    LD          A,0xf                               ; Command: enable reading HC 1
     OUT         (C),A                               ; Send command to control port
     DEC         C                                   ; C = PSG_DATA
-    IN          A,(C)                               ; Read HC input data (buttons 1-4)
+    IN          A,(C)                               ; Read HC 1 input
     LD          (HL),A                              ; Store first byte to buffer
     INC         HL                                  ; Point to next buffer byte
     INC         C                                   ; C = PSG_REGS
-ENABLE_JOY_04:
-    LD          A,0xe                               ; Command: enable joystick 4
+READ_HC_2:
+    LD          A,0xe                               ; Command: enable reading HC 2
     OUT         (C),A                               ; Send command to control port
     DEC         C                                   ; C = PSG_DATA
-    IN          A,(C)                               ; Read HC input data (additional buttons)
+    IN          A,(C)                               ; Read HC 2 input
     LD          (HL),A                              ; Store second byte to buffer
 
     LD          A,(DIFFICULTY_LEVEL)                ; Load DIFFICULTY_LEVEL

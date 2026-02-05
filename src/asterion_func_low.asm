@@ -2826,88 +2826,88 @@ CHK_MONSTER_MELEE_STATE:
 HC_JOY_INPUT_COMPARE:
     LD          HL,(HC_INPUT_HOLDER)                ; Load joystick input values
     LD          A,$f3                               ; Compare to JOY disc UUL
-    CP          L                                   ; Check L register
-    JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
     CP          H                                   ; Check H register
     JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
     LD          A,$fb                               ; Compare to JOY disc UP
-    CP          L                                   ; Check L register
-    JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
     CP          H                                   ; Check H register
     JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
     LD          A,$eb                               ; Compare to JOY disc UUR
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
     CP          H                                   ; Check H register
     JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
-    CP          L                                   ; Check L register
-    JP          Z,DO_MOVE_FW_CHK_WALLS              ; Move forward if matched
     LD          A,$e9                               ; Compare to JOY disc UR
-    CP          L                                   ; Check L register
-    JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
     CP          H                                   ; Check H register
     JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
     LD          A,$f9                               ; Compare to JOY disc RUR
-    CP          L                                   ; Check L register
-    JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
     CP          H                                   ; Check H register
     JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
     LD          A,$fd                               ; Compare to JOY disc RIGHT
-    CP          L                                   ; Check L register
-    JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
     CP          H                                   ; Check H register
     JP          Z,DO_TURN_RIGHT                     ; Turn right if matched
     LD          A,$e7                               ; Compare to JOY disc LUL
-    CP          L                                   ; Check L register
-    JP          Z,DO_TURN_LEFT                      ; Turn left if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_TURN_LEFT                      ; Turn left if matched
     CP          H                                   ; Check H register
     JP          Z,DO_TURN_LEFT                      ; Turn left if matched
     LD          A,$e3                               ; Compare to JOY disc UL
-    CP          L                                   ; Check L register
-    JP          Z,DO_TURN_LEFT                      ; Turn left if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_TURN_LEFT                      ; Turn left if matched
     CP          H                                   ; Check H register
     JP          Z,DO_TURN_LEFT                      ; Turn left if matched
     LD          A,$f7                               ; Compare to JOY disc LEFT
-    CP          L                                   ; Check L register
-    JP          Z,DO_TURN_LEFT                      ; Turn left if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_TURN_LEFT                      ; Turn left if matched
     CP          H                                   ; Check H register
     JP          Z,DO_TURN_LEFT                      ; Turn left if matched
     LD          A,$f6                               ; Compare to JOY disc LDL
-    CP          L                                   ; Check L register
-    JP          Z,DO_GLANCE_LEFT                    ; Glance left if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_GLANCE_LEFT                    ; Glance left if matched
     CP          H                                   ; Check H register
     JP          Z,DO_GLANCE_LEFT                    ; Glance left if matched
     LD          A,$e6                               ; Compare to JOY disc DL
-    CP          L                                   ; Check L register
-    JP          Z,DO_GLANCE_LEFT                    ; Glance left if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_GLANCE_LEFT                    ; Glance left if matched
     CP          H                                   ; Check H register
     JP          Z,DO_GLANCE_LEFT                    ; Glance left if matched
     LD          A,$ed                               ; Compare to JOY disc RDR
-    CP          L                                   ; Check L register
-    JP          Z,DO_GLANCE_RIGHT                   ; Glance right if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_GLANCE_RIGHT                   ; Glance right if matched
     CP          H                                   ; Check H register
     JP          Z,DO_GLANCE_RIGHT                   ; Glance right if matched
     LD          A,$ec                               ; Compare to JOY disc DR
-    CP          L                                   ; Check L register
-    JP          Z,DO_GLANCE_RIGHT                   ; Glance right if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_GLANCE_RIGHT                   ; Glance right if matched
     CP          H                                   ; Check H register
     JP          Z,DO_GLANCE_RIGHT                   ; Glance right if matched
     LD          A,$fc                               ; Compare to JOY disc DDR
-    CP          L                                   ; Check L register
-    JP          Z,DO_JUMP_BACK                      ; Jump back if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_JUMP_BACK                      ; Jump back if matched
     CP          H                                   ; Check H register
     JP          Z,DO_JUMP_BACK                      ; Jump back if matched
     LD          A,$fe                               ; Compare to JOY disc DOWN
-    CP          L                                   ; Check L register
-    JP          Z,DO_JUMP_BACK                      ; Jump back if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_JUMP_BACK                      ; Jump back if matched
     CP          H                                   ; Check H register
     JP          Z,DO_JUMP_BACK                      ; Jump back if matched
     LD          A,$ee                               ; Compare to JOY disc DDL
-    CP          L                                   ; Check L register
-    JP          Z,DO_JUMP_BACK                      ; Jump back if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_JUMP_BACK                      ; Jump back if matched
     CP          H                                   ; Check H register
     JP          Z,DO_JUMP_BACK                      ; Jump back if matched
     LD          A,$df                               ; Compare to JOY K4
-    CP          L                                   ; Check L register
-    JP          Z,TOGGLE_SHIFT_MODE                 ; Toggle shift mode if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,TOGGLE_SHIFT_MODE                 ; Toggle shift mode if matched
     CP          H                                   ; Check H register
     JP          Z,TOGGLE_SHIFT_MODE                 ; Toggle shift mode if matched
     LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
@@ -2915,28 +2915,28 @@ HC_JOY_INPUT_COMPARE:
     JP          NZ,DO_HC_SHIFT_ACTIONS              ; If shift active, use shift actions
 DO_HC_BUTTON_ACTIONS:
     LD          A,$bf                               ; Compare to JOY K1
-    CP          L                                   ; Check L register
-    JP          Z,DO_USE_ATTACK                     ; Use/attack if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_USE_ATTACK                     ; Use/attack if matched
     CP          H                                   ; Check H register
     JP          Z,DO_USE_ATTACK                     ; Use/attack if matched
     LD          A,$7b                               ; Compare to JOY K2
-    CP          L                                   ; Check L register
-    JP          Z,DO_OPEN_CLOSE                     ; Open/close if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_OPEN_CLOSE                     ; Open/close if matched
     CP          H                                   ; Check H register
     JP          Z,DO_OPEN_CLOSE                     ; Open/close if matched
     LD          A,$5f                               ; Compare to JOY K3
-    CP          L                                   ; Check L register
-    JP          Z,DO_PICK_UP                        ; Pick up if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_PICK_UP                        ; Pick up if matched
     CP          H                                   ; Check H register
     JP          Z,DO_PICK_UP                        ; Pick up if matched
     LD          A,$7d                               ; Compare to JOY K5
-    CP          L                                   ; Check L register
-    JP          Z,DO_SWAP_PACK                      ; Swap pack if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_SWAP_PACK                      ; Swap pack if matched
     CP          H                                   ; Check H register
     JP          Z,DO_SWAP_PACK                      ; Swap pack if matched
     LD          A,$7e                               ; Compare to JOY K6
-    CP          L                                   ; Check L register
-    JP          Z,DO_ROTATE_PACK                    ; Rotate pack if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_ROTATE_PACK                    ; Rotate pack if matched
     CP          H                                   ; Check H register
     JP          Z,DO_ROTATE_PACK                    ; Rotate pack if matched
     JP          NO_ACTION_TAKEN                     ; No action matched
@@ -2971,39 +2971,39 @@ DO_HC_BUTTON_ACTIONS:
 ;==============================================================================
 DO_HC_SHIFT_ACTIONS:
     LD          A,$bf                               ; Compare to JOY K1
-    CP          L                                   ; Check L register
-    JP          Z,DO_USE_LADDER                     ; Use ladder if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_USE_LADDER                     ; Use ladder if matched
     CP          H                                   ; Check H register
     JP          Z,DO_USE_LADDER                     ; Use ladder if matched
     LD          A,$7b                               ; Compare to JOY K2
-    CP          L                                   ; Check L register
-    JP          Z,USE_KEY                           ; Use key if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,USE_KEY                           ; Use key if matched
     CP          H                                   ; Check H register
     JP          Z,USE_KEY                           ; Use key if matched
     LD          A,$5f                               ; Compare to JOY K3
-    CP          L                                   ; Check L register
-    JP          Z,USE_MAP                           ; Use map if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,USE_MAP                           ; Use map if matched
     CP          H                                   ; Check H register
     JP          Z,USE_MAP                           ; Use map if matched
     LD          A,$7d                               ; Compare to JOY K5
-    CP          L                                   ; Check L register
-    JP          Z,DO_SWAP_HANDS                     ; Swap hands if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_SWAP_HANDS                     ; Swap hands if matched
     CP          H                                   ; Check H register
     JP          Z,DO_SWAP_HANDS                     ; Swap hands if matched
     LD          A,$7e                               ; Compare to JOY K6
-    CP          L                                   ; Check L register
-    JP          Z,DO_REST                           ; Rest if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_REST                           ; Rest if matched
     CP          H                                   ; Check H register
     JP          Z,DO_REST                           ; Rest if matched
 ; Chorded HC commands using K4/Shift
     LD          A,$cc                               ; Compare to K4 + DR chord
-    CP          L                                   ; Check L register
-    JP          Z,MAX_HEALTH_ARROWS_FOOD            ; Max stats if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,MAX_HEALTH_ARROWS_FOOD            ; Max stats if matched
     CP          H                                   ; Check H register
     JP          Z,MAX_HEALTH_ARROWS_FOOD            ; Max stats if matched
     LD          A,$c6                               ; Compare to K4 + DL chord
-    CP          L                                   ; Check L register
-    JP          Z,DO_TELEPORT                       ; Teleport if matched
+    ; CP          L                                   ; Check L register
+    ; JP          Z,DO_TELEPORT                       ; Teleport if matched
     CP          H                                   ; Check H register
     JP          Z,DO_TELEPORT                       ; Teleport if matched
     JP          NO_ACTION_TAKEN                     ; No action matched
@@ -4148,12 +4148,12 @@ SET_MINIMAP_PLAYER_LOC:
     CALL        WAIT_A_TICK                         ; Wait for display stability
 
 READ_KEY:
-    LD          BC,$ff                              ; Set BC to keyboard port ($ff)
+    LD          BC,KEYBOARD                         ; Set BC to keyboard port ($ff)
     IN          A,(C)                               ; Read keyboard input
     INC         A                                   ; Test for $FF (no key pressed)
     JP          NZ,READ_KEY                         ; If key pressed, wait for release
 ENABLE_HC:
-    LD          C,$f7                               ; Set port to hand controller 1 ($f7)
+    LD          C,PSG_REGS                          ; Set port to hand controller 1 ($f7)
     LD          A,0xf                               ; Load hand controller enable value
     OUT         (C),A                               ; Enable hand controller
     DEC         C                                   ; Set port to hand controller 2 ($f6)
