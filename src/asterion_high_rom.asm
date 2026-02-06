@@ -165,7 +165,7 @@ DRAW_TITLE:
     RET								                ; Return to caller
 
 VERSION_TEXT:
-    db          "v0.83b",$01
+    db          "v0.84a",$01
     db          " TEST ",$FF
 
 ;==============================================================================
@@ -8747,92 +8747,6 @@ UPDATE_HEALTH_ARROWS_FOOD:
     JP          INPUT_DEBOUNCE                      ; Return to input loop
 
 ;==============================================================================
-; DO_TELEPORT - Teleport player to ladder location
-;==============================================================================
-; Debug feature that instantly teleports the player to the ladder position
-; stored in MAP_LADDER_OFFSET. Plays teleport sound effect and updates the
-; viewport to show the new location.
-;
-; Registers:
-; --- Start ---
-;   None
-; --- In Process ---
-;   A = MAP_LADDER_OFFSET value (ladder position)
-; ---  End  ---
-;   A = Ladder position
-;   Other registers modified by PLAY_TELEPORT_SOUND and UPDATE_VIEWPORT
-;
-; Memory Modified: PLAYER_MAP_POS
-; Calls: PLAY_TELEPORT_SOUND, UPDATE_VIEWPORT
-;==============================================================================
-DO_TELEPORT:
-    LD          A,(GAME_BOOLEANS)                   ; Get game booleans
-    BIT         0x4,A                               ; Check Teleport flag
-    JP          Z,NO_ACTION_TAKEN                   ; Exit if Teleport isn't active
-    CALL        CLEAR_MONSTER_STATS                 ; Get out of combat.
-    LD          A,(MAP_LADDER_OFFSET)               ; A = ladder position on map
-    LD          (PLAYER_MAP_POS),A                  ; Set player position to ladder
-    CALL        PLAY_TELEPORT_SOUND                 ; Play descending tone sequence
-    JP          UPDATE_VIEWPORT                     ; Redraw view at new location
-
-;==============================================================================
-; REDRAW_STATS - Update player stats display panel
-;==============================================================================
-; Redraws the stats panel by updating icon colors and redrawing both physical
-; and spiritual health values in BCD format to their screen positions. Called
-; after any change to player stats (healing, damage, max stat changes, etc.).
-;
-; Registers:
-; --- Start ---
-;   None
-; --- In Process ---
-;   HL = PLAYER_PHYS_HEALTH, then PLAYER_SPRT_HEALTH
-;   DE = CHRRAM_PHYS_HEALTH_1000, then CHRRAM_SPRT_HEALTH_10
-;   B  = Byte count (2 for PHYS, 1 for SPRT)
-; ---  End  ---
-;   All registers modified by RECALC_AND_REDRAW_BCD
-;
-; Memory Modified: CHRRAM stats panel area
-; Calls: DRAW_ICON_BAR, RECALC_AND_REDRAW_BCD
-;==============================================================================
-REDRAW_STATS:
-    CALL        DRAW_ICON_BAR                       ; Update icon colors (Ring/Helmet/Armor)
-    LD          HL,PLAYER_PHYS_HEALTH               ; HL = physical health address
-    LD          DE,CHRRAM_PHYS_HEALTH_1000          ; DE = screen position for PHYS display
-    LD          B,0x2                               ; B = 2 bytes (16-bit BCD)
-    CALL        RECALC_AND_REDRAW_BCD               ; Draw physical health value
-    LD          HL,PLAYER_SPRT_HEALTH               ; HL = spiritual health address
-    LD          DE,CHRRAM_SPRT_HEALTH_10            ; DE = screen position for SPRT display
-    LD          B,0x1                               ; B = 1 byte (8-bit BCD)
-    JP          RECALC_AND_REDRAW_BCD               ; Draw spiritual health value and return
-
-CHK_ITEM_S2_NEW:
-    LD          A,(ITEM_S2)                         ; Load sprite at S2 position
-    LD          BC,CHRRAM_S2_ITEM_DRAW_IDX          ; BC = $328a
-    LD          B,4                                 ; BC = $048a; B = 4 (tiny size item)
-    CALL        CHK_ITEM                            ; Check and draw S2 item tiny
-    RET
-
-CHK_ITEM_S1_NEW:
-    LD          A,(ITEM_S1)                         ; Load sprite at S1 position
-    LD          BC,CHRRAM_S1_ITEM_DRAW_IDX          ; BC = $328a
-    LD          B,2                                 ; BC = $028a; B = 2 (small size item)
-    CALL        CHK_ITEM                            ; Check and draw S1 item small
-    RET
-
-CHK_ITEM_S0_NEW:
-    LD          A,(ITEM_S0)                         ; Load sprite at S0 position
-    LD          BC,CHRRAM_S0_ITEM_DRAW_IDX          ; BC = $328a
-    LD          B,0                                 ; BC = $008a; B = 0 (regular size item)
-    JP          CHK_ITEM                            ; Check and draw S0 item regular
-
-CHK_ITEM_RH_NEW:
-    LD          A,(RIGHT_HAND_ITEM)                 ; Load sprite at RH position
-    LD          BC,CHRRAM_RIGHT_HAND_VP_DRAW_IDX    ; BC = $3294
-    LD          B,0                                 ; BC = $0094
-    JP          CHK_ITEM                            ; Check and draw RH sprite
-
-;==============================================================================
 ; REFRESH_FOOD_ARROWS - Redraw Food and Arrows Graphics
 ;==============================================================================
 ; Triggered after either food or arrows inventories have been altered,
@@ -8977,47 +8891,3 @@ VERTICAL_BAR_METER:
     db          128                                 ; 7 meter
     db          127                                 ; 8 meter
 
-;==============================================================================
-; FIX_MELEE_GLITCH_BEGIN & END
-;==============================================================================
-; Fixes a visual glitch in the MONSTER's weapon animation where a remnant
-; of their weapon sprite gets drawn above the pack area. This copies the
-; CHRRAM and COLRAM data from those locations to a buffer, then restores them
-; after the routine is complete.
-;
-; Registers:
-; --- Start ---
-;   HL = Saved offset for monster weapon.
-; --- In Process ---
-;   HL = Screen address from which we are copying
-;   DE = Buffer address to which we are copying
-; ---  End  ---
-;   HL = Restored offset for monster weapon.
-;
-; Memory Modified: Screen memory at top of pack area
-; Calls: COPY_GFX_2_BUFFER, COPY_GFX_FROM_BUFFER
-;==============================================================================
-
-FIX_MELEE_GLITCH_BEGIN:
-    PUSH        HL                                  ; Save HL
-    LD          HL,CHRRAM_MELEE_GLITCH_A            ; Set CHRRAM_MELEE_GLITCH_A source location
-    LD          DE,MELEE_GLITCH_A_CHR_BUFF          ; Set MELEE_GLITCH_A_CHR_BUFF destination location
-    CALL        COPY_GFX_2_BUFFER                   ; Copy screen to buffer
-
-    LD          HL,CHRRAM_MELEE_GLITCH_B            ; Set CHRRAM_MELEE_GLITCH_B source location
-    LD          DE,MELEE_GLITCH_B_CHR_BUFF          ; Set MELEE_GLITCH_B_CHR_BUFF desitnation location
-    CALL        COPY_GFX_2_BUFFER                   ; Copy screen to buffer
-    POP         HL                                  ; Restore HL
-    RET                                             ; Done
-
-FIX_MELEE_GLITCH_END:
-    PUSH        HL                                  ; Save HL
-    LD          HL,MELEE_GLITCH_A_CHR_BUFF          ; Set MELEE_GLITCH_A_CHR_BUFF source location
-    LD          DE,CHRRAM_MELEE_GLITCH_A            ; Set CHRRAM_MELEE_GLITCH_A destination location
-    CALL        COPY_GFX_FROM_BUFFER                ; Copy buffer to screen
-
-    LD          HL,MELEE_GLITCH_B_CHR_BUFF          ; Set MELEE_GLITCH_B_CHR_BUFF source location
-    LD          DE,CHRRAM_MELEE_GLITCH_B            ; Set CHRRAM_MELEE_GLITCH_B destination location
-    CALL        COPY_GFX_FROM_BUFFER                ; Copy buffer to screen
-    POP         HL                                  ; Restore HL
-    RET                                             ; Done

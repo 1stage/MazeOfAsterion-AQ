@@ -949,7 +949,7 @@ POOF_6:
 ;   The Author's credits can be viewed on the TITLE SCREEN when the A (About) key is pressed on the keyboard.
 ;
 AUTHORS:
-    db          "   Originally programmed by Tom Loughry ",$01
+    db          "     Based on Minotaur by Tom Loughry   ",$01
     db          "  New GFX & routines by Sean Harrington ",$FF
 
 ; LEVEL_99_LOOP

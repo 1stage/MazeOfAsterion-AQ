@@ -3118,7 +3118,8 @@ DRAW_LEFT_HAND_AREA:
     POP         AF                                  ; Restore A register
     JP          GFX_DRAW                            ; Draw item and return (tail call)
 
-; DRAW_RIGHT_HAND_AREA
+;==============================================================================
+; DRAW_RIGHT_HAND_AREA - unused
 ;==============================================================================
 ; Fills the 6x5 lower-right corner of the viewport with black (SPACE chars,
 ; BLK on BLK color). Used during initialization and to clear the hand area.
@@ -3140,15 +3141,15 @@ DRAW_LEFT_HAND_AREA:
 ; Memory Modified: CHRRAM $3332-$3357 (6x5), COLRAM $3732-$3757 (6x5)
 ; Calls: FILL_CHRCOL_RECT (×2)
 ;==============================================================================
-DRAW_RIGHT_HAND_AREA:
-    LD          A,$20                               ; SPACE character
-    LD          HL,CHRRAM_VIEWPORT_IDX + (19 * 40) + 18 ; Row 20, Col 18 (lower-right CHRRAM)
-    LD          BC,RECT(6,5)                        ; 6 x 5 rectangle
-    CALL        FILL_CHRCOL_RECT                    ; Fill with spaces
-    LD          A,COLOR(BLK,BLK)                    ; BLK on BLK
-    LD          HL,COLRAM_VIEWPORT_IDX + (19 * 40) + 18 ; Row 20, Col 18 (lower-right COLRAM)
-    LD          BC,RECT(6,5)                        ; 6 x 5 rectangle
-    JP          FILL_CHRCOL_RECT                    ; Fill with black (tail call)
+; DRAW_RIGHT_HAND_AREA:
+;     LD          A,$20                               ; SPACE character
+;     LD          HL,CHRRAM_VIEWPORT_IDX + (19 * 40) + 18 ; Row 20, Col 18 (lower-right CHRRAM)
+;     LD          BC,RECT(6,5)                        ; 6 x 5 rectangle
+;     CALL        FILL_CHRCOL_RECT                    ; Fill with spaces
+;     LD          A,COLOR(BLK,BLK)                    ; BLK on BLK
+;     LD          HL,COLRAM_VIEWPORT_IDX + (19 * 40) + 18 ; Row 20, Col 18 (lower-right COLRAM)
+;     LD          BC,RECT(6,5)                        ; 6 x 5 rectangle
+;     JP          FILL_CHRCOL_RECT                    ; Fill with black (tail call)
 
 ;==============================================================================
 ; WIPE_VARIABLE_SPACE
@@ -5032,3 +5033,109 @@ SWAP_BYTES_AT_HL_BC:
 WAIT_A_TICK:
     LD          BC,$8600                            ; Load BC with 134 sleep cycles (0x86 = 134)
     JP          SLEEP                               ; Jump to sleep routine: void SLEEP(short cycleCount)
+
+;==============================================================================
+; FIX_MELEE_GLITCH_BEGIN & END
+;==============================================================================
+; Fixes a visual glitch in the MONSTER's weapon animation where a remnant
+; of their weapon sprite gets drawn above the pack area. This copies the
+; CHRRAM and COLRAM data from those locations to a buffer, then restores them
+; after the routine is complete.
+;
+; Registers:
+; --- Start ---
+;   HL = Saved offset for monster weapon.
+; --- In Process ---
+;   HL = Screen address from which we are copying
+;   DE = Buffer address to which we are copying
+; ---  End  ---
+;   HL = Restored offset for monster weapon.
+;
+; Memory Modified: Screen memory at top of pack area
+; Calls: COPY_GFX_2_BUFFER, COPY_GFX_FROM_BUFFER
+;==============================================================================
+
+FIX_MELEE_GLITCH_BEGIN:
+    PUSH        HL                                  ; Save HL
+    LD          HL,CHRRAM_MELEE_GLITCH_A            ; Set CHRRAM_MELEE_GLITCH_A source location
+    LD          DE,MELEE_GLITCH_A_CHR_BUFF          ; Set MELEE_GLITCH_A_CHR_BUFF destination location
+    CALL        COPY_GFX_2_BUFFER                   ; Copy screen to buffer
+
+    LD          HL,CHRRAM_MELEE_GLITCH_B            ; Set CHRRAM_MELEE_GLITCH_B source location
+    LD          DE,MELEE_GLITCH_B_CHR_BUFF          ; Set MELEE_GLITCH_B_CHR_BUFF desitnation location
+    CALL        COPY_GFX_2_BUFFER                   ; Copy screen to buffer
+    POP         HL                                  ; Restore HL
+    RET                                             ; Done
+
+FIX_MELEE_GLITCH_END:
+    PUSH        HL                                  ; Save HL
+    LD          HL,MELEE_GLITCH_A_CHR_BUFF          ; Set MELEE_GLITCH_A_CHR_BUFF source location
+    LD          DE,CHRRAM_MELEE_GLITCH_A            ; Set CHRRAM_MELEE_GLITCH_A destination location
+    CALL        COPY_GFX_FROM_BUFFER                ; Copy buffer to screen
+
+    LD          HL,MELEE_GLITCH_B_CHR_BUFF          ; Set MELEE_GLITCH_B_CHR_BUFF source location
+    LD          DE,CHRRAM_MELEE_GLITCH_B            ; Set CHRRAM_MELEE_GLITCH_B destination location
+    CALL        COPY_GFX_FROM_BUFFER                ; Copy buffer to screen
+    POP         HL                                  ; Restore HL
+    RET                                             ; Done
+
+;==============================================================================
+; DO_TELEPORT - Teleport player to ladder location
+;==============================================================================
+; Debug feature that instantly teleports the player to the ladder position
+; stored in MAP_LADDER_OFFSET. Plays teleport sound effect and updates the
+; viewport to show the new location.
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   A = MAP_LADDER_OFFSET value (ladder position)
+; ---  End  ---
+;   A = Ladder position
+;   Other registers modified by PLAY_TELEPORT_SOUND and UPDATE_VIEWPORT
+;
+; Memory Modified: PLAYER_MAP_POS
+; Calls: PLAY_TELEPORT_SOUND, UPDATE_VIEWPORT
+;==============================================================================
+DO_TELEPORT:
+    LD          A,(GAME_BOOLEANS)                   ; Get game booleans
+    BIT         0x4,A                               ; Check Teleport flag
+    JP          Z,NO_ACTION_TAKEN                   ; Exit if Teleport isn't active
+    CALL        CLEAR_MONSTER_STATS                 ; Get out of combat.
+    LD          A,(MAP_LADDER_OFFSET)               ; A = ladder position on map
+    LD          (PLAYER_MAP_POS),A                  ; Set player position to ladder
+    CALL        PLAY_TELEPORT_SOUND                 ; Play descending tone sequence
+    JP          UPDATE_VIEWPORT                     ; Redraw view at new location
+
+ ;==============================================================================
+; REDRAW_STATS - Update player stats display panel
+;==============================================================================
+; Redraws the stats panel by updating icon colors and redrawing both physical
+; and spiritual health values in BCD format to their screen positions. Called
+; after any change to player stats (healing, damage, max stat changes, etc.).
+;
+; Registers:
+; --- Start ---
+;   None
+; --- In Process ---
+;   HL = PLAYER_PHYS_HEALTH, then PLAYER_SPRT_HEALTH
+;   DE = CHRRAM_PHYS_HEALTH_1000, then CHRRAM_SPRT_HEALTH_10
+;   B  = Byte count (2 for PHYS, 1 for SPRT)
+; ---  End  ---
+;   All registers modified by RECALC_AND_REDRAW_BCD
+;
+; Memory Modified: CHRRAM stats panel area
+; Calls: DRAW_ICON_BAR, RECALC_AND_REDRAW_BCD
+;==============================================================================
+REDRAW_STATS:
+    CALL        DRAW_ICON_BAR                       ; Update icon colors (Ring/Helmet/Armor)
+    LD          HL,PLAYER_PHYS_HEALTH               ; HL = physical health address
+    LD          DE,CHRRAM_PHYS_HEALTH_1000          ; DE = screen position for PHYS display
+    LD          B,0x2                               ; B = 2 bytes (16-bit BCD)
+    CALL        RECALC_AND_REDRAW_BCD               ; Draw physical health value
+    LD          HL,PLAYER_SPRT_HEALTH               ; HL = spiritual health address
+    LD          DE,CHRRAM_SPRT_HEALTH_10            ; DE = screen position for SPRT display
+    LD          B,0x1                               ; B = 1 byte (8-bit BCD)
+    JP          RECALC_AND_REDRAW_BCD               ; Draw spiritual health value and return
+
