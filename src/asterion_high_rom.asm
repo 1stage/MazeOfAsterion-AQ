@@ -3331,7 +3331,7 @@ KBD_LEVEL_SELECT_LOOP:
     CP          $fe                                 ; Compare to key 3 value ($FE)
     JP          Z,SET_DIFFICULTY_1                  ; If key 3, set difficulty 1
     CP          $df                                 ; Compare to key A value ($DF)
-    JP          Z,SHOW_AUTHOR                       ; If key A, show author credits
+    JP          Z,SHOW_CREDITS                      ; If key A, show credits
                                                     ; (must be held on title screen)
     LD          A,(KEY_INPUT_COL7)                  ; Load column 7 key data
     CP          $fe                                 ; Compare to key 2 value ($FE)

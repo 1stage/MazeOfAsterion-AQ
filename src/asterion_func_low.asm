@@ -3424,7 +3424,7 @@ RESET_SHIFT_MODE:
 ; --- In Process ---
 ;   HL = CHRRAM_AUTHORS_IDX
 ;   DE = AUTHORS text pointer
-;   B  = $20 (32 bytes length)
+;   B  = Color byte
 ;   A  = $FF
 ; ---  End  ---
 ;   Jumps to WAIT_FOR_INPUT
@@ -3432,10 +3432,10 @@ RESET_SHIFT_MODE:
 ; Memory Modified: CHRRAM author text area
 ; Calls: GFX_DRAW, WAIT_FOR_INPUT (jump)
 ;==============================================================================
-SHOW_AUTHOR:
-    LD          HL,CHRRAM_AUTHORS_IDX               ; Point to author text area
-    LD          DE,AUTHORS                          ; Authors text
-    LD          B,$20                               ; Set length to 32 bytes
+SHOW_CREDITS:
+    LD          HL,CHRRAM_CREDITS_IDX               ; Point to author text area
+    LD          DE,CREDITS                          ; Credits text
+    LD          B,COLOR(CYN,BLK)                    ; CYN on BLK
     CALL        GFX_DRAW                            ; Draw author text
     LD          A,$ff                               ; Load value 255
     JP          WAIT_FOR_INPUT                      ; Wait for input

@@ -948,9 +948,9 @@ POOF_6:
 ; AUTHORS
 ;   The Author's credits can be viewed on the TITLE SCREEN when the A (About) key is pressed on the keyboard.
 ;
-AUTHORS:
-    db          "     Based on Minotaur by Tom Loughry   ",$01
-    db          "  New GFX & routines by Sean Harrington ",$FF
+CREDITS:
+    db          "  New GFX & routines by Sean Harrington ",$01
+    db          "        ! FOR PLAY TESTING ONLY !       ",$FF  ; Must be EXACT width of upper line; pad with spaces!
 
 ; LEVEL_99_LOOP
 ;   The level 99 overflow text is shown when the player completes maze level 99 without killing the MINOTAUR. Their level is set back to 90, and they continue playing.
