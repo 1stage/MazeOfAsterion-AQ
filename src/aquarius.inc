@@ -1,3 +1,10 @@
+;==============================================================================
+; SCRAMBLECODE header notes (cartridge header at $E000-$E00F)
+;------------------------------------------------------------------------------
+; Seed bytes map to $E003,$E004,$E006,$E008,$E00A,$E00C,$E00E.
+; Scramble byte = (sum $E003-$E00E + 78) mod 256 XOR $E00F ($70).
+;==============================================================================
+
 ; Aquarius SYSROM Routines
 SLEEP_ZERO EQU $1d48        
 SLEEP EQU $1d4b        
@@ -52,3 +59,4 @@ NOCLR   EQU 0      ; No color / NULL
 #define TWOCOLOR(fga,bga,fgb,bgb) (((fga * 16) + bga) * 256) + (fgb * 16) + bgb
 
 #define RECT(width,height) (width * 256) + height
+

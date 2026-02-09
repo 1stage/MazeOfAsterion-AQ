@@ -13,6 +13,8 @@ $SourceFile = "src\asterion.asm"
 $BuildFolder = "build"
 $OutputBin = "asterion.bin"
 $OutputRom = "asterion.rom"
+$RomBaseAddress = 0xC000
+$ScrambleStartAddress = 0xE000
 
 # Get AQPLUS_EMU_DISK environment variable
 $AqplusEmuDisk = $env:AQPLUS_EMU_DISK
@@ -140,6 +142,66 @@ try {
     exit 1
 }
 
+# Preserve unencrypted output, then scramble build binary
+$BuildBinPath = Join-Path $BuildFolder $OutputBin
+$UnencryptedBinPath = Join-Path $BuildFolder "asterion_unencrypted.bin"
+
+Write-Status "Saving unencrypted copy: $UnencryptedBinPath" -Color $Yellow
+Copy-Item $BuildBinPath $UnencryptedBinPath -Force
+
+Write-Status "Calculating scramble byte..." -Color $Yellow
+$SeedFile = "src\asterion.inc"
+if (-not (Test-Path $SeedFile)) {
+    Write-Status "Seed file not found: $SeedFile" -Color $Red
+    exit 1
+}
+
+$SeedMap = @{}
+foreach ($Line in Get-Content $SeedFile) {
+    if ($Line -match "SCRAMBLE_SEED_(\d)\s+EQU\s+'(.)'") {
+        $SeedMap[[int]$Matches[1]] = [byte][char]$Matches[2]
+    }
+}
+
+$MissingSeeds = 0..6 | Where-Object { -not $SeedMap.ContainsKey($_) }
+if ($MissingSeeds.Count -gt 0) {
+    Write-Status "Missing SCRAMBLE_SEED bytes: $($MissingSeeds -join ', ')" -Color $Red
+    exit 1
+}
+
+$SeedBytes = 0..6 | ForEach-Object { $SeedMap[$_] }
+$SeedText = -join ($SeedBytes | ForEach-Object { [char]$_ })
+$SeedSum = ($SeedBytes | Measure-Object -Sum).Sum
+$ConstSum = 0x9c + 0xb0 + 0x6c + 0x64 + 0xa8
+$SumE003E00E = $SeedSum + $ConstSum
+$Remainder = ($SumE003E00E + 78) % 256
+$ScrambleByte = [byte]($Remainder -bxor 0x70)
+
+Write-Status ("Scramble byte = 0x{0:X2}" -f $ScrambleByte) -Color $Cyan
+Write-Status "Encrypting $BuildBinPath with XOR scramble byte..." -Color $Yellow
+
+$BinContent = [System.IO.File]::ReadAllBytes($BuildBinPath)
+$HeaderOffset = $ScrambleStartAddress - $RomBaseAddress
+$HeaderSize = 0x10
+if ($ScrambleByte -ne 0) {
+    if ($HeaderOffset -ge $BinContent.Length) {
+        Write-Status ("Header offset 0x{0:X4} exceeds binary size; skipping encryption." -f $HeaderOffset) -Color $Yellow
+    } else {
+        for ($i = 0; $i -lt $BinContent.Length; $i++) {
+            if ($i -ge $HeaderOffset -and $i -lt ($HeaderOffset + $HeaderSize)) {
+                continue
+            }
+            $BinContent[$i] = $BinContent[$i] -bxor $ScrambleByte
+        }
+        [System.IO.File]::WriteAllBytes($BuildBinPath, $BinContent)
+        Write-Status "Encryption complete (payload updated)." -Color $Green
+    }
+    Write-Status ("ROM file is encrypted with code 0x{0:X2}" -f $ScrambleByte) -Color "Magenta"
+} else {
+    Write-Status "Scramble byte is $00; encryption skipped (no-op)." -Color $Green
+    Write-Status "ROM file is unencrypted" -Color "White"
+}
+
 # Clean previous build if requested
 if ($Clean) {
     Write-Status "Cleaning previous build files..." -Color $Yellow
@@ -149,7 +211,7 @@ if ($Clean) {
     }
 }
 
-# Get file size
+# Get file size (encrypted output)
 $FileInfo = Get-Item (Join-Path $BuildFolder $OutputBin)
 $FileSizeKB = [math]::Round($FileInfo.Length / 1024, 2)
 Write-Status "Generated $OutputBin ($($FileInfo.Length) bytes / ${FileSizeKB}KB)" -Color $Green
@@ -210,6 +272,13 @@ Write-Status "Build Summary:" -Color $Cyan
 Write-Status "  Source: $SourceFile" -Color "White"
 Write-Status "  Output: $BuildFolder\$OutputBin" -Color "White"
 Write-Status "  Size: $($FileInfo.Length) bytes (${FileSizeKB}KB)" -Color "White"
+if ($ScrambleByte -ne 0) {
+    Write-Status "  Seed: $SeedText" -Color "Magenta"
+    Write-Status ("  Scramble byte: 0x{0:X2}" -f $ScrambleByte) -Color "Magenta"
+    Write-Status ("  ROM file is Encrypted (0x{0:X2})" -f $ScrambleByte) -Color "Magenta"
+} else {
+    Write-Status "  ROM file is Unencrypted" -Color "Cyan"
+}
 
 if (Test-Path (Join-Path $BuildFolder "asterion64.bin")) {
     $Rom64Info = Get-Item (Join-Path $BuildFolder "asterion64.bin")
