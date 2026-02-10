@@ -2995,17 +2995,6 @@ DO_HC_SHIFT_ACTIONS:
     ; JP          Z,DO_REST                           ; Rest if matched
     CP          H                                   ; Check H register
     JP          Z,DO_REST                           ; Rest if matched
-; Chorded HC commands using K4/Shift
-    LD          A,$cc                               ; Compare to K4 + DR chord
-    ; CP          L                                   ; Check L register
-    ; JP          Z,MAX_HEALTH_ARROWS_FOOD            ; Max stats if matched
-    CP          H                                   ; Check H register
-    JP          Z,MAX_HEALTH_ARROWS_FOOD            ; Max stats if matched
-    LD          A,$c6                               ; Compare to K4 + DL chord
-    ; CP          L                                   ; Check L register
-    ; JP          Z,DO_TELEPORT                       ; Teleport if matched
-    CP          H                                   ; Check H register
-    JP          Z,DO_TELEPORT                       ; Teleport if matched
     JP          NO_ACTION_TAKEN                     ; No action matched
 
 ;==============================================================================
@@ -5102,6 +5091,7 @@ DO_TELEPORT:
     LD          A,(GAME_BOOLEANS)                   ; Get game booleans
     BIT         0x4,A                               ; Check Teleport flag
     JP          Z,NO_ACTION_TAKEN                   ; Exit if Teleport isn't active
+DO_TELEPORT_NO_CHECK:
     CALL        CLEAR_MONSTER_STATS                 ; Get out of combat.
     LD          A,(MAP_LADDER_OFFSET)               ; A = ladder position on map
     LD          (PLAYER_MAP_POS),A                  ; Set player position to ladder

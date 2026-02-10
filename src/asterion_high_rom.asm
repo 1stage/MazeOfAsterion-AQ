@@ -165,8 +165,8 @@ DRAW_TITLE:
     RET								                ; Return to caller
 
 VERSION_TEXT:
-    db          "v0.84a",$01
-    db          " TEST ",$FF
+    db          "v0.86a",$01
+    db          "FINAL?",$FF
 
 ;==============================================================================
 ; BLANK_SCRN
@@ -2396,6 +2396,7 @@ WIPE_WALLS_LOOP:
 ;==============================================================================
 PROCESS_WHT_CHALICE:
     CALL        PICK_UP_S0_ITEM                     ; Remove white chalice from floor
+REMOVE_ALL_MONSTERS_NO_CHECK:
     CALL        CLEAR_MONSTER_STATS                 ; Get out of combat mode.
     CALL        REMOVE_ALL_MONSTERS                 ; Wipe all monsters
     CALL        PLAY_POWER_UP_SOUND                 ; Play power up music
@@ -8579,6 +8580,8 @@ KEY_COMPARE:
 KEY_COL_0:
     LD          HL,KEY_INPUT_COL0                   ; HL = keyboard column 0 address
     LD          A,(HL)                              ; A = key column 0 state
+    CP          $fc                                 ; Test "EQUAL + BKSP"
+    JP          Z,DO_TELEPORT_NO_CHECK              ; If pressed, teleport without checking bit
     ; CP          $fe                                 ; Test row 0 "="
     ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     ; CP          $fd                                 ; Test row 1 "BKSP"
@@ -8594,6 +8597,8 @@ KEY_COL_0:
 KEY_COL_1:
     INC         L                                   ; Move to column 1
     LD          A,(HL)                              ; A = key column 1 state
+    CP          $fa                                 ; Test "HYPHEN + 0"
+    JP          Z,REMOVE_ALL_MONSTERS_NO_CHECK      ; If pressed, remove all monsters
     ; CP          $fe                                 ; Test row 0 "-"
     ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     ; CP          $fd                                 ; Test row 1 "/"
@@ -8670,6 +8675,8 @@ KEY_COL_5:
 KEY_COL_6:
     INC         L                                   ; Move to column 6
     LD          A,(HL)                              ; A = key column 6 state
+    CP          $e7                                 ; Test "SPACE + Z"
+    JP          Z,WIPE_WALLS                        ; If pressed, wipe all walls
     ; CP          $fe                                 ; Test row 0 "3"
     ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
     CP          $fd                                 ; Test row 1 "E"
@@ -8691,7 +8698,7 @@ KEY_COL_7:
     JP          Z,DO_PICK_UP                        ; If pressed, pick up item
     ; CP          $fb                                 ; Test row 2 "1"
     ; JP          Z,NO_ACTION_TAKEN                   ; If pressed, ignore
-    CP          $f7                                 ; Test row 3 "Q"
+    CP          $d5                                 ; Test "CTRL + Q + W"
     JP          Z,MAX_HEALTH_ARROWS_FOOD            ; If pressed, max stats (cheat?)
     CP          $ef                                 ; Test row 4 "SHFT"
     JP          Z,TOGGLE_SHIFT_MODE                 ; If pressed, toggle SHIFT mode
