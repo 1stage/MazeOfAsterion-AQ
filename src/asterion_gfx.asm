@@ -945,8 +945,8 @@ POOF_6:
     db          "    ",$01
     db          "    ",$FF
 
-; AUTHORS
-;   The Author's credits can be viewed on the TITLE SCREEN when the A (About) key is pressed on the keyboard.
+; CREDITS
+;   The credits can be viewed on the TITLE SCREEN when the A (About) key is pressed on the keyboard.
 ;
 CREDITS:
     db          "  New GFX & routines by Sean Harrington ",$01
