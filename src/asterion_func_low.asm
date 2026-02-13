@@ -3039,7 +3039,8 @@ DRAW_BKGD:
     CALL        FILL_CHRCOL_RECT                    ; Fill center floor with spaces
     LD          BC,RECT(24,8)                       ; Set B=24 (width), C=8 (rows of ceiling)
     LD          HL,COLRAM_VIEWPORT_IDX              ; Set COLRAM starting point at the beginning of the VIEWPORT
-    LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (upper ceiling)
+    ; LD          A,COLOR(DKGRY,BLK)                  ; DKGRY on BLK (upper ceiling)
+    LD          A,COLOR(GRY,BLK)                    ; GRY on BLK (upper ceiling)
     CALL        DRAW_CHRCOLS                        ; Fill upper ceiling rows
     LD          C,0x6                               ; 6 more rows of ceiling
     ADD         HL,DE                               ; Move to next row
@@ -3065,7 +3066,6 @@ DRAW_BKGD:
     CP          0x0                                 ; Check if sprite exists
     JP          Z,NOT_IN_BATTLE                     ; If no sprite, not in battle
     CALL        REDRAW_MONSTER_HEALTH               ; Redraw monster health bar
-    RET                                             ; Return to caller
 NOT_IN_BATTLE:
     RET                                             ; Return to caller
 
@@ -3350,7 +3350,9 @@ MONSTER_KILLED:
 TOGGLE_SHIFT_MODE:
     LD          A,(GAME_BOOLEANS)                   ; Load game boolean flags
     BIT         0x1,A                               ; NZ if SHIFT MODE active
-    JP          NZ,RESET_SHIFT_MODE                 ; If set, reset shift mode
+    JP          Z,SET_SHIFT_MODE                    ; If not set, set shift mode
+    CALL        RESET_SHIFT_MODE                    ; Otherwise, reset shift mode
+    JP          INPUT_DEBOUNCE                      ; Debounce input
 
 ;==============================================================================
 ; SET_SHIFT_MODE - (Fall-through from above routine)
@@ -3399,7 +3401,7 @@ RESET_SHIFT_MODE:
     LD          (GAME_BOOLEANS),A                   ; Store updated flags
     LD          A,$f0                               ; WHT on BLK (normal indicator)
     LD          (COLRAM_SHIFT_MODE_IDX),A           ; Update shift mode color
-    JP          INPUT_DEBOUNCE                      ; Debounce input
+    RET                                             ; Return
 
 ;==============================================================================
 ; SHOW_AUTHOR
@@ -4159,6 +4161,7 @@ DISABLE_HC:
     IN          A,(C)                               ; Read hand controller input again
     INC         A                                   ; Test for $FF (no input)
     JP          NZ,READ_KEY                         ; If input detected, keep waiting
+    CALL        RESET_SHIFT_MODE                    ; Otherwise, reset shift mode
     JP          UPDATE_VIEWPORT                     ; Close map and return to normal viewport
 
 DRAW_RED_MAP_LEGEND:

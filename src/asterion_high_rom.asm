@@ -165,8 +165,8 @@ DRAW_TITLE:
     RET								                ; Return to caller
 
 VERSION_TEXT:
-    db          "v0.86a",$01
-    db          "FINAL?",$FF
+    db          "v0.88a",$01
+    db          "FC-02 ",$FF
 
 ;==============================================================================
 ; BLANK_SCRN
@@ -1105,10 +1105,9 @@ ITEM_USED_UP:
 CLEAR_MONSTER_STATS:
     XOR         A                                   ; A=0
     LD          (COMBAT_BUSY_FLAG),A                ; Clear combat busy flag
-    LD          BC,RECT(14,2)                       ; 14 x 2 rectangle
+    LD          BC,RECT(14,3)                       ; 14 x 3 rectangle
     LD          HL,CHRRAM_MONSTER_STATS_IDX         ; HL = Monster stats CHRRAM
     LD          A,$20                               ; A = fill color/code
-    ; JP          FILL_CHRCOL_RECT                    ; Fill screen region to clear stats
     CALL        FILL_CHRCOL_RECT                    ; Fill screen region to clear stats
     RET
 ;==============================================================================
@@ -1576,6 +1575,7 @@ BOOST_MIN_DAMAGE:
 ;        COPY_GFX_FROM_BUFFER, NEW_RIGHT_HAND_ITEM, GET_ITEM_SHIELD_BONUS, UPDATE_SHIELD_STATS
 ;==============================================================================
 DO_SWAP_HANDS:
+    CALL        RESET_SHIFT_MODE                    ; Reset shift mode
     LD          HL,RIGHT_HAND_ITEM                  ; HL points to right-hand item code
     LD          BC,LEFT_HAND_ITEM                   ; BC points to left-hand item code
     CALL        SWAP_BYTES_AT_HL_BC                 ; Swap the two item codes
@@ -5022,6 +5022,7 @@ DO_USE_SPRT_POTION:
 ;==============================================================================
 
 USE_KEY:
+    CALL        RESET_SHIFT_MODE                    ; Reset shift mode
     LD          A,(GAME_BOOLEANS)                   ; Load game state flags
     BIT         0x3,A                               ; Check bit 3 (key owned flag)
     JP          Z,NO_ACTION_TAKEN                   ; If not owned, exit without action
@@ -5841,7 +5842,7 @@ CHK_FOR_MINOTAUR:
     LD          H,0x0                               ; H = 0
     CALL        RECALC_PHYS_HEALTH                  ; Add phys/2 + sprt health
     EXX                                             ; Switch back to main registers
-    JP          NC,MINOTAUR_MERCY_SPRITE            ; If player would die, use easier sprite
+    JP          NC,MINOTAUR_MERCY_SPRITE            ; If player would die, use easier weapon
     LD          A,MINOTAUR_WEAPON_SPRT              ; Player survives: harder weapon
 MINOTAUR_SET_SPRITE:
     ADD         A,B                                 ; Add level for sprite index
@@ -5876,8 +5877,7 @@ INIT_MN_MELEE_ANIM:
     LD          (MONSTER_ANIM_STATE),A              ; Store animation state
     LD          HL,$206                             ; HL = $206 (position count)
     LD          (MONSTER_ANIM_LOOP_COUNT),HL        ; Store position count
-;    LD          HL,CHRRAM_MONSTER_WEAPON_GFX_IDX    ; HL = CHRRAM_MONSTER_WEAPON_GFX_IDX
-    LD          HL,CHRRAM_VP_MN_WEAPON_START_IDX    ; Point to new monster graphics area **** CHANGE ME ****
+    LD          HL,CHRRAM_VP_MN_WEAPON_START_IDX    ; Point to new monster graphics area
     LD          (MONSTER_WEAPON_CHRRAM_PTR),HL      ; Store position offset
     LD          A,L                                 ; A = low byte ($EA)
     LD          (MONSTER_MELEE_STATE),A             ; Store to MONSTER_MELEE_STATE
@@ -5885,6 +5885,38 @@ INIT_MN_MELEE_ANIM:
     JP          WAIT_FOR_INPUT                      ; Return to input wait
 
 REDRAW_MONSTER_HEALTH:
+; New colorization routine
+    LD          HL,CHRRAM_MONSTER_PHYS+1024         ; Set color starting point
+    LD          A,COLOR(RED,BLK)                    ; RED on BLK
+    LD          (HL),A                              ; Colorize PHYS health 1xxx_P
+    INC         HL                                  ; Move ahead 1
+    LD          (HL),A                              ; Colorize PHYS health x1xx_P
+    INC         HL                                  ; Move ahead 1
+    LD          (HL),A                              ; Colorize PHYS health xx1x_P
+    INC         HL                                  ; Move ahead 1
+    LD          (HL),A                              ; Colorize PHYS health xxx1_P
+    INC         HL                                  ; Move ahead 1
+    INC         HL                                  ; Move ahead 1
+    LD          (HL),A                              ; Colorize PHYS health xxxx_P
+
+    LD          HL,CHRRAM_MONSTER_SPRT+1024         ; Set color starting point
+    LD          A,COLOR(BLU,BLK)                    ; BLU on BLK
+    LD          (HL),A                              ; Colorize SPRT health 1x_S
+    INC         HL                                  ; Move ahead 1
+    LD          (HL),A                              ; Colorize SPRT health x1_S
+    INC         HL                                  ; Move ahead 1
+    INC         HL                                  ; Move ahead 1
+    LD          (HL),A                              ; Colorize SPRT health xx_S
+
+; New icons next to monster health
+    LD          HL,CHRRAM_MONSTER_PHYS+5            ; Set char starting point
+    LD          A,155                               ; Arrow/jet left char
+    LD          (HL),A                              ; Write the char
+
+    LD          HL,CHRRAM_MONSTER_SPRT+3            ; Set char starting point
+    LD          A,208                               ; Dots char
+    LD          (HL),A                              ; Write the char
+
     LD          DE,CHRRAM_MONSTER_PHYS              ; Point to monster physical health display
     LD          HL,CURR_MONSTER_PHYS                ; Point to current monster physical HP
     LD          B,0x2                               ; 2 bytes (BCD format)
@@ -6029,7 +6061,8 @@ DO_USE_LADDER:
     CALL        BUILD_MAP                           ; Generate new dungeon level
     CALL        PLAY_PITCH_DOWN_MED                 ; Call pitch-down routine
     CALL        INC_DUNGEON_LEVEL                   ; Update dungeon level display
-    JP          RESET_SHIFT_MODE                    ; Reset shift mode and return
+    CALL        RESET_SHIFT_MODE                    ; Reset shift mode
+    JP          INPUT_DEBOUNCE                      ; return
 
 ;==============================================================================
 ; RESET_MAP - Clear map and teleport ownership when descending to new level
@@ -8498,6 +8531,7 @@ DO_REST:
     LD          A,(COMBAT_BUSY_FLAG)                ; Load combat busy flag
     AND         A                                   ; Test if zero
     JP          NZ,NO_ACTION_TAKEN                  ; If in combat, can't rest
+    CALL        RESET_SHIFT_MODE                    ; Otherwise, reset shift mode
 CHK_NEEDS_HEALING:
     LD          HL,(PLAYER_PHYS_HEALTH_MAX)         ; HL = max physical health
     LD          DE,(PLAYER_PHYS_HEALTH)             ; DE = current physical health
