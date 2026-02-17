@@ -949,8 +949,8 @@ POOF_6:
 ;   The credits can be viewed on the TITLE SCREEN when the A (About) key is pressed on the keyboard.
 ;
 CREDITS:
-    db          "  New GFX & routines by Sean Harrington ",$01
-    db          "        FINAL RELEASE CANDIDATE 02      ",$FF  ; Must be EXACT width of upper line; pad with spaces!
+    db          " Original Game by T.Loughry and T.Lohff ",$01  ; 
+    db          "  New GFX & routines by Sean Harrington ",$FF  ; 
 
 ; LEVEL_99_LOOP
 ;   The level 99 overflow text is shown when the player completes maze level 99 without killing the MINOTAUR. Their level is set back to 90, and they continue playing.

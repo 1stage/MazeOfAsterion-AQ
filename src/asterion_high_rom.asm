@@ -165,8 +165,8 @@ DRAW_TITLE:
     RET								                ; Return to caller
 
 VERSION_TEXT:
-    db          "v0.88a",$01
-    db          "FC-02 ",$FF
+    db          " v1.0 ",$01
+    db          "2026-B",$FF
 
 ;==============================================================================
 ; BLANK_SCRN
