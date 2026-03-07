@@ -428,3 +428,6 @@ build/
 # Assembly temporary files
 *.tmp
 *.bak
+
+# Local custom ROM workspace (never commit)
+custom-roms/
